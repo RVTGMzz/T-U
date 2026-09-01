@@ -5,7 +5,9 @@ namespace Ronvotri.TeamUp;
 
 public sealed class ModConfig
 {
-    public KeybindList DialogueInviteKey { get; set; } = new(
+    // One action for the core party loop:
+    // not recruited -> Join, Following -> Stand Here, Waiting/Inactive -> Follow Again.
+    public KeybindList PartyActionKey { get; set; } = new(
         new Keybind(SButton.E),
         new Keybind(SButton.ControllerRightShoulder));
 
