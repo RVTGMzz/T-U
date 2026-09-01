@@ -4,6 +4,14 @@
 
 > Build an RPG-style party from Stardew Valley NPCs, bring pets and creature companions, assign combat roles, share loot, and take the team into monster-heavy content.
 
+## Current development checkpoint
+
+Current source line: **`v0.1.0-alpha.5` - Party Identity & Codex**.
+
+If you are resuming development in a new chat/session, **read [`CONTINUE_HERE.md`](CONTINUE_HERE.md) first**. It records the locked recruitment/management UX, Party Vault architecture, role/Codex work, historical regressions to avoid, validation state, and the next combat milestone.
+
+For what is actually present in source vs future design, see [`docs/V0_1_IMPLEMENTATION_STATUS.md`](docs/V0_1_IMPLEMENTATION_STATUS.md).
+
 ## Project direction
 
 Team Up! is an independently developed companion-combat mod focused on **party building, tactical roles, pets/creatures, shared storage, and MMORPG-inspired combat systems**.
