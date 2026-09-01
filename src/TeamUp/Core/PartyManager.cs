@@ -79,6 +79,7 @@ public sealed class PartyManager
             RecruiterId = recruiterId,
             IsPet = false,
             Role = PartyRole.Unassigned,
+            Engagement = EngagementStyle.Balanced,
             State = PartyMemberState.Following
         });
 
@@ -174,6 +175,16 @@ public sealed class PartyManager
             return false;
 
         member.State = state;
+        return true;
+    }
+
+    public bool SetEngagementStyle(string characterName, long recruiterId, EngagementStyle engagement)
+    {
+        PartyMemberData? member = Get(characterName, recruiterId);
+        if (member is null)
+            return false;
+
+        member.Engagement = engagement;
         return true;
     }
 
@@ -310,7 +321,7 @@ public sealed class PartyManager
     {
         return new PartySaveData
         {
-            SchemaVersion = 2,
+            SchemaVersion = 3,
             Members = _members
                 .Select(member => new PartyMemberData
                 {
@@ -319,6 +330,7 @@ public sealed class PartyManager
                     IsPet = false,
                     LinkedCompanionUnitId = member.LinkedCompanionUnitId,
                     Role = member.Role,
+                    Engagement = member.Engagement,
                     State = member.State
                 })
                 .ToList(),
