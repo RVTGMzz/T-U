@@ -1,39 +1,28 @@
-TEAM UP! v0.1.0-alpha.3 - SMOKE TEST
-====================================
+TEAM UP! v0.1.0-alpha.3.3 - SMOKE TEST
+=====================================
 
 MUC TIEU BAN NAY
-- Test Party Core doc lap.
-- Chua co Party Panel, Party Vault UI, combat roles hay Pokemon adapter.
-- Phim tam thoi: R.
+- Mot nut duy nhat cho Join / Stand / Follow Again.
+- Keyboard: E.
+- Controller: R / Right Shoulder (RB tren Xbox-style controller).
+- Hint hien SAT PHIA TREN khung dialogue NPC.
+- Follower bam nhanh hon va cap nhat target thuong xuyen hon.
+- Qua ngay moi: NPC KHONG tiep tuc follow tu dong. Roster van duoc nho.
 
-CAI DAT
-1. Build bang BUILD_TEAM_UP.bat.
-2. Lay file release\TeamUp_v0.1.0-alpha.3_SMOKE_TEST.zip.
-3. Giai nen vao Stardew Valley\Mods.
-4. Bao dam chi co 1 ban Team Up! UniqueID Ronvotri.TeamUp.
-5. Chay game qua SMAPI.
-
-TEST THEO THU TU
-[ ] 1. Load save. SMAPI phai bao Team Up alpha.3 loaded, khong co error do.
-[ ] 2. Dung sat va quay mat vao 1 NPC. Bam R. NPC gia nhap party.
-[ ] 3. Di chuyen. NPC follow player.
-[ ] 4. Bam R vao NPC dang follow. NPC Wait Here.
-[ ] 5. Bam R lai. NPC Resume.
-[ ] 6. Qua mot map khac. NPC bat kip player va khong bi duplicate.
-[ ] 7. Them 4 NPC mac dinh. NPC thu 5 phai bi bao Main Party full.
-[ ] 8. Thu moi pet chinh cua player. Pet phai duoc ghi la companion va KHONG chiem slot Main Party.
-[ ] 9. Save game, thoat ve title/menu, load lai. Party state phai duoc doc lai.
-[ ] 10. Ket thuc ngay. NPC/companion phai duoc release ve vanilla, khong khoa game.
-
-LUU Y ALPHA.3
-- Linked Companion/Pokemon moi chi co DATA MODEL. Chua tu dong nhan Pokemon cua NPC tu Pelipper Town.
-- Chua co Leave Party menu. Se lam o alpha.4.
-- Chua co Party Vault. Se lam sau khi alpha.3 smoke test pass.
-- Chua co combat.
+TEST
+[ ] 1. Mo dialogue voi NPC chua vao team. Phia tren khung chat co: R (Controller) / E Join Party.
+[ ] 2. Bam E hoac R controller. NPC join party.
+[ ] 3. Dong dialogue va chay. NPC phai bam sat hon ban, khong le the sau qua lau.
+[ ] 4. Quay mat vao follower, KHONG can mo menu. Bam E/R -> Stand Here.
+[ ] 5. Quay mat vao NPC dang Stand. Bam E/R -> Follow Again.
+[ ] 6. Mo dialogue khi NPC dang Following: hint phai doi thanh Stand Here.
+[ ] 7. Mo dialogue khi NPC dang Waiting/Inactive: hint phai doi thanh Follow Again.
+[ ] 8. Qua map khac. NPC bat kip, khong duplicate.
+[ ] 9. Ngu qua dem. Sang hom sau NPC KHONG duoc tu dong theo ban.
+[ ] 10. Sang hom sau gap lai NPC trong roster, bam E/R -> Follow Again.
+[ ] 11. Main Party van mac dinh 4, config toi da 6.
+[ ] 12. Main pet/Linked Companion van khong an slot Main Party.
 
 NEU LOI
-Gui:
-1. SMAPI-latest.txt
-2. BUILD_LOG.txt neu build fail
-3. Mo ta buoc nao trong checklist bi fail
-4. Anh/video neu loi lien quan vi tri follower
+- Ingame/runtime: gui SMAPI-latest.txt + anh/video + buoc fail.
+- Build: gui BUILD_LOG.txt.
