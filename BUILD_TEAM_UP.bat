@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ===============================================
-echo   Team Up! v0.1.0-alpha.4 - ONE CLICK BUILD
+echo   Team Up! v0.1.0-alpha.5 - ONE CLICK BUILD
 echo ===============================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildAlpha4.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildAlpha5.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
