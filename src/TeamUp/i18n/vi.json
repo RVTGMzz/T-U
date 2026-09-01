@@ -9,8 +9,8 @@
   "hint.join": "R (Controller) / E  Mời vào Party",
   "hint.recommended": "Khuyên dùng: {{primary}} / {{secondary}}",
 
-  "recruit.question": "Mời {{name}} gia nhập Team Up?",
-  "recruit.invite": "Mời vào Party",
+  "recruit.question": "Bạn muốn thu nạp {{name}} vào Team Up?",
+  "recruit.invite": "Thu nạp vào Party",
 
   "member.title": "Team Up: {{name}} · {{role}}",
   "member.talk": "Nói chuyện",
