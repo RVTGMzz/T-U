@@ -1,19 +1,38 @@
 {
-  "party.no-target": "Hãy quay mặt về phía NPC hoặc thú cưng trước.",
-  "party.pet-disabled": "Companion thú cưng của người chơi đang bị tắt trong config.",
   "party.added": "{{name}} đã gia nhập party.",
   "party.already-member": "{{name}} đã ở trong party rồi.",
   "party.full": "Main Party đã đủ người (tối đa {{max}} thành viên).",
   "party.invalid": "Nhân vật này hiện chưa thể gia nhập party.",
   "party.wait": "{{name}} sẽ đứng chờ tại đây.",
   "party.resume": "{{name}} tiếp tục đi theo bạn.",
-  "companion.main-pet-added": "{{name}} đã gia nhập với tư cách companion chính. Không tốn slot Main Party.",
-  "companion.already-registered": "{{name}} đã được đăng ký làm companion rồi.",
-  "companion.wait": "{{name}} sẽ đứng chờ tại đây.",
-  "companion.resume": "{{name}} tiếp tục đi theo.",
-  "companion.deployed": "{{name}} đã được đưa vào trạng thái hoạt động.",
-  "companion.active-limit": "Đã đủ companion liên kết đang hoạt động (tối đa {{max}}).",
+
   "hint.join": "R (Controller) / E  Mời vào Party",
-  "hint.wait": "R (Controller) / E  Đứng tại đây",
-  "hint.resume": "R (Controller) / E  Đi theo lại"
+
+  "recruit.question": "Mời {{name}} gia nhập Team Up?",
+  "recruit.invite": "Mời vào Party",
+
+  "member.title": "Team Up: {{name}}",
+  "member.talk": "Nói chuyện",
+  "member.stand": "Đứng tại đây",
+  "member.follow": "Đi theo tôi",
+  "member.engagement": "Độ hung hăng: {{style}}",
+  "member.vault": "Kho chung Party",
+  "member.leave": "Rời Team",
+  "member.leave-question": "Cho {{name}} rời khỏi party?",
+  "member.leave-confirm": "Rời Team",
+  "member.left": "{{name}} đã rời party.",
+  "member.no-dialogue": "Hiện tại họ không còn lời thoại nào khác.",
+
+  "engagement.question": "Độ hung hăng của {{name}}\nHiện tại: {{style}}",
+  "engagement.passive": "Thụ động",
+  "engagement.cautious": "Thận trọng",
+  "engagement.balanced": "Cân bằng",
+  "engagement.aggressive": "Hung hăng",
+  "engagement.reckless": "Liều lĩnh",
+  "engagement.changed": "Độ hung hăng của {{name}} đã đổi thành {{style}}.",
+
+  "vault.alpha-notice": "Nút Kho chung Party đã được giữ chỗ trong menu. UI rương dùng chung thật sẽ được làm ở alpha.4.",
+
+  "common.cancel": "Hủy",
+  "common.close": "Đóng"
 }
