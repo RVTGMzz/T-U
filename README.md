@@ -2,27 +2,65 @@
 
 **Party & Combat Companions for Stardew Valley**
 
-> Build a real RPG-style party from Stardew Valley NPCs and pets, assign combat roles, share loot, and take your team into monster-heavy content.
+> Build an RPG-style party from Stardew Valley NPCs, bring pets and creature companions, assign combat roles, share loot, and take the team into monster-heavy content.
 
 ## Project direction
 
-Team Up! is an independently developed companion-combat mod focused on **party building, tactical roles, pets, shared storage, and MMORPG-inspired combat systems**.
+Team Up! is an independently developed companion-combat mod focused on **party building, tactical roles, pets/creatures, shared storage, and MMORPG-inspired combat systems**.
 
-The design goal is not simply to make NPCs follow the player. Each companion should have a meaningful place in the party, with strengths, preferred roles, combat behavior, skills, and later a codex/wiki that helps players build effective teams.
+The design goal is not simply to make NPCs follow the player. Each Party Member should have a meaningful place in the team, while pets and Pokemon-like creatures can join as separate Companion Units.
 
 ## Core pillars
 
-- **Party-based combat** with NPCs and pets.
-- **4 active companions by default**, configurable up to 6 where practical.
-- **Combat roles** such as Tank, DPS, Support, Healer, and Control.
-- **Role affinity** instead of hard class locking: NPCs can fill different jobs, but some roles suit them better.
-- **Party Vault / Team Chest** for shared loot and expedition supplies.
+- **Party-based combat** with NPC Party Members and creature companions.
+- **4 Main Party slots by default**, configurable up to 6.
+- **Companion Units do not consume Main Party slots.**
+- **Player main pet is a free special companion.**
+- **NPC Linked Companions** can travel and fight with their owner.
+- **2 active Linked Companions by default**, configurable from 0 to 6.
+- **Combat roles**: Tank, DPS, Support, Healer, and Control.
+- **Engagement Styles**: Passive, Cautious, Balanced, Aggressive, and Reckless.
+- **Role affinity** instead of hard class locking.
+- **Party Vault** for shared loot and expedition supplies.
 - **Threat / aggro gameplay** so Tank roles have real purpose.
-- **Combat strategies** for the whole party, such as Balanced, Defensive, Aggressive, Hold Position, and Boss Focus.
-- **Pet combat roles and abilities**, not cosmetic followers only.
+- **Combat strategies** such as Balanced, Defensive, Aggressive, Hold Position, and Boss Focus.
 - **Controller-first interaction**, with keyboard/mouse support and future mobile-friendly UI considerations.
-- **Party Codex / Wiki** showing recommended NPC roles, traits, affinities, skills, and suggested compositions.
-- **Integration-friendly architecture** so other Ronvotri mods can add bosses, dungeons, companions, pets, skills, loot, or encounter profiles later.
+- **Party Codex / Wiki** showing recommended roles, traits, affinities, linked companions, skills, and suggested compositions.
+- **Integration-friendly architecture** so other mods can register bosses, dungeons, companions, pets, creature profiles, skills, loot, or encounter metadata later.
+
+## Party slot model
+
+Team Up! separates the Main Party from Companion Units.
+
+### Main Party
+
+- Player does not count toward the limit.
+- Default: 4 NPC Party Members.
+- Maximum: 6 NPC Party Members.
+
+### Companion Units
+
+- Player main pet: free special companion.
+- Linked Companion: optional pet/Pokemon-like creature attached to a Party Member.
+- Linked Companions do not consume one of the 6 Main Party slots.
+- Default active Linked Companion limit: 2.
+- Configurable active Linked Companion limit: 0 to 6.
+- Extra registered companions can remain in Standby.
+
+Recommended default combat footprint:
+
+```text
+Player
+├─ Alex        Tank
+├─ Abigail     DPS / Control
+│  └─ Pikachu  Linked Companion
+├─ Emily       Support
+├─ Harvey      Healer
+├─ Dog         Player Main Pet
+└─ One optional additional active Linked Companion
+```
+
+An advanced configuration may eventually allow 6 Party Members + 6 Linked Companions + the player's main pet, but high-entity setups will be considered experimental due to pathfinding, screen readability, balance, and performance.
 
 ## Proposed party roles
 
@@ -34,7 +72,7 @@ The design goal is not simply to make NPCs follow the player. Each companion sho
 | Healer | Restore HP, shield allies, emergency recovery. |
 | Control | Stun, slow, root, knock back, interrupt, or manipulate enemy positioning. |
 
-NPCs should not be permanently class-locked. Instead, each companion can have an affinity profile, for example:
+NPCs should not be permanently class-locked. Instead, each Party Member can have an affinity profile, for example:
 
 - DPS ★★★★
 - Control ★★★
@@ -44,17 +82,47 @@ NPCs should not be permanently class-locked. Instead, each companion can have an
 
 The player can still build unusual teams, while the future Codex can recommend stronger combinations.
 
-## Example party
+## Engagement Style
 
-- **Alex** — Tank
-- **Abigail** — DPS / Control
-- **Emily** — Support
-- **Harvey** — Healer
-- **Pet** — Guard / Flex
+Role and aggression are separate concepts.
+
+Planned Engagement Styles:
+
+- **Passive**: never initiates combat unless forced to defend.
+- **Cautious**: short leash, stays near the party.
+- **Balanced**: normal targeting and chase behavior.
+- **Aggressive**: proactively acquires targets and chases farther.
+- **Reckless**: maximum pressure with reduced formation discipline.
+
+A Healer using Aggressive does not become a melee attacker. It means the Healer reacts earlier, moves closer to active combat, and uses their support role more proactively.
+
+Future AI layers include combat leash, retreat HP threshold, target priority, and threat modifiers.
+
+## Linked Companions
+
+A Party Member may have one linked creature in the initial design.
+
+When an integration identifies that an invited NPC owns a companion, Team Up! can later show a prompt such as:
+
+```text
+Invite Abigail to Team Up!?
+
+Pikachu can come too.
+
+> Abigail + Pikachu
+  Abigail only
+  Cancel
+```
+
+A Linked Companion follows its owner rather than competing for the same follow point behind the player. If the owner waits, resumes, retreats, or leaves the party, the linked creature should inherit the appropriate response.
+
+External creature mods should eventually integrate through a registration/resolver API rather than Team Up! hard-coding every creature implementation.
 
 ## Party Vault
 
-The shared storage system is part of the Team Up! identity and should support combat/exploration gameplay rather than simple follower inventory.
+**Party Vault is a permanent core Team Up! feature.**
+
+It is shared by the whole party rather than giving every NPC or pet a separate inventory.
 
 Planned uses include:
 
@@ -63,13 +131,16 @@ Planned uses include:
 - bombs and consumables;
 - companion equipment;
 - loot from supported dungeons or bosses;
+- integration items from supported mods;
 - configurable auto-loot rules later.
+
+Future companion consumable use will be opt-in so followers cannot unexpectedly consume valuable player items.
 
 ## Combat systems planned
 
 ### Threat / Aggro
 
-Tank behavior should be more than "high HP". Team Up! will aim for a threat model where taunts, role stance, damage, healing, and skills influence enemy targeting.
+Tank behavior should be more than "high HP". Team Up! will aim for a threat model where taunts, role stance, damage, healing, support actions, and skills influence enemy targeting.
 
 ### Strategy presets
 
@@ -83,103 +154,90 @@ Party-level tactical presets may include:
 
 ### Formations
 
-Travel and combat formations may differ. During combat, Tanks can advance, melee DPS can flank, ranged/support companions can maintain distance, and pets can follow their assigned behavior profile.
-
-### Companion identity
-
-Companions should eventually feel different through:
-
-- role affinities;
-- traits/passives;
-- skill priorities;
-- combat range;
-- retreat thresholds;
-- contextual behavior;
-- adventure/combat dialogue.
-
-## Pet direction
-
-Pets are a first-class system in Team Up!, not an afterthought.
-
-Potential pet archetypes:
-
-- Guard / Tank
-- Fast DPS
-- Support
-- Control
-
-Future integrations may allow external mods to register pet profiles and abilities through a Team Up! API.
+Travel and combat formations may differ. Tanks can advance, melee DPS can flank, ranged/support companions can maintain distance, and Linked Companions can anchor around their owner.
 
 ## Party Codex / Wiki
 
-A future in-game Codex will help players understand party building instead of forcing trial-and-error.
+A future in-game Codex will help players build teams instead of relying on trial-and-error.
 
 Planned information:
 
 - recommended role(s) for each NPC;
 - role affinity ratings;
+- Engagement Style recommendation;
 - traits/passives;
 - skills;
 - suggested teammates;
+- linked companion information;
 - combat tips;
 - compatibility notes;
-- pet role guidance.
+- pet/creature role guidance.
 
 ## Roadmap
 
-### v0.1 — Party Core
+### v0.1 - Party Core
 
-- Invite/recruit companions.
-- NPC and pet party members.
+- Invite/recruit NPC Party Members.
+- Player main pet as a free Companion Unit.
+- Linked Companion data model.
 - Follow, Wait, Resume, Leave Party.
 - Party UI.
 - Party Vault.
-- 4 active slots by default, configurable toward 6.
+- 4 Main Party slots by default, configurable to 6.
+- 2 active Linked Companions by default, configurable to 6.
 - Keyboard, mouse, and controller support.
 
-### v0.2 — Combat Roles
+### v0.2 - Combat Roles
 
 - Tank / DPS / Support / Healer / Control.
+- Engagement Style.
+- Combat leash and retreat thresholds.
+- Target priorities.
 - Threat and aggro.
 - Combat targeting.
 - Basic combat behavior profiles.
 
-### v0.3 — Skills
+### v0.3 - Skills
 
 - Active abilities.
 - Cooldowns.
 - Buffs and debuffs.
 - Healing and shielding.
 - Status/control effects.
+- Creature skills through supported integration profiles.
 
-### v0.4 — Party Builds
+### v0.4 - Party Builds
 
 - NPC affinities.
 - Traits/passives.
 - Equipment.
 - Formations.
 - Strategy presets.
+- Linked Companion deployment management.
 
-### v0.5 — Party Codex
+### v0.5 - Party Codex
 
 - NPC recommendations.
 - Party suggestions.
 - Skill encyclopedia.
-- Pet recommendations.
+- Companion Unit recommendations.
+- Owner/companion pairing information.
 - Compatibility information.
 
-### v0.6 — Integration API
+### v0.6 - Integration API
 
 Allow other mods to register or integrate:
 
 - bosses;
 - dungeons;
-- companions;
-- pets;
+- Party Members;
+- Companion Units;
+- pets/Pokemon-like creatures;
 - skills;
 - roles;
 - loot;
-- encounter profiles.
+- encounter profiles;
+- live-entity resolvers.
 
 ## Independent development / clean-room rule
 
@@ -198,11 +256,11 @@ Project rules:
 
 - **Display name:** Team Up!
 - **Repository:** `ronvotri/Team-Up`
-- **Suggested SMAPI UniqueID:** `Ronvotri.TeamUp`
+- **SMAPI UniqueID:** `Ronvotri.TeamUp`
 - **Working subtitle:** *Party & Combat Companions for Stardew Valley*
 
 ## Design compass
 
 > Don't ask only, "What work can this NPC do for the player?" Ask, **"What role does this companion play in the party?"**
 
-That question should guide Team Up! toward its own identity: an RPG-style party framework built for Stardew Valley combat, exploration, pets, and future mod integrations.
+That question should guide Team Up! toward its own identity: an RPG-style party framework built for Stardew Valley combat, exploration, pets, creature companions, shared loot, and future mod integrations.
