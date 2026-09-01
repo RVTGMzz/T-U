@@ -6,7 +6,10 @@ public sealed class PartyMemberData
 
     public long RecruiterId { get; set; }
 
+    // Legacy alpha save field. New pets/creatures are stored as CompanionUnitData instead.
     public bool IsPet { get; set; }
+
+    public string? LinkedCompanionUnitId { get; set; }
 
     public PartyRole Role { get; set; } = PartyRole.Unassigned;
 
