@@ -5,6 +5,7 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Characters;
+using StardewValley.Menus;
 
 namespace Ronvotri.TeamUp;
 
@@ -36,8 +37,9 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
+        helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1 alpha.3.2 dialogue-invite smoke test loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1 alpha.3.3 unified party-action smoke test loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -45,8 +47,14 @@ public sealed class ModEntry : Mod
         PartySaveData? saveData = Helper.Data.ReadSaveData<PartySaveData>(SaveDataKey);
         Party.Load(saveData);
 
+        // Stardew saves after sleeping, so loading a save should restore roster membership
+        // without automatically redeploying yesterday's followers.
+        long recruiterId = Game1.player.UniqueMultiplayerID;
+        Party.DeactivateForNewDay(recruiterId);
+        Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
+
         Monitor.Log(
-            $"Loaded {Party.Members.Count} Party Member(s) and {Party.CompanionUnits.Count} Companion Unit(s).",
+            $"Loaded {Party.Members.Count} Party Member(s) and {Party.CompanionUnits.Count} Companion Unit(s) as inactive roster entries.",
             LogLevel.Debug);
     }
 
@@ -60,10 +68,15 @@ public sealed class ModEntry : Mod
         if (!Context.IsWorldReady)
             return;
 
+        long recruiterId = Game1.player.UniqueMultiplayerID;
+
         Follow.ReleaseAll(
             Party.Members,
             Party.CompanionUnits,
-            Game1.player.UniqueMultiplayerID);
+            recruiterId);
+
+        Party.DeactivateForNewDay(recruiterId);
+        SavePartyNow();
     }
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
@@ -76,7 +89,9 @@ public sealed class ModEntry : Mod
         if (!Context.IsWorldReady || !Context.IsMainPlayer)
             return;
 
-        if (!e.IsMultipleOf(10))
+        // Four ticks keeps the destination fresh enough that followers don't visibly chase
+        // an old player position for several seconds.
+        if (!e.IsMultipleOf(4))
             return;
 
         Follow.Update(
@@ -90,28 +105,29 @@ public sealed class ModEntry : Mod
         if (!Context.IsWorldReady || !Context.IsMainPlayer)
             return;
 
-        if (!Config.InviteKey.JustPressed())
+        if (!Config.PartyActionKey.JustPressed())
             return;
 
-        // Dialogue normally makes Context.IsPlayerFree false. Recruitment must still be allowed
-        // when the player is actively talking to an NPC, so the current dialogue speaker is
-        // treated as a valid interaction target.
         bool hasDialogueSpeaker = Game1.dialogueUp && Game1.currentSpeaker is NPC;
         if (!Context.IsPlayerFree && !hasDialogueSpeaker)
             return;
 
-        HandleInviteOrFollowCommand();
-    }
-
-    private void HandleInviteOrFollowCommand()
-    {
         NPC? npc = FindInteractionNpc();
         if (npc is null)
         {
-            ShowHud(Helper.Translation.Get("party.no-target"), error: true);
+            if (Context.IsPlayerFree)
+                ShowHud(Helper.Translation.Get("party.no-target"), error: true);
             return;
         }
 
+        // E is also Stardew's normal action key. Once Team Up accepts the key for a valid
+        // NPC target, suppress the vanilla copy so one press doesn't also advance dialogue.
+        Helper.Input.Suppress(e.Button);
+        HandlePartyAction(npc);
+    }
+
+    private void HandlePartyAction(NPC npc)
+    {
         long recruiterId = Game1.player.UniqueMultiplayerID;
 
         PartyMemberData? existingMember = Party.Get(npc.Name, recruiterId);
@@ -139,10 +155,10 @@ public sealed class ModEntry : Mod
         switch (result)
         {
             case PartyAddResult.Added:
-                Follow.PrepareForParty(npc);
+                Follow.TakePartyControl(npc);
                 SavePartyNow();
-                ShowHud(Helper.Translation.Get("party.added", new { name = npc.Name }));
-                Monitor.Log($"Added {npc.Name} to Team Up! Main Party. DialogueUp={Game1.dialogueUp}.", LogLevel.Info);
+                ShowHud(Helper.Translation.Get("party.added", new { name = npc.displayName }));
+                Monitor.Log($"Added {npc.Name} to Team Up! Main Party.", LogLevel.Info);
                 break;
 
             case PartyAddResult.PartyFull:
@@ -150,7 +166,7 @@ public sealed class ModEntry : Mod
                 break;
 
             case PartyAddResult.AlreadyInParty:
-                ShowHud(Helper.Translation.Get("party.already-member", new { name = npc.Name }), error: true);
+                ShowHud(Helper.Translation.Get("party.already-member", new { name = npc.displayName }), error: true);
                 break;
 
             default:
@@ -161,17 +177,17 @@ public sealed class ModEntry : Mod
 
     private void TogglePartyMember(PartyMemberData member, NPC npc, long recruiterId)
     {
-        if (member.State == PartyMemberState.Waiting)
-        {
-            Party.SetState(npc.Name, recruiterId, PartyMemberState.Following);
-            Follow.PrepareForParty(npc);
-            ShowHud(Helper.Translation.Get("party.resume", new { name = npc.Name }));
-        }
-        else
+        if (member.State == PartyMemberState.Following)
         {
             Party.SetState(npc.Name, recruiterId, PartyMemberState.Waiting);
             Follow.HoldPosition(npc);
-            ShowHud(Helper.Translation.Get("party.wait", new { name = npc.Name }));
+            ShowHud(Helper.Translation.Get("party.wait", new { name = npc.displayName }));
+        }
+        else
+        {
+            Party.SetState(npc.Name, recruiterId, PartyMemberState.Following);
+            Follow.TakePartyControl(npc);
+            ShowHud(Helper.Translation.Get("party.resume", new { name = npc.displayName }));
         }
 
         SavePartyNow();
@@ -179,42 +195,27 @@ public sealed class ModEntry : Mod
 
     private void ToggleCompanion(CompanionUnitData unit, NPC npc, long recruiterId)
     {
-        if (unit.State == CompanionDeploymentState.Waiting)
-        {
-            if (Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Active))
-            {
-                Follow.PrepareForParty(npc);
-                ShowHud(Helper.Translation.Get("companion.resume", new { name = unit.DisplayName }));
-            }
-            else
-            {
-                ShowHud(
-                    Helper.Translation.Get("companion.active-limit", new { max = Config.MaxActiveLinkedCompanions }),
-                    error: true);
-            }
-        }
-        else if (unit.State == CompanionDeploymentState.Standby)
-        {
-            if (Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Active))
-            {
-                Follow.PrepareForParty(npc);
-                ShowHud(Helper.Translation.Get("companion.deployed", new { name = unit.DisplayName }));
-            }
-            else
-            {
-                ShowHud(
-                    Helper.Translation.Get("companion.active-limit", new { max = Config.MaxActiveLinkedCompanions }),
-                    error: true);
-            }
-        }
-        else
+        if (unit.State == CompanionDeploymentState.Active)
         {
             Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Waiting);
             Follow.HoldPosition(npc);
             ShowHud(Helper.Translation.Get("companion.wait", new { name = unit.DisplayName }));
+            SavePartyNow();
+            return;
         }
 
-        SavePartyNow();
+        if (Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Active))
+        {
+            Follow.TakePartyControl(npc);
+            ShowHud(Helper.Translation.Get("companion.resume", new { name = unit.DisplayName }));
+            SavePartyNow();
+        }
+        else
+        {
+            ShowHud(
+                Helper.Translation.Get("companion.active-limit", new { max = Config.MaxActiveLinkedCompanions }),
+                error: true);
+        }
     }
 
     private void AddPlayerMainPet(NPC pet, long recruiterId)
@@ -230,20 +231,65 @@ public sealed class ModEntry : Mod
         switch (result)
         {
             case CompanionAddResult.AddedActive:
-                Follow.PrepareForParty(pet);
+                Follow.TakePartyControl(pet);
                 SavePartyNow();
-                ShowHud(Helper.Translation.Get("companion.main-pet-added", new { name = pet.Name }));
+                ShowHud(Helper.Translation.Get("companion.main-pet-added", new { name = pet.displayName }));
                 Monitor.Log($"Added player main pet {pet.Name} as a free Companion Unit.", LogLevel.Info);
                 break;
 
             case CompanionAddResult.AlreadyRegistered:
-                ShowHud(Helper.Translation.Get("companion.already-registered", new { name = pet.Name }), error: true);
+                ShowHud(Helper.Translation.Get("companion.already-registered", new { name = pet.displayName }), error: true);
                 break;
 
             default:
                 ShowHud(Helper.Translation.Get("party.invalid"), error: true);
                 break;
         }
+    }
+
+    private void OnRenderedActiveMenu(object? sender, RenderedActiveMenuEventArgs e)
+    {
+        if (!Context.IsWorldReady
+            || Game1.activeClickableMenu is not DialogueBox dialogueBox
+            || Game1.currentSpeaker is not NPC speaker)
+        {
+            return;
+        }
+
+        string text = GetPartyActionHint(speaker);
+        Vector2 size = Game1.smallFont.MeasureString(text);
+
+        float x = dialogueBox.xPositionOnScreen + 28f;
+        float y = dialogueBox.yPositionOnScreen - size.Y - 6f;
+        x = Math.Clamp(x, 12f, Math.Max(12f, Game1.uiViewport.Width - size.X - 12f));
+        y = Math.Max(8f, y);
+
+        Vector2 position = new(x, y);
+        e.SpriteBatch.DrawString(Game1.smallFont, text, position + new Vector2(2f, 2f), Color.Black * 0.7f);
+        e.SpriteBatch.DrawString(Game1.smallFont, text, position, Color.White);
+    }
+
+    private string GetPartyActionHint(NPC npc)
+    {
+        long recruiterId = Game1.player.UniqueMultiplayerID;
+
+        PartyMemberData? member = Party.Get(npc.Name, recruiterId);
+        if (member is not null)
+        {
+            return member.State == PartyMemberState.Following
+                ? Helper.Translation.Get("hint.wait")
+                : Helper.Translation.Get("hint.resume");
+        }
+
+        CompanionUnitData? companion = Party.GetCompanionByCharacter(npc.Name, recruiterId);
+        if (companion is not null)
+        {
+            return companion.State == CompanionDeploymentState.Active
+                ? Helper.Translation.Get("hint.wait")
+                : Helper.Translation.Get("hint.resume");
+        }
+
+        return Helper.Translation.Get("hint.join");
     }
 
     private void SavePartyNow()
@@ -266,7 +312,7 @@ public sealed class ModEntry : Mod
         return Game1.currentLocation.characters
             .OfType<NPC>()
             .OrderBy(npc => Vector2.DistanceSquared(npc.Tile, targetTile))
-            .FirstOrDefault(npc => Vector2.DistanceSquared(npc.Tile, targetTile) <= 0.36f);
+            .FirstOrDefault(npc => Vector2.DistanceSquared(npc.Tile, targetTile) <= 1f);
     }
 
     private static void ShowHud(string message, bool error = false)
