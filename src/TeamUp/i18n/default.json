@@ -5,12 +5,15 @@
   "party.already-member": "{{name}} is already in your party.",
   "party.full": "Your Main Party is full ({{max}} members).",
   "party.invalid": "That character can't join the party yet.",
-  "party.wait": "{{name}} will wait here.",
+  "party.wait": "{{name}} will stand here.",
   "party.resume": "{{name}} is following you again.",
   "companion.main-pet-added": "{{name}} joined as your main companion. This does not use a Main Party slot.",
   "companion.already-registered": "{{name}} is already registered as a companion.",
-  "companion.wait": "{{name}} will wait here.",
+  "companion.wait": "{{name}} will stand here.",
   "companion.resume": "{{name}} is following again.",
   "companion.deployed": "{{name}} is now active.",
-  "companion.active-limit": "Active linked companions are full ({{max}})."
+  "companion.active-limit": "Active linked companions are full ({{max}}).",
+  "hint.join": "R (Controller) / E  Join Party",
+  "hint.wait": "R (Controller) / E  Stand Here",
+  "hint.resume": "R (Controller) / E  Follow Again"
 }
