@@ -1,6 +1,8 @@
 using Microsoft.Xna.Framework;
 using Ronvotri.TeamUp.Core;
 using Ronvotri.TeamUp.Following;
+using Ronvotri.TeamUp.Storage;
+using Ronvotri.TeamUp.UI;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -20,6 +22,10 @@ public sealed class ModEntry : Mod
     private FollowService Follow { get; set; } = null!;
 
     private Action? PendingUiAction { get; set; }
+
+    private NpcCombatProfile? CodexOverlayProfile { get; set; }
+
+    private PartyRole? CodexOverlayRole { get; set; }
 
     public override void Entry(IModHelper helper)
     {
@@ -41,7 +47,7 @@ public sealed class ModEntry : Mod
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1 alpha.4 Party Vault smoke test loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1 alpha.5 Party Identity + Codex smoke test loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -77,6 +83,8 @@ public sealed class ModEntry : Mod
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
         PendingUiAction = null;
+        CodexOverlayProfile = null;
+        CodexOverlayRole = null;
         Party.Clear();
     }
 
@@ -86,6 +94,12 @@ public sealed class ModEntry : Mod
             return;
 
         RunPendingUiAction();
+
+        if (Game1.activeClickableMenu is null && !Game1.dialogueUp && PendingUiAction is null)
+        {
+            CodexOverlayProfile = null;
+            CodexOverlayRole = null;
+        }
 
         if (!e.IsMultipleOf(4))
             return;
@@ -103,8 +117,8 @@ public sealed class ModEntry : Mod
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
 
-        // Recruitment shortcut only exists while a normal NPC dialogue is already open.
-        // E on keyboard / Right Shoulder on controller never doubles as the follower-management toggle.
+        // Recruitment shortcut exists only while normal NPC dialogue is already open.
+        // Keyboard E / controller Right Shoulder do not become follower-management toggles.
         if (Game1.dialogueUp && Game1.currentSpeaker is NPC speaker)
         {
             if (Party.Get(speaker.Name, recruiterId) is null
@@ -118,6 +132,14 @@ public sealed class ModEntry : Mod
             return;
         }
 
+        // PC shortcut for the in-game Codex. Controller users can open Codex from any party member menu.
+        if (Context.IsPlayerFree && Config.PartyMenuKey.JustPressed())
+        {
+            Helper.Input.Suppress(e.Button);
+            ShowCodexRoot();
+            return;
+        }
+
         if (!Context.IsPlayerFree || !e.Button.IsActionButton())
             return;
 
@@ -125,7 +147,7 @@ public sealed class ModEntry : Mod
         if (npc is null)
             return;
 
-        // Preserve vanilla gifting. A held gift should go to Stardew, not Team Up management.
+        // Preserve vanilla gifting. A held gift belongs to Stardew's normal NPC interaction.
         if (Game1.player.ActiveObject is not null)
             return;
 
@@ -137,8 +159,7 @@ public sealed class ModEntry : Mod
             return;
         }
 
-        // Once today's normal dialogue stack is exhausted, talking to the NPC again becomes
-        // the recruitment conversation automatically.
+        // If today's normal dialogue stack is exhausted, talking again becomes Team Up recruitment.
         if (IsRecruitableNpc(npc) && npc.CurrentDialogue.Count == 0)
         {
             Helper.Input.Suppress(e.Button);
@@ -154,6 +175,13 @@ public sealed class ModEntry : Mod
         switch (result)
         {
             case PartyAddResult.Added:
+                NpcCombatProfile? profile = NpcProfileCatalog.Get(npc.Name);
+                if (profile is not null)
+                {
+                    Party.SetRole(npc.Name, recruiterId, profile.PrimaryRole);
+                    Party.SetEngagementStyle(npc.Name, recruiterId, profile.RecommendedEngagement);
+                }
+
                 Follow.TakePartyControl(npc);
                 SavePartyNow();
                 ShowHud(Helper.Translation.Get("party.added", new { name = npc.displayName }));
@@ -200,13 +228,20 @@ public sealed class ModEntry : Mod
         {
             new("Talk", Helper.Translation.Get("member.talk")),
             new("Movement", movementLabel),
+            new("Role", Helper.Translation.Get("member.role", new { role = GetRoleLabel(member.Role) })),
             new("Engagement", Helper.Translation.Get("member.engagement", new { style = GetEngagementLabel(member.Engagement) })),
             new("Vault", Helper.Translation.Get("member.vault")),
+            new("Codex", Helper.Translation.Get("member.codex")),
             new("Leave", Helper.Translation.Get("member.leave")),
             new("Close", Helper.Translation.Get("common.close"))
         };
 
-        string title = Helper.Translation.Get("member.title", new { name = npc.displayName });
+        string title = Helper.Translation.Get("member.title", new
+        {
+            name = npc.displayName,
+            role = GetRoleLabel(member.Role)
+        });
+
         Game1.currentLocation.createQuestionDialogue(title, responses, delegate(Farmer _, string answer)
         {
             switch (answer)
@@ -219,18 +254,65 @@ public sealed class ModEntry : Mod
                     ToggleMovement(npc, member);
                     break;
 
+                case "Role":
+                    QueueUi(() => ShowRoleMenu(npc, member));
+                    break;
+
                 case "Engagement":
                     QueueUi(() => ShowEngagementMenu(npc, member));
                     break;
 
                 case "Vault":
-                    QueueUi(() => Ronvotri.TeamUp.Storage.PartyVaultService.Open(
-                        Helper.Translation.Get("vault.title")));
+                    QueueUi(() => PartyVaultService.Open(Helper.Translation.Get("vault.title")));
+                    break;
+
+                case "Codex":
+                    QueueUi(ShowCodexRoot);
                     break;
 
                 case "Leave":
                     QueueUi(() => ShowLeaveQuestion(npc));
                     break;
+            }
+        });
+    }
+
+    private void ShowRoleMenu(NPC npc, PartyMemberData member)
+    {
+        NpcCombatProfile? profile = NpcProfileCatalog.Get(npc.Name);
+        PartyRole[] roles =
+        {
+            PartyRole.Tank,
+            PartyRole.Damage,
+            PartyRole.Support,
+            PartyRole.Healer,
+            PartyRole.Control
+        };
+
+        List<Response> responses = roles
+            .Select(role => new Response(role.ToString(), GetRoleOptionLabel(role, profile)))
+            .ToList();
+        responses.Add(new Response("Cancel", Helper.Translation.Get("common.cancel")));
+
+        string question = Helper.Translation.Get("role.question", new
+        {
+            name = npc.displayName,
+            role = GetRoleLabel(member.Role)
+        });
+
+        Game1.currentLocation.createQuestionDialogue(question, responses.ToArray(), delegate(Farmer _, string answer)
+        {
+            if (!Enum.TryParse(answer, out PartyRole role) || role == PartyRole.Unassigned)
+                return;
+
+            if (Party.SetRole(npc.Name, Game1.player.UniqueMultiplayerID, role))
+            {
+                SavePartyNow();
+                ShowHud(Helper.Translation.Get("role.changed", new
+                {
+                    name = npc.displayName,
+                    role = GetRoleLabel(role)
+                }));
             }
         });
     }
@@ -290,6 +372,154 @@ public sealed class ModEntry : Mod
         });
     }
 
+    private void ShowCodexRoot()
+    {
+        CodexOverlayProfile = null;
+        CodexOverlayRole = null;
+
+        Response[] responses =
+        {
+            new("Characters", Helper.Translation.Get("codex.characters")),
+            new("Roles", Helper.Translation.Get("codex.roles")),
+            new("Vault", Helper.Translation.Get("member.vault")),
+            new("Close", Helper.Translation.Get("common.close"))
+        };
+
+        Game1.currentLocation.createQuestionDialogue(
+            Helper.Translation.Get("codex.title"),
+            responses,
+            delegate(Farmer _, string answer)
+            {
+                switch (answer)
+                {
+                    case "Characters":
+                        QueueUi(ShowCodexCharacters);
+                        break;
+                    case "Roles":
+                        QueueUi(ShowCodexRoles);
+                        break;
+                    case "Vault":
+                        QueueUi(() => PartyVaultService.Open(Helper.Translation.Get("vault.title")));
+                        break;
+                }
+            });
+    }
+
+    private void ShowCodexCharacters()
+    {
+        List<Response> responses = NpcProfileCatalog.All
+            .Select(profile => new Response(profile.CharacterName, GetNpcDisplayName(profile.CharacterName)))
+            .ToList();
+        responses.Add(new Response("Back", Helper.Translation.Get("common.back")));
+
+        Game1.currentLocation.createQuestionDialogue(
+            Helper.Translation.Get("codex.characters-title"),
+            responses.ToArray(),
+            delegate(Farmer _, string answer)
+            {
+                if (answer == "Back")
+                    QueueUi(ShowCodexRoot);
+                else
+                    QueueUi(() => ShowCodexProfile(answer));
+            });
+    }
+
+    private void ShowCodexProfile(string characterName)
+    {
+        NpcCombatProfile? profile = NpcProfileCatalog.Get(characterName);
+        if (profile is null)
+        {
+            QueueUi(ShowCodexCharacters);
+            return;
+        }
+
+        CodexOverlayProfile = profile;
+        CodexOverlayRole = null;
+
+        string text = Helper.Translation.Get("codex.profile", new
+        {
+            name = GetNpcDisplayName(profile.CharacterName),
+            primary = GetRoleLabel(profile.PrimaryRole),
+            secondary = GetRoleLabel(profile.SecondaryRole),
+            engagement = GetEngagementLabel(profile.RecommendedEngagement),
+            tank = profile.TankAffinity,
+            damage = profile.DamageAffinity,
+            support = profile.SupportAffinity,
+            healer = profile.HealerAffinity,
+            control = profile.ControlAffinity,
+            passive = Helper.Translation.Get(profile.PassiveKey),
+            ability = Helper.Translation.Get(profile.AbilityKey)
+        });
+
+        Response[] responses =
+        {
+            new("Back", Helper.Translation.Get("common.back"))
+        };
+
+        Game1.currentLocation.createQuestionDialogue(text, responses, delegate(Farmer _, string answer)
+        {
+            CodexOverlayProfile = null;
+            if (answer == "Back")
+                QueueUi(ShowCodexCharacters);
+        });
+    }
+
+    private void ShowCodexRoles()
+    {
+        PartyRole[] roles =
+        {
+            PartyRole.Tank,
+            PartyRole.Damage,
+            PartyRole.Support,
+            PartyRole.Healer,
+            PartyRole.Control
+        };
+
+        List<Response> responses = roles
+            .Select(role => new Response(role.ToString(), GetRoleLabel(role)))
+            .ToList();
+        responses.Add(new Response("Back", Helper.Translation.Get("common.back")));
+
+        Game1.currentLocation.createQuestionDialogue(
+            Helper.Translation.Get("codex.roles-title"),
+            responses.ToArray(),
+            delegate(Farmer _, string answer)
+            {
+                if (answer == "Back")
+                {
+                    QueueUi(ShowCodexRoot);
+                    return;
+                }
+
+                if (Enum.TryParse(answer, out PartyRole role))
+                    QueueUi(() => ShowCodexRole(role));
+            });
+    }
+
+    private void ShowCodexRole(PartyRole role)
+    {
+        CodexOverlayProfile = null;
+        CodexOverlayRole = role;
+
+        string text = Helper.Translation.Get("codex.role-profile", new
+        {
+            role = GetRoleLabel(role),
+            description = Helper.Translation.Get(GetRoleDescriptionKey(role))
+        });
+
+        Response[] responses =
+        {
+            new("Back", Helper.Translation.Get("common.back"))
+        };
+
+        Game1.currentLocation.createQuestionDialogue(text, responses, delegate(Farmer _, string answer)
+        {
+            CodexOverlayRole = null;
+            if (answer == "Back")
+                QueueUi(ShowCodexRoles);
+        });
+    }
+
     private void ShowLeaveQuestion(NPC npc)
     {
         Response[] responses =
@@ -327,27 +557,70 @@ public sealed class ModEntry : Mod
 
     private void OnRenderedActiveMenu(object? sender, RenderedActiveMenuEventArgs e)
     {
-        if (!Context.IsWorldReady
-            || Game1.activeClickableMenu is not DialogueBox dialogueBox
-            || Game1.currentSpeaker is not NPC speaker
-            || !IsRecruitableNpc(speaker))
+        if (!Context.IsWorldReady || Game1.activeClickableMenu is not DialogueBox dialogueBox)
+            return;
+
+        if (CodexOverlayProfile is not null)
         {
+            DrawCodexProfileIcons(e, dialogueBox, CodexOverlayProfile);
             return;
         }
+
+        if (CodexOverlayRole is PartyRole codexRole)
+        {
+            DrawCodexRoleIcon(e, dialogueBox, codexRole);
+            return;
+        }
+
+        if (Game1.currentSpeaker is not NPC speaker || !IsRecruitableNpc(speaker))
+            return;
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
         if (Party.Get(speaker.Name, recruiterId) is not null)
             return;
 
-        string text = Helper.Translation.Get("hint.join");
-        Vector2 size = Game1.smallFont.MeasureString(text);
-
+        string hint = Helper.Translation.Get("hint.join");
+        Vector2 hintSize = Game1.smallFont.MeasureString(hint);
         float x = dialogueBox.xPositionOnScreen + 28f;
-        float y = dialogueBox.yPositionOnScreen - size.Y - 6f;
-        x = Math.Clamp(x, 12f, Math.Max(12f, Game1.uiViewport.Width - size.X - 12f));
+        float y = dialogueBox.yPositionOnScreen - hintSize.Y - 6f;
+        x = Math.Clamp(x, 12f, Math.Max(12f, Game1.uiViewport.Width - hintSize.X - 12f));
         y = Math.Max(8f, y);
 
-        Vector2 position = new(x, y);
+        DrawShadowedText(e, hint, new Vector2(x, y));
+
+        NpcCombatProfile? profile = NpcProfileCatalog.Get(speaker.Name);
+        if (profile is null)
+            return;
+
+        string recommendation = Helper.Translation.Get("hint.recommended", new
+        {
+            primary = GetRoleLabel(profile.PrimaryRole),
+            secondary = GetRoleLabel(profile.SecondaryRole)
+        });
+
+        float recY = Math.Max(8f, y - Game1.smallFont.LineSpacing - 7f);
+        RoleIconRenderer.Draw(e.SpriteBatch, profile.PrimaryRole, new Vector2(x, recY + 1f), pixelSize: 2);
+        DrawShadowedText(e, recommendation, new Vector2(x + 20f, recY));
+    }
+
+    private void DrawCodexProfileIcons(RenderedActiveMenuEventArgs e, DialogueBox dialogueBox, NpcCombatProfile profile)
+    {
+        float x = dialogueBox.xPositionOnScreen + dialogueBox.width - 112f;
+        float y = dialogueBox.yPositionOnScreen + 22f;
+
+        RoleIconRenderer.Draw(e.SpriteBatch, profile.PrimaryRole, new Vector2(x, y), pixelSize: 3);
+        RoleIconRenderer.Draw(e.SpriteBatch, profile.SecondaryRole, new Vector2(x + 42f, y), pixelSize: 3, alpha: 0.8f);
+    }
+
+    private static void DrawCodexRoleIcon(RenderedActiveMenuEventArgs e, DialogueBox dialogueBox, PartyRole role)
+    {
+        float x = dialogueBox.xPositionOnScreen + dialogueBox.width - 70f;
+        float y = dialogueBox.yPositionOnScreen + 22f;
+        RoleIconRenderer.Draw(e.SpriteBatch, role, new Vector2(x, y), pixelSize: 4);
+    }
+
+    private static void DrawShadowedText(RenderedActiveMenuEventArgs e, string text, Vector2 position)
+    {
         e.SpriteBatch.DrawString(Game1.smallFont, text, position + new Vector2(2f, 2f), Color.Black * 0.7f);
         e.SpriteBatch.DrawString(Game1.smallFont, text, position, Color.White);
     }
@@ -367,6 +640,49 @@ public sealed class ModEntry : Mod
         action();
     }
 
+    private string GetRoleOptionLabel(PartyRole role, NpcCombatProfile? profile)
+    {
+        string label = GetRoleLabel(role);
+        if (profile is null)
+            return label;
+
+        if (role == profile.PrimaryRole)
+            return Helper.Translation.Get("role.option-recommended", new { role = label });
+
+        if (role == profile.SecondaryRole)
+            return Helper.Translation.Get("role.option-alternate", new { role = label });
+
+        return label;
+    }
+
+    private string GetRoleLabel(PartyRole role)
+    {
+        string key = role switch
+        {
+            PartyRole.Tank => "role.tank",
+            PartyRole.Damage => "role.damage",
+            PartyRole.Support => "role.support",
+            PartyRole.Healer => "role.healer",
+            PartyRole.Control => "role.control",
+            _ => "role.unassigned"
+        };
+
+        return Helper.Translation.Get(key);
+    }
+
+    private static string GetRoleDescriptionKey(PartyRole role)
+    {
+        return role switch
+        {
+            PartyRole.Tank => "codex.role.tank",
+            PartyRole.Damage => "codex.role.damage",
+            PartyRole.Support => "codex.role.support",
+            PartyRole.Healer => "codex.role.healer",
+            PartyRole.Control => "codex.role.control",
+            _ => "codex.role.unassigned"
+        };
+    }
+
     private string GetEngagementLabel(EngagementStyle style)
     {
         string key = style switch
@@ -379,6 +695,11 @@ public sealed class ModEntry : Mod
         };
 
         return Helper.Translation.Get(key);
+    }
+
+    private static string GetNpcDisplayName(string characterName)
+    {
+        return Game1.getCharacterFromName(characterName)?.displayName ?? characterName;
     }
 
     private void SavePartyNow()
