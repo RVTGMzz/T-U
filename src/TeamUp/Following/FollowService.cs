@@ -8,8 +8,9 @@ namespace Ronvotri.TeamUp.Following;
 
 public sealed class FollowService
 {
-    private const float StopDistanceTiles = 1.6f;
-    private const float WarpDistanceTiles = 12f;
+    private const float StopDistanceTiles = 1.55f;
+    private const float WarpDistanceTiles = 10f;
+    private const float RepathDistanceTiles = 1.35f;
 
     private static readonly Point[] FormationOffsets =
     {
@@ -32,6 +33,9 @@ public sealed class FollowService
     };
 
     private readonly IMonitor _monitor;
+    private readonly Dictionary<NPC, PathFindController> _ownedControllers = new();
+    private readonly Dictionary<NPC, Vector2> _lastTargets = new();
+    private readonly Dictionary<NPC, float> _baseAddedSpeeds = new();
 
     public FollowService(IMonitor monitor)
     {
@@ -52,22 +56,31 @@ public sealed class FollowService
 
     public void PrepareForParty(NPC npc)
     {
+        RememberBaseSpeed(npc);
         npc.followSchedule = false;
         npc.ignoreScheduleToday = true;
+    }
+
+    /// <summary>Take movement ownership from vanilla scheduling once, without destroying Team Up paths every tick.</summary>
+    public void TakePartyControl(NPC npc)
+    {
+        PrepareForParty(npc);
+        ClearPath(npc);
+        npc.Halt();
     }
 
     public void HoldPosition(NPC npc)
     {
         PrepareForParty(npc);
-        npc.controller = null;
-        npc.temporaryController = null;
+        ClearPath(npc);
+        RestoreBaseSpeed(npc, keepTracked: true);
         npc.Halt();
     }
 
     public void ReleaseToVanilla(NPC npc)
     {
-        npc.controller = null;
-        npc.temporaryController = null;
+        ClearPath(npc);
+        RestoreBaseSpeed(npc, keepTracked: false);
         npc.Halt();
         npc.followSchedule = true;
         npc.ignoreScheduleToday = false;
@@ -166,7 +179,7 @@ public sealed class FollowService
                 && string.Equals(member.CharacterName, unit.OwnerCharacterName, StringComparison.OrdinalIgnoreCase));
 
             NPC? ownerNpc = ResolveCharacter(unit.OwnerCharacterName);
-            if (ownerData is null || ownerNpc is null)
+            if (ownerData is null || ownerNpc is null || ownerData.State != PartyMemberState.Following)
                 continue;
 
             PrepareForParty(npc);
@@ -190,6 +203,8 @@ public sealed class FollowService
         }
 
         float distance = Vector2.Distance(npc.Tile, targetTile);
+        ApplyCatchUpSpeed(npc, distance);
+
         if (distance >= WarpDistanceTiles)
         {
             WarpNearTarget(npc, targetLocation, targetTile);
@@ -198,24 +213,41 @@ public sealed class FollowService
 
         if (distance <= StopDistanceTiles)
         {
-            if (npc.controller is not null || npc.temporaryController is not null)
-            {
-                npc.controller = null;
-                npc.temporaryController = null;
-                npc.Halt();
-            }
+            ClearPath(npc);
+            RestoreBaseSpeed(npc, keepTracked: true);
+            npc.Halt();
             return;
+        }
+
+        bool hasForeignController = npc.controller is not null
+            && (!_ownedControllers.TryGetValue(npc, out PathFindController? owned)
+                || !ReferenceEquals(npc.controller, owned));
+
+        bool targetMovedEnough = _lastTargets.TryGetValue(npc, out Vector2 oldTarget)
+            && Vector2.Distance(oldTarget, targetTile) >= RepathDistanceTiles;
+
+        if (hasForeignController || targetMovedEnough)
+            ClearPath(npc);
+
+        if (npc.temporaryController is not null)
+        {
+            npc.temporaryController = null;
+            npc.Halt();
         }
 
         if (npc.controller is null)
         {
             try
             {
-                npc.controller = new PathFindController(
+                var controller = new PathFindController(
                     npc,
                     npc.currentLocation,
                     targetTile.ToPoint(),
                     finalFacingDirection);
+
+                npc.controller = controller;
+                _ownedControllers[npc] = controller;
+                _lastTargets[npc] = targetTile;
             }
             catch (Exception ex)
             {
@@ -224,13 +256,51 @@ public sealed class FollowService
         }
     }
 
-    private static void WarpNearTarget(NPC npc, GameLocation location, Vector2 targetTile)
+    private void WarpNearTarget(NPC npc, GameLocation location, Vector2 targetTile)
     {
+        ClearPath(npc);
+        Game1.warpCharacter(npc, location, targetTile);
+        RestoreBaseSpeed(npc, keepTracked: true);
+        npc.Halt();
+    }
+
+    private void ApplyCatchUpSpeed(NPC npc, float distanceTiles)
+    {
+        RememberBaseSpeed(npc);
+        float baseSpeed = _baseAddedSpeeds[npc];
+
+        float bonus = distanceTiles switch
+        {
+            >= 8f => 4f,
+            >= 5f => 3f,
+            >= 3f => 2f,
+            _ => 1f
+        };
+
+        npc.addedSpeed = baseSpeed + bonus;
+    }
+
+    private void RememberBaseSpeed(NPC npc)
+    {
+        if (!_baseAddedSpeeds.ContainsKey(npc))
+            _baseAddedSpeeds[npc] = npc.addedSpeed;
+    }
+
+    private void RestoreBaseSpeed(NPC npc, bool keepTracked)
+    {
+        if (_baseAddedSpeeds.TryGetValue(npc, out float baseSpeed))
+            npc.addedSpeed = baseSpeed;
+
+        if (!keepTracked)
+            _baseAddedSpeeds.Remove(npc);
+    }
+
+    private void ClearPath(NPC npc)
+    {
+        _ownedControllers.Remove(npc);
+        _lastTargets.Remove(npc);
         npc.controller = null;
         npc.temporaryController = null;
-
-        Game1.warpCharacter(npc, location, targetTile);
-        npc.Halt();
     }
 
     private static Vector2 FindPlayerFollowTile(GameLocation location, int slotIndex)
