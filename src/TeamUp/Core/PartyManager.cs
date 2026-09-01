@@ -323,6 +323,7 @@ public sealed class PartyManager
         }
 
         RepairLinks();
+        ApplyProfileRoleDefaultsForLegacyRoster();
     }
 
     public PartySaveData CreateSaveData()
@@ -398,6 +399,23 @@ public sealed class PartyManager
             PartyMemberData? owner = Get(unit.OwnerCharacterName, unit.RecruiterId);
             if (owner is not null && owner.LinkedCompanionUnitId is null)
                 owner.LinkedCompanionUnitId = unit.UnitId;
+        }
+    }
+
+    private void ApplyProfileRoleDefaultsForLegacyRoster()
+    {
+        foreach (PartyMemberData member in _members)
+        {
+            if (member.Role != PartyRole.Unassigned)
+                continue;
+
+            NpcCombatProfile? profile = NpcProfileCatalog.Get(member.CharacterName);
+            if (profile is null || profile.PrimaryRole == PartyRole.Unassigned)
+                continue;
+
+            // Alpha.4 saves had no playable role selector. Preserve any existing Engagement choice,
+            // but give profiled legacy roster members the same Primary Role a fresh alpha.5 recruit gets.
+            member.Role = profile.PrimaryRole;
         }
     }
 
