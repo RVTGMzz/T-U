@@ -1,0 +1,39 @@
+TEAM UP! v0.1.0-alpha.3 - SMOKE TEST
+====================================
+
+MUC TIEU BAN NAY
+- Test Party Core doc lap.
+- Chua co Party Panel, Party Vault UI, combat roles hay Pokemon adapter.
+- Phim tam thoi: R.
+
+CAI DAT
+1. Build bang BUILD_TEAM_UP.bat.
+2. Lay file release\TeamUp_v0.1.0-alpha.3_SMOKE_TEST.zip.
+3. Giai nen vao Stardew Valley\Mods.
+4. Bao dam chi co 1 ban Team Up! UniqueID Ronvotri.TeamUp.
+5. Chay game qua SMAPI.
+
+TEST THEO THU TU
+[ ] 1. Load save. SMAPI phai bao Team Up alpha.3 loaded, khong co error do.
+[ ] 2. Dung sat va quay mat vao 1 NPC. Bam R. NPC gia nhap party.
+[ ] 3. Di chuyen. NPC follow player.
+[ ] 4. Bam R vao NPC dang follow. NPC Wait Here.
+[ ] 5. Bam R lai. NPC Resume.
+[ ] 6. Qua mot map khac. NPC bat kip player va khong bi duplicate.
+[ ] 7. Them 4 NPC mac dinh. NPC thu 5 phai bi bao Main Party full.
+[ ] 8. Thu moi pet chinh cua player. Pet phai duoc ghi la companion va KHONG chiem slot Main Party.
+[ ] 9. Save game, thoat ve title/menu, load lai. Party state phai duoc doc lai.
+[ ] 10. Ket thuc ngay. NPC/companion phai duoc release ve vanilla, khong khoa game.
+
+LUU Y ALPHA.3
+- Linked Companion/Pokemon moi chi co DATA MODEL. Chua tu dong nhan Pokemon cua NPC tu Pelipper Town.
+- Chua co Leave Party menu. Se lam o alpha.4.
+- Chua co Party Vault. Se lam sau khi alpha.3 smoke test pass.
+- Chua co combat.
+
+NEU LOI
+Gui:
+1. SMAPI-latest.txt
+2. BUILD_LOG.txt neu build fail
+3. Mo ta buoc nao trong checklist bi fail
+4. Anh/video neu loi lien quan vi tri follower
