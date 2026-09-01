@@ -31,7 +31,7 @@
   "engagement.reckless": "Liều lĩnh",
   "engagement.changed": "Độ hung hăng của {{name}} đã đổi thành {{style}}.",
 
-  "vault.alpha-notice": "Nút Kho chung Party đã được giữ chỗ trong menu. UI rương dùng chung thật sẽ được làm ở alpha.4.",
+  "vault.title": "Kho chung Party",
 
   "common.cancel": "Hủy",
   "common.close": "Đóng"
