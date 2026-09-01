@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
 using StardewModdingAPI.Utilities;
 
@@ -7,9 +8,11 @@ public sealed class ModConfig
 {
     // Recruitment shortcut while an NPC dialogue is already open.
     // Keyboard: E. Controller: Right Shoulder (shown to the player as R).
+    // Convert the XNA controller button through SMAPI instead of depending on a
+    // version-specific SButton enum member name.
     public KeybindList RecruitKey { get; set; } = new(
         new Keybind(SButton.E),
-        new Keybind(SButton.ControllerRightShoulder));
+        new Keybind(Buttons.RightShoulder.ToSButton()));
 
     public KeybindList PartyMenuKey { get; set; } = new(SButton.P);
 
