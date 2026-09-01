@@ -1,0 +1,39 @@
+TEAM UP! v0.1.0-alpha.4 - PARTY VAULT SMOKE TEST
+=================================================
+
+MỤC TIÊU
+- Giữ nguyên recruitment + member-management flow alpha.3.4.
+- Party Vault trở thành kho chung thật.
+- Vault dùng Stardew 1.6 FarmerTeam global inventory để game tự lưu Item.
+- Chưa có auto-loot, NPC tự dùng consumable, combat role effect hay Pokémon adapter.
+
+TEST RECRUITMENT
+[ ] 1. Mở dialogue vanilla với NPC chưa vào team. Hint sát trên khung chat: R (Controller) / E Join Party.
+[ ] 2. Bấm E keyboard hoặc R/Right Shoulder controller trong dialogue. NPC join và follow.
+[ ] 3. NPC hết dialogue trong ngày: nói chuyện lại -> Invite to Team Up / Cancel.
+[ ] 4. Đã là member: action/nói chuyện -> Team Member Menu, KHÔNG toggle trực tiếp.
+
+TEST MEMBER MENU
+[ ] 5. Stand Here / Follow Me hoạt động.
+[ ] 6. Engagement Style đổi và được nhớ.
+[ ] 7. Leave Team trả NPC về vanilla.
+[ ] 8. Cầm quà tặng rồi interact: gifting vanilla vẫn được ưu tiên.
+
+TEST PARTY VAULT
+[ ] 9. Trong Team Member Menu chọn Party Vault -> mở kho 36 ô có tiêu đề Party Vault/Kho chung Party.
+[ ] 10. Đưa 1 vật phẩm thường từ túi vào Vault rồi lấy lại. Stack/quality phải đúng.
+[ ] 11. Đưa nhiều loại item vào Vault: vật phẩm thường + vũ khí/ring/boots nếu có. Đóng kho rồi mở lại từ CÙNG NPC, item vẫn còn.
+[ ] 12. Mở Vault từ NPC member KHÁC, phải thấy đúng cùng kho.
+[ ] 13. Save game -> thoát title -> load lại -> mở Vault, item vẫn còn.
+[ ] 14. Ngủ qua đêm -> sáng hôm sau mở Vault, item vẫn còn.
+[ ] 15. Nếu chơi controller, di chuyển giữa player inventory và Vault phải dùng được Snappy Menus/controller navigation.
+
+TEST FOLLOW LIFECYCLE
+[ ] 16. Follower bắt kịp player, không quá chậm.
+[ ] 17. Qua map follower bắt kịp và không duplicate.
+[ ] 18. Ngủ qua đêm: NPC roster KHÔNG auto follow sáng hôm sau.
+
+NẾU LỖI
+- Runtime: gửi SMAPI-latest.txt + ảnh/video + số bước fail.
+- Build: gửi BUILD_LOG.txt.
+- Nếu item Vault mất metadata, nói rõ item nào và mod nào tạo item đó.
