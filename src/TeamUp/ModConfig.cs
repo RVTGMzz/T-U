@@ -23,4 +23,12 @@ public sealed class ModConfig
     public bool AllowLinkedCompanions { get; set; } = true;
 
     public int MaxActiveLinkedCompanions { get; set; } = 2;
+
+    // Farmer-owned/special companions bypass Main Party recruitment entirely.
+    // ChaCha is the first compatibility entry. Future adapters should prefer the
+    // Ronvotri.TeamUp/CompanionKind modData contract instead of growing this list.
+    public List<string> SpecialCompanionNpcNames { get; set; } = new()
+    {
+        "ChaCha"
+    };
 }
