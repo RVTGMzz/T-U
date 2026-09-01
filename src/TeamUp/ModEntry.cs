@@ -41,7 +41,7 @@ public sealed class ModEntry : Mod
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1 alpha.3.4 recruitment + member-management smoke test loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1 alpha.4 Party Vault smoke test loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -224,7 +224,8 @@ public sealed class ModEntry : Mod
                     break;
 
                 case "Vault":
-                    ShowHud(Helper.Translation.Get("vault.alpha-notice"));
+                    QueueUi(() => Ronvotri.TeamUp.Storage.PartyVaultService.Open(
+                        Helper.Translation.Get("vault.title")));
                     break;
 
                 case "Leave":
