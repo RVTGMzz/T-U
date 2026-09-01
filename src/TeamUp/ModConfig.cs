@@ -5,7 +5,9 @@ namespace Ronvotri.TeamUp;
 
 public sealed class ModConfig
 {
-    public KeybindList InviteKey { get; set; } = new(SButton.R);
+    public KeybindList DialogueInviteKey { get; set; } = new(
+        new Keybind(SButton.E),
+        new Keybind(SButton.ControllerRightShoulder));
 
     public KeybindList PartyMenuKey { get; set; } = new(SButton.P);
 
