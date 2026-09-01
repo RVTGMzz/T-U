@@ -1,19 +1,38 @@
 {
-  "party.no-target": "Face an NPC or pet first.",
-  "party.pet-disabled": "Player pet companions are disabled in config.",
   "party.added": "{{name}} joined your party.",
   "party.already-member": "{{name}} is already in your party.",
   "party.full": "Your Main Party is full ({{max}} members).",
   "party.invalid": "That character can't join the party yet.",
   "party.wait": "{{name}} will stand here.",
   "party.resume": "{{name}} is following you again.",
-  "companion.main-pet-added": "{{name}} joined as your main companion. This does not use a Main Party slot.",
-  "companion.already-registered": "{{name}} is already registered as a companion.",
-  "companion.wait": "{{name}} will stand here.",
-  "companion.resume": "{{name}} is following again.",
-  "companion.deployed": "{{name}} is now active.",
-  "companion.active-limit": "Active linked companions are full ({{max}}).",
+
   "hint.join": "R (Controller) / E  Join Party",
-  "hint.wait": "R (Controller) / E  Stand Here",
-  "hint.resume": "R (Controller) / E  Follow Again"
+
+  "recruit.question": "Invite {{name}} to Team Up?",
+  "recruit.invite": "Invite to Party",
+
+  "member.title": "Team Up: {{name}}",
+  "member.talk": "Talk",
+  "member.stand": "Stand Here",
+  "member.follow": "Follow Me",
+  "member.engagement": "Engagement: {{style}}",
+  "member.vault": "Party Vault",
+  "member.leave": "Leave Team",
+  "member.leave-question": "Remove {{name}} from your party?",
+  "member.leave-confirm": "Leave Team",
+  "member.left": "{{name}} left your party.",
+  "member.no-dialogue": "They have nothing else to say right now.",
+
+  "engagement.question": "{{name}} engagement style\nCurrent: {{style}}",
+  "engagement.passive": "Passive",
+  "engagement.cautious": "Cautious",
+  "engagement.balanced": "Balanced",
+  "engagement.aggressive": "Aggressive",
+  "engagement.reckless": "Reckless",
+  "engagement.changed": "{{name}} engagement set to {{style}}.",
+
+  "vault.alpha-notice": "Party Vault is reserved in this menu. The real shared-storage UI arrives in alpha.4.",
+
+  "common.cancel": "Cancel",
+  "common.close": "Close"
 }
