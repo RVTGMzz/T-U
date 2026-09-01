@@ -178,6 +178,16 @@ public sealed class PartyManager
         return true;
     }
 
+    public bool SetRole(string characterName, long recruiterId, PartyRole role)
+    {
+        PartyMemberData? member = Get(characterName, recruiterId);
+        if (member is null)
+            return false;
+
+        member.Role = role;
+        return true;
+    }
+
     public bool SetEngagementStyle(string characterName, long recruiterId, EngagementStyle engagement)
     {
         PartyMemberData? member = Get(characterName, recruiterId);
@@ -206,7 +216,6 @@ public sealed class PartyManager
         return true;
     }
 
-    /// <summary>Keep roster membership, but end the current day's active deployment.</summary>
     public void DeactivateForNewDay(long recruiterId)
     {
         foreach (PartyMemberData member in _members.Where(member => member.RecruiterId == recruiterId))
@@ -284,7 +293,6 @@ public sealed class PartyManager
                 if (string.IsNullOrWhiteSpace(member.CharacterName))
                     continue;
 
-                // Alpha migration: pets used to consume Main Party slots.
                 if (member.IsPet)
                 {
                     if (GetCompanionByCharacter(member.CharacterName, member.RecruiterId) is null)
