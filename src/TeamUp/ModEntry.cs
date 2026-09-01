@@ -19,6 +19,8 @@ public sealed class ModEntry : Mod
 
     private FollowService Follow { get; set; } = null!;
 
+    private Action? PendingUiAction { get; set; }
+
     public override void Entry(IModHelper helper)
     {
         Config = helper.ReadConfig<ModConfig>();
@@ -39,7 +41,7 @@ public sealed class ModEntry : Mod
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1 alpha.3.3 unified party-action smoke test loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1 alpha.3.4 recruitment + member-management smoke test loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -47,8 +49,6 @@ public sealed class ModEntry : Mod
         PartySaveData? saveData = Helper.Data.ReadSaveData<PartySaveData>(SaveDataKey);
         Party.Load(saveData);
 
-        // Stardew saves after sleeping, so loading a save should restore roster membership
-        // without automatically redeploying yesterday's followers.
         long recruiterId = Game1.player.UniqueMultiplayerID;
         Party.DeactivateForNewDay(recruiterId);
         Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
@@ -69,18 +69,14 @@ public sealed class ModEntry : Mod
             return;
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
-
-        Follow.ReleaseAll(
-            Party.Members,
-            Party.CompanionUnits,
-            recruiterId);
-
+        Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
         Party.DeactivateForNewDay(recruiterId);
         SavePartyNow();
     }
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
+        PendingUiAction = null;
         Party.Clear();
     }
 
@@ -89,8 +85,8 @@ public sealed class ModEntry : Mod
         if (!Context.IsWorldReady || !Context.IsMainPlayer)
             return;
 
-        // Four ticks keeps the destination fresh enough that followers don't visibly chase
-        // an old player position for several seconds.
+        RunPendingUiAction();
+
         if (!e.IsMultipleOf(4))
             return;
 
@@ -105,51 +101,54 @@ public sealed class ModEntry : Mod
         if (!Context.IsWorldReady || !Context.IsMainPlayer)
             return;
 
-        if (!Config.PartyActionKey.JustPressed())
-            return;
-
-        bool hasDialogueSpeaker = Game1.dialogueUp && Game1.currentSpeaker is NPC;
-        if (!Context.IsPlayerFree && !hasDialogueSpeaker)
-            return;
-
-        NPC? npc = FindInteractionNpc();
-        if (npc is null)
-        {
-            if (Context.IsPlayerFree)
-                ShowHud(Helper.Translation.Get("party.no-target"), error: true);
-            return;
-        }
-
-        // E is also Stardew's normal action key. Once Team Up accepts the key for a valid
-        // NPC target, suppress the vanilla copy so one press doesn't also advance dialogue.
-        Helper.Input.Suppress(e.Button);
-        HandlePartyAction(npc);
-    }
-
-    private void HandlePartyAction(NPC npc)
-    {
         long recruiterId = Game1.player.UniqueMultiplayerID;
 
-        PartyMemberData? existingMember = Party.Get(npc.Name, recruiterId);
-        if (existingMember is not null)
+        // Recruitment shortcut only exists while a normal NPC dialogue is already open.
+        // E on keyboard / Right Shoulder on controller never doubles as the follower-management toggle.
+        if (Game1.dialogueUp && Game1.currentSpeaker is NPC speaker)
         {
-            TogglePartyMember(existingMember, npc, recruiterId);
+            if (Party.Get(speaker.Name, recruiterId) is null
+                && IsRecruitableNpc(speaker)
+                && Config.RecruitKey.JustPressed())
+            {
+                Helper.Input.Suppress(e.Button);
+                RecruitNpc(speaker);
+            }
+
             return;
         }
 
-        CompanionUnitData? existingCompanion = Party.GetCompanionByCharacter(npc.Name, recruiterId);
-        if (existingCompanion is not null)
+        if (!Context.IsPlayerFree || !e.Button.IsActionButton())
+            return;
+
+        NPC? npc = FindFacingNpc();
+        if (npc is null)
+            return;
+
+        // Preserve vanilla gifting. A held gift should go to Stardew, not Team Up management.
+        if (Game1.player.ActiveObject is not null)
+            return;
+
+        PartyMemberData? member = Party.Get(npc.Name, recruiterId);
+        if (member is not null)
         {
-            ToggleCompanion(existingCompanion, npc, recruiterId);
+            Helper.Input.Suppress(e.Button);
+            ShowMemberMenu(npc, member);
             return;
         }
 
-        if (npc is Pet)
+        // Once today's normal dialogue stack is exhausted, talking to the NPC again becomes
+        // the recruitment conversation automatically.
+        if (IsRecruitableNpc(npc) && npc.CurrentDialogue.Count == 0)
         {
-            AddPlayerMainPet(npc, recruiterId);
-            return;
+            Helper.Input.Suppress(e.Button);
+            ShowRecruitQuestion(npc);
         }
+    }
 
+    private void RecruitNpc(NPC npc)
+    {
+        long recruiterId = Game1.player.UniqueMultiplayerID;
         PartyAddResult result = Party.TryAddMember(npc.Name, recruiterId);
 
         switch (result)
@@ -175,8 +174,70 @@ public sealed class ModEntry : Mod
         }
     }
 
-    private void TogglePartyMember(PartyMemberData member, NPC npc, long recruiterId)
+    private void ShowRecruitQuestion(NPC npc)
     {
+        Response[] responses =
+        {
+            new("Invite", Helper.Translation.Get("recruit.invite")),
+            new("Cancel", Helper.Translation.Get("common.cancel"))
+        };
+
+        string question = Helper.Translation.Get("recruit.question", new { name = npc.displayName });
+        Game1.currentLocation.createQuestionDialogue(question, responses, delegate(Farmer _, string answer)
+        {
+            if (answer == "Invite")
+                RecruitNpc(npc);
+        });
+    }
+
+    private void ShowMemberMenu(NPC npc, PartyMemberData member)
+    {
+        string movementLabel = member.State == PartyMemberState.Following
+            ? Helper.Translation.Get("member.stand")
+            : Helper.Translation.Get("member.follow");
+
+        Response[] responses =
+        {
+            new("Talk", Helper.Translation.Get("member.talk")),
+            new("Movement", movementLabel),
+            new("Engagement", Helper.Translation.Get("member.engagement", new { style = GetEngagementLabel(member.Engagement) })),
+            new("Vault", Helper.Translation.Get("member.vault")),
+            new("Leave", Helper.Translation.Get("member.leave")),
+            new("Close", Helper.Translation.Get("common.close"))
+        };
+
+        string title = Helper.Translation.Get("member.title", new { name = npc.displayName });
+        Game1.currentLocation.createQuestionDialogue(title, responses, delegate(Farmer _, string answer)
+        {
+            switch (answer)
+            {
+                case "Talk":
+                    QueueUi(() => ShowVanillaDialogue(npc));
+                    break;
+
+                case "Movement":
+                    ToggleMovement(npc, member);
+                    break;
+
+                case "Engagement":
+                    QueueUi(() => ShowEngagementMenu(npc, member));
+                    break;
+
+                case "Vault":
+                    ShowHud(Helper.Translation.Get("vault.alpha-notice"));
+                    break;
+
+                case "Leave":
+                    QueueUi(() => ShowLeaveQuestion(npc));
+                    break;
+            }
+        });
+    }
+
+    private void ToggleMovement(NPC npc, PartyMemberData member)
+    {
+        long recruiterId = Game1.player.UniqueMultiplayerID;
+
         if (member.State == PartyMemberState.Following)
         {
             Party.SetState(npc.Name, recruiterId, PartyMemberState.Waiting);
@@ -193,70 +254,91 @@ public sealed class ModEntry : Mod
         SavePartyNow();
     }
 
-    private void ToggleCompanion(CompanionUnitData unit, NPC npc, long recruiterId)
+    private void ShowEngagementMenu(NPC npc, PartyMemberData member)
     {
-        if (unit.State == CompanionDeploymentState.Active)
+        Response[] responses =
         {
-            Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Waiting);
-            Follow.HoldPosition(npc);
-            ShowHud(Helper.Translation.Get("companion.wait", new { name = unit.DisplayName }));
-            SavePartyNow();
-            return;
-        }
+            new(nameof(EngagementStyle.Passive), Helper.Translation.Get("engagement.passive")),
+            new(nameof(EngagementStyle.Cautious), Helper.Translation.Get("engagement.cautious")),
+            new(nameof(EngagementStyle.Balanced), Helper.Translation.Get("engagement.balanced")),
+            new(nameof(EngagementStyle.Aggressive), Helper.Translation.Get("engagement.aggressive")),
+            new(nameof(EngagementStyle.Reckless), Helper.Translation.Get("engagement.reckless")),
+            new("Cancel", Helper.Translation.Get("common.cancel"))
+        };
 
-        if (Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Active))
+        string question = Helper.Translation.Get("engagement.question", new
         {
-            Follow.TakePartyControl(npc);
-            ShowHud(Helper.Translation.Get("companion.resume", new { name = unit.DisplayName }));
-            SavePartyNow();
-        }
-        else
+            name = npc.displayName,
+            style = GetEngagementLabel(member.Engagement)
+        });
+
+        Game1.currentLocation.createQuestionDialogue(question, responses, delegate(Farmer _, string answer)
         {
-            ShowHud(
-                Helper.Translation.Get("companion.active-limit", new { max = Config.MaxActiveLinkedCompanions }),
-                error: true);
-        }
+            if (!Enum.TryParse(answer, out EngagementStyle style))
+                return;
+
+            if (Party.SetEngagementStyle(npc.Name, Game1.player.UniqueMultiplayerID, style))
+            {
+                SavePartyNow();
+                ShowHud(Helper.Translation.Get("engagement.changed", new
+                {
+                    name = npc.displayName,
+                    style = GetEngagementLabel(style)
+                }));
+            }
+        });
     }
 
-    private void AddPlayerMainPet(NPC pet, long recruiterId)
+    private void ShowLeaveQuestion(NPC npc)
     {
-        if (!Config.AllowPets)
+        Response[] responses =
         {
-            ShowHud(Helper.Translation.Get("party.pet-disabled"), error: true);
+            new("Leave", Helper.Translation.Get("member.leave-confirm")),
+            new("Cancel", Helper.Translation.Get("common.cancel"))
+        };
+
+        string question = Helper.Translation.Get("member.leave-question", new { name = npc.displayName });
+        Game1.currentLocation.createQuestionDialogue(question, responses, delegate(Farmer _, string answer)
+        {
+            if (answer != "Leave")
+                return;
+
+            long recruiterId = Game1.player.UniqueMultiplayerID;
+            Follow.ReleaseToVanilla(npc);
+            if (Party.Remove(npc.Name, recruiterId))
+            {
+                SavePartyNow();
+                ShowHud(Helper.Translation.Get("member.left", new { name = npc.displayName }));
+            }
+        });
+    }
+
+    private void ShowVanillaDialogue(NPC npc)
+    {
+        if (npc.CurrentDialogue.Count > 0)
+        {
+            Game1.drawDialogue(npc);
             return;
         }
 
-        CompanionAddResult result = Party.TryAddMainPet(pet.Name, recruiterId);
-
-        switch (result)
-        {
-            case CompanionAddResult.AddedActive:
-                Follow.TakePartyControl(pet);
-                SavePartyNow();
-                ShowHud(Helper.Translation.Get("companion.main-pet-added", new { name = pet.displayName }));
-                Monitor.Log($"Added player main pet {pet.Name} as a free Companion Unit.", LogLevel.Info);
-                break;
-
-            case CompanionAddResult.AlreadyRegistered:
-                ShowHud(Helper.Translation.Get("companion.already-registered", new { name = pet.displayName }), error: true);
-                break;
-
-            default:
-                ShowHud(Helper.Translation.Get("party.invalid"), error: true);
-                break;
-        }
+        ShowHud(Helper.Translation.Get("member.no-dialogue"));
     }
 
     private void OnRenderedActiveMenu(object? sender, RenderedActiveMenuEventArgs e)
     {
         if (!Context.IsWorldReady
             || Game1.activeClickableMenu is not DialogueBox dialogueBox
-            || Game1.currentSpeaker is not NPC speaker)
+            || Game1.currentSpeaker is not NPC speaker
+            || !IsRecruitableNpc(speaker))
         {
             return;
         }
 
-        string text = GetPartyActionHint(speaker);
+        long recruiterId = Game1.player.UniqueMultiplayerID;
+        if (Party.Get(speaker.Name, recruiterId) is not null)
+            return;
+
+        string text = Helper.Translation.Get("hint.join");
         Vector2 size = Game1.smallFont.MeasureString(text);
 
         float x = dialogueBox.xPositionOnScreen + 28f;
@@ -269,27 +351,33 @@ public sealed class ModEntry : Mod
         e.SpriteBatch.DrawString(Game1.smallFont, text, position, Color.White);
     }
 
-    private string GetPartyActionHint(NPC npc)
+    private void QueueUi(Action action)
     {
-        long recruiterId = Game1.player.UniqueMultiplayerID;
+        PendingUiAction = action;
+    }
 
-        PartyMemberData? member = Party.Get(npc.Name, recruiterId);
-        if (member is not null)
+    private void RunPendingUiAction()
+    {
+        if (PendingUiAction is null || Game1.activeClickableMenu is not null || Game1.dialogueUp)
+            return;
+
+        Action action = PendingUiAction;
+        PendingUiAction = null;
+        action();
+    }
+
+    private string GetEngagementLabel(EngagementStyle style)
+    {
+        string key = style switch
         {
-            return member.State == PartyMemberState.Following
-                ? Helper.Translation.Get("hint.wait")
-                : Helper.Translation.Get("hint.resume");
-        }
+            EngagementStyle.Passive => "engagement.passive",
+            EngagementStyle.Cautious => "engagement.cautious",
+            EngagementStyle.Aggressive => "engagement.aggressive",
+            EngagementStyle.Reckless => "engagement.reckless",
+            _ => "engagement.balanced"
+        };
 
-        CompanionUnitData? companion = Party.GetCompanionByCharacter(npc.Name, recruiterId);
-        if (companion is not null)
-        {
-            return companion.State == CompanionDeploymentState.Active
-                ? Helper.Translation.Get("hint.wait")
-                : Helper.Translation.Get("hint.resume");
-        }
-
-        return Helper.Translation.Get("hint.join");
+        return Helper.Translation.Get(key);
     }
 
     private void SavePartyNow()
@@ -297,12 +385,12 @@ public sealed class ModEntry : Mod
         Helper.Data.WriteSaveData(SaveDataKey, Party.CreateSaveData());
     }
 
-    private static NPC? FindInteractionNpc()
+    private static bool IsRecruitableNpc(NPC npc)
     {
-        if (Game1.dialogueUp && Game1.currentSpeaker is NPC speaker)
-            return speaker;
-
-        return FindFacingNpc();
+        return npc is not Pet
+            && npc is not Child
+            && npc.IsVillager
+            && npc.canTalk();
     }
 
     private static NPC? FindFacingNpc()
