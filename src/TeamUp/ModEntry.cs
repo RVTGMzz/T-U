@@ -37,7 +37,7 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
 
-        Monitor.Log("Team Up! v0.1 alpha.3 linked-companion foundation loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1 alpha.3.2 dialogue-invite smoke test loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -87,16 +87,25 @@ public sealed class ModEntry : Mod
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
-        if (!Context.IsWorldReady || !Context.IsPlayerFree || !Context.IsMainPlayer)
+        if (!Context.IsWorldReady || !Context.IsMainPlayer)
             return;
 
-        if (Config.InviteKey.JustPressed())
-            HandleInviteOrFollowCommand();
+        if (!Config.InviteKey.JustPressed())
+            return;
+
+        // Dialogue normally makes Context.IsPlayerFree false. Recruitment must still be allowed
+        // when the player is actively talking to an NPC, so the current dialogue speaker is
+        // treated as a valid interaction target.
+        bool hasDialogueSpeaker = Game1.dialogueUp && Game1.currentSpeaker is NPC;
+        if (!Context.IsPlayerFree && !hasDialogueSpeaker)
+            return;
+
+        HandleInviteOrFollowCommand();
     }
 
     private void HandleInviteOrFollowCommand()
     {
-        NPC? npc = FindFacingNpc();
+        NPC? npc = FindInteractionNpc();
         if (npc is null)
         {
             ShowHud(Helper.Translation.Get("party.no-target"), error: true);
@@ -133,7 +142,7 @@ public sealed class ModEntry : Mod
                 Follow.PrepareForParty(npc);
                 SavePartyNow();
                 ShowHud(Helper.Translation.Get("party.added", new { name = npc.Name }));
-                Monitor.Log($"Added {npc.Name} to Team Up! Main Party.", LogLevel.Info);
+                Monitor.Log($"Added {npc.Name} to Team Up! Main Party. DialogueUp={Game1.dialogueUp}.", LogLevel.Info);
                 break;
 
             case PartyAddResult.PartyFull:
@@ -240,6 +249,14 @@ public sealed class ModEntry : Mod
     private void SavePartyNow()
     {
         Helper.Data.WriteSaveData(SaveDataKey, Party.CreateSaveData());
+    }
+
+    private static NPC? FindInteractionNpc()
+    {
+        if (Game1.dialogueUp && Game1.currentSpeaker is NPC speaker)
+            return speaker;
+
+        return FindFacingNpc();
     }
 
     private static NPC? FindFacingNpc()
