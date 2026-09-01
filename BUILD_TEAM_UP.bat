@@ -2,27 +2,31 @@
 setlocal
 cd /d "%~dp0"
 
-echo ========================================
-echo   Team Up! - build v0.1 prototype
-echo ========================================
+echo ===============================================
+echo   Team Up! v0.1.0-alpha.3 - ONE CLICK BUILD
+echo ===============================================
 echo.
 
-dotnet restore .\src\TeamUp\TeamUp.csproj
-if errorlevel 1 goto :fail
+where dotnet >nul 2>nul
+if errorlevel 1 (
+  echo [ERROR] Khong tim thay .NET SDK.
+  echo Cai .NET SDK 6 hoac SDK moi hon roi chay lai file nay.
+  echo.
+  pause
+  exit /b 1
+)
 
-dotnet build .\src\TeamUp\TeamUp.csproj -c Release
-if errorlevel 1 goto :fail
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildAlpha3.ps1"
+if errorlevel 1 (
+  echo.
+  echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
+  pause
+  exit /b 1
+)
 
 echo.
-echo Build complete.
-echo The Stardew ModBuildConfig package will also create a release zip in the project bin folder.
+echo BUILD OK.
+echo Mo thu muc release de lay ZIP cai vao Mods.
 echo.
+explorer "%~dp0release"
 pause
-exit /b 0
-
-:fail
-echo.
-echo BUILD FAILED. Copy the full console output when reporting the error.
-echo.
-pause
-exit /b 1
