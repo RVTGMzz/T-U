@@ -6,14 +6,14 @@ $projectDir = Split-Path -Parent $project
 $buildOut = Join-Path $projectDir 'bin\Release\net6.0'
 $releaseDir = Join-Path $root 'release\Team Up'
 $releaseRoot = Join-Path $root 'release'
-$archive = Join-Path $releaseRoot 'TeamUp_v0.1.0-alpha.3.3_SMOKE_TEST.zip'
+$archive = Join-Path $releaseRoot 'TeamUp_v0.1.0-alpha.3.4_SMOKE_TEST.zip'
 $log = Join-Path $root 'BUILD_LOG.txt'
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw 'dotnet was not found. Install the .NET SDK first.'
 }
 
-"Team Up alpha.3.3 build started: $(Get-Date -Format o)" | Set-Content $log
+"Team Up alpha.3.4 build started: $(Get-Date -Format o)" | Set-Content $log
 "dotnet: $(& dotnet --version)" | Add-Content $log
 
 Push-Location $root
@@ -44,7 +44,7 @@ if (Test-Path $manifestBuilt) {
     Copy-Item $manifestBuilt $manifestDest
 } else {
     $manifest = Get-Content $manifestSource -Raw
-    $manifest = $manifest.Replace('%ProjectVersion%', '0.1.0-alpha.3.3')
+    $manifest = $manifest.Replace('%ProjectVersion%', '0.1.0-alpha.3.4')
     Set-Content -Path $manifestDest -Value $manifest -Encoding UTF8
 }
 
@@ -62,7 +62,7 @@ if (Test-Path $archive) { Remove-Item $archive -Force }
 Compress-Archive -Path $releaseDir -DestinationPath $archive -CompressionLevel Optimal
 
 $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-"$hash  $(Split-Path $archive -Leaf)" | Set-Content (Join-Path $releaseRoot 'TeamUp_v0.1.0-alpha.3.3_SMOKE_TEST.sha256.txt')
+"$hash  $(Split-Path $archive -Leaf)" | Set-Content (Join-Path $releaseRoot 'TeamUp_v0.1.0-alpha.3.4_SMOKE_TEST.sha256.txt')
 
 Write-Host ''
 Write-Host '==============================================='
