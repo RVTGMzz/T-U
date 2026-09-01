@@ -13,5 +13,7 @@ public sealed class PartyMemberData
 
     public PartyRole Role { get; set; } = PartyRole.Unassigned;
 
+    public EngagementStyle Engagement { get; set; } = EngagementStyle.Balanced;
+
     public PartyMemberState State { get; set; } = PartyMemberState.Following;
 }
