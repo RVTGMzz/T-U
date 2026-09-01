@@ -41,7 +41,7 @@ $i18nBuilt = Join-Path $buildOut 'i18n'
 $i18nSource = Join-Path $projectDir 'i18n'
 if (Test-Path $i18nBuilt) { Copy-Item $i18nBuilt (Join-Path $releaseDir 'i18n') -Recurse }
 else { Copy-Item $i18nSource (Join-Path $releaseDir 'i18n') -Recurse }
-Copy-Item (Join-Path $root 'SMOKE_TEST_ALPHA5_2_VI.txt') (Join-Path $releaseDir 'SMOKE_TEST_ALPHA5_2_VI.txt')
+Copy-Item (Join-Path $root 'SMOKE_TEST_ALPHA5_2_1_VI.txt') (Join-Path $releaseDir 'SMOKE_TEST_ALPHA5_2_1_VI.txt')
 
 if (Test-Path $archive) { Remove-Item $archive -Force }
 Compress-Archive -Path $releaseDir -DestinationPath $archive -CompressionLevel Optimal
