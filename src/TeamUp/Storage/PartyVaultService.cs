@@ -10,33 +10,24 @@ namespace Ronvotri.TeamUp.Storage;
 /// Team-wide storage backed by Stardew Valley 1.6's native FarmerTeam global inventory.
 /// The game owns persistence and item serialization, which avoids lossy custom item snapshots.
 /// </summary>
-public sealed class PartyVaultService
+public static class PartyVaultService
 {
     private const string GlobalInventoryId = "Ronvotri.TeamUp/PartyVault";
     private const int Capacity = 36;
     private const int Rows = 3;
 
-    private readonly ITranslationHelper _translation;
-
-    public PartyVaultService(ITranslationHelper translation)
-    {
-        _translation = translation;
-    }
-
-    public IList<Item> GetItems()
+    public static IList<Item> GetItems()
     {
         return Game1.player.team.GetOrCreateGlobalInventory(GlobalInventoryId);
     }
 
-    public void Open()
+    public static void Open(string title)
     {
         if (!Context.IsWorldReady)
             return;
 
         IList<Item> items = GetItems();
-        Game1.activeClickableMenu = new PartyVaultMenu(
-            items,
-            _translation.Get("vault.title"));
+        Game1.activeClickableMenu = new PartyVaultMenu(items, title);
     }
 
     private sealed class PartyVaultMenu : StorageContainer
