@@ -6,6 +6,9 @@ on:
       - alpha5.2-ux-foundation
     paths-ignore:
       - 'release/**'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
