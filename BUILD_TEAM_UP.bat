@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ===============================================
-echo   Team Up! v0.1.0-alpha.5 - ONE CLICK BUILD
+echo   Team Up! v0.1.0-alpha.5.1 - ONE CLICK BUILD
 echo ===============================================
 echo.
 
