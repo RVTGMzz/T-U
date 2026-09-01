@@ -45,12 +45,15 @@
   "engagement.reckless": "Liều lĩnh",
   "engagement.changed": "Độ hung hăng của {{name}} đã đổi thành {{style}}.",
 
-  "vault.title": "Kho chung Party",
+  "vault.title": "KHO PARTY",
+  "vault.subtitle": "Vật tư dùng chung cho toàn đội",
+  "vault.slots": "ô đã dùng",
+  "vault.categories": "Thức ăn · Hồi phục · Tiện ích · Chiến lợi phẩm",
 
   "codex.title": "TEAM UP CODEX\nCẩm nang party lấy Stardew gốc làm chuẩn",
   "codex.characters": "Nhân vật",
   "codex.roles": "Vai trò Party",
-  "codex.characters-title": "NHÂN VẬT\nHồ sơ thử nghiệm alpha",
+  "codex.characters-title": "NHÂN VẬT\nChọn một người để mở hồ sơ.",
   "codex.roles-title": "VAI TRÒ PARTY\nChọn một vai trò để xem công dụng.",
   "codex.profile": "{{name}}\nChính: {{primary}}   Phụ: {{secondary}}\nĐộ hung hăng khuyên dùng: {{engagement}}\n\nĐộ phù hợp\nTank {{tank}}/5   DPS {{damage}}/5   Support {{support}}/5\nHealer {{healer}}/5   Control {{control}}/5\n\nNội tại: {{passive}}\nKỹ năng đặc trưng: {{ability}}",
   "codex.role-profile": "{{role}}\n\n{{description}}",
@@ -60,6 +63,14 @@
   "codex.role.healer": "Hồi phục đồng đội, cứu nguy khẩn cấp và giữ đội hình ổn định trong giao tranh.",
   "codex.role.control": "Khống chế địch bằng choáng, làm chậm, đẩy lùi, ngắt kỹ năng và điều chỉnh vị trí.",
   "codex.role.unassigned": "Nhân vật này chưa được gán vai trò chiến đấu.",
+
+  "profile.title": "HỒ SƠ NHÂN VẬT",
+  "profile.primary": "Vai trò chính",
+  "profile.secondary": "Vai trò phụ",
+  "profile.engagement": "Độ hung hăng khuyên dùng",
+  "profile.affinities": "ĐỘ PHÙ HỢP VAI TRÒ",
+  "profile.passive": "NỘI TẠI",
+  "profile.signature": "KỸ NĂNG ĐẶC TRƯNG",
 
   "codex.abigail.passive": "Thrill Seeker: hoạt động tốt hơn tại những khu vực nguy hiểm như hầm mỏ và dungeon.",
   "codex.abigail.ability": "Spirit Slash: đòn chém diện rộng thiên về gây áp lực và làm chao đảo kẻ địch.",
