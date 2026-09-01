@@ -9,8 +9,8 @@
   "hint.join": "R (Controller) / E  Join Party",
   "hint.recommended": "Recommended: {{primary}} / {{secondary}}",
 
-  "recruit.question": "Invite {{name}} to Team Up?",
-  "recruit.invite": "Invite to Party",
+  "recruit.question": "Recruit {{name}} into Team Up?",
+  "recruit.invite": "Recruit to Party",
 
   "member.title": "Team Up: {{name}} · {{role}}",
   "member.talk": "Talk",
