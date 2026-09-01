@@ -26,6 +26,8 @@ public sealed class ModEntry : Mod
 
     private string? RecruitHintNpcName { get; set; }
 
+    private bool RecruitConfirmationOpen { get; set; }
+
     public override void Entry(IModHelper helper)
     {
         Config = helper.ReadConfig<ModConfig>();
@@ -47,7 +49,7 @@ public sealed class ModEntry : Mod
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1.0-alpha.5.2 UX Foundation smoke test loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1.0-alpha.5.2.1 recruit + vault hotfix loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -59,6 +61,7 @@ public sealed class ModEntry : Mod
         Party.DeactivateForNewDay(recruiterId);
         Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
         RecruitHintNpcName = null;
+        RecruitConfirmationOpen = false;
 
         Monitor.Log(
             $"Loaded {Party.Members.Count} Party Member(s) and {Party.CompanionUnits.Count} Companion Unit(s) as inactive roster entries.",
@@ -79,6 +82,7 @@ public sealed class ModEntry : Mod
         Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
         Party.DeactivateForNewDay(recruiterId);
         RecruitHintNpcName = null;
+        RecruitConfirmationOpen = false;
         SavePartyNow();
     }
 
@@ -87,6 +91,7 @@ public sealed class ModEntry : Mod
         PendingUiAction = null;
         CodexOverlayRole = null;
         RecruitHintNpcName = null;
+        RecruitConfirmationOpen = false;
         Party.Clear();
     }
 
@@ -101,6 +106,7 @@ public sealed class ModEntry : Mod
         {
             CodexOverlayRole = null;
             RecruitHintNpcName = null;
+            RecruitConfirmationOpen = false;
         }
 
         if (!e.IsMultipleOf(4))
@@ -119,19 +125,20 @@ public sealed class ModEntry : Mod
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
 
-        // Recruitment shortcut exists only while a normal NPC dialogue is already open.
-        // Keyboard E / controller Right Shoulder do not become follower-management toggles.
+        // Recruitment shortcut exists only while normal NPC dialogue is already open.
+        // Pressing the shortcut now opens a confirmation step; it never recruits instantly.
         if (Game1.dialogueUp)
         {
             NPC? speaker = ResolveRecruitmentSpeaker();
-            if (speaker is not null
+            if (!RecruitConfirmationOpen
+                && speaker is not null
                 && Party.Get(speaker.Name, recruiterId) is null
                 && IsRecruitableNpc(speaker)
                 && Config.RecruitKey.JustPressed())
             {
                 Helper.Input.Suppress(e.Button);
                 RecruitHintNpcName = null;
-                RecruitNpc(speaker);
+                ShowRecruitQuestion(speaker);
             }
 
             return;
@@ -179,7 +186,6 @@ public sealed class ModEntry : Mod
         }
 
         // Remember the manually-interacted NPC before vanilla creates its DialogueBox.
-        // This is more reliable in Stardew 1.6 than depending solely on Game1.currentSpeaker.
         RecruitHintNpcName = npc.Name;
 
         // If today's normal dialogue stack is exhausted, talking again becomes Team Up recruitment.
@@ -235,6 +241,7 @@ public sealed class ModEntry : Mod
     private void ShowRecruitQuestion(NPC npc)
     {
         RecruitHintNpcName = null;
+        RecruitConfirmationOpen = true;
 
         Response[] responses =
         {
@@ -245,6 +252,7 @@ public sealed class ModEntry : Mod
         string question = Helper.Translation.Get("recruit.question", new { name = npc.displayName });
         Game1.currentLocation.createQuestionDialogue(question, responses, delegate(Farmer _, string answer)
         {
+            RecruitConfirmationOpen = false;
             if (answer == "Invite")
                 RecruitNpc(npc);
         });
@@ -593,6 +601,9 @@ public sealed class ModEntry : Mod
             return;
         }
 
+        if (RecruitConfirmationOpen)
+            return;
+
         NPC? speaker = ResolveRecruitmentSpeaker();
         if (speaker is null || !IsRecruitableNpc(speaker))
             return;
@@ -624,11 +635,16 @@ public sealed class ModEntry : Mod
         int iconSpace = profile is null ? 0 : 24;
         int boxWidth = (int)Math.Ceiling(Math.Max(hintSize.X, recommendationSize.X + iconSpace)) + 28;
         int boxHeight = profile is null ? 38 : 63;
-        int x = dialogueBox.xPositionOnScreen + 18;
-        int y = dialogueBox.yPositionOnScreen - boxHeight - 8;
+
+        // DialogueBox x/y fields are unreliable for portrait dialogue in Stardew 1.6.
+        // Anchor the hint from the actual viewport + menu dimensions so it sits on the chat frame.
+        int dialogueLeft = Math.Max(8, (Game1.uiViewport.Width - dialogueBox.width) / 2);
+        int dialogueTop = Math.Max(8, Game1.uiViewport.Height - dialogueBox.height - 24);
+        int x = dialogueLeft + 18;
+        int y = dialogueTop - boxHeight + 4;
 
         x = Math.Clamp(x, 8, Math.Max(8, Game1.uiViewport.Width - boxWidth - 8));
-        y = Math.Max(6, y);
+        y = Math.Clamp(y, 6, Math.Max(6, Game1.uiViewport.Height - boxHeight - 6));
 
         Color background = new Color(43, 29, 22) * 0.92f;
         Color border = new Color(219, 165, 91) * 0.95f;
