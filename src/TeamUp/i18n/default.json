@@ -45,12 +45,15 @@
   "engagement.reckless": "Reckless",
   "engagement.changed": "{{name}} engagement set to {{style}}.",
 
-  "vault.title": "Party Vault",
+  "vault.title": "PARTY VAULT",
+  "vault.subtitle": "Shared supplies for the whole party",
+  "vault.slots": "slots used",
+  "vault.categories": "Food · Healing · Utility · Loot",
 
   "codex.title": "TEAM UP CODEX\nVanilla-first party reference",
   "codex.characters": "Characters",
   "codex.roles": "Party Roles",
-  "codex.characters-title": "CHARACTERS\nAlpha roster profiles",
+  "codex.characters-title": "CHARACTERS\nChoose a member to open their dossier.",
   "codex.roles-title": "PARTY ROLES\nChoose a role to learn its purpose.",
   "codex.profile": "{{name}}\nPrimary: {{primary}}   Secondary: {{secondary}}\nRecommended Engagement: {{engagement}}\n\nAffinities\nTank {{tank}}/5   DPS {{damage}}/5   Support {{support}}/5\nHealer {{healer}}/5   Control {{control}}/5\n\nPassive: {{passive}}\nSignature: {{ability}}",
   "codex.role-profile": "{{role}}\n\n{{description}}",
@@ -60,6 +63,14 @@
   "codex.role.healer": "Restores allies, provides emergency recovery, and keeps the party stable.",
   "codex.role.control": "Disrupts enemies with stun, slow, knockback, interruption, and positioning.",
   "codex.role.unassigned": "No combat role has been assigned yet.",
+
+  "profile.title": "CHARACTER PROFILE",
+  "profile.primary": "Primary Role",
+  "profile.secondary": "Secondary Role",
+  "profile.engagement": "Recommended Engagement",
+  "profile.affinities": "ROLE AFFINITY",
+  "profile.passive": "PASSIVE",
+  "profile.signature": "SIGNATURE ABILITY",
 
   "codex.abigail.passive": "Thrill Seeker: performs better in dangerous areas such as mines and dungeons.",
   "codex.abigail.ability": "Spirit Slash: a wide melee strike designed to pressure and stagger enemies.",
