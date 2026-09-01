@@ -42,7 +42,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
             Math.Max(16, (Game1.uiViewport.Height - Math.Min(570, Game1.uiViewport.Height - 32)) / 2),
             Math.Min(980, Game1.uiViewport.Width - 32),
             Math.Min(570, Game1.uiViewport.Height - 32),
-            showUpperRightCloseButton: false)
+            false)
     {
         _profile = profile;
         _displayName = displayName;
@@ -106,21 +106,24 @@ public sealed class CharacterProfileMenu : IClickableMenu
 
     public override void draw(SpriteBatch b)
     {
-        drawBackground(b);
+        b.Draw(
+            Game1.fadeToBlackRect,
+            Game1.graphics.GraphicsDevice.Viewport.Bounds,
+            Color.Black * 0.35f);
 
         DrawPanel(b, xPositionOnScreen, yPositionOnScreen, width, height);
 
-        int headerY = yPositionOnScreen + 22;
+        int headerY = yPositionOnScreen + 18;
         string title = _i18n.Get("profile.title");
         b.DrawString(Game1.smallFont, title, new Vector2(xPositionOnScreen + OuterPadding, headerY), new Color(102, 63, 37));
-        b.DrawString(Game1.dialogueFont, _displayName, new Vector2(xPositionOnScreen + OuterPadding, headerY + 24), Game1.textColor);
+        b.DrawString(Game1.dialogueFont, _displayName, new Vector2(xPositionOnScreen + OuterPadding, headerY + 22), Game1.textColor);
 
-        int bodyY = yPositionOnScreen + 92;
+        int bodyY = yPositionOnScreen + 84;
         int leftX = xPositionOnScreen + OuterPadding;
         int leftWidth = Math.Min(260, Math.Max(210, width / 3 - 16));
         int rightX = leftX + leftWidth + 22;
         int rightWidth = xPositionOnScreen + width - OuterPadding - rightX;
-        int bodyBottom = yPositionOnScreen + height - 70;
+        int bodyBottom = yPositionOnScreen + height - 62;
 
         DrawPanel(b, leftX, bodyY, leftWidth, bodyBottom - bodyY);
         DrawPanel(b, rightX, bodyY, rightWidth, bodyBottom - bodyY);
@@ -135,7 +138,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private void DrawPortraitAndIdentity(SpriteBatch b, int x, int y, int panelWidth)
     {
         int cursorY = y + SectionPadding;
-        int portraitSize = Math.Min(144, Math.Max(112, panelWidth - 72));
+        int portraitSize = Math.Min(136, Math.Max(108, panelWidth - 78));
         int portraitX = x + (panelWidth - portraitSize) / 2;
 
         DrawInset(b, portraitX - 8, cursorY - 8, portraitSize + 16, portraitSize + 16);
@@ -158,15 +161,16 @@ public sealed class CharacterProfileMenu : IClickableMenu
                 Game1.textColor);
         }
 
-        cursorY += portraitSize + 24;
+        cursorY += portraitSize + 20;
         DrawRoleLine(b, x + SectionPadding, cursorY, _i18n.Get("profile.primary"), _profile.PrimaryRole, _roleLabel(_profile.PrimaryRole));
-        cursorY += 38;
+        cursorY += 36;
         DrawRoleLine(b, x + SectionPadding, cursorY, _i18n.Get("profile.secondary"), _profile.SecondaryRole, _roleLabel(_profile.SecondaryRole), 0.82f);
-        cursorY += 46;
+        cursorY += 44;
 
         b.DrawString(Game1.smallFont, _i18n.Get("profile.engagement"), new Vector2(x + SectionPadding, cursorY), new Color(112, 73, 44));
         cursorY += Game1.smallFont.LineSpacing;
-        b.DrawString(Game1.smallFont, _engagementLabel, new Vector2(x + SectionPadding, cursorY), Game1.textColor);
+        string wrapped = Game1.parseText(_engagementLabel, Game1.smallFont, panelWidth - SectionPadding * 2);
+        b.DrawString(Game1.smallFont, wrapped, new Vector2(x + SectionPadding, cursorY), Game1.textColor);
     }
 
     private void DrawProfileDetails(SpriteBatch b, int x, int y, int panelWidth)
@@ -176,27 +180,27 @@ public sealed class CharacterProfileMenu : IClickableMenu
         int innerWidth = panelWidth - SectionPadding * 2;
 
         DrawSectionTitle(b, _i18n.Get("profile.affinities"), innerX, cursorY);
-        cursorY += 32;
+        cursorY += 28;
 
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Tank), _profile.TankAffinity);
-        cursorY += 29;
+        cursorY += 25;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Damage), _profile.DamageAffinity);
-        cursorY += 29;
+        cursorY += 25;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Support), _profile.SupportAffinity);
-        cursorY += 29;
+        cursorY += 25;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Healer), _profile.HealerAffinity);
-        cursorY += 29;
+        cursorY += 25;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Control), _profile.ControlAffinity);
-        cursorY += 40;
+        cursorY += 32;
 
         DrawSectionTitle(b, _i18n.Get("profile.passive"), innerX, cursorY);
-        cursorY += 28;
+        cursorY += 24;
         string passive = Game1.parseText(_passiveText, Game1.smallFont, innerWidth);
         b.DrawString(Game1.smallFont, passive, new Vector2(innerX, cursorY), Game1.textColor);
-        cursorY += (int)Game1.smallFont.MeasureString(passive).Y + 22;
+        cursorY += (int)Game1.smallFont.MeasureString(passive).Y + 14;
 
         DrawSectionTitle(b, _i18n.Get("profile.signature"), innerX, cursorY);
-        cursorY += 28;
+        cursorY += 24;
         string signature = Game1.parseText(_signatureText, Game1.smallFont, innerWidth);
         b.DrawString(Game1.smallFont, signature, new Vector2(innerX, cursorY), Game1.textColor);
     }
@@ -204,8 +208,8 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private static void DrawRoleLine(SpriteBatch b, int x, int y, string caption, PartyRole role, string roleName, float alpha = 1f)
     {
         b.DrawString(Game1.smallFont, caption, new Vector2(x, y), new Color(112, 73, 44) * alpha);
-        RoleIconRenderer.Draw(b, role, new Vector2(x, y + 20), pixelSize: 2, alpha: alpha);
-        b.DrawString(Game1.smallFont, roleName, new Vector2(x + 26, y + 18), Game1.textColor * alpha);
+        RoleIconRenderer.Draw(b, role, new Vector2(x, y + 18), pixelSize: 2, alpha: alpha);
+        b.DrawString(Game1.smallFont, roleName, new Vector2(x + 26, y + 16), Game1.textColor * alpha);
     }
 
     private static void DrawAffinity(SpriteBatch b, int x, int y, string label, int value)
@@ -214,13 +218,13 @@ public sealed class CharacterProfileMenu : IClickableMenu
         b.DrawString(Game1.smallFont, label, new Vector2(x, y), Game1.textColor);
 
         int barX = x + 126;
-        const int segmentWidth = 24;
-        const int segmentHeight = 12;
-        const int gap = 5;
+        const int segmentWidth = 22;
+        const int segmentHeight = 11;
+        const int gap = 4;
 
         for (int i = 0; i < 5; i++)
         {
-            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 6, segmentWidth, segmentHeight);
+            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 5, segmentWidth, segmentHeight);
             Color color = i < value
                 ? new Color(91, 143, 86)
                 : new Color(120, 91, 64) * 0.24f;
@@ -228,7 +232,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         }
 
         string score = $"{value}/5";
-        b.DrawString(Game1.smallFont, score, new Vector2(barX + 5 * (segmentWidth + gap) + 4, y), new Color(112, 73, 44));
+        b.DrawString(Game1.smallFont, score, new Vector2(barX + 5 * (segmentWidth + gap) + 3, y), new Color(112, 73, 44));
     }
 
     private static void DrawSectionTitle(SpriteBatch b, string text, int x, int y)
