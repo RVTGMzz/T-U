@@ -195,6 +195,20 @@ public sealed class PartyManager
         return true;
     }
 
+    /// <summary>Keep roster membership, but end the current day's active deployment.</summary>
+    public void DeactivateForNewDay(long recruiterId)
+    {
+        foreach (PartyMemberData member in _members.Where(member => member.RecruiterId == recruiterId))
+            member.State = PartyMemberState.Inactive;
+
+        foreach (CompanionUnitData unit in _companionUnits.Where(unit => unit.RecruiterId == recruiterId))
+        {
+            unit.State = unit.OwnerKind == CompanionOwnerKind.PartyMember
+                ? CompanionDeploymentState.Standby
+                : CompanionDeploymentState.Inactive;
+        }
+    }
+
     public bool Remove(string characterName, long recruiterId)
     {
         PartyMemberData? member = Get(characterName, recruiterId);
