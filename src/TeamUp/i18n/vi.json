@@ -1,0 +1,8 @@
+{
+  "party.no-target": "Hãy quay mặt về phía NPC hoặc thú cưng trước.",
+  "party.pet-disabled": "Thú cưng trong party đang bị tắt trong config.",
+  "party.added": "{{name}} đã gia nhập party.",
+  "party.already-member": "{{name}} đã ở trong party rồi.",
+  "party.full": "Party đã đủ người (tối đa {{max}} thành viên).",
+  "party.invalid": "Nhân vật này hiện chưa thể gia nhập party."
+}

@@ -1,0 +1,10 @@
+{
+  "Name": "Team Up!",
+  "Author": "Ronvotri",
+  "Version": "%ProjectVersion%",
+  "Description": "Build an RPG-style party from Stardew Valley NPCs and pets, with future combat roles, shared storage, tactics, and party progression.",
+  "UniqueID": "Ronvotri.TeamUp",
+  "EntryDll": "TeamUp.dll",
+  "MinimumApiVersion": "4.1.0",
+  "UpdateKeys": []
+}

@@ -1,0 +1,8 @@
+{
+  "party.no-target": "Face an NPC or pet first.",
+  "party.pet-disabled": "Pet party members are disabled in config.",
+  "party.added": "{{name}} joined your party.",
+  "party.already-member": "{{name}} is already in your party.",
+  "party.full": "Your party is full ({{max}} members).",
+  "party.invalid": "That character can't join the party yet."
+}
