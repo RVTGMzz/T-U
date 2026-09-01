@@ -31,7 +31,7 @@
   "engagement.reckless": "Reckless",
   "engagement.changed": "{{name}} engagement set to {{style}}.",
 
-  "vault.alpha-notice": "Party Vault is reserved in this menu. The real shared-storage UI arrives in alpha.4.",
+  "vault.title": "Party Vault",
 
   "common.cancel": "Cancel",
   "common.close": "Close"
