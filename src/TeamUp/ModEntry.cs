@@ -22,9 +22,12 @@ public sealed class ModEntry : Mod
     {
         Config = helper.ReadConfig<ModConfig>();
         Config.MaxPartyMembers = Math.Clamp(Config.MaxPartyMembers, 1, 6);
+        Config.MaxActiveLinkedCompanions = Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 6);
         helper.WriteConfig(Config);
 
-        Party = new PartyManager(() => Config.MaxPartyMembers);
+        Party = new PartyManager(
+            () => Config.MaxPartyMembers,
+            () => Config.AllowLinkedCompanions ? Config.MaxActiveLinkedCompanions : 0);
         Follow = new FollowService(Monitor);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
@@ -34,7 +37,7 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
 
-        Monitor.Log("Team Up! v0.1 follow-state prototype loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1 alpha.3 linked-companion foundation loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -42,12 +45,14 @@ public sealed class ModEntry : Mod
         PartySaveData? saveData = Helper.Data.ReadSaveData<PartySaveData>(SaveDataKey);
         Party.Load(saveData);
 
-        Monitor.Log($"Loaded {Party.Members.Count} saved Team Up! party member(s).", LogLevel.Debug);
+        Monitor.Log(
+            $"Loaded {Party.Members.Count} Party Member(s) and {Party.CompanionUnits.Count} Companion Unit(s).",
+            LogLevel.Debug);
     }
 
     private void OnSaving(object? sender, SavingEventArgs e)
     {
-        Helper.Data.WriteSaveData(SaveDataKey, Party.CreateSaveData());
+        SavePartyNow();
     }
 
     private void OnDayEnding(object? sender, DayEndingEventArgs e)
@@ -55,7 +60,10 @@ public sealed class ModEntry : Mod
         if (!Context.IsWorldReady)
             return;
 
-        Follow.ReleaseAll(Party.Members, Game1.player.UniqueMultiplayerID);
+        Follow.ReleaseAll(
+            Party.Members,
+            Party.CompanionUnits,
+            Game1.player.UniqueMultiplayerID);
     }
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
@@ -71,7 +79,10 @@ public sealed class ModEntry : Mod
         if (!e.IsMultipleOf(10))
             return;
 
-        Follow.Update(Party.Members, Game1.player.UniqueMultiplayerID);
+        Follow.Update(
+            Party.Members,
+            Party.CompanionUnits,
+            Game1.player.UniqueMultiplayerID);
     }
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
@@ -93,35 +104,28 @@ public sealed class ModEntry : Mod
         }
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
-        PartyMemberData? existing = Party.Get(npc.Name, recruiterId);
 
-        if (existing is not null)
+        PartyMemberData? existingMember = Party.Get(npc.Name, recruiterId);
+        if (existingMember is not null)
         {
-            if (existing.State == PartyMemberState.Waiting)
-            {
-                Party.SetState(npc.Name, recruiterId, PartyMemberState.Following);
-                Follow.PrepareForParty(npc);
-                ShowHud(Helper.Translation.Get("party.resume", new { name = npc.Name }));
-            }
-            else
-            {
-                Party.SetState(npc.Name, recruiterId, PartyMemberState.Waiting);
-                Follow.HoldPosition(npc);
-                ShowHud(Helper.Translation.Get("party.wait", new { name = npc.Name }));
-            }
-
-            SavePartyNow();
+            TogglePartyMember(existingMember, npc, recruiterId);
             return;
         }
 
-        bool isPet = npc is Pet;
-        if (isPet && !Config.AllowPets)
+        CompanionUnitData? existingCompanion = Party.GetCompanionByCharacter(npc.Name, recruiterId);
+        if (existingCompanion is not null)
         {
-            ShowHud(Helper.Translation.Get("party.pet-disabled"), error: true);
+            ToggleCompanion(existingCompanion, npc, recruiterId);
             return;
         }
 
-        PartyAddResult result = Party.TryAdd(npc.Name, recruiterId, isPet);
+        if (npc is Pet)
+        {
+            AddPlayerMainPet(npc, recruiterId);
+            return;
+        }
+
+        PartyAddResult result = Party.TryAddMember(npc.Name, recruiterId);
 
         switch (result)
         {
@@ -129,11 +133,102 @@ public sealed class ModEntry : Mod
                 Follow.PrepareForParty(npc);
                 SavePartyNow();
                 ShowHud(Helper.Translation.Get("party.added", new { name = npc.Name }));
-                Monitor.Log($"Added {npc.Name} to Team Up! party. Pet={isPet}.", LogLevel.Info);
+                Monitor.Log($"Added {npc.Name} to Team Up! Main Party.", LogLevel.Info);
                 break;
 
             case PartyAddResult.PartyFull:
                 ShowHud(Helper.Translation.Get("party.full", new { max = Config.MaxPartyMembers }), error: true);
+                break;
+
+            case PartyAddResult.AlreadyInParty:
+                ShowHud(Helper.Translation.Get("party.already-member", new { name = npc.Name }), error: true);
+                break;
+
+            default:
+                ShowHud(Helper.Translation.Get("party.invalid"), error: true);
+                break;
+        }
+    }
+
+    private void TogglePartyMember(PartyMemberData member, NPC npc, long recruiterId)
+    {
+        if (member.State == PartyMemberState.Waiting)
+        {
+            Party.SetState(npc.Name, recruiterId, PartyMemberState.Following);
+            Follow.PrepareForParty(npc);
+            ShowHud(Helper.Translation.Get("party.resume", new { name = npc.Name }));
+        }
+        else
+        {
+            Party.SetState(npc.Name, recruiterId, PartyMemberState.Waiting);
+            Follow.HoldPosition(npc);
+            ShowHud(Helper.Translation.Get("party.wait", new { name = npc.Name }));
+        }
+
+        SavePartyNow();
+    }
+
+    private void ToggleCompanion(CompanionUnitData unit, NPC npc, long recruiterId)
+    {
+        if (unit.State == CompanionDeploymentState.Waiting)
+        {
+            if (Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Active))
+            {
+                Follow.PrepareForParty(npc);
+                ShowHud(Helper.Translation.Get("companion.resume", new { name = unit.DisplayName }));
+            }
+            else
+            {
+                ShowHud(
+                    Helper.Translation.Get("companion.active-limit", new { max = Config.MaxActiveLinkedCompanions }),
+                    error: true);
+            }
+        }
+        else if (unit.State == CompanionDeploymentState.Standby)
+        {
+            if (Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Active))
+            {
+                Follow.PrepareForParty(npc);
+                ShowHud(Helper.Translation.Get("companion.deployed", new { name = unit.DisplayName }));
+            }
+            else
+            {
+                ShowHud(
+                    Helper.Translation.Get("companion.active-limit", new { max = Config.MaxActiveLinkedCompanions }),
+                    error: true);
+            }
+        }
+        else
+        {
+            Party.SetCompanionState(unit.UnitId, recruiterId, CompanionDeploymentState.Waiting);
+            Follow.HoldPosition(npc);
+            ShowHud(Helper.Translation.Get("companion.wait", new { name = unit.DisplayName }));
+        }
+
+        SavePartyNow();
+    }
+
+    private void AddPlayerMainPet(NPC pet, long recruiterId)
+    {
+        if (!Config.AllowPets)
+        {
+            ShowHud(Helper.Translation.Get("party.pet-disabled"), error: true);
+            return;
+        }
+
+        CompanionAddResult result = Party.TryAddMainPet(pet.Name, recruiterId);
+
+        switch (result)
+        {
+            case CompanionAddResult.AddedActive:
+                Follow.PrepareForParty(pet);
+                SavePartyNow();
+                ShowHud(Helper.Translation.Get("companion.main-pet-added", new { name = pet.Name }));
+                Monitor.Log($"Added player main pet {pet.Name} as a free Companion Unit.", LogLevel.Info);
+                break;
+
+            case CompanionAddResult.AlreadyRegistered:
+                ShowHud(Helper.Translation.Get("companion.already-registered", new { name = pet.Name }), error: true);
                 break;
 
             default:
