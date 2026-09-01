@@ -12,5 +12,8 @@
   "companion.wait": "{{name}} sẽ đứng chờ tại đây.",
   "companion.resume": "{{name}} tiếp tục đi theo.",
   "companion.deployed": "{{name}} đã được đưa vào trạng thái hoạt động.",
-  "companion.active-limit": "Đã đủ companion liên kết đang hoạt động (tối đa {{max}})."
+  "companion.active-limit": "Đã đủ companion liên kết đang hoạt động (tối đa {{max}}).",
+  "hint.join": "R (Controller) / E  Mời vào Party",
+  "hint.wait": "R (Controller) / E  Đứng tại đây",
+  "hint.resume": "R (Controller) / E  Đi theo lại"
 }
