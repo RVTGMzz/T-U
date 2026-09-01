@@ -2,48 +2,46 @@
 
 This file tracks what is actually implemented, separate from the broader design roadmap.
 
-## Alpha 0.1.0-alpha.1
+## Alpha 0.1.0-alpha.2
 
 Implemented:
 
 - clean standalone SMAPI project;
 - `Ronvotri.TeamUp` UniqueID;
 - no dependency on The Stardew Squad;
-- independent party registry;
-- save/load of party membership;
+- independent party registry and save/load;
 - default party size 4, clamped up to 6;
 - NPC and pet detection in the party registry;
+- first independent follow-state prototype;
+- cross-location catch-up using Stardew Valley's own NPC warp API;
+- vanilla `PathFindController` movement toward party slots;
+- six simple follow-slot offsets around the player;
+- R on a non-party NPC/pet: join party;
+- R on a following member: Wait;
+- R on a waiting member: Resume;
+- party NPC schedules are released back to vanilla at day end;
 - fresh English and Vietnamese strings;
-- keyboard/controller-safe SMAPI keybind config surface;
 - Windows one-click build script.
 
-Prototype input:
+Current prototype limitations:
 
-- Face an NPC or pet and press `R` to register them as a Team Up! party member.
-
-Not implemented yet:
-
-- physical follow movement;
-- cross-map following;
-- Wait / Resume;
-- Leave Party flow;
-- Party UI;
-- Party Vault UI/storage;
-- combat;
-- roles in gameplay;
-- threat/aggro;
-- skills;
-- Codex.
+- host/single-player only for movement logic;
+- no Leave Party command yet;
+- no custom Party UI yet;
+- follow formation is intentionally simple;
+- pet movement still needs dedicated testing;
+- no combat yet;
+- Party Vault not implemented yet.
 
 ## Next implementation slice
 
-The next code milestone is the **Follow State Machine**:
+After this prototype builds and moves one NPC safely, the next milestone is **Party Control + Leave + Vault foundation**:
 
-1. resolve saved party member names back to live game characters;
-2. define Following / Waiting state transitions;
-3. move companions without stealing player input or freezing game state;
-4. handle player map transitions safely;
-5. restore vanilla NPC behavior when a member leaves the party;
-6. test one NPC first, then pets, then multiple party members.
+1. add explicit Leave Party and restore NPC schedule immediately;
+2. add a small Team Up party panel instead of overloading R forever;
+3. add controller navigation from day one;
+4. add Party Vault save model before the visual inventory screen;
+5. then test pet behavior separately;
+6. only after Party Core is stable, begin Tank / DPS / Support / Healer / Control combat logic.
 
-The follow system should be implemented against Stardew Valley / SMAPI behavior directly and remain independent from other companion mods.
+The follow system is implemented against Stardew Valley / SMAPI APIs directly and remains independent from other companion mods.

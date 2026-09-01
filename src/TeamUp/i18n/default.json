@@ -4,5 +4,7 @@
   "party.added": "{{name}} joined your party.",
   "party.already-member": "{{name}} is already in your party.",
   "party.full": "Your party is full ({{max}} members).",
-  "party.invalid": "That character can't join the party yet."
+  "party.invalid": "That character can't join the party yet.",
+  "party.wait": "{{name}} will wait here.",
+  "party.resume": "{{name}} is following you again."
 }

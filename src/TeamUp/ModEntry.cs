@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Ronvotri.TeamUp.Core;
+using Ronvotri.TeamUp.Following;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -15,6 +16,8 @@ public sealed class ModEntry : Mod
 
     private PartyManager Party { get; set; } = null!;
 
+    private FollowService Follow { get; set; } = null!;
+
     public override void Entry(IModHelper helper)
     {
         Config = helper.ReadConfig<ModConfig>();
@@ -22,13 +25,16 @@ public sealed class ModEntry : Mod
         helper.WriteConfig(Config);
 
         Party = new PartyManager(() => Config.MaxPartyMembers);
+        Follow = new FollowService(Monitor);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
+        helper.Events.GameLoop.DayEnding += OnDayEnding;
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
+        helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
 
-        Monitor.Log("Team Up! v0.1 party-core prototype loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1 follow-state prototype loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -44,26 +50,67 @@ public sealed class ModEntry : Mod
         Helper.Data.WriteSaveData(SaveDataKey, Party.CreateSaveData());
     }
 
+    private void OnDayEnding(object? sender, DayEndingEventArgs e)
+    {
+        if (!Context.IsWorldReady)
+            return;
+
+        Follow.ReleaseAll(Party.Members, Game1.player.UniqueMultiplayerID);
+    }
+
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
         Party.Clear();
     }
 
+    private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
+    {
+        if (!Context.IsWorldReady || !Context.IsMainPlayer)
+            return;
+
+        if (!e.IsMultipleOf(10))
+            return;
+
+        Follow.Update(Party.Members, Game1.player.UniqueMultiplayerID);
+    }
+
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
-        if (!Context.IsWorldReady || !Context.IsPlayerFree)
+        if (!Context.IsWorldReady || !Context.IsPlayerFree || !Context.IsMainPlayer)
             return;
 
         if (Config.InviteKey.JustPressed())
-            TryInviteFacingCharacter();
+            HandleInviteOrFollowCommand();
     }
 
-    private void TryInviteFacingCharacter()
+    private void HandleInviteOrFollowCommand()
     {
         NPC? npc = FindFacingNpc();
         if (npc is null)
         {
             ShowHud(Helper.Translation.Get("party.no-target"), error: true);
+            return;
+        }
+
+        long recruiterId = Game1.player.UniqueMultiplayerID;
+        PartyMemberData? existing = Party.Get(npc.Name, recruiterId);
+
+        if (existing is not null)
+        {
+            if (existing.State == PartyMemberState.Waiting)
+            {
+                Party.SetState(npc.Name, recruiterId, PartyMemberState.Following);
+                Follow.PrepareForParty(npc);
+                ShowHud(Helper.Translation.Get("party.resume", new { name = npc.Name }));
+            }
+            else
+            {
+                Party.SetState(npc.Name, recruiterId, PartyMemberState.Waiting);
+                Follow.HoldPosition(npc);
+                ShowHud(Helper.Translation.Get("party.wait", new { name = npc.Name }));
+            }
+
+            SavePartyNow();
             return;
         }
 
@@ -74,19 +121,15 @@ public sealed class ModEntry : Mod
             return;
         }
 
-        long recruiterId = Game1.player.UniqueMultiplayerID;
         PartyAddResult result = Party.TryAdd(npc.Name, recruiterId, isPet);
 
         switch (result)
         {
             case PartyAddResult.Added:
-                Helper.Data.WriteSaveData(SaveDataKey, Party.CreateSaveData());
+                Follow.PrepareForParty(npc);
+                SavePartyNow();
                 ShowHud(Helper.Translation.Get("party.added", new { name = npc.Name }));
-                Monitor.Log($"Added {npc.Name} to Team Up! party registry. Pet={isPet}.", LogLevel.Info);
-                break;
-
-            case PartyAddResult.AlreadyInParty:
-                ShowHud(Helper.Translation.Get("party.already-member", new { name = npc.Name }), error: true);
+                Monitor.Log($"Added {npc.Name} to Team Up! party. Pet={isPet}.", LogLevel.Info);
                 break;
 
             case PartyAddResult.PartyFull:
@@ -97,6 +140,11 @@ public sealed class ModEntry : Mod
                 ShowHud(Helper.Translation.Get("party.invalid"), error: true);
                 break;
         }
+    }
+
+    private void SavePartyNow()
+    {
+        Helper.Data.WriteSaveData(SaveDataKey, Party.CreateSaveData());
     }
 
     private static NPC? FindFacingNpc()

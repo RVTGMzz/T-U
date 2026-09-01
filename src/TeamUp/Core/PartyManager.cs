@@ -12,11 +12,16 @@ public sealed class PartyManager
 
     public IReadOnlyList<PartyMemberData> Members => _members;
 
-    public bool Contains(string characterName, long recruiterId)
+    public PartyMemberData? Get(string characterName, long recruiterId)
     {
-        return _members.Any(member =>
+        return _members.FirstOrDefault(member =>
             member.RecruiterId == recruiterId
             && string.Equals(member.CharacterName, characterName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public bool Contains(string characterName, long recruiterId)
+    {
+        return Get(characterName, recruiterId) is not null;
     }
 
     public PartyAddResult TryAdd(string characterName, long recruiterId, bool isPet)
@@ -42,6 +47,16 @@ public sealed class PartyManager
         });
 
         return PartyAddResult.Added;
+    }
+
+    public bool SetState(string characterName, long recruiterId, PartyMemberState state)
+    {
+        PartyMemberData? member = Get(characterName, recruiterId);
+        if (member is null)
+            return false;
+
+        member.State = state;
+        return true;
     }
 
     public bool Remove(string characterName, long recruiterId)

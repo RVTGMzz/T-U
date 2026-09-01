@@ -4,5 +4,7 @@
   "party.added": "{{name}} đã gia nhập party.",
   "party.already-member": "{{name}} đã ở trong party rồi.",
   "party.full": "Party đã đủ người (tối đa {{max}} thành viên).",
-  "party.invalid": "Nhân vật này hiện chưa thể gia nhập party."
+  "party.invalid": "Nhân vật này hiện chưa thể gia nhập party.",
+  "party.wait": "{{name}} sẽ đứng chờ tại đây.",
+  "party.resume": "{{name}} tiếp tục đi theo bạn."
 }
