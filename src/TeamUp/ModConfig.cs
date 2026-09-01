@@ -12,4 +12,8 @@ public sealed class ModConfig
     public int MaxPartyMembers { get; set; } = 4;
 
     public bool AllowPets { get; set; } = true;
+
+    public bool AllowLinkedCompanions { get; set; } = true;
+
+    public int MaxActiveLinkedCompanions { get; set; } = 2;
 }
