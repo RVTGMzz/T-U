@@ -1,10 +1,16 @@
 {
   "party.no-target": "Hãy quay mặt về phía NPC hoặc thú cưng trước.",
-  "party.pet-disabled": "Thú cưng trong party đang bị tắt trong config.",
+  "party.pet-disabled": "Companion thú cưng của người chơi đang bị tắt trong config.",
   "party.added": "{{name}} đã gia nhập party.",
   "party.already-member": "{{name}} đã ở trong party rồi.",
-  "party.full": "Party đã đủ người (tối đa {{max}} thành viên).",
+  "party.full": "Main Party đã đủ người (tối đa {{max}} thành viên).",
   "party.invalid": "Nhân vật này hiện chưa thể gia nhập party.",
   "party.wait": "{{name}} sẽ đứng chờ tại đây.",
-  "party.resume": "{{name}} tiếp tục đi theo bạn."
+  "party.resume": "{{name}} tiếp tục đi theo bạn.",
+  "companion.main-pet-added": "{{name}} đã gia nhập với tư cách companion chính. Không tốn slot Main Party.",
+  "companion.already-registered": "{{name}} đã được đăng ký làm companion rồi.",
+  "companion.wait": "{{name}} sẽ đứng chờ tại đây.",
+  "companion.resume": "{{name}} tiếp tục đi theo.",
+  "companion.deployed": "{{name}} đã được đưa vào trạng thái hoạt động.",
+  "companion.active-limit": "Đã đủ companion liên kết đang hoạt động (tối đa {{max}})."
 }
