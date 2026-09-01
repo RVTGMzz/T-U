@@ -9,7 +9,6 @@ namespace Ronvotri.TeamUp.Storage;
 /// <summary>
 /// Team-wide storage backed by Stardew Valley 1.6's native FarmerTeam global inventory.
 /// The game owns persistence and item serialization, which avoids lossy custom item snapshots.
-/// Alpha.5.2 keeps the native storage behavior but gives it a dedicated Team Up identity layer.
 /// </summary>
 public static class PartyVaultService
 {
@@ -58,22 +57,13 @@ public static class PartyVaultService
         {
             base.draw(b);
 
-            int headerWidth = Math.Min(920, Game1.uiViewport.Width - 32);
-            int headerHeight = 58;
-            int headerX = (Game1.uiViewport.Width - headerWidth) / 2;
-            int headerY = Math.Max(6, ItemsToGrabMenu.yPositionOnScreen - headerHeight - 6);
-
-            IClickableMenu.drawTextureBox(
-                b,
-                Game1.menuTexture,
-                new Rectangle(0, 256, 60, 60),
-                headerX,
-                headerY,
-                headerWidth,
-                headerHeight,
-                Color.White,
-                1f,
-                true);
+            // Alpha.5.2 drew a second texture box above StorageContainer. Depending on UI scale,
+            // that box could float away from the inventory and clip its subtitle. Keep all Team Up
+            // labels inside the native storage panel instead, where the layout is stable.
+            int left = xPositionOnScreen + 32;
+            int top = yPositionOnScreen + 18;
+            int right = xPositionOnScreen + width - 32;
+            int availableWidth = Math.Max(180, right - left);
 
             int usedSlots = _items.Count(item => item is not null);
             string slotText = $"{usedSlots}/{Capacity} {_slotsLabel}";
@@ -82,22 +72,28 @@ public static class PartyVaultService
             b.DrawString(
                 Game1.dialogueFont,
                 _title,
-                new Vector2(headerX + 20, headerY + 7),
+                new Vector2(left, top),
                 Game1.textColor);
 
             b.DrawString(
                 Game1.smallFont,
                 slotText,
-                new Vector2(headerX + headerWidth - slotSize.X - 20, headerY + 10),
+                new Vector2(Math.Max(left, right - slotSize.X), top + 8),
                 new Color(102, 63, 37));
 
-            string footer = $"{_subtitle}  •  {_categoriesLabel}";
-            string wrappedFooter = Game1.parseText(footer, Game1.smallFont, headerWidth - 40);
+            string subtitle = Game1.parseText(_subtitle, Game1.smallFont, availableWidth);
             b.DrawString(
                 Game1.smallFont,
-                wrappedFooter,
-                new Vector2(headerX + 20, headerY + 34),
+                subtitle,
+                new Vector2(left, top + 38),
                 new Color(112, 73, 44));
+
+            string categories = Game1.parseText(_categoriesLabel, Game1.smallFont, availableWidth);
+            b.DrawString(
+                Game1.smallFont,
+                categories,
+                new Vector2(left, top + 62),
+                new Color(112, 73, 44) * 0.82f);
         }
     }
 }
