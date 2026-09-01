@@ -2,17 +2,17 @@ namespace Ronvotri.TeamUp.Core;
 
 public sealed class NpcCombatProfile
 {
-    public required string CharacterName { get; init; }
+    public string CharacterName { get; init; } = string.Empty;
 
-    public required PartyRole PrimaryRole { get; init; }
+    public PartyRole PrimaryRole { get; init; } = PartyRole.Unassigned;
 
-    public required PartyRole SecondaryRole { get; init; }
+    public PartyRole SecondaryRole { get; init; } = PartyRole.Unassigned;
 
-    public required EngagementStyle RecommendedEngagement { get; init; }
+    public EngagementStyle RecommendedEngagement { get; init; } = EngagementStyle.Balanced;
 
-    public required string PassiveKey { get; init; }
+    public string PassiveKey { get; init; } = string.Empty;
 
-    public required string AbilityKey { get; init; }
+    public string AbilityKey { get; init; } = string.Empty;
 
     public int TankAffinity { get; init; }
 
