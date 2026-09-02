@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.1.1 - CARDCHA TEST BRIDGE + DEBUG
+echo   Team Up! v0.2.0-alpha.6.1.2 - DEBUG + FOLLOW GHOST
 echo =========================================================
 echo.
 
@@ -25,9 +25,10 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.1.1 DEBUG BRIDGE.
+echo BUILD OK - ALPHA 6.1.2.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo Sau khi vao game, SMAPI phai hien: Team Up DEBUG HARNESS READY
+echo Sau khi vao game, SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.1.2
+echo Farmer co the di xuyen qua NPC dang o trong Team Up.
 echo.
 explorer "%~dp0release"
 pause
