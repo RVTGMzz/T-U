@@ -7,8 +7,8 @@ $releaseDir = Join-Path $root 'release\Team Up'
 $releaseRoot = Join-Path $root 'release'
 $archive = Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6_SIGNATURE_RESCUE_POLISH_TEST.zip'
 $log = Join-Path $root 'BUILD_LOG.txt'
-$finalizer = Join-Path $root '_build_support\FinalizeV0_2Alpha5.ps1'
-$compileFixer = Join-Path $root '_build_support\FixCompileV0_2Alpha5.ps1'
+$finalizer = Join-Path $root '_build_support\FinalizeV0_2Alpha6.ps1'
+$compileFixer = Join-Path $root '_build_support\FixCompileV0_2Alpha6.ps1'
 $modEntry = Join-Path $projectDir 'ModEntry.cs'
 
 function Ensure-Replace([string]$text, [string]$old, [string]$new, [string]$label) {
