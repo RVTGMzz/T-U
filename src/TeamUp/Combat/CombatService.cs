@@ -9,9 +9,9 @@ using StardewValley.Pathfinding;
 namespace Ronvotri.TeamUp.Combat;
 
 /// <summary>
-/// Team Up combat loop with persistent Level/Mastery progression and a non-permadeath
-/// NPC survival model. NPCs can be injured, retreat, become Downed, revive, and finally
-/// Withdraw after repeated knockouts without ever deleting or permanently harming a villager.
+/// Alpha 5 combat director. Adds per-monster threat tables, tank taunts/guard interception,
+/// threat-aware NPC survival, role-based target scoring, anti-dogpile assignment penalties,
+/// and balance passes while preserving alpha 3+4 progression/equipment/survival.
 /// </summary>
 public sealed class CombatService
 {
@@ -19,18 +19,24 @@ public sealed class CombatService
     private const float RepathThresholdTiles = 0.9f;
     private const int AutoReviveTicks = 720;
     private const int ReviveGraceTicks = 600;
+    private const int ThreatPulseInterval = 30;
 
     private readonly IMonitor _monitor;
     private readonly FollowService _follow;
     private readonly ProgressionService _progression;
+    private readonly ThreatService _threat = new();
     private readonly Dictionary<string, int> _attackCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _healCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _signatureCooldowns = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _tauntCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _incomingDamageCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _selfRecoveryCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Monster> _targets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Vector2> _lastTargetTiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _retreatNotified = new(StringComparer.OrdinalIgnoreCase);
+
+    private int _threatPulseTicks;
+    private int _lastFarmerHealth = -1;
 
     public CombatService(IMonitor monitor, FollowService follow, ProgressionService progression)
     {
@@ -52,10 +58,14 @@ public sealed class CombatService
         _attackCooldowns.Clear();
         _healCooldowns.Clear();
         _signatureCooldowns.Clear();
+        _tauntCooldowns.Clear();
         _incomingDamageCooldowns.Clear();
         _selfRecoveryCooldowns.Clear();
         _lastTargetTiles.Clear();
         _retreatNotified.Clear();
+        _threat.Clear();
+        _threatPulseTicks = 0;
+        _lastFarmerHealth = -1;
     }
 
     public void Update(IReadOnlyList<PartyMemberData> members, long recruiterId)
@@ -66,6 +76,7 @@ public sealed class CombatService
         TickCooldowns(_attackCooldowns);
         TickCooldowns(_healCooldowns);
         TickCooldowns(_signatureCooldowns);
+        TickCooldowns(_tauntCooldowns);
         TickCooldowns(_incomingDamageCooldowns);
         TickCooldowns(_selfRecoveryCooldowns);
 
@@ -74,12 +85,24 @@ public sealed class CombatService
             .Where(monster => monster.Health > 0)
             .ToList();
 
-        UpdateSurvivalStates(members, recruiterId, monsters);
+        List<PartyMemberData> activeMembers = members
+            .Where(member => member.RecruiterId == recruiterId && member.State == PartyMemberState.Following)
+            .ToList();
+
+        List<string> validThreatActors = activeMembers
+            .Where(member => !member.IsDowned && !member.IsWithdrawn && member.CurrentHealth > 0)
+            .Select(member => member.CharacterName)
+            .ToList();
+
+        _threat.BeginFrame(monsters, validThreatActors);
+        PulseAmbientThreat(activeMembers, monsters);
+        ApplyTankGuardToFarmerDamage(activeMembers, monsters, validThreatActors);
+        UpdateSurvivalStates(activeMembers, monsters, validThreatActors);
+
+        var assignedCounts = new Dictionary<Monster, int>();
         HashSet<string> stillEngaged = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (PartyMemberData member in members.Where(member =>
-                     member.RecruiterId == recruiterId
-                     && member.State == PartyMemberState.Following))
+        foreach (PartyMemberData member in activeMembers)
         {
             NPC? npc = Game1.getCharacterFromName(member.CharacterName);
             if (npc is null || !ReferenceEquals(npc.currentLocation, Game1.currentLocation))
@@ -90,6 +113,7 @@ public sealed class CombatService
 
             if (member.IsDowned)
             {
+                _threat.ScaleActor(member.CharacterName, 0.15f);
                 _follow.SetCombatControl(npc, true);
                 npc.controller = null;
                 npc.temporaryController = null;
@@ -100,6 +124,7 @@ public sealed class CombatService
 
             if (member.IsWithdrawn)
             {
+                _threat.ScaleActor(member.CharacterName, 0f);
                 Disengage(member.CharacterName, npc);
                 continue;
             }
@@ -108,11 +133,12 @@ public sealed class CombatService
             NpcCombatProfile? profile = NpcProfileCatalog.Get(member.CharacterName);
             int affinity = Math.Max(2, profile?.GetAffinity(role) ?? 2);
 
-            if (TryPerformRecovery(npc, member, role, affinity, members, recruiterId, monsters.Count > 0))
+            if (TryPerformRecovery(npc, member, role, affinity, activeMembers, monsters, validThreatActors))
                 stillEngaged.Add(member.CharacterName);
 
             if (ShouldRetreat(member))
             {
+                _threat.ScaleActor(member.CharacterName, 0.35f);
                 Disengage(member.CharacterName, npc);
                 if (_retreatNotified.Add(member.CharacterName))
                     npc.showTextAboveHead("RETREAT", new Color(255, 190, 95), 2, 900, 0);
@@ -121,7 +147,10 @@ public sealed class CombatService
 
             _retreatNotified.Remove(member.CharacterName);
 
-            Monster? target = AcquireTarget(npc, member, role, monsters);
+            if (role == PartyRole.Tank)
+                TryTankTaunt(npc, member, monsters, validThreatActors);
+
+            Monster? target = AcquireTarget(npc, member, role, monsters, activeMembers, validThreatActors, assignedCounts);
             if (target is null)
             {
                 if (!stillEngaged.Contains(member.CharacterName))
@@ -129,6 +158,7 @@ public sealed class CombatService
                 continue;
             }
 
+            assignedCounts[target] = assignedCounts.TryGetValue(target, out int assigned) ? assigned + 1 : 1;
             stillEngaged.Add(member.CharacterName);
             _targets[member.CharacterName] = target;
             _follow.SetCombatControl(npc, true);
@@ -142,7 +172,6 @@ public sealed class CombatService
 
             float attackRange = GetAttackRange(role);
             float distanceToTarget = Vector2.Distance(npc.Tile, target.Tile);
-
             if (distanceToTarget > attackRange)
             {
                 MoveTowardTarget(npc, target, role);
@@ -171,16 +200,108 @@ public sealed class CombatService
             NPC? npc = Game1.getCharacterFromName(name);
             Disengage(name, npc);
         }
+
+        _lastFarmerHealth = Game1.player.health;
+    }
+
+    private void PulseAmbientThreat(IReadOnlyList<PartyMemberData> members, IReadOnlyList<Monster> monsters)
+    {
+        _threatPulseTicks--;
+        if (_threatPulseTicks > 0)
+            return;
+        _threatPulseTicks = ThreatPulseInterval;
+
+        foreach (PartyMemberData member in members)
+        {
+            if (member.IsDowned || member.IsWithdrawn || ShouldRetreat(member))
+                continue;
+
+            PartyRole role = ResolveRole(member);
+            if (role != PartyRole.Tank)
+                continue;
+
+            NPC? npc = Game1.getCharacterFromName(member.CharacterName);
+            if (npc is null || !ReferenceEquals(npc.currentLocation, Game1.currentLocation))
+                continue;
+
+            int mastery = _progression.GetMasteryLevel(member, PartyRole.Tank);
+            float auraThreat = (5f + mastery) * GetEngagementThreatMultiplier(member.Engagement);
+            foreach (Monster monster in monsters.Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 6.25f))
+                _threat.AddThreat(monster, member.CharacterName, auraThreat);
+        }
+    }
+
+    private void ApplyTankGuardToFarmerDamage(
+        IReadOnlyList<PartyMemberData> members,
+        IReadOnlyList<Monster> monsters,
+        IReadOnlyCollection<string> validThreatActors)
+    {
+        if (_lastFarmerHealth < 0)
+        {
+            _lastFarmerHealth = Game1.player.health;
+            return;
+        }
+
+        int lost = _lastFarmerHealth - Game1.player.health;
+        if (lost <= 0 || monsters.Count == 0)
+            return;
+
+        List<Monster> nearbyThreats = monsters
+            .Where(monster => Vector2.Distance(monster.Tile, Game1.player.Tile) <= 3.25f)
+            .ToList();
+        if (nearbyThreats.Count == 0)
+            return;
+
+        PartyMemberData? guard = members
+            .Where(member => !member.IsDowned && !member.IsWithdrawn && member.CurrentHealth > 0)
+            .Where(member => ResolveRole(member) == PartyRole.Tank && !ShouldRetreat(member))
+            .Where(member =>
+            {
+                NPC? npc = Game1.getCharacterFromName(member.CharacterName);
+                return npc is not null
+                    && ReferenceEquals(npc.currentLocation, Game1.currentLocation)
+                    && Vector2.Distance(npc.Tile, Game1.player.Tile) <= 4f;
+            })
+            .OrderByDescending(member => nearbyThreats.Count(monster =>
+                _threat.GetAggroActor(monster, validThreatActors).Equals(member.CharacterName, StringComparison.OrdinalIgnoreCase)))
+            .ThenByDescending(member => _threat.GetTotalThreat(member.CharacterName, nearbyThreats))
+            .FirstOrDefault();
+
+        if (guard is null)
+            return;
+
+        bool ownsPressure = nearbyThreats.Any(monster =>
+            _threat.GetAggroActor(monster, validThreatActors).Equals(guard.CharacterName, StringComparison.OrdinalIgnoreCase)
+            || _threat.GetThreat(monster, guard.CharacterName) >= _threat.GetThreat(monster, ThreatService.FarmerActorId) * 0.85f);
+        if (!ownsPressure)
+            return;
+
+        NPC? guardNpc = Game1.getCharacterFromName(guard.CharacterName);
+        if (guardNpc is null)
+            return;
+
+        int mastery = _progression.GetMasteryLevel(guard, PartyRole.Tank);
+        float guardRatio = Math.Min(0.55f, 0.35f + mastery * 0.02f);
+        int absorbed = Math.Clamp((int)Math.Round(lost * guardRatio), 1, lost);
+        Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + absorbed);
+
+        int redirected = Math.Max(1, absorbed - _progression.GetDefense(guard) / 3);
+        guard.CurrentHealth = Math.Max(0, guard.CurrentHealth - redirected);
+        guardNpc.showTextAboveHead($"GUARD -{redirected}", new Color(255, 165, 80), 2, 900, 0);
+        SpawnBurst(Game1.currentLocation, guardNpc.Position, new Color(255, 165, 80), 5, 24f);
+        foreach (Monster monster in nearbyThreats)
+            _threat.AddThreat(monster, guard.CharacterName, 18f + absorbed * 3f);
+
+        if (guard.CurrentHealth <= 0)
+            DownMember(guard, guardNpc);
     }
 
     private void UpdateSurvivalStates(
         IReadOnlyList<PartyMemberData> members,
-        long recruiterId,
-        IReadOnlyList<Monster> monsters)
+        IReadOnlyList<Monster> monsters,
+        IReadOnlyCollection<string> validThreatActors)
     {
-        foreach (PartyMemberData member in members.Where(member =>
-                     member.RecruiterId == recruiterId
-                     && member.State == PartyMemberState.Following))
+        foreach (PartyMemberData member in members)
         {
             NPC? npc = Game1.getCharacterFromName(member.CharacterName);
             if (npc is null || !ReferenceEquals(npc.currentLocation, Game1.currentLocation))
@@ -200,29 +321,54 @@ public sealed class CombatService
                 continue;
             }
 
-            TryApplyIncomingMonsterDamage(member, npc, monsters);
             TryPassiveRecovery(member, npc, monsters);
         }
+
+        foreach (Monster monster in monsters)
+            TryApplyThreatDamage(monster, members, validThreatActors);
     }
 
-    private void TryApplyIncomingMonsterDamage(
-        PartyMemberData member,
-        NPC npc,
-        IReadOnlyList<Monster> monsters)
+    private void TryApplyThreatDamage(
+        Monster monster,
+        IReadOnlyList<PartyMemberData> members,
+        IReadOnlyCollection<string> validThreatActors)
     {
-        if (GetCooldown(_incomingDamageCooldowns, member.CharacterName) > 0)
+        string actor = _threat.GetAggroActor(monster, validThreatActors);
+        if (actor == ThreatService.FarmerActorId)
             return;
 
-        Monster? threat = monsters
-            .Where(monster => monster.Health > 0)
-            .OrderBy(monster => Vector2.DistanceSquared(monster.Tile, npc.Tile))
-            .FirstOrDefault(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 1.35f);
-
-        if (threat is null)
+        PartyMemberData? member = members.FirstOrDefault(candidate =>
+            candidate.CharacterName.Equals(actor, StringComparison.OrdinalIgnoreCase)
+            && !candidate.IsDowned
+            && !candidate.IsWithdrawn
+            && candidate.CurrentHealth > 0);
+        if (member is null || GetCooldown(_incomingDamageCooldowns, member.CharacterName) > 0)
             return;
 
-        int raw = Math.Max(2, threat.DamageToFarmer);
-        int scaled = Math.Max(1, (int)Math.Round(raw * 0.45f));
+        NPC? npc = Game1.getCharacterFromName(member.CharacterName);
+        if (npc is null || !ReferenceEquals(npc.currentLocation, Game1.currentLocation))
+            return;
+
+        PartyRole role = ResolveRole(member);
+        float directDistance = Vector2.Distance(monster.Tile, npc.Tile);
+        bool tankIntercept = role == PartyRole.Tank
+            && Vector2.Distance(monster.Tile, Game1.player.Tile) <= 1.9f
+            && Vector2.Distance(npc.Tile, Game1.player.Tile) <= 3.5f;
+        if (directDistance > 2.0f && !tankIntercept)
+            return;
+
+        float roleScale = role switch
+        {
+            PartyRole.Tank => 0.34f,
+            PartyRole.Support => 0.39f,
+            PartyRole.Healer => 0.39f,
+            PartyRole.Control => 0.41f,
+            PartyRole.Damage => 0.43f,
+            _ => 0.42f
+        };
+
+        int raw = Math.Max(2, monster.DamageToFarmer);
+        int scaled = Math.Max(1, (int)Math.Round(raw * roleScale));
         int damage = Math.Max(1, scaled - _progression.GetDefense(member));
         if (member.WoundedTicks > 0)
             damage = Math.Max(1, (int)Math.Ceiling(damage * 1.15f));
@@ -230,22 +376,17 @@ public sealed class CombatService
         member.CurrentHealth = Math.Max(0, member.CurrentHealth - damage);
         npc.showTextAboveHead($"-{damage} HP", new Color(245, 95, 95), 2, 700, 0);
         SpawnBurst(Game1.currentLocation, npc.Position + new Vector2(16f, 16f), new Color(235, 90, 90), 4, 18f);
-        _incomingDamageCooldowns[member.CharacterName] = 50;
+        _incomingDamageCooldowns[member.CharacterName] = role == PartyRole.Tank ? 44 : 50;
 
         if (member.CurrentHealth <= 0)
             DownMember(member, npc);
     }
 
-    private void TryPassiveRecovery(
-        PartyMemberData member,
-        NPC npc,
-        IReadOnlyList<Monster> monsters)
+    private void TryPassiveRecovery(PartyMemberData member, NPC npc, IReadOnlyList<Monster> monsters)
     {
         if (member.CurrentHealth >= _progression.GetMaxHealth(member)
             || GetCooldown(_selfRecoveryCooldowns, member.CharacterName) > 0)
-        {
             return;
-        }
 
         bool dangerNearby = monsters.Any(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 4f);
         if (dangerNearby)
@@ -263,6 +404,7 @@ public sealed class CombatService
         member.CurrentHealth = 0;
         _targets.Remove(member.CharacterName);
         _lastTargetTiles.Remove(member.CharacterName);
+        _threat.ScaleActor(member.CharacterName, 0.05f);
 
         if (member.DownCountToday >= 3)
         {
@@ -295,6 +437,7 @@ public sealed class CombatService
         member.DownedTicks = 0;
         member.WoundedTicks = ReviveGraceTicks;
         member.CurrentHealth = Math.Max(1, (int)Math.Round(_progression.GetMaxHealth(member) * healthFraction));
+        _threat.ScaleActor(member.CharacterName, 0.15f);
         _follow.SetCombatControl(npc, false);
         npc.showTextAboveHead(label, new Color(130, 255, 175), 2, 1200, 0);
         SpawnBurst(Game1.currentLocation, npc.Position, new Color(130, 255, 175), 8, 30f);
@@ -306,20 +449,58 @@ public sealed class CombatService
         return _progression.GetHealthRatio(member) <= _progression.GetRetreatThreshold(member);
     }
 
-    private Monster? AcquireTarget(NPC npc, PartyMemberData member, PartyRole role, IReadOnlyList<Monster> monsters)
+    private void TryTankTaunt(
+        NPC npc,
+        PartyMemberData member,
+        IReadOnlyList<Monster> monsters,
+        IReadOnlyCollection<string> validThreatActors)
+    {
+        if (GetCooldown(_tauntCooldowns, member.CharacterName) > 0)
+            return;
+
+        List<Monster> candidates = monsters
+            .Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 6f
+                || Vector2.Distance(monster.Tile, Game1.player.Tile) <= 5f)
+            .Where(monster => !_threat.GetAggroActor(monster, validThreatActors)
+                .Equals(member.CharacterName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (candidates.Count == 0)
+            return;
+
+        int mastery = _progression.GetMasteryLevel(member, PartyRole.Tank);
+        float amount = (34f + mastery * 5f) * GetEngagementThreatMultiplier(member.Engagement);
+        foreach (Monster monster in candidates)
+            _threat.AddThreat(monster, member.CharacterName, amount);
+
+        npc.showTextAboveHead("TAUNT", new Color(255, 165, 80), 2, 900, 0);
+        SpawnBurst(Game1.currentLocation, npc.Position, new Color(255, 165, 80), 6, 32f);
+        _tauntCooldowns[member.CharacterName] = Math.Max(150,
+            (int)Math.Round(270 * _progression.GetCooldownMultiplier(member, PartyRole.Tank)));
+    }
+
+    private Monster? AcquireTarget(
+        NPC npc,
+        PartyMemberData member,
+        PartyRole role,
+        IReadOnlyList<Monster> monsters,
+        IReadOnlyList<PartyMemberData> members,
+        IReadOnlyCollection<string> validThreatActors,
+        IReadOnlyDictionary<Monster, int> assignedCounts)
     {
         if (monsters.Count == 0)
             return null;
 
         float radius = GetEngagementRadius(member.Engagement);
         Vector2 farmerTile = Game1.player.Tile;
-
-        IEnumerable<Monster> candidates = monsters.Where(monster =>
-            ReferenceEquals(monster.currentLocation, Game1.currentLocation)
-            && Vector2.Distance(monster.Tile, farmerTile) <= radius);
+        List<Monster> candidates = monsters
+            .Where(monster => ReferenceEquals(monster.currentLocation, Game1.currentLocation))
+            .Where(monster => Vector2.Distance(monster.Tile, farmerTile) <= radius)
+            .ToList();
 
         if (member.Engagement == EngagementStyle.Passive)
-            candidates = candidates.Where(monster => Vector2.Distance(monster.Tile, farmerTile) <= 2.75f);
+            candidates = candidates.Where(monster => Vector2.Distance(monster.Tile, farmerTile) <= 2.75f).ToList();
+        if (candidates.Count == 0)
+            return null;
 
         Monster? current = _targets.TryGetValue(member.CharacterName, out Monster? tracked)
             && tracked.Health > 0
@@ -327,12 +508,37 @@ public sealed class CombatService
                 ? tracked
                 : null;
 
-        if (current is not null)
-            return current;
+        double Score(Monster monster)
+        {
+            float distanceNpc = Vector2.Distance(monster.Tile, npc.Tile);
+            float distanceFarmer = Vector2.Distance(monster.Tile, farmerTile);
+            int assigned = assignedCounts.TryGetValue(monster, out int count) ? count : 0;
+            string aggroActor = _threat.GetAggroActor(monster, validThreatActors);
+            PartyMemberData? aggroMember = members.FirstOrDefault(other =>
+                other.CharacterName.Equals(aggroActor, StringComparison.OrdinalIgnoreCase));
+            PartyRole aggroRole = aggroMember is null ? PartyRole.Unassigned : ResolveRole(aggroMember);
+            bool farmerAggro = aggroActor == ThreatService.FarmerActorId;
+            bool vulnerableAggro = aggroRole is PartyRole.Healer or PartyRole.Support;
+            int cluster = candidates.Count(other => Vector2.Distance(other.Tile, monster.Tile) <= 2.5f);
+            double sticky = ReferenceEquals(monster, current) ? -4d : 0d;
 
-        return role == PartyRole.Tank
-            ? candidates.OrderBy(monster => Vector2.DistanceSquared(monster.Tile, farmerTile)).FirstOrDefault()
-            : candidates.OrderBy(monster => Vector2.DistanceSquared(monster.Tile, npc.Tile)).FirstOrDefault();
+            return role switch
+            {
+                PartyRole.Tank => distanceFarmer * 3.4d + distanceNpc * 1.4d + assigned * 7d
+                    - (farmerAggro ? 30d : 0d) - (vulnerableAggro ? 22d : 0d) + sticky,
+                PartyRole.Damage => monster.Health * 0.075d + distanceNpc * 2.1d + assigned * 14d
+                    - (aggroRole == PartyRole.Tank ? 5d : 0d) + sticky,
+                PartyRole.Control => distanceFarmer * 1.7d + distanceNpc * 1.2d + assigned * 10d
+                    - cluster * 7d + (monster.stunTime.Value > 0 ? 16d : 0d) + sticky,
+                PartyRole.Support => distanceFarmer * 2.2d + distanceNpc * 1.4d + assigned * 11d
+                    - (farmerAggro ? 18d : 0d) - (vulnerableAggro ? 14d : 0d) + sticky,
+                PartyRole.Healer => distanceNpc * 2.5d + distanceFarmer * 1.5d + assigned * 15d
+                    - (farmerAggro ? 7d : 0d) + sticky,
+                _ => distanceNpc * 2d + assigned * 10d + sticky
+            };
+        }
+
+        return candidates.OrderBy(Score).FirstOrDefault();
     }
 
     private bool TryPerformRecovery(
@@ -341,17 +547,16 @@ public sealed class CombatService
         PartyRole role,
         int affinity,
         IReadOnlyList<PartyMemberData> members,
-        long recruiterId,
-        bool combatPresent)
+        IReadOnlyList<Monster> monsters,
+        IReadOnlyCollection<string> validThreatActors)
     {
-        if (!combatPresent || role is not (PartyRole.Healer or PartyRole.Support))
+        if (monsters.Count == 0 || role is not (PartyRole.Healer or PartyRole.Support))
             return false;
-
         if (GetCooldown(_healCooldowns, member.CharacterName) > 0)
             return false;
 
         PartyMemberData? downed = members
-            .Where(other => other.RecruiterId == recruiterId && other.IsDowned && !other.IsWithdrawn)
+            .Where(other => other.IsDowned && !other.IsWithdrawn)
             .Where(other => !other.CharacterName.Equals(member.CharacterName, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(other => other.DownedTicks)
             .FirstOrDefault(other =>
@@ -370,27 +575,40 @@ public sealed class CombatService
             {
                 ReviveMember(downed, downedNpc, role == PartyRole.Healer ? 0.35f : 0.30f, "REVIVED");
                 AwardProgress(member, role, 8, 5, npc);
-                _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 300 : 420;
+                AddHealingThreat(member, role, 10, monsters);
+                _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 285 : 400;
                 return true;
             }
         }
 
         PartyMemberData? injured = members
-            .Where(other => other.RecruiterId == recruiterId && !other.IsDowned && !other.IsWithdrawn)
+            .Where(other => !other.IsDowned && !other.IsWithdrawn)
             .Where(other => other.CurrentHealth > 0 && other.CurrentHealth < _progression.GetMaxHealth(other))
-            .OrderBy(other => _progression.GetHealthRatio(other))
-            .FirstOrDefault(other =>
+            .Where(other =>
             {
                 NPC? otherNpc = Game1.getCharacterFromName(other.CharacterName);
                 return otherNpc is not null
                     && ReferenceEquals(otherNpc.currentLocation, Game1.currentLocation)
                     && Vector2.Distance(otherNpc.Tile, npc.Tile) <= 6f;
-            });
+            })
+            .OrderBy(other =>
+            {
+                float ratio = _progression.GetHealthRatio(other);
+                int pressure = _threat.CountMonstersTargeting(other.CharacterName, monsters, validThreatActors);
+                return ratio - pressure * 0.06f;
+            })
+            .FirstOrDefault();
 
+        int farmerPressure = monsters.Count(monster =>
+            _threat.GetAggroActor(monster, validThreatActors) == ThreatService.FarmerActorId
+            && Vector2.Distance(monster.Tile, Game1.player.Tile) <= 6f);
         float farmerThreshold = role == PartyRole.Healer ? 0.78f : 0.52f;
+        if (farmerPressure >= 2)
+            farmerThreshold = Math.Min(0.90f, farmerThreshold + 0.10f);
+
         bool farmerNeedsHelp = Game1.player.health < (int)(Game1.player.maxHealth * farmerThreshold);
-        bool allyMoreUrgent = injured is not null
-            && _progression.GetHealthRatio(injured) < Game1.player.health / (float)Math.Max(1, Game1.player.maxHealth);
+        float farmerRatio = Game1.player.health / (float)Math.Max(1, Game1.player.maxHealth);
+        bool allyMoreUrgent = injured is not null && _progression.GetHealthRatio(injured) < farmerRatio;
 
         int baseAmount = role == PartyRole.Healer ? 4 + affinity * 2 : 2 + affinity;
         int amount = Math.Max(1, (int)Math.Round(baseAmount * _progression.GetHealingMultiplier(member, role)));
@@ -408,7 +626,8 @@ public sealed class CombatService
                     npc.faceDirection(GetFacingDirection(npc.Position, targetNpc.Position));
                     PlayHealFeedback(npc, targetNpc.Position, restored, role, targetNpc);
                     AwardProgress(member, role, 3, 2, npc);
-                    _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 240 : 360;
+                    AddHealingThreat(member, role, restored, monsters);
+                    _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 225 : 345;
                     return true;
                 }
             }
@@ -425,10 +644,21 @@ public sealed class CombatService
 
         npc.faceTowardFarmerForPeriod(500, 4, false, Game1.player);
         PlayHealFeedback(npc, Game1.player.Position, farmerRestored, role, null);
-        TryTriggerRecoverySignature(npc, member, role, affinity, farmerBefore);
+        TryTriggerRecoverySignature(npc, member, role, affinity, farmerBefore, monsters);
         AwardProgress(member, role, 3, 2, npc);
-        _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 240 : 360;
+        AddHealingThreat(member, role, farmerRestored, monsters);
+        _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 225 : 345;
         return true;
+    }
+
+    private void AddHealingThreat(PartyMemberData member, PartyRole role, int restored, IReadOnlyList<Monster> monsters)
+    {
+        float roleFactor = role == PartyRole.Healer ? 0.75f : 0.55f;
+        float amount = Math.Max(1f, restored * roleFactor * GetEngagementThreatMultiplier(member.Engagement));
+        IEnumerable<Monster> nearby = monsters.Where(monster =>
+            Vector2.Distance(monster.Tile, Game1.player.Tile) <= 8f
+            || Vector2.Distance(monster.Tile, Game1.getCharacterFromName(member.CharacterName)?.Tile ?? Game1.player.Tile) <= 8f);
+        _threat.AddThreat(nearby, member.CharacterName, amount);
     }
 
     private void MoveTowardTarget(NPC npc, Monster target, PartyRole role)
@@ -442,7 +672,6 @@ public sealed class CombatService
 
         npc.controller = null;
         npc.temporaryController = null;
-
         try
         {
             npc.controller = new PathFindController(
@@ -485,31 +714,52 @@ public sealed class CombatService
 
         int healthBefore = target.Health;
         Game1.currentLocation.damageMonster(
-            target.GetBoundingBox(),
-            damage,
-            damage + 2,
-            isBomb: false,
-            knockback,
-            100,
-            0.02f,
-            1.5f,
-            triggerMonsterInvincibleTimer: false,
-            Game1.player);
+            target.GetBoundingBox(), damage, damage + 2, isBomb: false, knockback,
+            100, 0.02f, 1.5f, triggerMonsterInvincibleTimer: false, Game1.player);
 
         int dealt = Math.Max(0, healthBefore - Math.Max(0, target.Health));
+        if (dealt > 0)
+            _threat.AddThreat(target, member.CharacterName, GetAttackThreat(member, role, dealt));
+
         ApplyRoleCombatEffect(npc, target, member, role, affinity, dealt);
         if (target.Health > 0)
             TryTriggerAttackSignature(npc, target, member, role, affinity);
 
         if (dealt > 0)
-            AwardProgress(member, role, target.Health <= 0 ? 10 : 2, target.Health <= 0 ? 3 : 1, npc);
+            AwardProgress(member, role, target.Health <= 0 ? 8 : 2, target.Health <= 0 ? 3 : 1, npc);
+    }
+
+    private float GetAttackThreat(PartyMemberData member, PartyRole role, int dealt)
+    {
+        float roleFactor = role switch
+        {
+            PartyRole.Tank => 2.45f,
+            PartyRole.Control => 1.30f,
+            PartyRole.Damage => 1.00f,
+            PartyRole.Support => 0.72f,
+            PartyRole.Healer => 0.55f,
+            _ => 1f
+        };
+        float flat = role == PartyRole.Tank ? 8f : role == PartyRole.Control ? 3f : 0f;
+        return (dealt * roleFactor + flat) * GetEngagementThreatMultiplier(member.Engagement);
+    }
+
+    private static float GetEngagementThreatMultiplier(EngagementStyle style)
+    {
+        return style switch
+        {
+            EngagementStyle.Passive => 0.70f,
+            EngagementStyle.Cautious => 0.85f,
+            EngagementStyle.Aggressive => 1.12f,
+            EngagementStyle.Reckless => 1.22f,
+            _ => 1f
+        };
     }
 
     private void AwardProgress(PartyMemberData member, PartyRole role, int xp, int masteryXp, NPC npc)
     {
         bool leveled = _progression.AwardExperience(member, xp);
         bool masteryUp = _progression.AwardMastery(member, role, masteryXp);
-
         if (leveled)
         {
             npc.showTextAboveHead($"LEVEL {member.Level}!", new Color(255, 220, 95), 2, 1500, 0);
@@ -525,18 +775,13 @@ public sealed class CombatService
 
     private void PlayHealFeedback(NPC healer, Vector2 targetPosition, int restored, PartyRole role, NPC? targetNpc)
     {
-        Color color = role == PartyRole.Healer
-            ? new Color(120, 255, 160)
-            : new Color(255, 224, 120);
-
+        Color color = role == PartyRole.Healer ? new Color(120, 255, 160) : new Color(255, 224, 120);
         SpawnBurst(Game1.currentLocation, targetPosition + new Vector2(16f, -12f), color,
             role == PartyRole.Healer ? 6 : 4, 24f);
-
         if (targetNpc is not null)
             targetNpc.showTextAboveHead($"+{restored} HP", color, 2, 1000, 0);
         else
             healer.showTextAboveHead($"+{restored} HP", color, 2, 1000, 0);
-
         Game1.currentLocation.playSound("yoba");
     }
 
@@ -554,7 +799,6 @@ public sealed class CombatService
 
         SpawnBurst(Game1.currentLocation, target.Position + new Vector2(16f, 16f), color,
             role == PartyRole.Control ? 6 : 4, role == PartyRole.Tank ? 28f : 20f);
-
         if (dealt > 0)
             target.showTextAboveHead($"-{dealt}", color, 2, 700, 0);
 
@@ -562,13 +806,19 @@ public sealed class CombatService
         {
             int stunMs = (int)Math.Round((350 + affinity * 100) * _progression.GetControlMultiplier(member, role));
             target.stunTime.Value = Math.Max(target.stunTime.Value, stunMs);
+            _threat.AddThreat(target, member.CharacterName, 10f * GetEngagementThreatMultiplier(member.Engagement));
             target.showTextAboveHead("STUN", new Color(100, 235, 255), 2, 850, 0);
         }
-
         Game1.currentLocation.playSound(role == PartyRole.Control ? "thunder_small" : "swordswipe");
     }
 
-    private void TryTriggerRecoverySignature(NPC npc, PartyMemberData member, PartyRole role, int affinity, int healthBeforeBaseHeal)
+    private void TryTriggerRecoverySignature(
+        NPC npc,
+        PartyMemberData member,
+        PartyRole role,
+        int affinity,
+        int healthBeforeBaseHeal,
+        IReadOnlyList<Monster> monsters)
     {
         if (GetCooldown(_signatureCooldowns, member.CharacterName) > 0)
             return;
@@ -587,9 +837,9 @@ public sealed class CombatService
                 SpawnBurst(Game1.currentLocation, Game1.player.Position, Color.White, 8, 34f);
                 SpawnBurst(Game1.currentLocation, Game1.player.Position, green, 8, 24f);
                 npc.showTextAboveHead($"EMERGENCY +{restored}", green, 2, 1400, 0);
+                AddHealingThreat(member, role, restored, monsters);
                 Game1.currentLocation.playSound("yoba");
             }
-
             _signatureCooldowns[member.CharacterName] = Math.Max(300, (int)(600 * _progression.GetCooldownMultiplier(member, role)));
             return;
         }
@@ -602,7 +852,6 @@ public sealed class CombatService
             int bonus = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetHealingMultiplier(member, role)));
             Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + bonus);
             int restored = Game1.player.health - before;
-
             Color[] prism =
             {
                 new Color(255, 110, 150), new Color(255, 190, 90), new Color(120, 255, 150),
@@ -610,9 +859,10 @@ public sealed class CombatService
             };
             for (int i = 0; i < prism.Length; i++)
                 SpawnBurst(Game1.currentLocation, Game1.player.Position, prism[i], 2, 20f + i * 5f);
-
             npc.showTextAboveHead(restored > 0 ? $"PRISMATIC +{restored}" : "PRISMATIC AURA",
                 new Color(230, 160, 255), 2, 1400, 0);
+            if (restored > 0)
+                AddHealingThreat(member, role, restored, monsters);
             Game1.currentLocation.playSound("yoba");
             _signatureCooldowns[member.CharacterName] = Math.Max(360, (int)(720 * _progression.GetCooldownMultiplier(member, role)));
         }
@@ -632,9 +882,9 @@ public sealed class CombatService
             {
                 Game1.currentLocation.damageMonster(monster.GetBoundingBox(), bonusDamage, bonusDamage + 2,
                     isBomb: false, 1.0f, 100, 0.02f, 1.5f, triggerMonsterInvincibleTimer: false, Game1.player);
+                _threat.AddThreat(monster, member.CharacterName, bonusDamage * 1.15f);
                 SpawnBurst(Game1.currentLocation, monster.Position, purple, 5, 28f);
             }
-
             npc.showTextAboveHead("SPIRIT SLASH", purple, 2, 1300, 0);
             Game1.currentLocation.playSound("swordswipe");
             _signatureCooldowns[member.CharacterName] = Math.Max(180, (int)(360 * _progression.GetCooldownMultiplier(member, role)));
@@ -643,7 +893,7 @@ public sealed class CombatService
 
         if (member.CharacterName.Equals("Alex", StringComparison.OrdinalIgnoreCase)
             && role == PartyRole.Tank
-            && Vector2.Distance(target.Tile, Game1.player.Tile) <= 4.0f)
+            && Vector2.Distance(target.Tile, Game1.player.Tile) <= 4f)
         {
             Color orange = new(255, 155, 70);
             int guardDamage = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetDamageMultiplier(member, role)));
@@ -651,9 +901,9 @@ public sealed class CombatService
             {
                 Game1.currentLocation.damageMonster(monster.GetBoundingBox(), guardDamage, guardDamage + 1,
                     isBomb: false, 2.4f, 100, 0f, 1.25f, triggerMonsterInvincibleTimer: false, Game1.player);
+                _threat.AddThreat(monster, member.CharacterName, 55f + guardDamage * 3f);
                 SpawnBurst(Game1.currentLocation, monster.Position, orange, 4, 30f);
             }
-
             SpawnBurst(Game1.currentLocation, Game1.player.Position, orange, 8, 42f);
             npc.showTextAboveHead("BODYGUARD", orange, 2, 1300, 0);
             Game1.currentLocation.playSound("clubSmash");
@@ -668,10 +918,10 @@ public sealed class CombatService
             foreach (Monster monster in GetLivingMonstersNear(target.Tile, 2.5f))
             {
                 monster.stunTime.Value = Math.Max(monster.stunTime.Value, stunMs);
+                _threat.AddThreat(monster, member.CharacterName, 18f);
                 SpawnBurst(Game1.currentLocation, monster.Position, cyan, 7, 30f);
                 monster.showTextAboveHead("SHOCK", cyan, 2, 1000, 0);
             }
-
             npc.showTextAboveHead("SHOCK DEVICE", cyan, 2, 1300, 0);
             Game1.currentLocation.playSound("thunder_small");
             _signatureCooldowns[member.CharacterName] = Math.Max(240, (int)(480 * _progression.GetCooldownMultiplier(member, role)));
@@ -770,7 +1020,6 @@ public sealed class CombatService
         int radius = Math.Max(1, (int)Math.Floor(range));
         Vector2 best = target;
         float bestDistance = float.MaxValue;
-
         for (int x = -radius; x <= radius; x++)
         {
             for (int y = -radius; y <= radius; y++)
