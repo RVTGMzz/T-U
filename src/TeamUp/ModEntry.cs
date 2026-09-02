@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Ronvotri.TeamUp.Core;
 using Ronvotri.TeamUp.Following;
@@ -14,6 +15,7 @@ namespace Ronvotri.TeamUp;
 public sealed class ModEntry : Mod
 {
     private const string SaveDataKey = "team-up-party";
+    private const float DialogueHintScale = 1.5f;
 
     private ModConfig Config { get; set; } = new();
     private PartyManager Party { get; set; } = null!;
@@ -44,7 +46,7 @@ public sealed class ModEntry : Mod
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1.0-alpha.5.3 Codex + dialogue UX smoke test loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1.0-alpha.5.3.1 UI + controller hotfix loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -569,30 +571,33 @@ public sealed class ModEntry : Mod
                 ? Helper.Translation.Get("hint.recruit")
                 : null;
 
-        const int tagHeight = 34;
+        const int tagHeight = 50;
         int dialogueLeft = Math.Max(8, (Game1.uiViewport.Width - dialogueBox.width) / 2);
         int dialogueTop = Math.Max(8, Game1.uiViewport.Height - dialogueBox.height - 24);
-        int y = Math.Max(6, dialogueTop - tagHeight + 5);
 
-        DrawDialogueTag(e, leftText, dialogueLeft + 20, y);
+        // Keep the helper tags completely outside the dialogue frame. The previous
+        // +5 overlap made them look like they were printed inside the dialogue box.
+        int y = Math.Max(6, dialogueTop - tagHeight - 8);
+
+        DrawDialogueTag(e, leftText, dialogueLeft + 18, y, tagHeight);
 
         if (rightText is not null)
         {
-            Vector2 size = Game1.smallFont.MeasureString(rightText);
-            int tagWidth = (int)Math.Ceiling(size.X) + 24;
-            int rightX = dialogueLeft + dialogueBox.width - tagWidth - 20;
-            DrawDialogueTag(e, rightText, rightX, y);
+            Vector2 size = Game1.smallFont.MeasureString(rightText) * DialogueHintScale;
+            int tagWidth = (int)Math.Ceiling(size.X) + 30;
+            int rightX = dialogueLeft + dialogueBox.width - tagWidth - 18;
+            DrawDialogueTag(e, rightText, rightX, y, tagHeight);
         }
     }
 
-    private static void DrawDialogueTag(RenderedActiveMenuEventArgs e, string text, int x, int y)
+    private static void DrawDialogueTag(RenderedActiveMenuEventArgs e, string text, int x, int y, int height)
     {
-        Vector2 size = Game1.smallFont.MeasureString(text);
-        int width = (int)Math.Ceiling(size.X) + 24;
-        Rectangle bounds = new(x, y, width, 34);
+        Vector2 size = Game1.smallFont.MeasureString(text) * DialogueHintScale;
+        int width = (int)Math.Ceiling(size.X) + 30;
+        Rectangle bounds = new(x, y, width, height);
 
-        Color background = new Color(43, 29, 22) * 0.92f;
-        Color border = new Color(219, 165, 91) * 0.95f;
+        Color background = new Color(43, 29, 22) * 0.94f;
+        Color border = new Color(219, 165, 91) * 0.98f;
 
         e.SpriteBatch.Draw(Game1.staminaRect, bounds, background);
         e.SpriteBatch.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Y, bounds.Width, 2), border);
@@ -600,17 +605,41 @@ public sealed class ModEntry : Mod
         e.SpriteBatch.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Y, 2, bounds.Height), border);
         e.SpriteBatch.Draw(Game1.staminaRect, new Rectangle(bounds.Right - 2, bounds.Y, 2, bounds.Height), border);
 
-        Vector2 position = new(bounds.X + 12, bounds.Y + 7);
-        e.SpriteBatch.DrawString(Game1.smallFont, text, position + new Vector2(2f, 2f), Color.Black * 0.7f);
-        e.SpriteBatch.DrawString(Game1.smallFont, text, position, Color.White);
+        Vector2 textSize = Game1.smallFont.MeasureString(text) * DialogueHintScale;
+        Vector2 position = new(
+            bounds.X + 15,
+            bounds.Center.Y - textSize.Y / 2f);
+        Vector2 shadowOffset = new(2.5f, 2.5f);
+
+        e.SpriteBatch.DrawString(
+            Game1.smallFont,
+            text,
+            position + shadowOffset,
+            Color.Black * 0.7f,
+            0f,
+            Vector2.Zero,
+            DialogueHintScale,
+            SpriteEffects.None,
+            1f);
+        e.SpriteBatch.DrawString(
+            Game1.smallFont,
+            text,
+            position,
+            Color.White,
+            0f,
+            Vector2.Zero,
+            DialogueHintScale,
+            SpriteEffects.None,
+            1f);
     }
 
     private void DrawSocialCodexEntry(RenderedActiveMenuEventArgs e, GameMenu gameMenu)
     {
-        const int width = 250;
-        const int height = 42;
+        const int preferredWidth = 340;
+        const int height = 50;
+        int width = Math.Min(preferredWidth, Math.Max(220, gameMenu.width - 70));
         int x = gameMenu.xPositionOnScreen + gameMenu.width - width - 34;
-        int y = gameMenu.yPositionOnScreen + gameMenu.height - height - 32;
+        int y = gameMenu.yPositionOnScreen + gameMenu.height - height - 30;
         SocialCodexButtonBounds = new Rectangle(x, y, width, height);
 
         IClickableMenu.drawTextureBox(
@@ -625,13 +654,26 @@ public sealed class ModEntry : Mod
             0.8f,
             true);
 
-        string text = Helper.Translation.Get("social.codex-entry");
-        Vector2 size = Game1.smallFont.MeasureString(text);
-        e.SpriteBatch.DrawString(
+        DrawFitText(
+            e.SpriteBatch,
             Game1.smallFont,
-            text,
-            new Vector2(x + width / 2f - size.X / 2f, y + height / 2f - size.Y / 2f),
-            Game1.textColor);
+            Helper.Translation.Get("social.codex-entry"),
+            new Rectangle(x + 12, y + 6, width - 24, height - 12),
+            Game1.textColor,
+            1.08f);
+    }
+
+    private static void DrawFitText(SpriteBatch b, SpriteFont font, string text, Rectangle bounds, Color color, float preferredScale)
+    {
+        Vector2 measured = font.MeasureString(text);
+        float scale = measured.X <= 0f
+            ? preferredScale
+            : Math.Min(preferredScale, bounds.Width / measured.X);
+        scale = Math.Max(0.72f, scale);
+        Vector2 position = new(
+            bounds.Center.X - measured.X * scale / 2f,
+            bounds.Center.Y - measured.Y * scale / 2f);
+        b.DrawString(font, text, position, color, 0f, Vector2.Zero, scale, SpriteEffects.None, 1f);
     }
 
     private NPC? ResolveDialogueSpeaker()
