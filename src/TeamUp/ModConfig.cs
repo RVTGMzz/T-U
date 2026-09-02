@@ -6,14 +6,20 @@ namespace Ronvotri.TeamUp;
 
 public sealed class ModConfig
 {
-    // Recruitment shortcut while an NPC dialogue is already open.
-    // Keyboard: E. Controller: Right Shoulder (shown to the player as R).
-    // Convert the XNA controller button through SMAPI instead of depending on a
-    // version-specific SButton enum member name.
+    // Party action while NPC dialogue is open.
+    // Not recruited: ask to recruit. Party member: ask to leave.
+    // Keyboard: E. Controller: Right Shoulder (shown as R).
     public KeybindList RecruitKey { get; set; } = new(
         new Keybind(SButton.E),
         new Keybind(Buttons.RightShoulder.ToSButton()));
 
+    // Contextual NPC profile shortcut while dialogue is open.
+    // Keyboard: Q. Controller: Left Shoulder (shown as L).
+    public KeybindList ProfileKey { get; set; } = new(
+        new Keybind(SButton.Q),
+        new Keybind(Buttons.LeftShoulder.ToSButton()));
+
+    // Global keyboard shortcut. The Social tab also exposes a visible Codex entry.
     public KeybindList PartyMenuKey { get; set; } = new(SButton.P);
 
     public int MaxPartyMembers { get; set; } = 4;
