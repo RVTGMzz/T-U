@@ -1,0 +1,56 @@
+TEAM UP! alpha.5.3.6 - SMOKE TEST VI
+
+MUC TIEU VONG NAY
+- Vault phai cho dua do vao/lay do ra on dinh, khong nuot do, khong ket menu.
+- Hint cua NPC da vao Party phai hien NGAY tren menu goc: trai Ho so, phai Roi doi.
+- Roi doi xong NPC phai dung follow Team Up ngay lap tuc.
+- Cac fix Codex/Profile controller tu alpha.5.3.5 phai giu nguyen.
+
+1. PARTY VAULT - BAT BUOC
+[ ] Mo Kho chung Party.
+[ ] Chuot trai: lay 1 stack tu inventory nguoi choi, dat vao Vault.
+[ ] Chuot trai: lay stack tu Vault, dat lai inventory nguoi choi.
+[ ] Thu doi cho 2 item o hai ben.
+[ ] Chuot phai: tach/tang stack theo hanh vi inventory Stardew.
+[ ] Controller: D-pad di chuyen trong 3 hang Vault; xuong hang cuoi chuyen sang inventory nguoi choi.
+[ ] Controller A lay/dat item; X thao tac right-click.
+[ ] Controller B thoat duoc kho.
+[ ] Esc thoat duoc kho.
+[ ] Nut OK ben phai thoat duoc kho.
+[ ] Dong/mo kho lai: item van dung vi tri, khong mat stack.
+[ ] Save/load: item trong Vault van con.
+[ ] Thu recipe/sach/item dac biet neu co: KHONG tu hoc/tu an/tu consume chi vi lay khoi Vault.
+
+2. PARTY MEMBER ROOT MENU + HINT
+[ ] Thu nap Claire/NPC thuong.
+[ ] Bam action vao NPC da o Party de mo menu Team Up.
+[ ] Ngay khi menu hien, KHONG can bam R truoc, phai thay:
+    Trai: L (Controller) / Q  Ho so
+    Phai: Roi doi R (Controller) / E
+[ ] Dau ? vanilla goc phai tren khong con tren menu goc Team Up.
+
+3. ROI DOI / GHOST FOLLOW
+[ ] Tu menu goc, bam R/E.
+[ ] Hien cau hoi xac nhan roi doi.
+[ ] Chon Huy: NPC van o Party va van follow neu dang Following.
+[ ] Chon Cho roi doi: NPC bi remove khoi roster.
+[ ] Sau khi roi doi, di xa/doi huong/doi location: NPC KHONG tiep tuc bam theo player.
+[ ] Neu NPC co linked companion, companion cung duoc release khoi Team Up khi owner roi Party.
+[ ] Thu nap lai cung NPC: follow phai hoat dong lai binh thuong.
+
+4. CODEX / PROFILE REGRESSION
+[ ] Profile mo tu dialogue: D-pad trai/phai focus Tat ca nhan vat / Quay lai; A kich hoat; B quay lai.
+[ ] Controller lam cursor an; cursor chi hien lai khi chuot vat ly di chuyen/click/scroll.
+[ ] Codex filter: focus Vai tro/Trang thai/Nguon -> A mo dropdown -> D-pad chon -> A xac nhan.
+[ ] A tren filter KHONG duoc mo NPC row nam duoi con tro cu.
+
+5. FOLLOW POLISH
+[ ] NPC Following phan ung muot hon ban cu.
+[ ] Thu di quanh chau cay/hang rao/duong hep; ghi lai vi tri neu con xuyen vat can hoac jitter.
+
+BLOCKER
+- Bat ky mat/nuot item nao trong Vault.
+- Vault khong cho item vao/ra.
+- Khong thoat duoc Vault bang B/Esc/OK.
+- NPC da roi Team Up nhung van follow player.
+- Hint Roi doi khong hien ngay tren member root menu.
