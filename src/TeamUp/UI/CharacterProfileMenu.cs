@@ -36,6 +36,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private readonly ClickableComponent _backButton;
     private Texture2D? _portrait;
     private bool _showMouseCursor;
+    private Point _lastMousePosition;
 
     public CharacterProfileMenu(
         string characterName,
@@ -69,6 +70,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         _i18n = i18n;
         _onBack = onBack;
         _onOpenAll = onOpenAll;
+        _lastMousePosition = new Point(Game1.getMouseX(), Game1.getMouseY());
 
         int buttonHeight = 48;
         _allButton = new ClickableComponent(
@@ -92,6 +94,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     public override void receiveLeftClick(int x, int y, bool playSound = true)
     {
         _showMouseCursor = true;
+        _lastMousePosition = new Point(x, y);
 
         if (_allButton.containsPoint(x, y))
         {
@@ -110,7 +113,13 @@ public sealed class CharacterProfileMenu : IClickableMenu
 
     public override void performHoverAction(int x, int y)
     {
-        _showMouseCursor = true;
+        Point current = new(x, y);
+        if (current != _lastMousePosition)
+        {
+            _showMouseCursor = true;
+            _lastMousePosition = current;
+        }
+
         base.performHoverAction(x, y);
     }
 
