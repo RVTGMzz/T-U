@@ -1,0 +1,44 @@
+TEAM UP! v0.2.0-alpha.2 - COMBAT VFX SMOKE TEST
+=================================================
+
+A. BUILD
+[ ] Chạy BUILD_V0_2_ALPHA2.bat thành công.
+[ ] Có release/TeamUp_v0.2.0-alpha.2_COMBAT_VFX_TEST.zip.
+[ ] SMAPI load không có error đỏ của Team Up.
+
+B. BASIC COMBAT FEEDBACK
+[ ] Recruit ít nhất 1 NPC và đưa xuống Mine có quái.
+[ ] NPC tự target/đi tới/đánh như alpha.1.
+[ ] Mỗi hit có burst màu + số damage hiện trên quái.
+[ ] Quái chết bình thường và vẫn rơi loot.
+[ ] Hết quái NPC quay lại follow.
+
+C. ROLE VFX
+[ ] DPS: hit feedback hồng/đỏ, nhịp nhanh.
+[ ] Tank: hit feedback cam, knockback rõ.
+[ ] Control: feedback cyan + chữ STUN, quái thực sự đứng khựng trong stunTime.
+[ ] Support: feedback vàng, có heal nhẹ khi Farmer đủ thấp máu.
+[ ] Healer: feedback xanh, có pulse + số +HP khi Farmer thấp máu.
+
+D. 5 SIGNATURE PROTOTYPES
+[ ] Abigail DPS/Control: thỉnh thoảng SPIRIT SLASH, burst tím và AoE quanh target.
+[ ] Alex Tank: khi quái áp sát Farmer, BODYGUARD pulse cam + đẩy nhóm quái ra.
+[ ] Emily Support/Healer: khi Farmer thấp máu, PRISMATIC AURA nhiều màu + bonus recovery.
+[ ] Harvey Healer: khi Farmer nguy cấp, EMERGENCY hiện rõ + bonus heal.
+[ ] Maru Control: SHOCK DEVICE làm nhiều quái gần target bị stun thật + effect cyan.
+
+E. SAFETY / REGRESSION
+[ ] Effect không spam kín màn hình với party 4 người.
+[ ] Sound không phát dày đến mức khó chịu.
+[ ] Không heal vượt max HP.
+[ ] Không crash khi target chết đúng lúc Signature kích hoạt.
+[ ] Leave Team trong lúc/ sau combat không ghost-follow.
+[ ] ChaCha vẫn không thể recruit Main Party.
+[ ] Party Vault vẫn lấy/cất đồ bình thường.
+[ ] Codex/controller filter vẫn hoạt động.
+
+GHI CHÚ
+- Alpha.2 mới code Signature thật cho 5 profile mẫu ban đầu: Abigail, Alex, Emily, Harvey, Maru.
+- 24 vanilla profile còn lại có Role combat + Role VFX thật nhưng Signature riêng mới ở mức Codex identity.
+- Nếu build fail: gửi BUILD_LOG.txt.
+- Nếu runtime lỗi: gửi SMAPI-latest.txt + ảnh/video ngắn tình huống gây lỗi.
