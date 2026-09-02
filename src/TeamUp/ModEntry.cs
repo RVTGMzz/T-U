@@ -46,7 +46,7 @@ public sealed class ModEntry : Mod
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1.0-alpha.5.3.1 UI + controller hotfix loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.1.0-alpha.5.3.3 dialogue hint anchor hotfix loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -119,7 +119,6 @@ public sealed class ModEntry : Mod
         if (!Context.IsWorldReady || !Context.IsMainPlayer)
             return;
 
-        // Social tab integration. Controller X is scoped to this tab only.
         if (Game1.activeClickableMenu is GameMenu gameMenu && gameMenu.currentTab == GameMenu.socialTab)
         {
             bool clicked = e.Button == SButton.MouseLeft
@@ -135,15 +134,11 @@ public sealed class ModEntry : Mod
             }
         }
 
-        // Never let dialogue shortcuts leak through Team Up custom menus.
         if (Game1.activeClickableMenu is CharacterProfileMenu or CodexBrowserMenu)
             return;
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
 
-        // Fixed contextual actions on an NPC dialogue:
-        // Left Shoulder / Q = profile.
-        // Right Shoulder / E = recruit or leave, always confirmed.
         if (Game1.dialogueUp)
         {
             NPC? speaker = ResolveDialogueSpeaker();
@@ -179,7 +174,6 @@ public sealed class ModEntry : Mod
             return;
         }
 
-        // Global PC shortcut opens the full character Codex.
         if (Context.IsPlayerFree && Config.PartyMenuKey.JustPressed())
         {
             Helper.Input.Suppress(e.Button);
@@ -198,7 +192,6 @@ public sealed class ModEntry : Mod
             return;
         }
 
-        // Preserve vanilla gifting.
         if (Game1.player.ActiveObject is not null)
         {
             RecruitHintNpcName = null;
@@ -214,7 +207,6 @@ public sealed class ModEntry : Mod
             return;
         }
 
-        // Special/Farmer companions may still expose a profile shell, but never a recruit action.
         if (!IsRecruitableNpc(npc))
         {
             RecruitHintNpcName = npc.Name;
@@ -223,7 +215,6 @@ public sealed class ModEntry : Mod
 
         RecruitHintNpcName = npc.Name;
 
-        // Exhausted vanilla dialogue still asks before recruitment.
         if (npc.CurrentDialogue.Count == 0)
         {
             Helper.Input.Suppress(e.Button);
@@ -327,7 +318,6 @@ public sealed class ModEntry : Mod
             ? Helper.Translation.Get("member.stand")
             : Helper.Translation.Get("member.follow");
 
-        // Profile and Leave are fixed dialogue actions now, not menu clutter.
         Response[] responses =
         {
             new("Talk", Helper.Translation.Get("member.talk")),
@@ -572,12 +562,13 @@ public sealed class ModEntry : Mod
                 : null;
 
         const int tagHeight = 50;
-        int dialogueLeft = Math.Max(8, (Game1.uiViewport.Width - dialogueBox.width) / 2);
-        int dialogueTop = Math.Max(8, Game1.uiViewport.Height - dialogueBox.height - 24);
 
-        // Keep the helper tags completely outside the dialogue frame. The previous
-        // +5 overlap made them look like they were printed inside the dialogue box.
-        int y = Math.Max(6, dialogueTop - tagHeight - 8);
+        // DialogueBox exposes the actual x/y used by Stardew. Use those directly.
+        // Alpha.5.3.2 estimated top with -24 while vanilla uses -64, which pulled
+        // these tags about 40px down into the dialogue frame.
+        int dialogueLeft = dialogueBox.x;
+        int dialogueTop = dialogueBox.y;
+        int y = Math.Max(6, dialogueTop - tagHeight - 10);
 
         DrawDialogueTag(e, leftText, dialogueLeft + 18, y, tagHeight);
 
