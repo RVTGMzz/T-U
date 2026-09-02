@@ -1,10 +1,19 @@
-TEAM UP! v0.2.0-alpha.6.1 — CARDCHA TEST ARENA BRIDGE + DEBUG PRESETS
+TEAM UP! v0.2.0-alpha.6.1.1 — CARDCHA TEST ARENA BRIDGE + DEBUG PRESETS
+
+0) CÀI ĐÚNG BẢN DEBUG BRIDGE
+- XÓA HẲN thư mục Team Up cũ trong Mods trước khi chép bản mới, không chép đè lẫn DLL.
+- Trong thư mục mod mới phải có DEBUG_BUILD_INFO.txt.
+- manifest phải báo version 0.2.0-alpha.6.1.1.
+- Khi SMAPI khởi động phải thấy dòng:
+  Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.1
+- Nếu không thấy marker này thì game chưa load đúng DLL debug bridge. Đừng test command tiếp, gửi SMAPI log.
 
 1) BUILD
 - Chạy BUILD_V0_2_ALPHA6.bat.
 - Nếu đỏ: gửi nguyên BUILD_LOG.txt.
+- Build log phải có: Debug harness source verification: OK
 - ZIP mong đợi:
-  release/TeamUp_v0.2.0-alpha.6.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.zip
+  release/TeamUp_v0.2.0-alpha.6.1.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.zip
 
 2) HINT SAU KHI XEM PROFILE TỪ NPC TRONG ĐỘI
 - Nói chuyện với NPC đang ở trong Team Up.
@@ -137,4 +146,4 @@ GHI CHÚ
 - Cardcha chỉ cung cấp môi trường arena nếu đang được load.
 - Team Up không gọi Cardcha combat/card code và không phụ thuộc bắt buộc vào Cardcha.
 - Bridge tìm arena qua map metadata để tránh khóa vào internal location name.
-- Không đổi save schema ở Alpha 6.1.
+- Không đổi save schema ở Alpha 6.1.1.
