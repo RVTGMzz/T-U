@@ -12,11 +12,13 @@ function Patch-I18n([string]$path, [bool]$vi) {
     if ($vi) {
         $oldMember = @'
   "member.vault": "Kho chung Party",
-'@.TrimEnd()
+'@
         $newMember = @'
   "member.equipment": "Trang bị",
   "member.vault": "Kho chung Party",
-'@.TrimEnd()
+'@
+        $oldMember = $oldMember.TrimEnd()
+        $newMember = $newMember.TrimEnd()
         $text = $text.Replace($oldMember, $newMember)
 
         $insert = @'
@@ -38,11 +40,13 @@ function Patch-I18n([string]$path, [bool]$vi) {
     else {
         $oldMember = @'
   "member.vault": "Party Vault",
-'@.TrimEnd()
+'@
         $newMember = @'
   "member.equipment": "Equipment",
   "member.vault": "Party Vault",
-'@.TrimEnd()
+'@
+        $oldMember = $oldMember.TrimEnd()
+        $newMember = $newMember.TrimEnd()
         $text = $text.Replace($oldMember, $newMember)
 
         $insert = @'
