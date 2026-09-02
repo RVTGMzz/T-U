@@ -78,6 +78,38 @@ $mod = Replace-Required $mod `
     '            characterName => OpenCharacterProfile(characterName, OpenCodexBrowser, OpenCodexBrowser),' `
     '            (characterName, browser) => OpenCharacterProfile(characterName, () => Game1.activeClickableMenu = browser, () => Game1.activeClickableMenu = browser),' `
     'Codex browser restore callback'
+
+# When a profile was opened from an NPC dialogue/member menu, restoring the DialogueBox alone
+# is not enough. Pin the NPC name again so the profile + leave hints render immediately.
+$oldDialogueProfile = @'
+    private void OpenProfileFromDialogue(NPC npc)
+    {
+        IClickableMenu? dialogueMenu = Game1.activeClickableMenu;
+        OpenCharacterProfile(
+            npc.Name,
+            () => RestoreMenu(dialogueMenu),
+            () => OpenCodexBrowser(() => RestoreMenu(dialogueMenu)));
+    }
+'@
+$newDialogueProfile = @'
+    private void OpenProfileFromDialogue(NPC npc)
+    {
+        IClickableMenu? dialogueMenu = Game1.activeClickableMenu;
+        OpenCharacterProfile(
+            npc.Name,
+            () =>
+            {
+                RecruitHintNpcName = npc.Name;
+                RestoreMenu(dialogueMenu);
+            },
+            () => OpenCodexBrowser(() =>
+            {
+                RecruitHintNpcName = npc.Name;
+                RestoreMenu(dialogueMenu);
+            }));
+    }
+'@
+$mod = Replace-Required $mod $oldDialogueProfile $newDialogueProfile 'dialogue profile hint restoration'
 Write-Utf8 $modPath $mod
 
 # 3) Windows PowerShell 5.1 reads UTF-8-without-BOM script literals as ANSI.
@@ -108,4 +140,4 @@ $vi = Set-JsonString $vi 'equipment.inventory-full' 'T\u00fai \u0111\u1ed3 kh\u0
 $vi = Set-JsonString $vi 'equipment.leave-blocked' 'H\u00e3y ch\u1eeba ch\u1ed7 trong t\u00fai \u0111\u1ec3 nh\u1eadn l\u1ea1i trang b\u1ecb tr\u01b0\u1edbc khi NPC r\u1eddi \u0111\u1ed9i.'
 Write-Utf8 $viPath $vi
 
-Write-Host 'Alpha 6 UX hotfix applied: recruit pose reset + Codex focus memory + Vietnamese equipment encoding.'
+Write-Host 'Alpha 6 UX hotfix applied: recruit pose reset + Codex focus memory + dialogue hint restore + Vietnamese equipment encoding.'
