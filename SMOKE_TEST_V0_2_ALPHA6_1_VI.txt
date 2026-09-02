@@ -1,11 +1,11 @@
-TEAM UP! v0.2.0-alpha.6.1.2 — CARDCHA DEBUG + FOLLOW ANTI-THRASH + PARTY PASS-THROUGH
+TEAM UP! v0.2.0-alpha.6.1.3 — PARTY UX + TANK APPROACH + CHACHA EXCLUSION
 
 0) CÀI ĐÚNG BẢN
 - XÓA HẲN thư mục Team Up cũ trong Mods trước khi chép bản mới, không chép đè lẫn DLL.
 - Trong thư mục mod mới phải có DEBUG_BUILD_INFO.txt.
-- manifest phải báo version 0.2.0-alpha.6.1.2.
+- manifest phải báo version 0.2.0-alpha.6.1.3.
 - Khi SMAPI khởi động phải thấy dòng:
-  Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.2
+  Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.3
 - Nếu không thấy marker này thì game chưa load đúng DLL. Đừng test command tiếp, gửi SMAPI log.
 
 1) BUILD
@@ -15,10 +15,54 @@ TEAM UP! v0.2.0-alpha.6.1.2 — CARDCHA DEBUG + FOLLOW ANTI-THRASH + PARTY PASS-
   Debug harness source verification: OK
   Follow anti-thrash source verification: OK
   Party pass-through source verification: OK
+  ChaCha exclusion source verification: OK
+  Equipment panel source verification: OK
+  Vault UTF-8 source verification: OK
+  Tank approach-before-taunt source verification: OK
 - ZIP mong đợi:
-  release/TeamUp_v0.2.0-alpha.6.1.2_CARDCHA_DEBUG_FOLLOW_GHOST_TEST.zip
+  release/TeamUp_v0.2.0-alpha.6.1.3_PARTY_UX_TANK_CHACHA_TEST.zip
 
-2) HINT SAU KHI XEM PROFILE TỪ NPC TRONG ĐỘI
+2) CHACHA LÀ SPECIAL COMPANION, KHÔNG PHẢI MAIN PARTY
+- Nói chuyện/interaction với ChaCha của Cardcha.
+- KHÔNG được hiện hint Thu nạp.
+- R/E KHÔNG được mở câu hỏi "Bạn muốn thu nạp ChaCha vào Team Up?".
+- ChaCha internal NPC ID Ronvotri.Cardcha_ChaCha cũng phải bị chặn.
+- Save cũ nếu từng lỡ có ChaCha trong Main Party phải được migration loại khỏi Main Party khi load.
+
+3) ALEX TANK APPROACH -> TAUNT
+- Cho Alex vào đội, Role Tank, tốt nhất preset tier2/tier3.
+- Đặt quái cách Alex hơn ~5 tile nhưng vẫn trong vùng combat quanh Farmer.
+- Alex phải chọn mục tiêu và TIẾN VỀ PHÍA quái trước.
+- TAUNT chỉ được phát khi quái đã nằm gần Alex, không taunt từ xa quanh Farmer rồi đứng yên.
+- Sau TAUNT Alex vẫn phải tiếp tục áp sát/đánh mục tiêu.
+- Alex không được chạy bỏ Farmer quá hard leash ~12 tile.
+
+4) TRANG BỊ = PANEL RIÊNG
+- Mở menu member -> Trang bị.
+- Phải mở Equipment panel riêng, KHÔNG còn question-dialogue kiểu chat.
+- Bên trái có 3 slot: Vũ khí / Giáp-Giày / Nhẫn-Trinket.
+- Bên phải hiển thị đồ phù hợp trong túi.
+- Hiển thị món đang trang bị + stat ATK/DEF/HEAL/CTRL/CDR nếu có.
+- Controller:
+  D-pad trái/phải = chuyển Slot / Túi
+  D-pad lên/xuống = chọn
+  A = trang bị
+  X = tháo
+  B = quay lại member menu
+- Mouse có thể click slot, item, tháo, quay lại.
+- Equip/unequip vẫn phải dùng đúng Item object và save bình thường.
+
+5) PARTY VAULT TIẾNG VIỆT
+- Mở Kho chung Party.
+- Phải đọc đúng:
+  KHO PARTY
+  Vật tư dùng chung cho toàn đội
+  ô đã dùng
+  Thức ăn · Hồi phục · Tiện ích · Chiến lợi phẩm
+- Không còn chuỗi kiểu Æ / Ã / » / trá»¯ / lÆ°u.
+- Item transfer, Fill Stacks, Organize, OK vẫn hoạt động.
+
+6) HINT SAU KHI XEM PROFILE TỪ NPC TRONG ĐỘI
 - Nói chuyện với NPC đang ở trong Team Up.
 - Bấm Q / L Controller để xem hồ sơ.
 - Bấm Quay lại / B.
@@ -26,32 +70,28 @@ TEAM UP! v0.2.0-alpha.6.1.2 — CARDCHA DEBUG + FOLLOW ANTI-THRASH + PARTY PASS-
 - Hint trái phải hiện lại: L (Controller) / Q Hồ sơ.
 - Hint phải phải hiện lại: Rời đội R (Controller) / E.
 
-3) CODEX FOCUS MEMORY
+7) CODEX FOCUS MEMORY
 - Mở Codex, chọn NPC ở giữa/cuối danh sách, mở Profile rồi Quay lại.
 - Phải giữ đúng NPC đang chọn, scroll offset và filter.
 
-4) ALEX FOLLOW / SCHEDULE ANIMATION
+8) ALEX FOLLOW / SCHEDULE ANIMATION
 - Recruit Alex lúc đang ở routine/animation lịch trình nếu có thể.
 - Alex phải thoát animation lịch trình và theo Farmer, không đứng im vĩnh viễn.
 
-5) VIETNAMESE EQUIPMENT I18N
-- Phải đọc đúng: Trang bị / TRANG BỊ / Vũ khí / Chưa trang bị / Giáp / Giày / Nhẫn.
-- Không còn Bá»Š, VÅ khÃ, ChÆa.
-
-6) TEAMUP TEST HARNESS
+9) TEAMUP TEST HARNESS
 - Trong SMAPI console chạy:
   teamup_test help
   teamup_test status
 - Không được báo Unknown command.
 
-7) CARDCHA TEST ARENA BRIDGE
+10) CARDCHA TEST ARENA BRIDGE
 - Cardcha là OPTIONAL.
 - Khi Cardcha load, chạy:
   teamup_test arena
 - Team Up tìm map qua CardchaRegionRole chứa region1-hunting, không hard-code internal location name.
 - Nếu Cardcha/arena chưa load chỉ báo trạng thái, không crash.
 
-8) DEBUG COMMANDS
+11) DEBUG COMMANDS
 Ví dụ:
   teamup_test add Harvey
   teamup_test add Emily
@@ -68,31 +108,25 @@ Ví dụ:
   teamup_test reset
   teamup_test status
 
-9) PRESET TIER 2
-- party hiện tại Lv10, active-role M4, full HP, Following, clear Downed/Withdrawn/Wounded và cooldown.
+LƯU Ý PRESET FULLPARTY
+- preset fullparty CỐ Ý thêm Alex + Abigail + Harvey + Maru nếu còn slot.
+- Vì preset có save lại roster, Abigail/nhân vật được preset thêm sẽ vẫn ở Team Up sau khi warp.
+- Đây không phải bug tự thêm member.
 
-10) PRESET TIER 3
-- party hiện tại Lv20, active-role M8, full HP, clear cooldown.
-- Dùng để test HAUNTED BLADE / IRON WALL / FIELD HOSPITAL / OVERLOAD / PRISMATIC SANCTUARY.
+12) PRESET TIER 2 / TIER 3
+- Tier 2: Lv10 + active-role M4, full HP, clear trạng thái xấu/cooldown.
+- Tier 3: Lv20 + active-role M8, full HP, clear cooldown.
+- Dùng Tier 3 để test HAUNTED BLADE / IRON WALL / FIELD HOSPITAL / OVERLOAD / PRISMATIC SANCTUARY.
 
-11) PRESET RESCUE
-- Farmer ~12% HP, party Tier 3, rescue cooldown clear.
-- Alex nếu có -> Tank; Harvey -> Healer; Emily -> Support.
-
-12) PRESET DOWNED
-- một non-Healer ~8% HP nhưng chưa Downed.
-- Cho quái gây pressure để test Downed -> Revive -> Wounded.
-
-13) PRESET FULLPARTY
-- thử add Alex + Abigail + Harvey + Maru, vẫn tôn trọng party cap.
-- sau đó áp Tier 3.
+13) PRESET RESCUE / DOWNED
+- rescue: Farmer ~12% HP, party Tier 3, rescue cooldown clear.
+- downed: một non-Healer ~8% HP nhưng chưa Downed; cho quái gây pressure để test Downed -> Revive -> Wounded.
 
 14) REGRESSION COMBAT
 - Equipment, Vault, Level, Mastery save/load còn hoạt động.
 - Threat / TAUNT / GUARD / anti-dogpile còn hoạt động.
 - Downed / Revive / Wounded / Withdraw còn hoạt động.
 - Alpha 6 Signature Tier 2/3 + Farmer Rescue còn hoạt động.
-- ChaCha không thể recruit Main Party.
 
 15) FLYING / MOUNT FOLLOW PERFORMANCE
 - Cho 2-4 NPC Following.
@@ -114,4 +148,4 @@ GHI CHÚ
 - Cardcha chỉ là optional test host, không phải dependency gameplay.
 - Follow anti-thrash generic, không hard-code Aerodactyl/Pelipper Town.
 - Party pass-through chỉ áp dụng Farmer -> Team Up member, không tắt collidesWithOtherCharacters.
-- Không đổi save schema ở Alpha 6.1.2.
+- Alpha 6.1.3 không đổi save schema.
