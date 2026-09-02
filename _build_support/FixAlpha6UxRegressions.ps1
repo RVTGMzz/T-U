@@ -43,6 +43,9 @@ $newTake = @'
     private static void ResetToStandingPose(NPC npc)
     {
         int facing = Math.Clamp(npc.FacingDirection, 0, 3);
+        npc.doingEndOfRouteAnimation.Value = false;
+        npc.nextEndOfRouteMessage = null;
+        npc.endOfRouteMessage.Value = null;
         npc.Halt();
         npc.Sprite.StopAnimation();
         npc.faceDirection(facing);
