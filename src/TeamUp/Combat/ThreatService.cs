@@ -84,8 +84,10 @@ internal sealed class ThreatService
         string bestActor = FarmerActorId;
         float bestThreat = Math.Max(FarmerBaselineThreat, GetThreat(monster, FarmerActorId));
 
-        foreach ((string actor, float threat) in table)
+        foreach (KeyValuePair<string, float> pair in table)
         {
+            string actor = pair.Key;
+            float threat = pair.Value;
             if (actor == FarmerActorId || !validPartyActors.Contains(actor))
                 continue;
 
