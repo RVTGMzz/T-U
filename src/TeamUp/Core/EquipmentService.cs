@@ -4,8 +4,15 @@ using StardewValley.Tools;
 
 namespace Ronvotri.TeamUp.Core;
 
+/// <summary>
+/// Equipment uses FarmerTeam global inventories so the exact Stardew Item instance
+/// is preserved while equipped. PartyMemberData stores only the combat-stat snapshot
+/// and display metadata used by Team Up.
+/// </summary>
 public sealed class EquipmentService
 {
+    private const string InventoryPrefix = "Ronvotri.TeamUp/Equipment";
+
     public sealed record InventoryCandidate(int InventoryIndex, Item Item);
 
     public IReadOnlyList<InventoryCandidate> GetEligibleInventoryItems(EquipmentSlot slot)
@@ -39,17 +46,51 @@ public sealed class EquipmentService
             return false;
         }
 
-        EquippedItemData? previous = GetEquipped(member, slot);
-        if (previous is not null && !TryReturnToFarmer(previous))
+        IList<Item> storage = GetSlotInventory(member, slot);
+        Item? previousItem = storage[0];
+        EquippedItemData? previousData = GetEquipped(member, slot);
+
+        // Return the exact previous object before removing the new one. If the Farmer
+        // has no room, nothing changes and the swap is safely cancelled.
+        if (previousItem is not null)
         {
-            message = "Inventory is full. Make room before swapping gear.";
-            return false;
+            Item? leftOver = Game1.player.addItemToInventory(previousItem);
+            if (leftOver is not null)
+            {
+                storage[0] = leftOver;
+                message = "Inventory is full. Make room before swapping gear.";
+                return false;
+            }
+
+            storage[0] = null!;
+        }
+        else if (previousData is not null)
+        {
+            // Migration fallback for an interrupted experimental build where only
+            // metadata survived. This path should not be used by normal alpha 3+4 saves.
+            if (!TryReturnFallback(previousData))
+            {
+                message = "Inventory is full. Make room before swapping gear.";
+                return false;
+            }
         }
 
-        EquippedItemData snapshot = BuildSnapshot(slot, selected, member.CharacterName);
-        RemoveOneFromInventory(inventoryIndex, selected);
-        SetEquipped(member, slot, snapshot);
-        message = $"{selected.DisplayName} equipped.";
+        Item movedItem;
+        if (selected.Stack > 1)
+        {
+            movedItem = selected.getOne();
+            movedItem.Stack = 1;
+            selected.Stack--;
+        }
+        else
+        {
+            movedItem = selected;
+            Game1.player.Items[inventoryIndex] = null;
+        }
+
+        storage[0] = movedItem;
+        SetEquipped(member, slot, BuildSnapshot(slot, movedItem, member.CharacterName));
+        message = $"{movedItem.DisplayName} equipped.";
         return true;
     }
 
@@ -57,20 +98,35 @@ public sealed class EquipmentService
     {
         message = string.Empty;
         EquippedItemData? equipped = GetEquipped(member, slot);
-        if (equipped is null)
+        IList<Item> storage = GetSlotInventory(member, slot);
+        Item? actual = storage[0];
+
+        if (equipped is null && actual is null)
         {
             message = "Nothing is equipped in that slot.";
             return false;
         }
 
-        if (!TryReturnToFarmer(equipped))
+        if (actual is not null)
+        {
+            Item? leftOver = Game1.player.addItemToInventory(actual);
+            if (leftOver is not null)
+            {
+                storage[0] = leftOver;
+                message = "Inventory is full. Make room before unequipping.";
+                return false;
+            }
+
+            storage[0] = null!;
+        }
+        else if (equipped is not null && !TryReturnFallback(equipped))
         {
             message = "Inventory is full. Make room before unequipping.";
             return false;
         }
 
         SetEquipped(member, slot, null);
-        message = $"{equipped.DisplayName} returned to your inventory.";
+        message = $"{equipped?.DisplayName ?? actual?.DisplayName ?? "Item"} returned to your inventory.";
         return true;
     }
 
@@ -79,17 +135,14 @@ public sealed class EquipmentService
         message = string.Empty;
         foreach (EquipmentSlot slot in new[] { EquipmentSlot.Weapon, EquipmentSlot.Armor, EquipmentSlot.Trinket })
         {
-            EquippedItemData? equipped = GetEquipped(member, slot);
-            if (equipped is null)
+            if (GetEquipped(member, slot) is null && GetSlotInventory(member, slot)[0] is null)
                 continue;
 
-            if (!TryReturnToFarmer(equipped))
+            if (!TryUnequip(member, slot, out _))
             {
                 message = "Inventory is full. Unequip or make room before this NPC leaves Team Up.";
                 return false;
             }
-
-            SetEquipped(member, slot, null);
         }
 
         return true;
@@ -115,6 +168,16 @@ public sealed class EquipmentService
             EquipmentSlot.Trinket => "Trinket",
             _ => slot.ToString()
         };
+    }
+
+    private static IList<Item> GetSlotInventory(PartyMemberData member, EquipmentSlot slot)
+    {
+        string safeName = member.CharacterName.Replace("/", "_").Replace("\\", "_");
+        string id = $"{InventoryPrefix}/{member.RecruiterId}/{safeName}/{slot}";
+        IList<Item> items = Game1.player.team.GetOrCreateGlobalInventory(id);
+        while (items.Count < 1)
+            items.Add(null!);
+        return items;
     }
 
     private static bool CanEquip(EquipmentSlot slot, Item item)
@@ -171,6 +234,8 @@ public sealed class EquipmentService
                 break;
         }
 
+        // Early signature-equipment synergies. These are small identity bonuses,
+        // not mandatory best-in-slot equipment.
         if (characterName.Equals("Abigail", StringComparison.OrdinalIgnoreCase) && slot == EquipmentSlot.Weapon)
             data.ControlPowerBonus += 1;
         else if (characterName.Equals("Alex", StringComparison.OrdinalIgnoreCase) && slot == EquipmentSlot.Armor)
@@ -185,7 +250,7 @@ public sealed class EquipmentService
         return data;
     }
 
-    private static bool TryReturnToFarmer(EquippedItemData data)
+    private static bool TryReturnFallback(EquippedItemData data)
     {
         try
         {
@@ -197,17 +262,6 @@ public sealed class EquipmentService
         {
             return false;
         }
-    }
-
-    private static void RemoveOneFromInventory(int inventoryIndex, Item item)
-    {
-        if (item.Stack > 1)
-        {
-            item.Stack--;
-            return;
-        }
-
-        Game1.player.Items[inventoryIndex] = null;
     }
 
     private static void SetEquipped(PartyMemberData member, EquipmentSlot slot, EquippedItemData? data)
