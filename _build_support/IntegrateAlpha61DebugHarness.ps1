@@ -1,0 +1,46 @@
+$ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$modPath = Join-Path $repoRoot 'src\TeamUp\ModEntry.cs'
+$mod = [System.IO.File]::ReadAllText($modPath, [System.Text.Encoding]::UTF8)
+
+function Replace-Required([string]$text, [string]$old, [string]$new, [string]$label) {
+    if ($text.Contains($new)) { return $text }
+    if (-not $text.Contains($old)) { throw "Alpha 6.1 debug integration could not locate $label." }
+    return $text.Replace($old, $new)
+}
+
+if (-not $mod.Contains('using Ronvotri.TeamUp.Debugging;')) {
+    $mod = Replace-Required $mod `
+        'using Ronvotri.TeamUp.Following;' `
+        "using Ronvotri.TeamUp.Debugging;`r`nusing Ronvotri.TeamUp.Following;" `
+        'debug namespace insertion point'
+}
+
+if (-not $mod.Contains('private TeamUpDebugService DebugTools { get; set; }')) {
+    $mod = Replace-Required $mod `
+        '    private Alpha6CombatPolishService Alpha6Polish { get; set; } = null!;' `
+        "    private Alpha6CombatPolishService Alpha6Polish { get; set; } = null!;`r`n    private TeamUpDebugService DebugTools { get; set; } = null!;" `
+        'debug service field'
+}
+
+if (-not $mod.Contains('DebugTools.RegisterCommands();')) {
+    $old = '        Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);'
+    $new = @'
+        Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);
+        DebugTools = new TeamUpDebugService(
+            Helper,
+            Monitor,
+            Party,
+            Progression,
+            Follow,
+            Combat,
+            Alpha6Polish,
+            SavePartyNow);
+        DebugTools.RegisterCommands();
+'@
+    $mod = Replace-Required $mod $old $new.TrimEnd() 'debug service construction'
+}
+
+[System.IO.File]::WriteAllText($modPath, $mod, $utf8NoBom)
+Write-Host 'Alpha 6.1 Team Up debug harness integrated.'
