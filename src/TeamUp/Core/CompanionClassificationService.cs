@@ -5,8 +5,8 @@ namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
 /// Classifies characters before Team Up applies Main Party recruitment rules.
-/// This keeps Farmer-owned/special companions and NPC-linked companions out of the
-/// normal villager recruitment path without hard-wiring every future summon into ModEntry.
+/// Farmer-owned/special companions and NPC-linked companions never enter the
+/// normal villager recruitment path.
 /// </summary>
 public static class CompanionClassificationService
 {
@@ -20,6 +20,13 @@ public static class CompanionClassificationService
 
     public const string LinkedCompanionKind = "LinkedCompanion";
 
+    // Product rule, not a user-configurable compatibility guess: ChaCha belongs to
+    // the Farmer/Special Companion subsystem and must never consume a Main Party slot.
+    private static readonly HashSet<string> BuiltInSpecialNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ChaCha"
+    };
+
     public static TeamUpCharacterKind Classify(NPC npc, IEnumerable<string>? specialNpcNames)
     {
         if (npc is Child)
@@ -31,7 +38,7 @@ public static class CompanionClassificationService
         if (TryGetDeclaredKind(npc, out TeamUpCharacterKind declaredKind))
             return declaredKind;
 
-        if (MatchesConfiguredSpecialName(npc.Name, specialNpcNames))
+        if (IsSpecialName(npc.Name, specialNpcNames))
             return TeamUpCharacterKind.FarmerOrSpecialCompanion;
 
         if (!npc.IsVillager || !npc.canTalk())
@@ -43,6 +50,19 @@ public static class CompanionClassificationService
     public static bool CanRecruitToMainParty(NPC npc, IEnumerable<string>? specialNpcNames)
     {
         return Classify(npc, specialNpcNames) == TeamUpCharacterKind.MainPartyCandidate;
+    }
+
+    public static bool IsSpecialName(string characterName, IEnumerable<string>? specialNpcNames)
+    {
+        if (string.IsNullOrWhiteSpace(characterName))
+            return false;
+
+        if (BuiltInSpecialNames.Contains(characterName))
+            return true;
+
+        return specialNpcNames?.Any(name =>
+            !string.IsNullOrWhiteSpace(name)
+            && name.Equals(characterName, StringComparison.OrdinalIgnoreCase)) == true;
     }
 
     private static bool TryGetDeclaredKind(NPC npc, out TeamUpCharacterKind kind)
@@ -70,16 +90,6 @@ public static class CompanionClassificationService
         }
 
         return false;
-    }
-
-    private static bool MatchesConfiguredSpecialName(string characterName, IEnumerable<string>? specialNpcNames)
-    {
-        if (specialNpcNames is null)
-            return false;
-
-        return specialNpcNames.Any(name =>
-            !string.IsNullOrWhiteSpace(name)
-            && name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
     }
 }
 
