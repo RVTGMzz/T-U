@@ -42,19 +42,25 @@ $mod = Replace-Required $mod `
     'Team Up! v0.2.0-alpha.1 full vanilla Codex + real NPC combat loaded.' `
     'version log'
 
-$mod = Replace-Required $mod `
-    "Party.Load(saveData);`r`n`r`n        long recruiterId" `
-    "Party.Load(saveData);`r`n        Combat.Clear();`r`n`r`n        long recruiterId" `
+# Alpha.5.3.7 inserts special-companion migration immediately after Party.Load.
+# Anchor only to Party.Load itself so carried-forward lifecycle additions cannot
+# break combat initialization again.
+$mod = Replace-RegexRequired $mod `
+    'Party\.Load\(saveData\);' `
+    "Party.Load(saveData);`r`n        Combat.Clear();" `
+    'Party\.Load\(saveData\);\s*Combat\.Clear\(\);' `
     'clear combat on save load'
 
-$mod = Replace-Required $mod `
-    "long recruiterId = Game1.player.UniqueMultiplayerID;`r`n        Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);" `
-    "long recruiterId = Game1.player.UniqueMultiplayerID;`r`n        Combat.Clear();`r`n        Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);" `
+$mod = Replace-RegexRequired $mod `
+    '(private void OnDayEnding\(object\? sender, DayEndingEventArgs e\).*?long recruiterId = Game1\.player\.UniqueMultiplayerID;)(\s*)(Follow\.ReleaseAll\(Party\.Members, Party\.CompanionUnits, recruiterId\);)' `
+    '$1$2Combat.Clear();$2$3' `
+    'private void OnDayEnding\(object\? sender, DayEndingEventArgs e\).*?Combat\.Clear\(\);\s*Follow\.ReleaseAll\(Party\.Members, Party\.CompanionUnits, recruiterId\);' `
     'clear combat on day ending'
 
-$mod = Replace-Required $mod `
-    "SocialCodexButtonBounds = Rectangle.Empty;`r`n        Party.Clear();" `
-    "SocialCodexButtonBounds = Rectangle.Empty;`r`n        Combat.Clear();`r`n        Party.Clear();" `
+$mod = Replace-RegexRequired $mod `
+    '(private void OnReturnedToTitle\(object\? sender, ReturnedToTitleEventArgs e\).*?SocialCodexButtonBounds = Rectangle\.Empty;)(\s*)(Party\.Clear\(\);)' `
+    '$1$2Combat.Clear();$2$3' `
+    'private void OnReturnedToTitle\(object\? sender, ReturnedToTitleEventArgs e\).*?Combat\.Clear\(\);\s*Party\.Clear\(\);' `
     'clear combat on title'
 
 $oldUpdateTail = @'
