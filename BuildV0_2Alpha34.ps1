@@ -11,7 +11,7 @@ $patch536 = Join-Path $root 'ApplyAlpha5_3_6Patches.ps1'
 $patch537 = Join-Path $root 'ApplyAlpha5_3_7Patches.ps1'
 $patchV021 = Join-Path $root 'ApplyV0_2Alpha1Patches.ps1'
 $patchV022 = Join-Path $root 'ApplyV0_2Alpha2Patches.ps1'
-$patchV0234 = Join-Path $root 'ApplyV0_2Alpha34Patches.ps1'
+$patchV0234 = Join-Path $root 'ApplyV0_2Alpha34CorePatches.ps1'
 $patchI18n = Join-Path $root 'ApplyV0_2Alpha34I18nPatches.ps1'
 $modEntry = Join-Path $projectDir 'ModEntry.cs'
 
