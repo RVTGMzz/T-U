@@ -5,7 +5,7 @@ $projectDir = Split-Path -Parent $project
 $buildOut = Join-Path $projectDir 'bin\Release\net6.0'
 $releaseDir = Join-Path $root 'release\Team Up'
 $releaseRoot = Join-Path $root 'release'
-$archive = Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.zip'
+$archive = Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.zip'
 $log = Join-Path $root 'BUILD_LOG.txt'
 $finalizer = Join-Path $root '_build_support\FinalizeV0_2Alpha6.ps1'
 $compileFixer = Join-Path $root '_build_support\FixCompileV0_2Alpha6.ps1'
@@ -29,7 +29,7 @@ foreach ($requiredScript in @($finalizer, $compileFixer, $uxFixer, $debugIntegra
     }
 }
 
-"Team Up v0.2.0-alpha.6.1 Cardcha bridge/debug build started: $(Get-Date -Format o)" | Set-Content $log
+"Team Up v0.2.0-alpha.6.1.1 Cardcha bridge/debug build started: $(Get-Date -Format o)" | Set-Content $log
 "dotnet: $(& dotnet --version)" | Add-Content $log
 
 foreach ($script in @($finalizer, $compileFixer, $uxFixer, $debugIntegrator)) {
@@ -83,22 +83,37 @@ if (-not $modSource.Contains('Alpha6Polish.Clear();')) {
 
 $modSource = $modSource.Replace(
     'Team Up! v0.2.0-alpha.3.4 survival + progression + mastery + equipment loaded.',
-    'Team Up! v0.2.0-alpha.6.1 Cardcha test bridge + debug presets loaded.')
+    'Team Up! v0.2.0-alpha.6.1.1 Cardcha test bridge + debug presets loaded.')
 $modSource = $modSource.Replace(
     'Team Up! v0.2.0-alpha.6 signature skills + farmer rescue + combat polish loaded.',
-    'Team Up! v0.2.0-alpha.6.1 Cardcha test bridge + debug presets loaded.')
+    'Team Up! v0.2.0-alpha.6.1.1 Cardcha test bridge + debug presets loaded.')
 $modSource = $modSource.Replace(
     'Team Up! v0.2.0-alpha.6.1 signature skills + rescue + follow/codex/i18n hotfix loaded.',
-    'Team Up! v0.2.0-alpha.6.1 Cardcha test bridge + debug presets loaded.')
+    'Team Up! v0.2.0-alpha.6.1.1 Cardcha test bridge + debug presets loaded.')
+$modSource = $modSource.Replace(
+    'Team Up! v0.2.0-alpha.6.1 Cardcha test bridge + debug presets loaded.',
+    'Team Up! v0.2.0-alpha.6.1.1 Cardcha test bridge + debug presets loaded.')
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($modEntry, $modSource, $utf8NoBom)
 
 "Applying Alpha 6.1 follow + Codex + dialogue hint + Vietnamese i18n fixes..." | Tee-Object -FilePath $log -Append
 & $uxFixer 2>&1 | Tee-Object -FilePath $log -Append
+if ($LASTEXITCODE -ne 0) {
+    throw 'Alpha 6.1 UX hotfix step failed.'
+}
 
-"Integrating Alpha 6.1 Cardcha arena bridge + Team Up debug presets..." | Tee-Object -FilePath $log -Append
+"Integrating Alpha 6.1.1 Cardcha arena bridge + Team Up debug presets..." | Tee-Object -FilePath $log -Append
 & $debugIntegrator 2>&1 | Tee-Object -FilePath $log -Append
+if ($LASTEXITCODE -ne 0) {
+    throw 'Alpha 6.1.1 debug harness integration failed.'
+}
+
+$integratedSource = [System.IO.File]::ReadAllText($modEntry)
+if (-not $integratedSource.Contains('DebugTools.RegisterCommands();') -or -not $integratedSource.Contains('Team Up DEBUG HARNESS READY')) {
+    throw 'Debug harness verification failed before compile: registration marker missing from ModEntry.cs.'
+}
+"Debug harness source verification: OK" | Tee-Object -FilePath $log -Append
 
 Push-Location $root
 try {
@@ -131,7 +146,7 @@ if (Test-Path $manifestBuilt) {
 }
 else {
     $manifest = Get-Content $manifestSource -Raw
-    $manifest = $manifest.Replace('%ProjectVersion%', '0.2.0-alpha.6.1')
+    $manifest = $manifest.Replace('%ProjectVersion%', '0.2.0-alpha.6.1.1')
     Set-Content -Path $manifestDest -Value $manifest -Encoding UTF8
 }
 
@@ -149,6 +164,16 @@ if (Test-Path $smoke) {
     Copy-Item $smoke (Join-Path $releaseDir 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt')
 }
 
+$buildInfo = @'
+TEAM UP DEBUG BUILD
+Version: 0.2.0-alpha.6.1.1
+Checkpoint: Cardcha Test Arena Bridge + Debug Presets
+Expected SMAPI startup marker:
+Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.1
+Primary command: teamup_test help
+'@
+Set-Content -Path (Join-Path $releaseDir 'DEBUG_BUILD_INFO.txt') -Value $buildInfo -Encoding UTF8
+
 if (Test-Path $archive) {
     Remove-Item $archive -Force
 }
@@ -158,11 +183,12 @@ if (-not (Test-Path $releaseRoot)) {
 Compress-Archive -Path $releaseDir -DestinationPath $archive -CompressionLevel Optimal
 
 $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-"$hash  $(Split-Path $archive -Leaf)" | Set-Content (Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.sha256.txt')
+"$hash  $(Split-Path $archive -Leaf)" | Set-Content (Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.sha256.txt')
 
 Write-Host ''
 Write-Host '========================================================='
-Write-Host 'BUILD SUCCESS - ALPHA 6.1 CARDCHA BRIDGE + DEBUG PRESETS'
+Write-Host 'BUILD SUCCESS - ALPHA 6.1.1 CARDCHA BRIDGE + DEBUG PRESETS'
+Write-Host 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY'
 Write-Host "ZIP: $archive"
 Write-Host "SHA256: $hash"
 Write-Host '========================================================='
