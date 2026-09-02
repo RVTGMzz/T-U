@@ -9,12 +9,17 @@ using StardewValley.Menus;
 namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
-/// Dedicated Team Up character dossier. Alpha.5.3.1 uses more of the available
-/// viewport, scales the information up for readability, and hides the mouse cursor
-/// while the player is navigating with a controller.
+/// Dedicated Team Up character dossier with native controller footer navigation.
+/// Mouse cursor visibility follows the physical mouse, not Stardew's controller-snapped cursor.
 /// </summary>
 public sealed class CharacterProfileMenu : IClickableMenu
 {
+    private enum FooterFocus
+    {
+        AllCharacters,
+        Back
+    }
+
     private const int OuterPadding = 34;
     private const int SectionPadding = 20;
     private const float BodyScale = 1.18f;
@@ -34,9 +39,11 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private readonly Action _onOpenAll;
     private readonly ClickableComponent _allButton;
     private readonly ClickableComponent _backButton;
+
     private Texture2D? _portrait;
+    private FooterFocus _focus = FooterFocus.AllCharacters;
     private bool _showMouseCursor;
-    private Point _lastMousePosition;
+    private Point _lastPhysicalMousePosition;
 
     public CharacterProfileMenu(
         string characterName,
@@ -70,15 +77,16 @@ public sealed class CharacterProfileMenu : IClickableMenu
         _i18n = i18n;
         _onBack = onBack;
         _onOpenAll = onOpenAll;
-        _lastMousePosition = new Point(Game1.getMouseX(), Game1.getMouseY());
 
-        int buttonHeight = 48;
+        MouseState mouse = Mouse.GetState();
+        _lastPhysicalMousePosition = new Point(mouse.X, mouse.Y);
+
+        const int buttonHeight = 48;
         _allButton = new ClickableComponent(
-            new Rectangle(xPositionOnScreen + 34, yPositionOnScreen + height - buttonHeight - 18, 240, buttonHeight),
+            new Rectangle(xPositionOnScreen + 34, yPositionOnScreen + height - buttonHeight - 18, 260, buttonHeight),
             "AllCharacters");
-
         _backButton = new ClickableComponent(
-            new Rectangle(xPositionOnScreen + width - 174, yPositionOnScreen + height - buttonHeight - 18, 140, buttonHeight),
+            new Rectangle(xPositionOnScreen + width - 184, yPositionOnScreen + height - buttonHeight - 18, 150, buttonHeight),
             "Back");
 
         try
@@ -91,36 +99,46 @@ public sealed class CharacterProfileMenu : IClickableMenu
         }
     }
 
+    public override bool areGamePadControlsImplemented()
+    {
+        return true;
+    }
+
     public override void receiveLeftClick(int x, int y, bool playSound = true)
     {
         _showMouseCursor = true;
-        _lastMousePosition = new Point(x, y);
+        MouseState mouse = Mouse.GetState();
+        _lastPhysicalMousePosition = new Point(mouse.X, mouse.Y);
 
         if (_allButton.containsPoint(x, y))
         {
+            _focus = FooterFocus.AllCharacters;
             OpenAll();
             return;
         }
 
         if (_backButton.containsPoint(x, y))
         {
+            _focus = FooterFocus.Back;
             GoBack();
             return;
         }
-
-        base.receiveLeftClick(x, y, playSound);
     }
 
     public override void performHoverAction(int x, int y)
     {
-        Point current = new(x, y);
-        if (current != _lastMousePosition)
+        MouseState mouse = Mouse.GetState();
+        Point physical = new(mouse.X, mouse.Y);
+        if (physical != _lastPhysicalMousePosition)
         {
             _showMouseCursor = true;
-            _lastMousePosition = current;
-        }
+            _lastPhysicalMousePosition = physical;
 
-        base.performHoverAction(x, y);
+            if (_allButton.containsPoint(x, y))
+                _focus = FooterFocus.AllCharacters;
+            else if (_backButton.containsPoint(x, y))
+                _focus = FooterFocus.Back;
+        }
     }
 
     public override void receiveKeyPress(Keys key)
@@ -131,14 +149,36 @@ public sealed class CharacterProfileMenu : IClickableMenu
             return;
         }
 
+        if (key == Keys.Left)
+        {
+            _focus = FooterFocus.AllCharacters;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        if (key == Keys.Right)
+        {
+            _focus = FooterFocus.Back;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        if (key is Keys.Enter or Keys.Space)
+        {
+            ActivateFocus();
+            return;
+        }
+
         base.receiveKeyPress(key);
     }
 
     public override void receiveGamePadButton(Buttons b)
     {
         _showMouseCursor = false;
+        MouseState mouse = Mouse.GetState();
+        _lastPhysicalMousePosition = new Point(mouse.X, mouse.Y);
 
-        if (b == Buttons.B || b == Buttons.Back)
+        if (b is Buttons.B or Buttons.Back)
         {
             GoBack();
             return;
@@ -150,7 +190,25 @@ public sealed class CharacterProfileMenu : IClickableMenu
             return;
         }
 
-        base.receiveGamePadButton(b);
+        if (b is Buttons.DPadLeft or Buttons.LeftThumbstickLeft)
+        {
+            _focus = FooterFocus.AllCharacters;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        if (b is Buttons.DPadRight or Buttons.LeftThumbstickRight)
+        {
+            _focus = FooterFocus.Back;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        if (b == Buttons.A)
+        {
+            ActivateFocus();
+            return;
+        }
     }
 
     public override void draw(SpriteBatch b)
@@ -195,7 +253,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         int portraitSize = Math.Min(184, Math.Max(126, panelWidth - 96));
         int portraitX = x + (panelWidth - portraitSize) / 2;
 
-        DrawInset(b, new Rectangle(portraitX - 10, cursorY - 10, portraitSize + 20, portraitSize + 20));
+        DrawInset(b, new Rectangle(portraitX - 10, cursorY - 10, portraitSize + 20, portraitSize + 20), false);
         if (_portrait is not null)
         {
             b.Draw(_portrait, new Rectangle(portraitX, cursorY, portraitSize, portraitSize), new Rectangle(0, 0, 64, 64), Color.White);
@@ -272,6 +330,22 @@ public sealed class CharacterProfileMenu : IClickableMenu
         DrawScaledString(b, Game1.smallFont, signature, new Vector2(innerX, cursorY), Game1.textColor, BodyScale);
     }
 
+    private void DrawFooterButtons(SpriteBatch b)
+    {
+        DrawInset(b, _allButton.bounds, _focus == FooterFocus.AllCharacters);
+        DrawInset(b, _backButton.bounds, _focus == FooterFocus.Back);
+        DrawCenteredFitString(b, _allButton.bounds, _i18n.Get("profile.all-characters"), CaptionScale);
+        DrawCenteredFitString(b, _backButton.bounds, _i18n.Get("common.back"), CaptionScale);
+    }
+
+    private void ActivateFocus()
+    {
+        if (_focus == FooterFocus.AllCharacters)
+            OpenAll();
+        else
+            GoBack();
+    }
+
     private static void DrawRoleLine(SpriteBatch b, int x, int y, string caption, PartyRole role, string roleName, float alpha = 1f)
     {
         DrawScaledString(b, Game1.smallFont, caption, new Vector2(x, y), new Color(112, 73, 44) * alpha, CaptionScale);
@@ -306,15 +380,6 @@ public sealed class CharacterProfileMenu : IClickableMenu
         DrawScaledString(b, Game1.smallFont, text, new Vector2(x, y), new Color(102, 63, 37), CaptionScale);
     }
 
-    private void DrawFooterButtons(SpriteBatch b)
-    {
-        DrawInset(b, _allButton.bounds);
-        DrawInset(b, _backButton.bounds);
-
-        DrawCenteredFitString(b, _allButton.bounds, _i18n.Get("profile.all-characters"), CaptionScale);
-        DrawCenteredFitString(b, _backButton.bounds, _i18n.Get("common.back"), CaptionScale);
-    }
-
     private static string WrapScaled(string text, int pixelWidth, float scale)
     {
         int logicalWidth = Math.Max(40, (int)(pixelWidth / Math.Max(0.1f, scale)));
@@ -329,9 +394,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private static void DrawFitString(SpriteBatch b, SpriteFont font, string text, Rectangle bounds, Color color, float preferredScale, bool alignRight = false)
     {
         Vector2 measured = font.MeasureString(text);
-        float scale = measured.X <= 0f
-            ? preferredScale
-            : Math.Min(preferredScale, bounds.Width / measured.X);
+        float scale = measured.X <= 0f ? preferredScale : Math.Min(preferredScale, bounds.Width / measured.X);
         scale = Math.Max(0.72f, scale);
         float x = alignRight ? bounds.Right - measured.X * scale : bounds.X;
         float y = bounds.Y + Math.Max(0f, (bounds.Height - measured.Y * scale) / 2f);
@@ -341,9 +404,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private static void DrawCenteredFitString(SpriteBatch b, Rectangle bounds, string text, float preferredScale)
     {
         Vector2 measured = Game1.smallFont.MeasureString(text);
-        float scale = measured.X <= 0f
-            ? preferredScale
-            : Math.Min(preferredScale, (bounds.Width - 16) / measured.X);
+        float scale = measured.X <= 0f ? preferredScale : Math.Min(preferredScale, (bounds.Width - 16) / measured.X);
         scale = Math.Max(0.72f, scale);
         Vector2 position = new(
             bounds.Center.X - measured.X * scale / 2f,
@@ -356,13 +417,15 @@ public sealed class CharacterProfileMenu : IClickableMenu
         IClickableMenu.drawTextureBox(b, Game1.menuTexture, new Rectangle(0, 256, 60, 60), x, y, panelWidth, panelHeight, Color.White, 1f, true);
     }
 
-    private static void DrawInset(SpriteBatch b, Rectangle bounds)
+    private static void DrawInset(SpriteBatch b, Rectangle bounds, bool focused)
     {
-        b.Draw(Game1.staminaRect, bounds, new Color(109, 73, 48) * 0.18f);
-        b.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Y, bounds.Width, 2), new Color(109, 73, 48) * 0.48f);
-        b.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Bottom - 2, bounds.Width, 2), new Color(109, 73, 48) * 0.48f);
-        b.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Y, 2, bounds.Height), new Color(109, 73, 48) * 0.48f);
-        b.Draw(Game1.staminaRect, new Rectangle(bounds.Right - 2, bounds.Y, 2, bounds.Height), new Color(109, 73, 48) * 0.48f);
+        Color fill = focused ? new Color(216, 183, 128) * 0.54f : new Color(109, 73, 48) * 0.18f;
+        Color border = focused ? new Color(126, 78, 43) * 0.9f : new Color(109, 73, 48) * 0.48f;
+        b.Draw(Game1.staminaRect, bounds, fill);
+        b.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Y, bounds.Width, 2), border);
+        b.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Bottom - 2, bounds.Width, 2), border);
+        b.Draw(Game1.staminaRect, new Rectangle(bounds.X, bounds.Y, 2, bounds.Height), border);
+        b.Draw(Game1.staminaRect, new Rectangle(bounds.Right - 2, bounds.Y, 2, bounds.Height), border);
     }
 
     private void OpenAll()
