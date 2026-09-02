@@ -1,9 +1,16 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+function Normalize-Newlines([string]$value) {
+    return $value.Replace("`r`n", "`n").Replace("`r", "`n")
+}
+
 function Replace-Required([string]$text, [string]$old, [string]$new, [string]$label) {
-    if ($text.Contains($new)) { return $text }
-    if ($text.Contains($old)) { return $text.Replace($old, $new) }
+    $normalizedText = Normalize-Newlines $text
+    $normalizedOld = Normalize-Newlines $old
+    $normalizedNew = Normalize-Newlines $new
+    if ($normalizedText.Contains($normalizedNew)) { return $normalizedText }
+    if ($normalizedText.Contains($normalizedOld)) { return $normalizedText.Replace($normalizedOld, $normalizedNew) }
     throw "Alpha.5.3.7 patch failed: expected source block not found: $label"
 }
 
@@ -77,34 +84,23 @@ $mod = Replace-RegexRequired $mod `
     'private int MigrateSpecialMembersOutOfMainParty\(long recruiterId\)' `
     'special member migration helper'
 
-$oldMemberOpen = @'
-    private void ShowMemberMenu(NPC npc, PartyMemberData member)
-    {
-        RecruitHintNpcName = npc.Name;
-'@
-$newMemberOpen = @'
-    private void ShowMemberMenu(NPC npc, PartyMemberData member)
-    {
-        // Pin both contextual actions before the question menu is created so the
-        // left Profile and right Leave tags appear in the same render frame.
-        RecruitHintNpcName = npc.Name;
-        PartyActionConfirmationOpen = false;
-'@
-$mod = Replace-Required $mod $oldMemberOpen $newMemberOpen 'same-frame member hints'
+$memberOpenPattern = '(private void ShowMemberMenu\(NPC npc, PartyMemberData member\)\s*\{\s*RecruitHintNpcName = npc\.Name;)'
+$memberOpenReplacement = '$1' + "`r`n        PartyActionConfirmationOpen = false;"
+$memberOpenAlready = 'private void ShowMemberMenu\(NPC npc, PartyMemberData member\)\s*\{\s*RecruitHintNpcName = npc\.Name;\s*PartyActionConfirmationOpen = false;'
+$mod = Replace-RegexRequired $mod `
+    $memberOpenPattern `
+    $memberOpenReplacement `
+    $memberOpenAlready `
+    'same-frame member hints'
 
-$oldLeaveRelease = @'
-            bool removed = Party.Remove(npc.Name, recruiterId);
-            Follow.ReleaseToVanilla(npc);
-            if (linkedNpc is not null)
-                Follow.ReleaseToVanilla(linkedNpc);
-'@
-$newLeaveRelease = @'
-            bool removed = Party.Remove(npc.Name, recruiterId);
-            Follow.ReleaseToVanillaAndResumeSchedule(npc);
-            if (linkedNpc is not null)
-                Follow.ReleaseToVanilla(linkedNpc);
-'@
-$mod = Replace-Required $mod $oldLeaveRelease $newLeaveRelease 'leave resumes vanilla schedule'
+$leavePattern = '(bool removed = Party\.Remove\(npc\.Name, recruiterId\);\s*)Follow\.ReleaseToVanilla\(npc\);'
+$leaveReplacement = '$1Follow.ReleaseToVanillaAndResumeSchedule(npc);'
+$leaveAlready = 'bool removed = Party\.Remove\(npc\.Name, recruiterId\);\s*Follow\.ReleaseToVanillaAndResumeSchedule\(npc\);'
+$mod = Replace-RegexRequired $mod `
+    $leavePattern `
+    $leaveReplacement `
+    $leaveAlready `
+    'leave resumes vanilla schedule'
 
 Set-Content -Path $modPath -Value $mod -Encoding UTF8
 
