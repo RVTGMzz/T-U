@@ -1,0 +1,61 @@
+TEAM UP! v0.1.0-alpha.5.3.4 - SMOKE TEST VI
+============================================================
+Muc tieu: polish Party Vault, controller Codex, party-member hints va follow.
+Combat AI VAN CHUA BAT.
+
+1) BUILD / LOAD
+- Chay BUILD_ALPHA5_3_4.bat.
+- BUILD SUCCESS, khong co error CS... cua Team Up.
+- SMAPI hien Team Up alpha.5.3.4 polish hotfix loaded.
+
+2) PARTY MEMBER HINT - QUAN TRONG
+- Thu nap 1 NPC vao Team Up.
+- Tuong tac lai voi NPC do de mo menu Team Up.
+- Ben trai khung phai co: L (Controller) / Q Ho so.
+- Ben phai khung phai co: Roi doi R (Controller) / E.
+- Bam Q/L mo dung Ho so NPC.
+- Bam E/R PHAI hoi xac nhan truoc khi cho NPC roi Team.
+- Chon Huy thi NPC van nam trong Team.
+- Chon Roi doi thi NPC duoc tra ve vanilla.
+
+3) HINT POSITION
+- Hint phai nam HOAN TOAN tren mep khung dialogue, khong che chu hoi thoai.
+- Khong bay len minimap.
+
+4) CODEX CONTROLLER FILTER - QUAN TRONG
+- Mo Codex, D-pad trai/phai focus Vai tro / Trang thai / Nguon.
+- Bam A tren filter PHAI mo dropdown ngay tai filter.
+- KHONG duoc mo NPC nam duoi vi tri con tro chuot cu.
+- D-pad len/xuong chon option, A xac nhan, B dong dropdown.
+
+5) CURSOR
+- Khi dang dung controller trong Codex, con tro chuot khong hien lu lu tren danh sach.
+- Khi click / su dung chuot lai, con tro hien lai binh thuong.
+
+6) PARTY VAULT
+- Mo Kho Party.
+- UI phai la chest-style native, khong con header/text noi ra ngoai khung.
+- Khong con duong vien/doc cat ngang cac slot nhu ban cu.
+- Co the chuyen item vao/ra kho.
+- Sort/Organize native hoat dong.
+- Dong va mo lai kho, item van con.
+- Save/load game, item van con trong global Party Vault.
+
+7) FOLLOW POLISH
+- NPC follow phan hoi nhanh hon khi player doi huong/di chuyen.
+- Thu di quanh chau cay, hang rao, vat can va goc hep.
+- NPC uu tien pathfind vong vat can, han che clip/xuyen vat the.
+- Theo doi xem co giat/repath lien tuc hay delay bat thuong khong.
+
+8) REGRESSION
+- NPC chua thu nap: trai Ho so, phai Thu nap.
+- Thu nap/Roi doi deu co confirm.
+- Role/Engagement/Follow/Stand van hoat dong.
+- ChaCha va Farmer/Special Companion van khong thu nap vao Main Party.
+
+============================================================
+NEU BUILD FAIL:
+Gui BUILD_LOG.txt, uu tien dong error CS... dau tien.
+
+NEU FOLLOW VAN XUYEN VAT CAN:
+Gui screenshot/video ngan + ten map + vi tri vat can.
