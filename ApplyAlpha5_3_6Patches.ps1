@@ -63,17 +63,9 @@ $mod = Replace-RegexRequired $mod `
     'private void ShowLeaveQuestion\(NPC npc\)\s*\{\s*RecruitHintNpcName = npc\.Name;\s*PartyActionConfirmationOpen = true;' `
     'leave confirmation pinning'
 
-$oldLeaveCallback = @'
-            long recruiterId = Game1.player.UniqueMultiplayerID;
-            Follow.ReleaseToVanilla(npc);
-            if (Party.Remove(npc.Name, recruiterId))
-            {
-                SavePartyNow();
-                ShowHud(Helper.Translation.Get("member.left", new { name = npc.displayName }));
-            }
-'@
-$newLeaveCallback = @'
-            long recruiterId = Game1.player.UniqueMultiplayerID;
+$leavePattern = 'long recruiterId = Game1\.player\.UniqueMultiplayerID;\s*Follow\.ReleaseToVanilla\(npc\);\s*if \(Party\.Remove\(npc\.Name, recruiterId\)\)\s*\{\s*SavePartyNow\(\);\s*ShowHud\(Helper\.Translation\.Get\("member\.left", new \{ name = npc\.displayName \}\)\);\s*\}'
+$leaveReplacement = @'
+long recruiterId = Game1.player.UniqueMultiplayerID;
             CompanionUnitData? linkedUnit = Party.GetLinkedCompanion(npc.Name, recruiterId);
             NPC? linkedNpc = linkedUnit is null
                 ? null
@@ -93,7 +85,11 @@ $newLeaveCallback = @'
                 ShowHud(Helper.Translation.Get("member.left", new { name = npc.displayName }));
             }
 '@
-$mod = Replace-Required $mod $oldLeaveCallback $newLeaveCallback 'leave release ordering'
+$mod = Replace-RegexRequired $mod `
+    $leavePattern `
+    $leaveReplacement `
+    'bool removed = Party\.Remove\(npc\.Name, recruiterId\);\s*Follow\.ReleaseToVanilla\(npc\);' `
+    'leave release ordering'
 
 $mod = Replace-RegexRequired $mod `
     'int dialogueLeft = dialogueBox\.x;\s*int dialogueTop = dialogueBox\.y;' `
@@ -101,20 +97,9 @@ $mod = Replace-RegexRequired $mod `
     'int dialogueLeft = Math\.Max\(8, \(Game1\.uiViewport\.Width - dialogueBox\.width\) / 2\);\s*int dialogueTop = Math\.Max\(8, Game1\.uiViewport\.Height - dialogueBox\.height - 64\);' `
     'compile-safe dialogue hint anchor'
 
-$oldResolve = @'
-    private NPC? ResolveDialogueSpeaker()
-    {
-        if (Game1.currentSpeaker is NPC currentSpeaker)
-            return currentSpeaker;
-
-        if (string.IsNullOrWhiteSpace(RecruitHintNpcName))
-            return null;
-
-        return Game1.getCharacterFromName(RecruitHintNpcName);
-    }
-'@
-$newResolve = @'
-    private NPC? ResolveDialogueSpeaker()
+$resolvePattern = 'private NPC\? ResolveDialogueSpeaker\(\)\s*\{\s*if \(Game1\.currentSpeaker is NPC currentSpeaker\)\s*return currentSpeaker;\s*if \(string\.IsNullOrWhiteSpace\(RecruitHintNpcName\)\)\s*return null;\s*return Game1\.getCharacterFromName\(RecruitHintNpcName\);\s*\}'
+$resolveReplacement = @'
+private NPC? ResolveDialogueSpeaker()
     {
         // Team Up root menus pin the NPC explicitly. Vanilla currentSpeaker can be
         // null/stale while createQuestionDialogue is active.
@@ -128,7 +113,11 @@ $newResolve = @'
         return Game1.currentSpeaker as NPC;
     }
 '@
-$mod = Replace-Required $mod $oldResolve $newResolve 'dialogue speaker priority'
+$mod = Replace-RegexRequired $mod `
+    $resolvePattern `
+    $resolveReplacement `
+    'Team Up root menus pin the NPC explicitly' `
+    'dialogue speaker priority'
 
 $renderHandler = @'
     private void OnRenderingActiveMenu(object? sender, RenderingActiveMenuEventArgs e)
