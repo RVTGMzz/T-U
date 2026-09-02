@@ -7,7 +7,7 @@ $mod = $mod.Replace("`r`n", "`n").Replace("`r", "`n").Replace("`n", "`r`n")
 
 function Replace-Required([string]$text, [string]$old, [string]$new, [string]$label) {
     if ($text.Contains($new)) { return $text }
-    if (-not $text.Contains($old)) { throw "Alpha 6.1.2 debug integration could not locate $label." }
+    if (-not $text.Contains($old)) { throw "Alpha 6.1.3 debug integration could not locate $label." }
     return $text.Replace($old, $new)
 }
 
@@ -25,7 +25,7 @@ if (-not $mod.Contains('private TeamUpDebugService DebugTools { get; set; }')) {
         'debug service field'
 }
 
-$marker = 'Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.2'
+$marker = 'Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.3'
 
 if (-not $mod.Contains('DebugTools.RegisterCommands();')) {
     $old = '        Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);'
@@ -41,14 +41,14 @@ if (-not $mod.Contains('DebugTools.RegisterCommands();')) {
             Alpha6Polish,
             SavePartyNow);
         DebugTools.RegisterCommands();
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.2", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.3", LogLevel.Info);
 '@
     $mod = Replace-Required $mod $old $new.TrimEnd() 'debug service construction'
 }
 else {
     $mod = [regex]::Replace(
         $mod,
-        'Team Up DEBUG HARNESS READY \| command: teamup_test \| build: v0\.2\.0-alpha\.6\.1(?:\.1)?',
+        'Team Up DEBUG HARNESS READY \| command: teamup_test \| build: v0\.2\.0-alpha\.6\.1(?:\.\d+)?',
         $marker,
         1)
 
@@ -56,11 +56,11 @@ else {
         $oldMarker = '        DebugTools.RegisterCommands();'
         $newMarker = @'
         DebugTools.RegisterCommands();
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.2", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.3", LogLevel.Info);
 '@
         $mod = Replace-Required $mod $oldMarker $newMarker.TrimEnd() 'debug ready marker'
     }
 }
 
 [System.IO.File]::WriteAllText($modPath, $mod, $utf8NoBom)
-Write-Host 'Alpha 6.1.2 Team Up debug harness integrated with startup marker.'
+Write-Host 'Alpha 6.1.3 Team Up debug harness integrated with startup marker.'
