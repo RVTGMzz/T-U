@@ -57,7 +57,7 @@
   "codex.filter-status": "Status",
   "codex.filter-source": "Source",
   "codex.filter-all": "All",
-  "codex.filter-hint": "LB/RB changes role filter · D-pad selects NPC · A opens profile",
+  "codex.filter-hint": "D-pad left/right selects filter · A opens list · D-pad up/down selects · A confirms",
   "codex.status-in-party": "In Party",
   "codex.status-recruitable": "Recruitable",
   "codex.status-not-recruited": "Not Recruited",
