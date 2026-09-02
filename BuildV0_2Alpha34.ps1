@@ -8,31 +8,42 @@ $releaseRoot = Join-Path $root 'release'
 $archive = Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.3.4_SURVIVAL_PROGRESSION_EQUIPMENT_TEST.zip'
 $log = Join-Path $root 'BUILD_LOG.txt'
 $finalizer = Join-Path $root '_build_support\FinalizeV0_2Alpha34.ps1'
+$compileFixer = Join-Path $root '_build_support\FixCompileV0_2Alpha34.ps1'
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw 'dotnet was not found. Install the .NET SDK first.'
 }
 
-if (-not (Test-Path $finalizer)) {
-    throw "Required build finalizer is missing: $finalizer"
+foreach ($requiredScript in @($finalizer, $compileFixer)) {
+    if (-not (Test-Path $requiredScript)) {
+        throw "Required build helper is missing: $requiredScript"
+    }
 }
 
 "Team Up v0.2.0-alpha.3.4 build started: $(Get-Date -Format o)" | Set-Content $log
 "dotnet: $(& dotnet --version)" | Add-Content $log
 
-try {
-    [void][scriptblock]::Create([System.IO.File]::ReadAllText($finalizer))
-    "Finalizer preflight: OK" | Tee-Object -FilePath $log -Append
-}
-catch {
-    "Finalizer preflight: FAILED - $($_.Exception.Message)" | Tee-Object -FilePath $log -Append
-    throw
+foreach ($script in @($finalizer, $compileFixer)) {
+    try {
+        [void][scriptblock]::Create([System.IO.File]::ReadAllText($script))
+        "Preflight OK: $(Split-Path $script -Leaf)" | Tee-Object -FilePath $log -Append
+    }
+    catch {
+        "Preflight FAILED: $(Split-Path $script -Leaf) - $($_.Exception.Message)" | Tee-Object -FilePath $log -Append
+        throw
+    }
 }
 
 "Preparing consolidated v0.2 alpha 3+4 source..." | Tee-Object -FilePath $log -Append
 & $finalizer 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) {
     throw 'Alpha 3+4 source finalization failed.'
+}
+
+"Applying compile compatibility fixes..." | Tee-Object -FilePath $log -Append
+& $compileFixer 2>&1 | Tee-Object -FilePath $log -Append
+if ($LASTEXITCODE -ne 0) {
+    throw 'Alpha 3+4 compile compatibility step failed.'
 }
 
 Push-Location $root
