@@ -1,161 +1,117 @@
-TEAM UP! v0.2.0-alpha.6.1.1 — CARDCHA TEST ARENA BRIDGE + DEBUG PRESETS
+TEAM UP! v0.2.0-alpha.6.1.2 — CARDCHA DEBUG + FOLLOW ANTI-THRASH + PARTY PASS-THROUGH
 
-0) CÀI ĐÚNG BẢN DEBUG BRIDGE
+0) CÀI ĐÚNG BẢN
 - XÓA HẲN thư mục Team Up cũ trong Mods trước khi chép bản mới, không chép đè lẫn DLL.
 - Trong thư mục mod mới phải có DEBUG_BUILD_INFO.txt.
-- manifest phải báo version 0.2.0-alpha.6.1.1.
+- manifest phải báo version 0.2.0-alpha.6.1.2.
 - Khi SMAPI khởi động phải thấy dòng:
-  Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.1
-- Nếu không thấy marker này thì game chưa load đúng DLL debug bridge. Đừng test command tiếp, gửi SMAPI log.
+  Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.2
+- Nếu không thấy marker này thì game chưa load đúng DLL. Đừng test command tiếp, gửi SMAPI log.
 
 1) BUILD
-- Chạy BUILD_V0_2_ALPHA6.bat.
+- Dùng source ZIP sạch rồi chạy BUILD_V0_2_ALPHA6.bat.
 - Nếu đỏ: gửi nguyên BUILD_LOG.txt.
 - Build log phải có:
   Debug harness source verification: OK
   Follow anti-thrash source verification: OK
+  Party pass-through source verification: OK
 - ZIP mong đợi:
-  release/TeamUp_v0.2.0-alpha.6.1.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.zip
+  release/TeamUp_v0.2.0-alpha.6.1.2_CARDCHA_DEBUG_FOLLOW_GHOST_TEST.zip
 
 2) HINT SAU KHI XEM PROFILE TỪ NPC TRONG ĐỘI
 - Nói chuyện với NPC đang ở trong Team Up.
-- Khi menu member/dialogue đang mở, bấm Q / L Controller để xem hồ sơ.
+- Bấm Q / L Controller để xem hồ sơ.
 - Bấm Quay lại / B.
 - Phải trở về đúng DialogueBox cũ.
-- Hint bên trái phải hiện lại: L (Controller) / Q  Hồ sơ.
-- Hint bên phải phải hiện lại: Rời đội  R (Controller) / E.
-- Không được mất hint sau lượt xem Profile.
+- Hint trái phải hiện lại: L (Controller) / Q Hồ sơ.
+- Hint phải phải hiện lại: Rời đội R (Controller) / E.
 
 3) CODEX FOCUS MEMORY
-- Mở Codex.
-- Chọn một NPC ở giữa hoặc cuối danh sách.
-- Mở Profile rồi Quay lại.
-- Phải trở lại đúng NPC đang chọn, đúng scroll offset và đúng filter trước đó.
+- Mở Codex, chọn NPC ở giữa/cuối danh sách, mở Profile rồi Quay lại.
+- Phải giữ đúng NPC đang chọn, scroll offset và filter.
 
-4) ALEX FOLLOW / SCHEDULE ANIMATION REGRESSION
-- Recruit Alex khi Alex đang ở một animation/routine lịch trình nếu có thể.
-- Alex phải thoát animation lịch trình và theo Farmer.
-- Không được đứng im vĩnh viễn hoặc giữ sprite pose lạ.
+4) ALEX FOLLOW / SCHEDULE ANIMATION
+- Recruit Alex lúc đang ở routine/animation lịch trình nếu có thể.
+- Alex phải thoát animation lịch trình và theo Farmer, không đứng im vĩnh viễn.
 
 5) VIETNAMESE EQUIPMENT I18N
-- Mở menu Trang bị.
-- Phải đọc đúng: TRANG BỊ / Vũ khí / Chưa trang bị / Giáp / Giày / Nhẫn.
-- Không còn chuỗi kiểu Bá»Š, VÅ khÃ, ChÆa.
+- Phải đọc đúng: Trang bị / TRANG BỊ / Vũ khí / Chưa trang bị / Giáp / Giày / Nhẫn.
+- Không còn Bá»Š, VÅ khÃ, ChÆa.
 
-6) TEAMUP TEST HARNESS — HELP
-Trong SMAPI console chạy:
+6) TEAMUP TEST HARNESS
+- Trong SMAPI console chạy:
   teamup_test help
-Phải hiện danh sách command.
+  teamup_test status
+- Không được báo Unknown command.
 
 7) CARDCHA TEST ARENA BRIDGE
-- Cardcha là OPTIONAL. Team Up vẫn phải load bình thường khi không có Cardcha.
-- Khi Cardcha đang load, chạy:
+- Cardcha là OPTIONAL.
+- Khi Cardcha load, chạy:
   teamup_test arena
-- Team Up phải tìm map bằng metadata CardchaRegionRole chứa region1-hunting.
-- Không hard-code internal location name Cardcha.
-- Nếu arena đã được Cardcha đăng ký/load, Farmer phải warp vào vùng test.
-- Nếu chưa có Cardcha hoặc arena chưa load, command chỉ báo trạng thái, không crash.
+- Team Up tìm map qua CardchaRegionRole chứa region1-hunting, không hard-code internal location name.
+- Nếu Cardcha/arena chưa load chỉ báo trạng thái, không crash.
 
-8) ADD NPC NHANH
+8) DEBUG COMMANDS
 Ví dụ:
   teamup_test add Harvey
   teamup_test add Emily
-- Chỉ dùng NPC đã có authored Team Up profile.
-- Party cap hiện tại vẫn được tôn trọng.
-- NPC add thành công phải vào Following và có role/engagement mặc định từ profile.
-
-9) LEVEL / MASTERY
-Ví dụ:
   teamup_test level Harvey 20
   teamup_test mastery Harvey healer 8
-  teamup_test mastery Abigail dps 8
-- Level clamp 1..30.
-- Mastery clamp 0..10.
-- status phải phản ánh đúng M-level.
-
-10) HP DEBUG
-Ví dụ:
-  teamup_test hp Alex 25
   teamup_test hp Alex 10%
   teamup_test farmerhp 12%
-- Hỗ trợ cả raw value và phần trăm.
-
-11) PRESET TIER 2
   teamup_test preset tier2
-Kỳ vọng:
-- toàn bộ party hiện tại Lv10;
-- active role mastery M4;
-- party + Farmer full HP;
-- Downed/Withdrawn/Wounded reset;
-- combat/signature cooldown clear.
-
-12) PRESET TIER 3
   teamup_test preset tier3
-Kỳ vọng:
-- toàn bộ party hiện tại Lv20;
-- active role mastery M8;
-- party + Farmer full HP;
-- cooldown clear.
-Dùng preset này để test HAUNTED BLADE / IRON WALL / FIELD HOSPITAL / OVERLOAD / PRISMATIC SANCTUARY.
-
-13) PRESET RESCUE
   teamup_test preset rescue
-Kỳ vọng:
-- party hiện tại Tier 3;
-- Alex nếu có -> Tank;
-- Harvey nếu có -> Healer;
-- Emily nếu có -> Support;
-- Farmer xuống khoảng 12% HP;
-- cooldown clear.
-Sau đó đưa quái tới gần để kiểm tra Farmer Rescue.
-
-14) PRESET DOWNED
   teamup_test preset downed
-Kỳ vọng:
-- party Tier 2;
-- một non-Healer được đưa xuống khoảng 8% HP;
-- chưa Downed sẵn.
-Sau đó để quái gây pressure nhằm test Downed -> Revive -> Wounded.
-
-15) PRESET FULLPARTY
   teamup_test preset fullparty
-- Thử add Alex + Abigail + Harvey + Maru.
-- Tôn trọng party cap, không cưỡng ép vượt max.
-- Sau đó áp Tier 3.
-
-16) RESET + STATUS
+  teamup_test cooldowns clear
   teamup_test reset
   teamup_test status
-Reset phải:
-- full HP Farmer + party;
-- clear Downed/Withdrawn/Wounded;
-- đưa member về Following;
-- clear combat/signature runtime.
-Status phải in Level, HP, active role Mastery, state và Cardcha loaded status.
 
-17) COOLDOWN CLEAR
-  teamup_test cooldowns clear
-- Threat/combat runtime và Alpha 6 signature/rescue cooldown phải reset.
+9) PRESET TIER 2
+- party hiện tại Lv10, active-role M4, full HP, Following, clear Downed/Withdrawn/Wounded và cooldown.
 
-18) REGRESSION ALPHA 3+4 / 5 / 6
+10) PRESET TIER 3
+- party hiện tại Lv20, active-role M8, full HP, clear cooldown.
+- Dùng để test HAUNTED BLADE / IRON WALL / FIELD HOSPITAL / OVERLOAD / PRISMATIC SANCTUARY.
+
+11) PRESET RESCUE
+- Farmer ~12% HP, party Tier 3, rescue cooldown clear.
+- Alex nếu có -> Tank; Harvey -> Healer; Emily -> Support.
+
+12) PRESET DOWNED
+- một non-Healer ~8% HP nhưng chưa Downed.
+- Cho quái gây pressure để test Downed -> Revive -> Wounded.
+
+13) PRESET FULLPARTY
+- thử add Alex + Abigail + Harvey + Maru, vẫn tôn trọng party cap.
+- sau đó áp Tier 3.
+
+14) REGRESSION COMBAT
 - Equipment, Vault, Level, Mastery save/load còn hoạt động.
 - Threat / TAUNT / GUARD / anti-dogpile còn hoạt động.
 - Downed / Revive / Wounded / Withdraw còn hoạt động.
-- Alpha 6 signature Tier 2/3 và Farmer Rescue còn hoạt động.
-- ChaCha không thể bị recruit vào Main Party.
+- Alpha 6 Signature Tier 2/3 + Farmer Rescue còn hoạt động.
+- ChaCha không thể recruit Main Party.
 
-19) FLYING / MOUNT FOLLOW PERFORMANCE
+15) FLYING / MOUNT FOLLOW PERFORMANCE
 - Cho 2-4 NPC Following.
-- Dùng mount nhanh hoặc flying mount đi qua vùng NPC không thể đi bộ trực tiếp tới, đặc biệt mặt hồ/khoảng nước gần Wizard Tower nếu mod map cho phép.
+- Dùng mount nhanh/flying đi qua vùng NPC không thể đi bộ tới, ví dụ mặt hồ gần Wizard nếu mod map cho phép.
 - Không được tụt FPS/lag nặng như trước.
-- NPC không được spam tạo path tới tile nước/không walkable.
-- Trong lúc Farmer ở vùng không có target đi bộ hợp lệ, follower có thể đứng chờ ở bờ. Đây là hành vi dự kiến.
-- Khi Farmer trở lại vùng có tile đi bộ hợp lệ, party phải tự tiếp tục follow/catch-up.
-- Test thêm vanilla horse nếu có để chắc repath throttle không làm follow giật quá mức.
+- Khi Farmer ở target không walkable, follower có thể đứng chờ ở bờ.
+- Khi Farmer trở lại đất, party phải tự follow/catch-up.
+- Test thêm vanilla horse nếu có.
+
+16) FARMER ĐI XUYÊN QUA TEAM MEMBER
+- Có ít nhất 1 NPC trong Team Up, trạng thái Following.
+- Đi thẳng xuyên qua NPC. Farmer không được bị chặn.
+- Cho NPC Stand Here/Waiting rồi đi xuyên qua. Farmer vẫn không bị chặn.
+- Để follower catch-up/warp ra trước mặt rồi tiếp tục chạy. NPC không được khóa đường Farmer.
+- Cho NPC Rời đội. Sau khi release về vanilla, collision/pass-through phải trở lại đúng trạng thái gốc của NPC.
+- Không yêu cầu NPC xuyên qua quái hoặc NPC vanilla khác; fix này chỉ bật farmerPassesThrough trong thời gian thuộc Team Up.
 
 GHI CHÚ
-- Cardcha chỉ cung cấp môi trường arena nếu đang được load.
-- Team Up không gọi Cardcha combat/card code và không phụ thuộc bắt buộc vào Cardcha.
-- Bridge tìm arena qua map metadata để tránh khóa vào internal location name.
-- Follow anti-thrash là generic, không hard-code Aerodactyl/Pelipper Town.
-- Không đổi save schema ở Alpha 6.1.1.
+- Cardcha chỉ là optional test host, không phải dependency gameplay.
+- Follow anti-thrash generic, không hard-code Aerodactyl/Pelipper Town.
+- Party pass-through chỉ áp dụng Farmer -> Team Up member, không tắt collidesWithOtherCharacters.
+- Không đổi save schema ở Alpha 6.1.2.
