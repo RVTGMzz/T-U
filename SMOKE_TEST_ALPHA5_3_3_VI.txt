@@ -1,0 +1,42 @@
+TEAM UP! v0.1.0-alpha.5.3.3 - SMOKE TEST VI
+============================================================
+Muc tieu: sua dut diem vi tri hint hoi thoai.
+Combat AI VAN CHUA BAT.
+
+1) BUILD / LOAD
+- BUILD_ALPHA5_3_3.bat build thanh cong.
+- Khong co error do Team Up trong SMAPI.
+
+2) HINT HOI THOAI - QUAN TRONG
+- Noi chuyen voi NPC thuong.
+- Ben trai: L (Controller) / Q Ho so.
+- Ben phai: Thu nap R (Controller) / E.
+- CA HAI tag phai nam HOAN TOAN ben tren khung hoi thoai mau cam.
+- Phai co mot khoang ho nho giua day tag va mep tren khung chat.
+- Tuyet doi khong de tag che chu hoi thoai, portrait, vien portrait hay bang ten NPC.
+
+3) NPC DA VAO DOI
+- Noi chuyen member.
+- Ben trai van la Ho so.
+- Ben phai doi thanh Roi doi R/E.
+- Hai tag van o ngoai khung chat.
+
+4) UI SCALE
+- Neu co the, thu UI scale 80%, 100%, 120%.
+- Hint phai van neo theo khung chat that, khong troi vao trong khung.
+
+5) CODEX REGRESSION
+- Codex van giu kich thuoc lon hon alpha.5.3.1.
+- Controller di chuyen qua 3 filter duoc.
+- Bam A mo dropdown, bam A chon option.
+
+6) PARTY REGRESSION
+- Recruit/leave van co xac nhan.
+- Follow/Stand va Party Vault van hoat dong.
+
+============================================================
+NEU BUILD FAIL:
+Gui BUILD_LOG.txt, uu tien compiler error CS... dau tien.
+
+NEU HINT VAN LECH:
+Gui anh full man hinh + UI scale dang dung.
