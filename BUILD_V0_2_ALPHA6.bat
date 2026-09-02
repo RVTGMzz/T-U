@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.1.2 - DEBUG + FOLLOW GHOST
+echo   Team Up! v0.2.0-alpha.6.1.3 - PARTY UX + TANK FIX
 echo =========================================================
 echo.
 
@@ -25,10 +25,10 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.1.2.
+echo BUILD OK - ALPHA 6.1.3.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo Sau khi vao game, SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.1.2
-echo Farmer co the di xuyen qua NPC dang o trong Team Up.
+echo Sau khi vao game, SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.1.3
+echo Test: ChaCha khong co Thu nap, Alex di toi quái truoc khi TAUNT, Trang bi mo panel rieng.
 echo.
 explorer "%~dp0release"
 pause
