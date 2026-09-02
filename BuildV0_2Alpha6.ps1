@@ -5,7 +5,7 @@ $projectDir = Split-Path -Parent $project
 $buildOut = Join-Path $projectDir 'bin\Release\net6.0'
 $releaseDir = Join-Path $root 'release\Team Up'
 $releaseRoot = Join-Path $root 'release'
-$archive = Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1.2_CARDCHA_DEBUG_FOLLOW_GHOST_TEST.zip'
+$archive = Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1.3_PARTY_UX_TANK_CHACHA_TEST.zip'
 $log = Join-Path $root 'BUILD_LOG.txt'
 $finalizer = Join-Path $root '_build_support\FinalizeV0_2Alpha6.ps1'
 $compileFixer = Join-Path $root '_build_support\FixCompileV0_2Alpha6.ps1'
@@ -13,8 +13,14 @@ $uxFixer = Join-Path $root '_build_support\FixAlpha612UxRegressions.ps1'
 $followPerfFixer = Join-Path $root '_build_support\FixAlpha611FollowPerformance.ps1'
 $partyGhostFixer = Join-Path $root '_build_support\FixAlpha612PartyGhosting.ps1'
 $debugIntegrator = Join-Path $root '_build_support\IntegrateAlpha61DebugHarness.ps1'
+$alpha613Fixer = Join-Path $root '_build_support\FixAlpha613PartyUxCombat.ps1'
 $modEntry = Join-Path $projectDir 'ModEntry.cs'
 $followSourcePath = Join-Path $projectDir 'Following\FollowService.cs'
+$partySourcePath = Join-Path $projectDir 'Core\PartyManager.cs'
+$classSourcePath = Join-Path $projectDir 'Core\CompanionClassificationService.cs'
+$combatSourcePath = Join-Path $projectDir 'Combat\CombatService.cs'
+$equipmentMenuPath = Join-Path $projectDir 'UI\EquipmentMenu.cs'
+$viPath = Join-Path $projectDir 'i18n\vi.json'
 
 function Ensure-Replace([string]$text, [string]$old, [string]$new, [string]$label) {
     if ($text.Contains($new)) { return $text }
@@ -26,16 +32,19 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw 'dotnet was not found. Install the .NET SDK first.'
 }
 
-foreach ($requiredScript in @($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator)) {
+foreach ($requiredScript in @($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator, $alpha613Fixer)) {
     if (-not (Test-Path $requiredScript)) {
         throw "Required build helper is missing: $requiredScript"
     }
 }
+if (-not (Test-Path $equipmentMenuPath)) {
+    throw "Dedicated equipment menu source is missing: $equipmentMenuPath"
+}
 
-"Team Up v0.2.0-alpha.6.1.2 build started: $(Get-Date -Format o)" | Set-Content $log
+"Team Up v0.2.0-alpha.6.1.3 build started: $(Get-Date -Format o)" | Set-Content $log
 "dotnet: $(& dotnet --version)" | Add-Content $log
 
-foreach ($script in @($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator)) {
+foreach ($script in @($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator, $alpha613Fixer)) {
     try {
         [void][scriptblock]::Create([System.IO.File]::ReadAllText($script))
         "Preflight OK: $(Split-Path $script -Leaf)" | Tee-Object -FilePath $log -Append
@@ -72,15 +81,16 @@ if (-not $modSource.Contains('Alpha6Polish.Clear();')) {
     if (-not $modSource.Contains('        Combat.Clear();')) { throw 'Alpha 6 integration could not locate combat clear hooks.' }
     $modSource = $modSource.Replace('        Combat.Clear();', "        Combat.Clear();`r`n        Alpha6Polish.Clear();")
 }
-$modSource = $modSource.Replace('Team Up! v0.2.0-alpha.3.4 survival + progression + mastery + equipment loaded.', 'Team Up! v0.2.0-alpha.6.1.2 Cardcha debug + follow anti-thrash + party ghosting loaded.')
-$modSource = $modSource.Replace('Team Up! v0.2.0-alpha.6 signature skills + farmer rescue + combat polish loaded.', 'Team Up! v0.2.0-alpha.6.1.2 Cardcha debug + follow anti-thrash + party ghosting loaded.')
-$modSource = $modSource.Replace('Team Up! v0.2.0-alpha.6.1 signature skills + rescue + follow/codex/i18n hotfix loaded.', 'Team Up! v0.2.0-alpha.6.1.2 Cardcha debug + follow anti-thrash + party ghosting loaded.')
-$modSource = $modSource.Replace('Team Up! v0.2.0-alpha.6.1 Cardcha test bridge + debug presets loaded.', 'Team Up! v0.2.0-alpha.6.1.2 Cardcha debug + follow anti-thrash + party ghosting loaded.')
-$modSource = $modSource.Replace('Team Up! v0.2.0-alpha.6.1.1 Cardcha test bridge + debug presets loaded.', 'Team Up! v0.2.0-alpha.6.1.2 Cardcha debug + follow anti-thrash + party ghosting loaded.')
+$runtimeMarker = 'Team Up! v0.2.0-alpha.6.1.3 party UX + tank approach + ChaCha exclusion loaded.'
+$modSource = [regex]::Replace(
+    $modSource,
+    'Team Up! v[^\"]+ loaded\.',
+    $runtimeMarker,
+    1)
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($modEntry, $modSource, $utf8NoBom)
 
-"Applying Alpha 6.1.2 robust Follow + Codex + dialogue hint + Vietnamese i18n fixes..." | Tee-Object -FilePath $log -Append
+"Applying Alpha 6.1.2 robust Follow + Codex + dialogue hint + Vietnamese equipment fixes..." | Tee-Object -FilePath $log -Append
 & $uxFixer 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.1.2 UX hotfix step failed.' }
 
@@ -88,7 +98,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.1.2 UX hotfix step failed.' }
 & $followPerfFixer 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Follow performance step failed.' }
 
-"Applying Alpha 6.1.2 Farmer-through-party collision behavior..." | Tee-Object -FilePath $log -Append
+"Applying Farmer-through-party collision behavior..." | Tee-Object -FilePath $log -Append
 & $partyGhostFixer 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Party ghosting step failed.' }
 
@@ -96,20 +106,49 @@ if ($LASTEXITCODE -ne 0) { throw 'Party ghosting step failed.' }
 & $debugIntegrator 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Debug harness integration failed.' }
 
-$integratedSource = [System.IO.File]::ReadAllText($modEntry)
-if (-not $integratedSource.Contains('DebugTools.RegisterCommands();') -or -not $integratedSource.Contains('Team Up DEBUG HARNESS READY')) {
-    throw 'Debug harness verification failed before compile: registration marker missing from ModEntry.cs.'
+"Applying Alpha 6.1.3 ChaCha + Equipment Panel + Vault UTF-8 + Tank behavior..." | Tee-Object -FilePath $log -Append
+& $alpha613Fixer 2>&1 | Tee-Object -FilePath $log -Append
+if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.1.3 consolidated hotfix failed.' }
+
+$integratedSource = [System.IO.File]::ReadAllText($modEntry, [System.Text.Encoding]::UTF8)
+if (-not $integratedSource.Contains('DebugTools.RegisterCommands();') -or -not $integratedSource.Contains('Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.3')) {
+    throw 'Debug harness verification failed before compile: Alpha 6.1.3 registration marker missing from ModEntry.cs.'
 }
-$followSource = [System.IO.File]::ReadAllText($followSourcePath)
+if (-not $integratedSource.Contains('new EquipmentMenu(')) {
+    throw 'Equipment panel verification failed before compile: ShowEquipmentMenu is not using EquipmentMenu.'
+}
+
+$followSource = [System.IO.File]::ReadAllText($followSourcePath, [System.Text.Encoding]::UTF8)
 if (-not $followSource.Contains('RepathCooldownUpdates') -or -not $followSource.Contains('SuspendForUnsafeTarget')) {
     throw 'Follow performance verification failed before compile: anti-thrash markers missing from FollowService.cs.'
 }
 if (-not $followSource.Contains('EnableFarmerPassThrough') -or -not $followSource.Contains('npc.farmerPassesThrough = true;')) {
     throw 'Party ghosting verification failed before compile: pass-through markers missing from FollowService.cs.'
 }
+
+$partySource = [System.IO.File]::ReadAllText($partySourcePath, [System.Text.Encoding]::UTF8)
+$classSource = [System.IO.File]::ReadAllText($classSourcePath, [System.Text.Encoding]::UTF8)
+$combatSource = [System.IO.File]::ReadAllText($combatSourcePath, [System.Text.Encoding]::UTF8)
+$viSource = [System.IO.File]::ReadAllText($viPath, [System.Text.Encoding]::UTF8)
+if (-not $partySource.Contains('CompanionClassificationService.IsSpecialName(characterName, null)')) {
+    throw 'ChaCha hard-gate verification failed before compile: PartyManager special guard missing.'
+}
+if (-not $classSource.Contains('Ronvotri.Cardcha_ChaCha') -or -not $classSource.Contains('IsSpecialName(npc.displayName, specialNpcNames)')) {
+    throw 'ChaCha classification verification failed before compile: Cardcha internal/display identity handling missing.'
+}
+if (-not $combatSource.Contains('.Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 5f)')) {
+    throw 'Tank behavior verification failed before compile: Tank-local taunt radius missing.'
+}
+if (-not $viSource.Contains('"vault.subtitle": "V\u1eadt t\u01b0 d\u00f9ng chung cho to\u00e0n \u0111\u1ed9i"') -or -not $viSource.Contains('"equipment.panel-title"')) {
+    throw 'Vietnamese UX verification failed before compile: Vault unicode repair or Equipment panel strings missing.'
+}
 "Debug harness source verification: OK" | Tee-Object -FilePath $log -Append
 "Follow anti-thrash source verification: OK" | Tee-Object -FilePath $log -Append
 "Party pass-through source verification: OK" | Tee-Object -FilePath $log -Append
+"ChaCha exclusion source verification: OK" | Tee-Object -FilePath $log -Append
+"Equipment panel source verification: OK" | Tee-Object -FilePath $log -Append
+"Vault UTF-8 source verification: OK" | Tee-Object -FilePath $log -Append
+"Tank approach-before-taunt source verification: OK" | Tee-Object -FilePath $log -Append
 
 Push-Location $root
 try {
@@ -132,7 +171,7 @@ $manifestDest = Join-Path $releaseDir 'manifest.json'
 if (Test-Path $manifestBuilt) { Copy-Item $manifestBuilt $manifestDest }
 else {
     $manifest = Get-Content $manifestSource -Raw
-    $manifest = $manifest.Replace('%ProjectVersion%', '0.2.0-alpha.6.1.2')
+    $manifest = $manifest.Replace('%ProjectVersion%', '0.2.0-alpha.6.1.3')
     Set-Content -Path $manifestDest -Value $manifest -Encoding UTF8
 }
 
@@ -146,13 +185,17 @@ if (Test-Path $smoke) { Copy-Item $smoke (Join-Path $releaseDir 'SMOKE_TEST_V0_2
 
 $buildInfo = @'
 TEAM UP DEBUG BUILD
-Version: 0.2.0-alpha.6.1.2
-Checkpoint: Cardcha Debug + Follow Anti-Thrash + Farmer-through-Party
+Version: 0.2.0-alpha.6.1.3
+Checkpoint: Party UX + Tank Approach + ChaCha Exclusion
 Expected SMAPI startup marker:
-Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.2
+Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.3
 Primary command: teamup_test help
 Follow safeguard: invalid/unwalkable targets suspend pathfinding; rapid target movement is repath-throttled.
-Party collision: Farmer can pass through active/waiting Team Up members. Original NPC pass-through state is restored when released to vanilla.
+Party collision: Farmer can pass through active/waiting Team Up members. Original NPC pass-through state restores on release.
+ChaCha: Ronvotri.Cardcha_ChaCha is a Farmer/Special Companion and can never enter Main Party.
+Tank: target acquisition/movement occurs before local TAUNT; TAUNT only fires around the Tank.
+Equipment: dedicated two-pane EquipmentMenu replaces question-dialogue equipment selection.
+Vietnamese: Vault + Equipment strings are materialized through ASCII-only Unicode escapes.
 '@
 Set-Content -Path (Join-Path $releaseDir 'DEBUG_BUILD_INFO.txt') -Value $buildInfo -Encoding UTF8
 
@@ -160,14 +203,16 @@ if (Test-Path $archive) { Remove-Item $archive -Force }
 if (-not (Test-Path $releaseRoot)) { New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null }
 Compress-Archive -Path $releaseDir -DestinationPath $archive -CompressionLevel Optimal
 $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-"$hash  $(Split-Path $archive -Leaf)" | Set-Content (Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1.2_CARDCHA_DEBUG_FOLLOW_GHOST_TEST.sha256.txt')
+"$hash  $(Split-Path $archive -Leaf)" | Set-Content (Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.6.1.3_PARTY_UX_TANK_CHACHA_TEST.sha256.txt')
 
 Write-Host ''
 Write-Host '========================================================='
-Write-Host 'BUILD SUCCESS - ALPHA 6.1.2'
-Write-Host 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.1.2'
-Write-Host 'FOLLOW SAFEGUARD: INVALID TARGET + REPATH THROTTLE ENABLED'
-Write-Host 'PARTY GHOSTING: FARMER CAN PASS THROUGH TEAM MEMBERS'
+Write-Host 'BUILD SUCCESS - ALPHA 6.1.3'
+Write-Host 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.1.3'
+Write-Host 'CHACHA: MAIN PARTY RECRUITMENT HARD-BLOCKED'
+Write-Host 'TANK: APPROACH TARGET BEFORE LOCAL TAUNT'
+Write-Host 'EQUIPMENT: DEDICATED PANEL ENABLED'
+Write-Host 'VAULT: VIETNAMESE UTF-8 REPAIR ENABLED'
 Write-Host "ZIP: $archive"
 Write-Host "SHA256: $hash"
 Write-Host '========================================================='
