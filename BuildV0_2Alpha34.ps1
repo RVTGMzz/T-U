@@ -51,8 +51,7 @@ if ($modSource.Contains('v0.2.0-alpha.1 full vanilla Codex + real NPC combat loa
 }
 
 $modSource = Get-Content $modEntry -Raw
-if ($modSource.Contains('v0.2.0-alpha.2 combat feedback + signature VFX loaded.')
-    -or $modSource.Contains('v0.2.0-alpha.3.4 survival + progression + mastery + equipment loaded.')) {
+if ($modSource.Contains('v0.2.0-alpha.2 combat feedback + signature VFX loaded.') -or $modSource.Contains('v0.2.0-alpha.3.4 survival + progression + mastery + equipment loaded.')) {
     "Applying v0.2 alpha 3+4 survival/progression/equipment integration..." | Tee-Object -FilePath $log -Append
     & $patchV0234 2>&1 | Tee-Object -FilePath $log -Append
     if ($LASTEXITCODE -ne 0) { throw 'v0.2-alpha.3+4 patch step failed.' }
