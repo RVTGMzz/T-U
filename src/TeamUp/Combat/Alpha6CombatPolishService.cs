@@ -154,13 +154,9 @@ public sealed class Alpha6CombatPolishService
         }
         else
         {
-            // Alex can make one last defensive intervention when no healer/support is available.
             targetFraction = tier >= 3 ? 0.18f : 0.14f;
             label = tier >= 3 ? "IRON WALL" : "LAST GUARD";
             color = new Color(255, 165, 80);
-
-            int guardCost = Math.Max(1, (int)Math.Round(_progression.GetMaxHealth(rescuer) * 0.08f));
-            rescuer.CurrentHealth = Math.Max(1, rescuer.CurrentHealth - guardCost);
         }
 
         int targetHealth = Math.Max(1, (int)Math.Round(Game1.player.maxHealth * targetFraction));
@@ -170,6 +166,12 @@ public sealed class Alpha6CombatPolishService
         if (restored <= 0)
             return;
 
+        if (role == PartyRole.Tank)
+        {
+            int guardCost = Math.Max(1, (int)Math.Round(_progression.GetMaxHealth(rescuer) * 0.08f));
+            rescuer.CurrentHealth = Math.Max(1, rescuer.CurrentHealth - guardCost);
+        }
+
         rescuerNpc.faceTowardFarmerForPeriod(650, 4, false, Game1.player);
         rescuerNpc.showTextAboveHead($"{label} +{restored}", color, 2, 1500, 0);
         SpawnBurst(Game1.currentLocation, Game1.player.Position, color, 10, 38f);
@@ -178,20 +180,12 @@ public sealed class Alpha6CombatPolishService
         AwardSkillProgress(rescuer, role, rescuerNpc, 8, 5);
     }
 
-    private bool TryAbigailUpgrade(
-        NPC npc,
-        PartyMemberData member,
-        PartyRole role,
-        int tier,
-        int affinity,
-        IReadOnlyList<Monster> monsters)
+    private bool TryAbigailUpgrade(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, IReadOnlyList<Monster> monsters)
     {
         if (role is not (PartyRole.Damage or PartyRole.Control))
             return false;
 
-        List<Monster> inRange = monsters
-            .Where(monster => Vector2.Distance(monster.Tile, Game1.player.Tile) <= 8f)
-            .ToList();
+        List<Monster> inRange = monsters.Where(monster => Vector2.Distance(monster.Tile, Game1.player.Tile) <= 8f).ToList();
         if (inRange.Count == 0)
             return false;
 
@@ -207,11 +201,10 @@ public sealed class Alpha6CombatPolishService
             return false;
 
         float radius = tier >= 3 ? 3.25f : 2.8f;
-        int maxTargets = tier >= 3 ? 5 : 3;
         List<Monster> targets = inRange
             .Where(monster => Vector2.Distance(monster.Tile, anchor.Tile) <= radius)
             .OrderBy(monster => Vector2.DistanceSquared(monster.Tile, anchor.Tile))
-            .Take(maxTargets)
+            .Take(tier >= 3 ? 5 : 3)
             .ToList();
         if (targets.Count == 0)
             return false;
@@ -220,7 +213,6 @@ public sealed class Alpha6CombatPolishService
         int damage = Math.Max(1, (int)Math.Round(baseDamage * _progression.GetDamageMultiplier(member, role)));
         int dealtTotal = 0;
         Color purple = new(195, 95, 255);
-
         foreach (Monster monster in targets)
         {
             int before = monster.Health;
@@ -242,21 +234,12 @@ public sealed class Alpha6CombatPolishService
         return true;
     }
 
-    private bool TryAlexUpgrade(
-        NPC npc,
-        PartyMemberData member,
-        PartyRole role,
-        int tier,
-        int affinity,
-        IReadOnlyList<Monster> monsters)
+    private bool TryAlexUpgrade(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, IReadOnlyList<Monster> monsters)
     {
         if (role != PartyRole.Tank)
             return false;
 
-        List<Monster> nearby = monsters
-            .Where(monster => Vector2.Distance(monster.Tile, Game1.player.Tile) <= 3.75f)
-            .Take(6)
-            .ToList();
+        List<Monster> nearby = monsters.Where(monster => Vector2.Distance(monster.Tile, Game1.player.Tile) <= 3.75f).Take(6).ToList();
         float farmerRatio = Game1.player.health / (float)Math.Max(1, Game1.player.maxHealth);
         if (nearby.Count < 2 && farmerRatio > 0.45f)
             return false;
@@ -286,13 +269,7 @@ public sealed class Alpha6CombatPolishService
         return true;
     }
 
-    private bool TryHarveyUpgrade(
-        NPC npc,
-        PartyMemberData member,
-        PartyRole role,
-        int tier,
-        int affinity,
-        IReadOnlyList<PartyMemberData> members)
+    private bool TryHarveyUpgrade(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, IReadOnlyList<PartyMemberData> members)
     {
         if (role != PartyRole.Healer)
             return false;
@@ -309,13 +286,11 @@ public sealed class Alpha6CombatPolishService
 
         int amount = Math.Max(2, (int)Math.Round((6 + affinity * 2) * _progression.GetHealingMultiplier(member, role)));
         int restoredTotal = 0;
-
         int farmerBefore = Game1.player.health;
         Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + amount);
         restoredTotal += Math.Max(0, Game1.player.health - farmerBefore);
 
-        int allyLimit = tier >= 3 ? 4 : 1;
-        foreach (PartyMemberData target in injured.Take(allyLimit))
+        foreach (PartyMemberData target in injured.Take(tier >= 3 ? 4 : 1))
         {
             NPC? targetNpc = GetActiveNpc(target);
             if (targetNpc is null || Vector2.Distance(targetNpc.Tile, npc.Tile) > 7f)
@@ -339,13 +314,7 @@ public sealed class Alpha6CombatPolishService
         return true;
     }
 
-    private bool TryMaruUpgrade(
-        NPC npc,
-        PartyMemberData member,
-        PartyRole role,
-        int tier,
-        int affinity,
-        IReadOnlyList<Monster> monsters)
+    private bool TryMaruUpgrade(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, IReadOnlyList<Monster> monsters)
     {
         if (role != PartyRole.Control)
             return false;
@@ -357,9 +326,7 @@ public sealed class Alpha6CombatPolishService
         if (candidates.Count < 2)
             return false;
 
-        Monster? anchor = candidates
-            .OrderByDescending(monster => candidates.Count(other => Vector2.Distance(other.Tile, monster.Tile) <= 3f))
-            .FirstOrDefault();
+        Monster? anchor = candidates.OrderByDescending(monster => candidates.Count(other => Vector2.Distance(other.Tile, monster.Tile) <= 3f)).FirstOrDefault();
         if (anchor is null)
             return false;
 
@@ -372,11 +339,8 @@ public sealed class Alpha6CombatPolishService
             return false;
 
         int stunMs = (int)Math.Round((tier >= 3 ? 1300 : 900) * _progression.GetControlMultiplier(member, role));
-        int overloadDamage = tier >= 3
-            ? Math.Max(1, (int)Math.Round((3 + affinity) * _progression.GetDamageMultiplier(member, role)))
-            : 0;
+        int overloadDamage = tier >= 3 ? Math.Max(1, (int)Math.Round((3 + affinity) * _progression.GetDamageMultiplier(member, role))) : 0;
         Color cyan = new(80, 230, 255);
-
         foreach (Monster monster in targets)
         {
             monster.stunTime.Value = Math.Max(monster.stunTime.Value, stunMs);
@@ -395,13 +359,7 @@ public sealed class Alpha6CombatPolishService
         return true;
     }
 
-    private bool TryEmilyUpgrade(
-        NPC npc,
-        PartyMemberData member,
-        PartyRole role,
-        int tier,
-        int affinity,
-        IReadOnlyList<PartyMemberData> members)
+    private bool TryEmilyUpgrade(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, IReadOnlyList<PartyMemberData> members)
     {
         if (role is not (PartyRole.Support or PartyRole.Healer))
             return false;
@@ -418,7 +376,6 @@ public sealed class Alpha6CombatPolishService
 
         int amount = Math.Max(2, (int)Math.Round((3 + affinity) * _progression.GetHealingMultiplier(member, role)));
         int restoredTotal = 0;
-
         int beforeFarmer = Game1.player.health;
         Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + amount);
         restoredTotal += Math.Max(0, Game1.player.health - beforeFarmer);
@@ -446,8 +403,7 @@ public sealed class Alpha6CombatPolishService
         if (restoredTotal <= 0 && tier < 3)
             return false;
 
-        string label = tier >= 3 ? "PRISMATIC SANCTUARY" : "RESONANCE";
-        npc.showTextAboveHead(label, new Color(230, 160, 255), 2, 1500, 0);
+        npc.showTextAboveHead(tier >= 3 ? "PRISMATIC SANCTUARY" : "RESONANCE", new Color(230, 160, 255), 2, 1500, 0);
         Color[] prism =
         {
             new Color(255, 110, 150), new Color(255, 190, 90), new Color(120, 255, 150),
@@ -484,7 +440,6 @@ public sealed class Alpha6CombatPolishService
         int beforeFarmer = Game1.player.health;
         Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + _sanctuaryHeal);
         int restored = Math.Max(0, Game1.player.health - beforeFarmer);
-
         foreach (PartyMemberData target in members.Where(target => !target.IsDowned && !target.IsWithdrawn && target.CurrentHealth > 0))
         {
             NPC? targetNpc = GetActiveNpc(target);
@@ -582,8 +537,7 @@ public sealed class Alpha6CombatPolishService
         }
         else if (masteryUp)
         {
-            npc.showTextAboveHead($"{RoleShort(role)} M{_progression.GetMasteryLevel(member, role)}",
-                new Color(155, 215, 255), 2, 1100, 0);
+            npc.showTextAboveHead($"{RoleShort(role)} M{_progression.GetMasteryLevel(member, role)}", new Color(155, 215, 255), 2, 1100, 0);
         }
     }
 
