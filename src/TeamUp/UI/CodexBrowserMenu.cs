@@ -9,9 +9,9 @@ using StardewValley.Menus;
 namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
-/// Character directory for Team Up profiles. Alpha.5.3.1 turns the filter chips into
-/// real drop-down selectors, adds explicit controller focus navigation, adapts the
-/// visible row count to the viewport, and suppresses the mouse cursor during gamepad use.
+/// Character directory for Team Up profiles. Alpha.5.3.2 keeps the drop-down filter
+/// navigation from alpha.5.3.1, adds a controller-A polling fallback for reliable
+/// activation, and expands the browser by roughly twenty percent where space permits.
 /// </summary>
 public sealed class CodexBrowserMenu : IClickableMenu
 {
@@ -67,6 +67,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
     private int _dropdownIndex;
     private bool _showMouseCursor;
     private Point _lastMousePosition;
+    private bool _controllerConfirmWasDown;
 
     private readonly List<string> _sourceIds = new() { "all" };
     private readonly Dictionary<string, string> _sourceLabels = new(StringComparer.OrdinalIgnoreCase)
@@ -94,10 +95,10 @@ public sealed class CodexBrowserMenu : IClickableMenu
         Action<string> openProfile,
         Action onClose)
         : base(
-            Math.Max(8, (Game1.uiViewport.Width - Math.Min(1260, Game1.uiViewport.Width - 16)) / 2),
-            Math.Max(8, (Game1.uiViewport.Height - Math.Min(760, Game1.uiViewport.Height - 16)) / 2),
-            Math.Min(1260, Game1.uiViewport.Width - 16),
-            Math.Min(760, Game1.uiViewport.Height - 16),
+            Math.Max(6, (Game1.uiViewport.Width - Math.Min(1512, Game1.uiViewport.Width - 12)) / 2),
+            Math.Max(6, (Game1.uiViewport.Height - Math.Min(912, Game1.uiViewport.Height - 12)) / 2),
+            Math.Min(1512, Game1.uiViewport.Width - 12),
+            Math.Min(912, Game1.uiViewport.Height - 12),
             false)
     {
         _profiles = profiles;
@@ -109,6 +110,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         _openProfile = openProfile;
         _onClose = onClose;
         _lastMousePosition = new Point(Game1.getMouseX(), Game1.getMouseY());
+        _controllerConfirmWasDown = IsControllerConfirmDown();
 
         foreach (NpcCombatProfile profile in profiles)
         {
@@ -119,19 +121,36 @@ public sealed class CodexBrowserMenu : IClickableMenu
             _sourceLabels[profile.SourceId] = profile.SourceLabel;
         }
 
-        int filtersY = yPositionOnScreen + 94;
-        const int filterGap = 12;
-        int availableFilterWidth = width - 68;
-        int filterWidth = Math.Max(150, (availableFilterWidth - filterGap * 2) / 3);
-        int filterX = xPositionOnScreen + 28;
+        int filtersY = yPositionOnScreen + 104;
+        const int filterGap = 14;
+        int availableFilterWidth = width - 72;
+        int filterWidth = Math.Max(170, (availableFilterWidth - filterGap * 2) / 3);
+        int filterX = xPositionOnScreen + 30;
 
-        _roleFilterButton = new ClickableComponent(new Rectangle(filterX, filtersY, filterWidth, 48), "RoleFilter");
-        _statusFilterButton = new ClickableComponent(new Rectangle(filterX + filterWidth + filterGap, filtersY, filterWidth, 48), "StatusFilter");
-        _sourceFilterButton = new ClickableComponent(new Rectangle(filterX + (filterWidth + filterGap) * 2, filtersY, filterWidth, 48), "SourceFilter");
-        _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 156, yPositionOnScreen + height - 58, 126, 40), "Close");
+        _roleFilterButton = new ClickableComponent(new Rectangle(filterX, filtersY, filterWidth, 54), "RoleFilter");
+        _statusFilterButton = new ClickableComponent(new Rectangle(filterX + filterWidth + filterGap, filtersY, filterWidth, 54), "StatusFilter");
+        _sourceFilterButton = new ClickableComponent(new Rectangle(filterX + (filterWidth + filterGap) * 2, filtersY, filterWidth, 54), "SourceFilter");
+        _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 176, yPositionOnScreen + height - 64, 146, 44), "Close");
 
-        _visibleRows = Math.Clamp((height - 238) / 60, 3, 8);
+        _visibleRows = Math.Clamp((height - 272) / 67, 3, 9);
         RebuildRows();
+    }
+
+    public override void update(GameTime time)
+    {
+        base.update(time);
+
+        bool confirmDown = IsControllerConfirmDown();
+        if (confirmDown && !_controllerConfirmWasDown)
+        {
+            _showMouseCursor = false;
+            if (_openDropdown != DropdownKind.None)
+                ApplyDropdownSelection();
+            else
+                ActivateFocus();
+        }
+
+        _controllerConfirmWasDown = confirmDown;
     }
 
     public override void receiveLeftClick(int x, int y, bool playSound = true)
@@ -300,7 +319,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
             else if (b == Buttons.DPadDown || b == Buttons.LeftThumbstickDown)
                 MoveDropdown(1);
             else if (b == Buttons.A)
-                ApplyDropdownSelection();
+                return;
             return;
         }
 
@@ -319,7 +338,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         else if (b == Buttons.DPadDown || b == Buttons.LeftThumbstickDown)
             NavigateVertical(1);
         else if (b == Buttons.A)
-            ActivateFocus();
+            return;
         else
             base.receiveGamePadButton(b);
     }
@@ -329,14 +348,14 @@ public sealed class CodexBrowserMenu : IClickableMenu
         b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.35f);
         DrawPanel(b, xPositionOnScreen, yPositionOnScreen, width, height);
 
-        b.DrawString(Game1.dialogueFont, _i18n.Get("codex.browser-title"), new Vector2(xPositionOnScreen + 28, yPositionOnScreen + 20), Game1.textColor);
+        b.DrawString(Game1.dialogueFont, _i18n.Get("codex.browser-title"), new Vector2(xPositionOnScreen + 32, yPositionOnScreen + 24), Game1.textColor);
         DrawFitString(
             b,
             Game1.smallFont,
             _i18n.Get("codex.browser-subtitle"),
-            new Rectangle(xPositionOnScreen + 30, yPositionOnScreen + 57, width - 60, 28),
+            new Rectangle(xPositionOnScreen + 34, yPositionOnScreen + 64, width - 68, 30),
             new Color(112, 73, 44),
-            1f);
+            1.08f);
 
         DrawFilterButton(b, _roleFilterButton, $"{_i18n.Get("codex.filter-role")}: {GetRoleFilterLabel()}", _focus == FocusArea.RoleFilter);
         DrawFilterButton(b, _statusFilterButton, $"{_i18n.Get("codex.filter-status")}: {GetStatusLabel()}", _focus == FocusArea.StatusFilter);
@@ -358,8 +377,8 @@ public sealed class CodexBrowserMenu : IClickableMenu
     {
         if (filtered.Count == 0)
         {
-            string empty = Game1.parseText(_i18n.Get("codex.no-results"), Game1.smallFont, width - 84);
-            b.DrawString(Game1.smallFont, empty, new Vector2(xPositionOnScreen + 42, yPositionOnScreen + 176), Game1.textColor);
+            string empty = Game1.parseText(_i18n.Get("codex.no-results"), Game1.smallFont, width - 96);
+            b.DrawString(Game1.smallFont, empty, new Vector2(xPositionOnScreen + 48, yPositionOnScreen + 194), Game1.textColor);
             return;
         }
 
@@ -380,27 +399,27 @@ public sealed class CodexBrowserMenu : IClickableMenu
                     : new Color(109, 73, 48) * 0.12f;
             b.Draw(Game1.staminaRect, bounds, fill);
 
-            RoleIconRenderer.Draw(b, profile.PrimaryRole, new Vector2(bounds.X + 14, bounds.Y + 15), pixelSize: 2);
+            RoleIconRenderer.Draw(b, profile.PrimaryRole, new Vector2(bounds.X + 16, bounds.Y + 18), pixelSize: 2);
 
-            int nameWidth = Math.Max(120, (int)(bounds.Width * 0.28f));
+            int nameWidth = Math.Max(140, (int)(bounds.Width * 0.28f));
             DrawFitString(
                 b,
                 Game1.smallFont,
                 _displayName(profile.CharacterName),
-                new Rectangle(bounds.X + 48, bounds.Y + 5, nameWidth - 48, bounds.Height - 10),
+                new Rectangle(bounds.X + 52, bounds.Y + 6, nameWidth - 52, bounds.Height - 12),
                 Game1.textColor,
-                1.16f);
+                1.24f);
 
             int roleX = bounds.X + nameWidth;
-            int roleWidth = Math.Max(150, (int)(bounds.Width * 0.36f));
+            int roleWidth = Math.Max(170, (int)(bounds.Width * 0.36f));
             string roles = $"{_roleLabel(profile.PrimaryRole)} / {_roleLabel(profile.SecondaryRole)}";
             DrawFitString(
                 b,
                 Game1.smallFont,
                 roles,
-                new Rectangle(roleX, bounds.Y + 5, roleWidth, bounds.Height - 10),
+                new Rectangle(roleX, bounds.Y + 6, roleWidth, bounds.Height - 12),
                 new Color(112, 73, 44),
-                1f);
+                1.08f);
 
             string status = _isInParty(profile.CharacterName)
                 ? _i18n.Get("codex.status-in-party")
@@ -408,34 +427,34 @@ public sealed class CodexBrowserMenu : IClickableMenu
                     ? _i18n.Get("codex.status-recruitable")
                     : _i18n.Get("codex.status-not-recruited");
 
-            int statusX = roleX + roleWidth + 8;
+            int statusX = roleX + roleWidth + 10;
             DrawFitString(
                 b,
                 Game1.smallFont,
                 status,
-                new Rectangle(statusX, bounds.Y + 5, bounds.Right - statusX - 14, bounds.Height - 10),
+                new Rectangle(statusX, bounds.Y + 6, bounds.Right - statusX - 16, bounds.Height - 12),
                 Game1.textColor,
-                1f,
+                1.08f,
                 alignRight: true);
         }
     }
 
     private void DrawFilterHint(SpriteBatch b)
     {
-        int rightReserved = _closeButton.bounds.Width + 44;
+        int rightReserved = _closeButton.bounds.Width + 50;
         DrawFitString(
             b,
             Game1.smallFont,
             _i18n.Get("codex.filter-hint"),
-            new Rectangle(xPositionOnScreen + 30, yPositionOnScreen + height - 54, width - rightReserved - 40, 36),
+            new Rectangle(xPositionOnScreen + 34, yPositionOnScreen + height - 60, width - rightReserved - 46, 40),
             new Color(112, 73, 44),
-            1f);
+            1.06f);
     }
 
     private void DrawCloseButton(SpriteBatch b)
     {
         DrawInset(b, _closeButton.bounds, _focus == FocusArea.Close);
-        DrawCenteredFitString(b, _closeButton.bounds, _i18n.Get("common.close"), 1f);
+        DrawCenteredFitString(b, _closeButton.bounds, _i18n.Get("common.close"), 1.08f);
     }
 
     private void DrawFilterButton(SpriteBatch b, ClickableComponent button, string text, bool focused)
@@ -445,9 +464,9 @@ public sealed class CodexBrowserMenu : IClickableMenu
             b,
             Game1.smallFont,
             $"{text}  ▼",
-            new Rectangle(button.bounds.X + 10, button.bounds.Y + 4, button.bounds.Width - 20, button.bounds.Height - 8),
+            new Rectangle(button.bounds.X + 12, button.bounds.Y + 5, button.bounds.Width - 24, button.bounds.Height - 10),
             Game1.textColor,
-            1f);
+            1.08f);
     }
 
     private void DrawDropdown(SpriteBatch b)
@@ -479,9 +498,9 @@ public sealed class CodexBrowserMenu : IClickableMenu
                 b,
                 Game1.smallFont,
                 GetDropdownLabel(i),
-                new Rectangle(option.X + 12, option.Y + 3, option.Width - 24, option.Height - 6),
+                new Rectangle(option.X + 14, option.Y + 4, option.Width - 28, option.Height - 8),
                 Game1.textColor,
-                1f);
+                1.08f);
         }
     }
 
@@ -489,7 +508,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
     {
         ClickableComponent button = GetDropdownButton();
         int count = GetDropdownCount();
-        const int optionHeight = 40;
+        const int optionHeight = 44;
         List<Rectangle> result = new(count);
         int y = button.bounds.Bottom + 4;
 
@@ -588,11 +607,11 @@ public sealed class CodexBrowserMenu : IClickableMenu
     private void RebuildRows()
     {
         _rows.Clear();
-        int rowX = xPositionOnScreen + 30;
-        int rowY = yPositionOnScreen + 158;
-        int rowWidth = width - 60;
-        const int rowHeight = 53;
-        const int gap = 7;
+        int rowX = xPositionOnScreen + 34;
+        int rowY = yPositionOnScreen + 178;
+        int rowWidth = width - 68;
+        const int rowHeight = 59;
+        const int gap = 8;
 
         for (int i = 0; i < _visibleRows; i++)
             _rows.Add(new ClickableComponent(new Rectangle(rowX, rowY + i * (rowHeight + gap), rowWidth, rowHeight), $"Profile{i}"));
@@ -772,6 +791,14 @@ public sealed class CodexBrowserMenu : IClickableMenu
         return string.Equals(sourceId, "all", StringComparison.OrdinalIgnoreCase)
             ? _i18n.Get("codex.filter-all")
             : _sourceLabels[sourceId];
+    }
+
+    private static bool IsControllerConfirmDown()
+    {
+        return GamePad.GetState(PlayerIndex.One).IsButtonDown(Buttons.A)
+            || GamePad.GetState(PlayerIndex.Two).IsButtonDown(Buttons.A)
+            || GamePad.GetState(PlayerIndex.Three).IsButtonDown(Buttons.A)
+            || GamePad.GetState(PlayerIndex.Four).IsButtonDown(Buttons.A);
     }
 
     private void Close()
