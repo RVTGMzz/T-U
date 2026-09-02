@@ -7,8 +7,8 @@ $releaseDir = Join-Path $root 'release\Team Up'
 $releaseRoot = Join-Path $root 'release'
 $archive = Join-Path $releaseRoot 'TeamUp_v0.2.0-alpha.5_THREAT_AGGRO_AI_BALANCE_TEST.zip'
 $log = Join-Path $root 'BUILD_LOG.txt'
-$finalizer = Join-Path $root '_build_support\FinalizeV0_2Alpha34.ps1'
-$compileFixer = Join-Path $root '_build_support\FixCompileV0_2Alpha34.ps1'
+$finalizer = Join-Path $root '_build_support\FinalizeV0_2Alpha5.ps1'
+$compileFixer = Join-Path $root '_build_support\FixCompileV0_2Alpha5.ps1'
 $modEntry = Join-Path $projectDir 'ModEntry.cs'
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
