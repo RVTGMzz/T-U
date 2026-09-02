@@ -20,11 +20,22 @@ public static class CompanionClassificationService
 
     public const string LinkedCompanionKind = "LinkedCompanion";
 
-    // Product rule, not a user-configurable compatibility guess: ChaCha belongs to
-    // the Farmer/Special Companion subsystem and must never consume a Main Party slot.
+    // Product rule: ChaCha belongs to the Farmer/Special Companion subsystem and
+    // never consumes a Main Party slot.
     private static readonly HashSet<string> BuiltInSpecialNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "ChaCha"
+    };
+
+    // v0.2 Main Party baseline is adult human NPCs. These vanilla characters are
+    // deliberately kept outside Main Party even if another mod makes them talkable.
+    private static readonly HashSet<string> BuiltInNonMainPartyNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Jas",
+        "Vincent",
+        "Leo",
+        "Dwarf",
+        "Krobus"
     };
 
     public static TeamUpCharacterKind Classify(NPC npc, IEnumerable<string>? specialNpcNames)
@@ -40,6 +51,9 @@ public static class CompanionClassificationService
 
         if (IsSpecialName(npc.Name, specialNpcNames))
             return TeamUpCharacterKind.FarmerOrSpecialCompanion;
+
+        if (BuiltInNonMainPartyNames.Contains(npc.Name))
+            return TeamUpCharacterKind.Ineligible;
 
         if (!npc.IsVillager || !npc.canTalk())
             return TeamUpCharacterKind.Ineligible;
