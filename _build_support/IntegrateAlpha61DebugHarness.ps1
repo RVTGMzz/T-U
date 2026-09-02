@@ -38,9 +38,16 @@ if (-not $mod.Contains('DebugTools.RegisterCommands();')) {
             Alpha6Polish,
             SavePartyNow);
         DebugTools.RegisterCommands();
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.1", LogLevel.Info);
 '@
     $mod = Replace-Required $mod $old $new.TrimEnd() 'debug service construction'
 }
+elseif (-not $mod.Contains('Team Up DEBUG HARNESS READY')) {
+    $mod = Replace-Required $mod `
+        '        DebugTools.RegisterCommands();' `
+        "        DebugTools.RegisterCommands();`r`n        Monitor.Log(\"Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.1\", LogLevel.Info);" `
+        'debug ready marker'
+}
 
 [System.IO.File]::WriteAllText($modPath, $mod, $utf8NoBom)
-Write-Host 'Alpha 6.1 Team Up debug harness integrated.'
+Write-Host 'Alpha 6.1.1 Team Up debug harness integrated with startup marker.'
