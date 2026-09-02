@@ -173,7 +173,10 @@ $newRelease = @'
             }
         }
 
-        Game1.warpCharacter(npc, targetLocation, destination.targetTile.ToVector2());
+        Game1.warpCharacter(
+            npc,
+            targetLocation,
+            new Vector2(destination.targetTile.X, destination.targetTile.Y));
         npc.faceDirection(destination.facingDirection);
         npc.Halt();
     }
