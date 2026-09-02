@@ -2,23 +2,23 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Replace-Required([string]$text, [string]$old, [string]$new, [string]$label) {
-    if ($text.Contains($old)) {
-        return $text.Replace($old, $new)
-    }
     if ($text.Contains($new)) {
         return $text
+    }
+    if ($text.Contains($old)) {
+        return $text.Replace($old, $new)
     }
     throw "Alpha.5.3.4 patch failed: expected source block not found: $label"
 }
 
 function Replace-RegexRequired([string]$text, [string]$pattern, [string]$replacement, [string]$alreadyPattern, [string]$label) {
-    $regex = [regex]::new($pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
-    if ($regex.IsMatch($text)) {
-        return $regex.Replace($text, $replacement, 1)
-    }
     $alreadyRegex = [regex]::new($alreadyPattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
     if ($alreadyRegex.IsMatch($text)) {
         return $text
+    }
+    $regex = [regex]::new($pattern, [System.Text.RegularExpressions.RegexOptions]::Multiline)
+    if ($regex.IsMatch($text)) {
+        return $regex.Replace($text, $replacement, 1)
     }
     throw "Alpha.5.3.4 patch failed: expected source pattern not found: $label"
 }
