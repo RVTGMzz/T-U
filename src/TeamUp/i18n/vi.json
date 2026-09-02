@@ -57,7 +57,7 @@
   "codex.filter-status": "Trạng thái",
   "codex.filter-source": "Nguồn",
   "codex.filter-all": "Tất cả",
-  "codex.filter-hint": "LB/RB đổi bộ lọc vai trò · D-pad chọn NPC · A mở hồ sơ",
+  "codex.filter-hint": "D-pad trái/phải chọn bộ lọc · A mở danh sách · D-pad lên/xuống chọn · A xác nhận",
   "codex.status-in-party": "Trong Party",
   "codex.status-recruitable": "Có thể thu nạp",
   "codex.status-not-recruited": "Chưa thu nạp",
