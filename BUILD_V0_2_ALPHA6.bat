@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.1 - FOLLOW + CODEX + I18N HOTFIX
+echo   Team Up! v0.2.0-alpha.6.1 - CARDCHA TEST BRIDGE + DEBUG
 echo =========================================================
 echo.
 
