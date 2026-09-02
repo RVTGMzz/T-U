@@ -141,4 +141,38 @@ $follow = Replace-RegexRequired $follow `
     'skip formation while fighting'
 
 Set-Content -Path $followPath -Value $follow -Encoding UTF8
+
+# -----------------------------------------------------------------------------
+# CombatService: recovery must not keep a dead/stale target engaged by itself.
+# -----------------------------------------------------------------------------
+$combatPath = Join-Path $root 'src\TeamUp\Combat\CombatService.cs'
+$combat = Get-Content $combatPath -Raw
+$oldCombatFlow = @'
+            if (TryPerformRecovery(npc, member, role, affinity, monsters.Count > 0))
+                stillEngaged.Add(member.CharacterName);
+
+            Monster? target = AcquireTarget(npc, member, role, monsters);
+            if (target is null)
+            {
+                if (!stillEngaged.Contains(member.CharacterName))
+                    Disengage(member.CharacterName, npc);
+                continue;
+            }
+
+            stillEngaged.Add(member.CharacterName);
+'@
+$newCombatFlow = @'
+            Monster? target = AcquireTarget(npc, member, role, monsters);
+            if (target is null)
+            {
+                Disengage(member.CharacterName, npc);
+                continue;
+            }
+
+            TryPerformRecovery(npc, member, role, affinity, combatPresent: true);
+            stillEngaged.Add(member.CharacterName);
+'@
+$combat = Replace-Required $combat $oldCombatFlow $newCombatFlow 'recovery engagement lifecycle'
+Set-Content -Path $combatPath -Value $combat -Encoding UTF8
+
 Write-Host 'v0.2-alpha.1 combat integration patches applied.'
