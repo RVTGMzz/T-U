@@ -1,0 +1,49 @@
+TEAM UP! v0.1.0-alpha.5.3.7 - SMOKE TEST VI
+==================================================
+
+A. PARTY VAULT - BLOCKER
+1. Mo Kho chung Party.
+2. Click trai lay item tu inventory nguoi choi, dat vao Vault.
+3. Lay item tu Vault ve inventory.
+4. Right-click chia stack o ca hai phia.
+5. SHIFT + click item trong inventory: ca stack phai chuyen nhanh vao Vault neu con cho.
+6. SHIFT + click item trong Vault: ca stack phai chuyen nhanh ve inventory neu con cho.
+7. Controller: Y tren item dang chon = quick transfer sang phia con lai.
+8. Nut Fill Stacks (icon rương vanilla): chi bo sung vao cac stack da co trong Vault, khong tao stack moi.
+9. Nut Organize: gom stack + sap xep Vault, khong mat item.
+10. Controller: cot phai cua inventory -> D-pad Right vao cac nut Fill Stacks / Organize / OK; A kich hoat.
+11. B / ESC / OK dong menu duoc.
+12. Neu dang cam item khi dong, item phai duoc tra an toan ve kho/inventory, khong mat do, khong ket menu.
+13. Save/load roi mo lai Vault, item van con.
+
+B. MEMBER HINTS
+1. Tuong tac NPC da trong Party.
+2. Ngay frame menu Team Up dau tien phai thay DONG THOI:
+   - trai: L (Controller) / Q  Ho so
+   - phai: Roi doi  R (Controller) / E
+3. Khong can bam R/E truoc de 'danh thuc' hint.
+4. Menu Role/Engagement khong hien hai hint root nay.
+
+C. LEAVE TEAM / VANILLA SCHEDULE - BLOCKER
+1. Cho NPC dang Following roi chon Roi doi.
+2. Xac nhan Roi doi.
+3. NPC khong duoc tiep tuc follow Farmer.
+4. Neu diem lich trinh hien tai cung map: NPC phai bat dau di ve diem lich trinh.
+5. Neu diem lich trinh o map khac: NPC duoc dua ve diem lich trinh hien tai thay vi dung im nhu tuong.
+6. Doi map/chay xa: NPC khong bi Team Up keo tro lai.
+
+D. CHACHA / SPECIAL COMPANIONS - BLOCKER
+1. ChaCha KHONG hien Thu nap / Join Party.
+2. ChaCha KHONG vao Main Party khi bam E / Right Shoulder.
+3. Neu save cu da tung co ChaCha trong Main Party, load save bang alpha.5.3.7 phai tu dong loai ChaCha khoi Main Party.
+4. ChaCha khong chiem slot Main Party.
+5. NPC co modData Ronvotri.TeamUp/CompanionKind = FarmerCompanion / FarmerSummon / SpecialCompanion cung khong duoc recruit vao Main Party.
+
+E. REGRESSION
+1. NPC thuong van recruit co xac nhan.
+2. Ho so Q/L van mo dung NPC.
+3. Codex filter controller van hoat dong.
+4. Follow/wait cua NPC dang trong Party van hoat dong.
+5. Gifting khi dang cam item van vanilla.
+
+COMBAT AI VAN CHUA DUOC BAT O CHECKPOINT NAY.
