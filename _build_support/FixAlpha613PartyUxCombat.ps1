@@ -137,8 +137,26 @@ $alpha6 = Replace-Required $alpha6 `
 Write-Utf8 $alpha6Path $alpha6
 
 # -----------------------------------------------------------------------------
-# 4) Repair all Vault + Equipment Vietnamese strings using ASCII-only JSON escapes,
-#    so Windows PowerShell 5.1 cannot mojibake them while materializing the build.
+# 4) Party Vault layout. The category label used to sit at Y+348 while the lower
+#    inventory panel began around Y+360, so the panel frame painted over the text.
+#    Give the label a clean lane and move the backpack panel down slightly.
+# -----------------------------------------------------------------------------
+$vaultPath = Join-Path $repoRoot 'src\TeamUp\Storage\PartyVaultService.cs'
+$vault = Read-Utf8 $vaultPath
+$vault = Replace-Required $vault `
+    '            int playerY = yPositionOnScreen + 382;' `
+    '            int playerY = yPositionOnScreen + 404;' `
+    'Party Vault backpack vertical spacing'
+$vault = Replace-Required $vault `
+    '            b.DrawString(Game1.smallFont, _categoriesLabel, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 348), new Color(112, 73, 44));' `
+    '            b.DrawString(Game1.smallFont, _categoriesLabel, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 330), new Color(112, 73, 44));' `
+    'Party Vault category label lane'
+Write-Utf8 $vaultPath $vault
+
+# -----------------------------------------------------------------------------
+# 5) Keep Vault + Equipment Vietnamese strings UTF-8 safe using ASCII-only JSON
+#    escapes. This is defensive build hygiene; the screenshot-reported Vault bug
+#    itself was layout overlap, not broken Vietnamese text.
 # -----------------------------------------------------------------------------
 $viPath = Join-Path $repoRoot 'src\TeamUp\i18n\vi.json'
 $vi = Read-Utf8 $viPath
@@ -177,4 +195,4 @@ $en = Ensure-JsonString $en 'equipment.equipped-name' 'Equipped {{item}}.'
 $en = Ensure-JsonString $en 'equipment.unequipped-name' 'Returned {{item}} to your backpack.'
 Write-Utf8 $defaultPath $en
 
-Write-Host 'Alpha 6.1.3 applied: ChaCha hard exclusion + dedicated equipment panel + Vault UTF-8 repair + Tank approach-before-taunt behavior.'
+Write-Host 'Alpha 6.1.3 applied: ChaCha hard exclusion + Equipment panel + Party Vault spacing + Tank approach-before-taunt behavior.'
