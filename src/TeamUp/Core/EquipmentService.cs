@@ -74,6 +74,27 @@ public sealed class EquipmentService
         return true;
     }
 
+    public bool TryReturnAll(PartyMemberData member, out string message)
+    {
+        message = string.Empty;
+        foreach (EquipmentSlot slot in new[] { EquipmentSlot.Weapon, EquipmentSlot.Armor, EquipmentSlot.Trinket })
+        {
+            EquippedItemData? equipped = GetEquipped(member, slot);
+            if (equipped is null)
+                continue;
+
+            if (!TryReturnToFarmer(equipped))
+            {
+                message = "Inventory is full. Unequip or make room before this NPC leaves Team Up.";
+                return false;
+            }
+
+            SetEquipped(member, slot, null);
+        }
+
+        return true;
+    }
+
     public EquippedItemData? GetEquipped(PartyMemberData member, EquipmentSlot slot)
     {
         return slot switch
@@ -150,7 +171,6 @@ public sealed class EquipmentService
                 break;
         }
 
-        // First signature-gear synergies. They are bounded bonuses, not mandatory BIS.
         if (characterName.Equals("Abigail", StringComparison.OrdinalIgnoreCase) && slot == EquipmentSlot.Weapon)
             data.ControlPowerBonus += 1;
         else if (characterName.Equals("Alex", StringComparison.OrdinalIgnoreCase) && slot == EquipmentSlot.Armor)
