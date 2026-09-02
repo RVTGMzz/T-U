@@ -21,10 +21,13 @@ public static class CompanionClassificationService
     public const string LinkedCompanionKind = "LinkedCompanion";
 
     // Product rule: ChaCha belongs to the Farmer/Special Companion subsystem and
-    // never consumes a Main Party slot.
+    // never consumes a Main Party slot. Keep both the friendly/display identity
+    // and Cardcha's native runtime NPC identity so UI, save migration, and direct
+    // party calls agree even when Cardcha exposes the native actor by internal ID.
     private static readonly HashSet<string> BuiltInSpecialNames = new(StringComparer.OrdinalIgnoreCase)
     {
-        "ChaCha"
+        "ChaCha",
+        "Ronvotri.Cardcha_ChaCha"
     };
 
     // v0.2 Main Party baseline is adult human NPCs. These vanilla characters are
@@ -49,8 +52,11 @@ public static class CompanionClassificationService
         if (TryGetDeclaredKind(npc, out TeamUpCharacterKind declaredKind))
             return declaredKind;
 
-        if (IsSpecialName(npc.Name, specialNpcNames))
+        if (IsSpecialName(npc.Name, specialNpcNames)
+            || IsSpecialName(npc.displayName, specialNpcNames))
+        {
             return TeamUpCharacterKind.FarmerOrSpecialCompanion;
+        }
 
         if (BuiltInNonMainPartyNames.Contains(npc.Name))
             return TeamUpCharacterKind.Ineligible;
