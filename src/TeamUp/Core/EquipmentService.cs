@@ -1,5 +1,6 @@
 using StardewValley;
 using StardewValley.Objects;
+using StardewValley.Objects.Trinkets;
 using StardewValley.Tools;
 
 namespace Ronvotri.TeamUp.Core;
