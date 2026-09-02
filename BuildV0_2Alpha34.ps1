@@ -15,12 +15,49 @@ $patchV0234 = Join-Path $root 'ApplyV0_2Alpha34CorePatches.ps1'
 $patchI18n = Join-Path $root 'ApplyV0_2Alpha34I18nPatches.ps1'
 $modEntry = Join-Path $projectDir 'ModEntry.cs'
 
+function Normalize-TextFileToWindowsNewlines([string]$path) {
+    if (-not (Test-Path $path)) {
+        return
+    }
+
+    $text = [System.IO.File]::ReadAllText($path)
+    $text = $text.Replace("`r`n", "`n").Replace("`r", "`n").Replace("`n", "`r`n")
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
+}
+
+function Assert-PowerShellParses([string]$path) {
+    if (-not (Test-Path $path)) {
+        throw "Required build helper is missing: $path"
+    }
+
+    try {
+        [void][scriptblock]::Create([System.IO.File]::ReadAllText($path))
+    }
+    catch {
+        throw "PowerShell preflight failed for $(Split-Path $path -Leaf): $($_.Exception.Message)"
+    }
+}
+
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw 'dotnet was not found. Install the .NET SDK first.'
 }
 
 "Team Up v0.2.0-alpha.3.4 build started: $(Get-Date -Format o)" | Set-Content $log
 "dotnet: $(& dotnet --version)" | Add-Content $log
+
+# GitHub source ZIPs use LF while Windows PowerShell here-strings use CRLF.
+# Normalize every C# file touched by legacy carried-forward patchers before patching,
+# otherwise exact block replacements can fail even when the source text is identical.
+@(
+    $modEntry,
+    (Join-Path $projectDir 'Following\FollowService.cs'),
+    (Join-Path $projectDir 'Combat\CombatService.cs'),
+    (Join-Path $projectDir 'Core\PartyManager.cs')
+) | ForEach-Object { Normalize-TextFileToWindowsNewlines $_ }
+
+@($patch536, $patch537, $patchV021, $patchV022, $patchV0234, $patchI18n) |
+    ForEach-Object { Assert-PowerShellParses $_ }
 
 $modSource = Get-Content $modEntry -Raw
 if ($modSource.Contains('v0.1.0-alpha.5.3.3 dialogue hint anchor hotfix loaded.')) {
