@@ -1,0 +1,64 @@
+TEAM UP! v0.1.0-alpha.5.3.5 - SMOKE TEST VI
+============================================================
+Muc tieu: stability hotfix cho Profile controller, Codex filter, Party Member hints va Party Vault.
+Combat AI VAN CHUA BAT.
+
+1) BUILD / LOAD
+- Chay BUILD_ALPHA5_3_5.bat.
+- Build thanh cong, khong co error Team Up trong SMAPI.
+
+2) PROFILE MO TU NPC
+- Noi chuyen voi NPC > L/Q Ho so.
+- Controller: D-pad trai/phai phai highlight duoc nut "Tat ca nhan vat" va "Quay lai".
+- A tren "Tat ca nhan vat" phai vao Codex tong.
+- A tren "Quay lai" phai quay ve dialogue cu.
+- B cung quay lai.
+
+3) MOUSE CURSOR
+- Mo Profile/Codex bang controller: cursor chuot phai an.
+- D-pad/A/B khong lam cursor chuot tu hien lai.
+- Chi khi chuot vat ly that su di chuyen thi cursor moi hien lai.
+
+4) CODEX FILTER CONTROLLER
+- D-pad trai/phai chon Vai tro / Trang thai / Nguon.
+- A tren filter PHAI mo dropdown, KHONG duoc mo NPC nam duoi con tro cu.
+- D-pad len/xuong chon option trong dropdown.
+- A xac nhan option.
+- B dong dropdown.
+- D-pad xuong moi vao danh sach NPC.
+
+5) PARTY MEMBER ROOT MENU / HINT
+- NPC da o trong Team Up: bam action mo menu member.
+- Hint trai phai hien: L/Q Ho so.
+- Hint phai phai hien: Roi doi R/E.
+- Bam R/E phai mo popup xac nhan roi doi.
+- Huy thi NPC van o trong party.
+- Xac nhan moi remove.
+- Dau ? vanilla o goc tren menu member phai khong con.
+
+6) PARTY VAULT - QUAN TRONG
+- Mo Kho chung Party.
+- Test dua 10 item thuong tu inventory vao vault va lay lai.
+- Test stack tach/gop bang left click va right click.
+- Test item dac biet neu co: recipe, Stardrop, artifact/Dwarf Scroll.
+- KHONG item nao duoc tu dong consume/hoc/su dung chi vi lay khoi vault.
+- KHONG duoc mat stack, nhan doi stack, hay nuot item.
+- Khong the dong menu khi dang cam item tren cursor; dat item xuong roi moi dong.
+- Save/load game: item trong vault van con.
+
+7) FOLLOW REGRESSION
+- NPC di theo qua chau cay, hang rao, loi hep.
+- Kiem tra co giam giat/delay so voi 5.3.3 khong.
+- Neu van xuyen vat can, chup dung tile/vat can va gui SMAPI log.
+
+8) REGRESSION
+- Recruit NPC van co xac nhan.
+- ChaCha/Special Companion van khong recruit vao Main Party.
+- Role / Engagement / Follow / Stand van hoat dong.
+
+============================================================
+NEU BUILD FAIL:
+Gui BUILD_LOG.txt, uu tien dong error CS... dau tien.
+
+NEU VAULT MAT DO:
+Dung test ngay va gui anh truoc/sau + ten item + thao tac left/right click/controller.
