@@ -2,7 +2,9 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 function Replace-Method([string]$text, [string]$methodName, [string]$nextMethodName, [string]$replacement) {
-    $pattern = "(?ms)^    private (?:static )?[^\r\n]+\s+$([regex]::Escape($methodName))\([^\r\n]*\)\s*\{.*?(?=^    private (?:static )?[^\r\n]+\s+$([regex]::Escape($nextMethodName))\()"
+    $method = [regex]::Escape($methodName)
+    $next = [regex]::Escape($nextMethodName)
+    $pattern = "(?ms)^    (?:private|public|internal|protected) (?:static )?[^\r\n]+\s+$method\([^\r\n]*\)\s*\{.*?(?=^    (?:private|public|internal|protected) (?:static )?[^\r\n]+\s+$next\()"
     if (-not [regex]::IsMatch($text, $pattern)) {
         throw "Finalizer could not locate method $methodName before $nextMethodName."
     }
@@ -19,6 +21,7 @@ function Normalize-Crlf([string]$text) {
     return $text.Replace("`r`n", "`n").Replace("`r", "`n").Replace("`n", "`r`n")
 }
 
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $modPath = Join-Path $repoRoot 'src\TeamUp\ModEntry.cs'
 $mod = Normalize-Crlf ([System.IO.File]::ReadAllText($modPath))
 
@@ -195,9 +198,7 @@ $showLeave = @'
             }
 
             CompanionUnitData? linkedUnit = Party.GetLinkedCompanion(npc.Name, recruiterId);
-            NPC? linkedNpc = linkedUnit is null
-                ? null
-                : Game1.getCharacterFromName(linkedUnit.CharacterName);
+            NPC? linkedNpc = linkedUnit is null ? null : Game1.getCharacterFromName(linkedUnit.CharacterName);
 
             bool removed = Party.Remove(npc.Name, recruiterId);
             Follow.ReleaseToVanillaAndResumeSchedule(npc);
@@ -236,34 +237,17 @@ $showMember = @'
             new("Close", Helper.Translation.Get("common.close"))
         };
 
-        string title = Helper.Translation.Get("member.title", new
-        {
-            name = npc.displayName,
-            role = GetRoleLabel(member.Role)
-        });
-
+        string title = Helper.Translation.Get("member.title", new { name = npc.displayName, role = GetRoleLabel(member.Role) });
         Game1.currentLocation.createQuestionDialogue(title, responses, delegate(Farmer _, string answer)
         {
             switch (answer)
             {
-                case "Talk":
-                    QueueUi(() => ShowVanillaDialogue(npc));
-                    break;
-                case "Movement":
-                    ToggleMovement(npc, member);
-                    break;
-                case "Role":
-                    QueueUi(() => ShowRoleMenu(npc, member));
-                    break;
-                case "Engagement":
-                    QueueUi(() => ShowEngagementMenu(npc, member));
-                    break;
-                case "Equipment":
-                    QueueUi(() => ShowEquipmentMenu(npc, member));
-                    break;
-                case "Vault":
-                    QueueUi(OpenPartyVault);
-                    break;
+                case "Talk": QueueUi(() => ShowVanillaDialogue(npc)); break;
+                case "Movement": ToggleMovement(npc, member); break;
+                case "Role": QueueUi(() => ShowRoleMenu(npc, member)); break;
+                case "Engagement": QueueUi(() => ShowEngagementMenu(npc, member)); break;
+                case "Equipment": QueueUi(() => ShowEquipmentMenu(npc, member)); break;
+                case "Vault": QueueUi(OpenPartyVault); break;
             }
         });
     }
@@ -275,26 +259,11 @@ $showRole = @'
     {
         RecruitHintNpcName = null;
         NpcCombatProfile? profile = NpcProfileCatalog.Get(npc.Name);
-        PartyRole[] roles =
-        {
-            PartyRole.Tank,
-            PartyRole.Damage,
-            PartyRole.Support,
-            PartyRole.Healer,
-            PartyRole.Control
-        };
-
-        List<Response> responses = roles
-            .Select(role => new Response(role.ToString(), GetRoleOptionLabel(role, profile)))
-            .ToList();
+        PartyRole[] roles = { PartyRole.Tank, PartyRole.Damage, PartyRole.Support, PartyRole.Healer, PartyRole.Control };
+        List<Response> responses = roles.Select(role => new Response(role.ToString(), GetRoleOptionLabel(role, profile))).ToList();
         responses.Add(new Response("Cancel", Helper.Translation.Get("common.cancel")));
 
-        string question = Helper.Translation.Get("role.question", new
-        {
-            name = npc.displayName,
-            role = GetRoleLabel(member.Role)
-        });
-
+        string question = Helper.Translation.Get("role.question", new { name = npc.displayName, role = GetRoleLabel(member.Role) });
         Game1.currentLocation.createQuestionDialogue(question, responses.ToArray(), delegate(Farmer _, string answer)
         {
             if (!Enum.TryParse(answer, out PartyRole role) || role == PartyRole.Unassigned)
@@ -304,11 +273,7 @@ $showRole = @'
             {
                 Progression.NormalizeMember(member);
                 SavePartyNow();
-                ShowHud(Helper.Translation.Get("role.changed", new
-                {
-                    name = npc.displayName,
-                    role = GetRoleLabel(role)
-                }));
+                ShowHud(Helper.Translation.Get("role.changed", new { name = npc.displayName, role = GetRoleLabel(role) }));
             }
         });
     }
@@ -329,12 +294,7 @@ $showEngagement = @'
             new("Cancel", Helper.Translation.Get("common.cancel"))
         };
 
-        string question = Helper.Translation.Get("engagement.question", new
-        {
-            name = npc.displayName,
-            style = GetEngagementLabel(member.Engagement)
-        });
-
+        string question = Helper.Translation.Get("engagement.question", new { name = npc.displayName, style = GetEngagementLabel(member.Engagement) });
         Game1.currentLocation.createQuestionDialogue(question, responses, delegate(Farmer _, string answer)
         {
             if (!Enum.TryParse(answer, out EngagementStyle style))
@@ -343,11 +303,7 @@ $showEngagement = @'
             if (Party.SetEngagementStyle(npc.Name, Game1.player.UniqueMultiplayerID, style))
             {
                 SavePartyNow();
-                ShowHud(Helper.Translation.Get("engagement.changed", new
-                {
-                    name = npc.displayName,
-                    style = GetEngagementLabel(style)
-                }));
+                ShowHud(Helper.Translation.Get("engagement.changed", new { name = npc.displayName, style = GetEngagementLabel(style) }));
             }
         });
     }
@@ -470,18 +426,8 @@ $openProfile = @'
         }
 
         Game1.activeClickableMenu = new CharacterProfileMenu(
-            characterName,
-            profile,
-            displayName,
-            status,
-            source,
-            engagement,
-            passive,
-            signature,
-            GetRoleLabel,
-            Helper.Translation,
-            onBack ?? OpenCodexBrowser,
-            onOpenAll ?? OpenCodexBrowser);
+            characterName, profile, displayName, status, source, engagement, passive, signature,
+            GetRoleLabel, Helper.Translation, onBack ?? OpenCodexBrowser, onOpenAll ?? OpenCodexBrowser);
     }
 '@
 $mod = Replace-Method $mod 'OpenCharacterProfile' 'OpenCodexBrowser' $openProfile
@@ -511,7 +457,7 @@ $renderingMethod = @'
 $mod = [regex]::Replace(
     $mod,
     'int dialogueLeft = dialogueBox\.x;\s*int dialogueTop = dialogueBox\.y;',
-    'int dialogueLeft = Math.Max(8, (Game1.uiViewport.Width - dialogueBox.width) / 2);`r`n        int dialogueTop = Math.Max(8, Game1.uiViewport.Height - dialogueBox.height - 64);',
+    "int dialogueLeft = Math.Max(8, (Game1.uiViewport.Width - dialogueBox.width) / 2);`r`n        int dialogueTop = Math.Max(8, Game1.uiViewport.Height - dialogueBox.height - 64);",
     1)
 
 $resolveSpeaker = @'
@@ -528,8 +474,7 @@ $resolveSpeaker = @'
     }
 '@
 $mod = Replace-Method $mod 'ResolveDialogueSpeaker' 'RestoreMenu' $resolveSpeaker
-
-[System.IO.File]::WriteAllText($modPath, $mod, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText($modPath, $mod, $utf8NoBom)
 
 $followPath = Join-Path $repoRoot 'src\TeamUp\Following\FollowService.cs'
 $follow = Normalize-Crlf ([System.IO.File]::ReadAllText($followPath))
@@ -601,11 +546,7 @@ $release = @'
         if (npc.Schedule is null || npc.Schedule.Count == 0)
             return;
 
-        var currentEntry = npc.Schedule
-            .Where(pair => pair.Key <= Game1.timeOfDay)
-            .OrderByDescending(pair => pair.Key)
-            .FirstOrDefault();
-
+        var currentEntry = npc.Schedule.Where(pair => pair.Key <= Game1.timeOfDay).OrderByDescending(pair => pair.Key).FirstOrDefault();
         SchedulePathDescription? destination = currentEntry.Value;
         if (destination is null || string.IsNullOrWhiteSpace(destination.targetLocationName))
             return;
@@ -656,8 +597,7 @@ if (-not $follow.Contains('_releasedCharacters.Contains(unit.CharacterName)')) {
         "foreach (CompanionUnitData unit in activeUnits)`r`n        {`r`n            if (_releasedCharacters.Contains(unit.CharacterName))`r`n                continue;",
         1)
 }
-
-[System.IO.File]::WriteAllText($followPath, $follow, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText($followPath, $follow, $utf8NoBom)
 
 $partyPath = Join-Path $repoRoot 'src\TeamUp\Core\PartyManager.cs'
 $party = Normalize-Crlf ([System.IO.File]::ReadAllText($partyPath))
@@ -691,14 +631,20 @@ $newSave = @'
 '@
     $party = Ensure-Replace $party $oldSave $newSave 'party progression persistence'
 }
-[System.IO.File]::WriteAllText($partyPath, $party, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText($partyPath, $party, $utf8NoBom)
 
 function Patch-I18n([string]$path, [bool]$vi) {
     $text = Normalize-Crlf ([System.IO.File]::ReadAllText($path))
     if ($text.Contains('"member.equipment"')) { return }
 
     if ($vi) {
-        $text = $text.Replace('  "member.vault": "Kho chung Party",', "  \"member.equipment\": \"Trang bị\",`r`n  \"member.vault\": \"Kho chung Party\",")
+$oldMember = @'
+  "member.vault": "Kho chung Party",
+'@
+$newMember = @'
+  "member.equipment": "Trang bị",
+  "member.vault": "Kho chung Party",
+'@
         $insert = @'
   "equipment.question": "TRANG BỊ · {{name}}\n{{progression}}\nChọn ô trang bị.",
   "equipment.slot-line": "{{slot}}: {{item}}",
@@ -716,7 +662,13 @@ function Patch-I18n([string]$path, [bool]$vi) {
 '@
     }
     else {
-        $text = $text.Replace('  "member.vault": "Party Vault",', "  \"member.equipment\": \"Equipment\",`r`n  \"member.vault\": \"Party Vault\",")
+$oldMember = @'
+  "member.vault": "Party Vault",
+'@
+$newMember = @'
+  "member.equipment": "Equipment",
+  "member.vault": "Party Vault",
+'@
         $insert = @'
   "equipment.question": "EQUIPMENT · {{name}}\n{{progression}}\nChoose an equipment slot.",
   "equipment.slot-line": "{{slot}}: {{item}}",
@@ -734,13 +686,14 @@ function Patch-I18n([string]$path, [bool]$vi) {
 '@
     }
 
+    if (-not $text.Contains($oldMember.TrimEnd())) { throw "Finalizer could not locate member.vault in $path" }
+    $text = $text.Replace($oldMember.TrimEnd(), $newMember.TrimEnd())
     $needle = '  "common.back":'
     if (-not $text.Contains($needle)) { throw "Finalizer could not locate common.back in $path" }
     $text = $text.Replace($needle, $insert + $needle)
-    [System.IO.File]::WriteAllText($path, $text, (New-Object System.Text.UTF8Encoding($false)))
+    [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
 }
 
 Patch-I18n (Join-Path $repoRoot 'src\TeamUp\i18n\default.json') $false
 Patch-I18n (Join-Path $repoRoot 'src\TeamUp\i18n\vi.json') $true
-
 Write-Host 'Team Up v0.2 alpha 3+4 consolidated source finalization complete.'
