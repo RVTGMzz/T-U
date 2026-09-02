@@ -3,7 +3,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.1.0-alpha.5.3.5</Version>
+    <Version>0.1.0-alpha.5.3.6</Version>
     <AssemblyName>TeamUp</AssemblyName>
     <RootNamespace>Ronvotri.TeamUp</RootNamespace>
     <ModFolderName>Team Up</ModFolderName>
