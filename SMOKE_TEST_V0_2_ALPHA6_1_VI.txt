@@ -11,7 +11,9 @@ TEAM UP! v0.2.0-alpha.6.1.1 — CARDCHA TEST ARENA BRIDGE + DEBUG PRESETS
 1) BUILD
 - Chạy BUILD_V0_2_ALPHA6.bat.
 - Nếu đỏ: gửi nguyên BUILD_LOG.txt.
-- Build log phải có: Debug harness source verification: OK
+- Build log phải có:
+  Debug harness source verification: OK
+  Follow anti-thrash source verification: OK
 - ZIP mong đợi:
   release/TeamUp_v0.2.0-alpha.6.1.1_CARDCHA_TEST_BRIDGE_DEBUG_PRESETS_TEST.zip
 
@@ -142,8 +144,18 @@ Status phải in Level, HP, active role Mastery, state và Cardcha loaded status
 - Alpha 6 signature Tier 2/3 và Farmer Rescue còn hoạt động.
 - ChaCha không thể bị recruit vào Main Party.
 
+19) FLYING / MOUNT FOLLOW PERFORMANCE
+- Cho 2-4 NPC Following.
+- Dùng mount nhanh hoặc flying mount đi qua vùng NPC không thể đi bộ trực tiếp tới, đặc biệt mặt hồ/khoảng nước gần Wizard Tower nếu mod map cho phép.
+- Không được tụt FPS/lag nặng như trước.
+- NPC không được spam tạo path tới tile nước/không walkable.
+- Trong lúc Farmer ở vùng không có target đi bộ hợp lệ, follower có thể đứng chờ ở bờ. Đây là hành vi dự kiến.
+- Khi Farmer trở lại vùng có tile đi bộ hợp lệ, party phải tự tiếp tục follow/catch-up.
+- Test thêm vanilla horse nếu có để chắc repath throttle không làm follow giật quá mức.
+
 GHI CHÚ
 - Cardcha chỉ cung cấp môi trường arena nếu đang được load.
 - Team Up không gọi Cardcha combat/card code và không phụ thuộc bắt buộc vào Cardcha.
 - Bridge tìm arena qua map metadata để tránh khóa vào internal location name.
+- Follow anti-thrash là generic, không hard-code Aerodactyl/Pelipper Town.
 - Không đổi save schema ở Alpha 6.1.1.
