@@ -9,8 +9,8 @@ namespace Ronvotri.TeamUp.Storage;
 
 /// <summary>
 /// Team-wide storage backed by Stardew Valley 1.6's FarmerTeam global inventory.
-/// Alpha.5.3.6 intentionally avoids ItemGrabMenu/StorageContainer transfer behavior:
-/// this menu owns exactly two InventoryMenu instances and only moves items between them.
+/// The UI owns two InventoryMenu instances directly so Team Up gets chest-like
+/// transfer ergonomics without ItemGrabMenu's reward/consume side effects.
 /// </summary>
 public static class PartyVaultService
 {
@@ -45,6 +45,15 @@ public static class PartyVaultService
         private const int Rows = 3;
         private const int SlotCount = Columns * Rows;
 
+        private enum ControllerArea
+        {
+            Vault,
+            Player,
+            FillStacks,
+            Organize,
+            Ok
+        }
+
         private readonly IList<Item> _vaultItems;
         private readonly string _title;
         private readonly string _subtitle;
@@ -52,11 +61,14 @@ public static class PartyVaultService
         private readonly string _categoriesLabel;
         private readonly InventoryMenu _vaultMenu;
         private readonly InventoryMenu _playerMenu;
+        private readonly ClickableTextureComponent _fillStacksButton;
+        private readonly ClickableTextureComponent _organizeButton;
         private readonly ClickableTextureComponent _okButton;
 
         private Item? _heldItem;
         private InventoryMenu? _heldOriginMenu;
-        private bool _controllerInVault = true;
+        private ControllerArea _controllerArea = ControllerArea.Vault;
+        private ControllerArea _lastInventoryArea = ControllerArea.Vault;
         private int _controllerIndex;
         private bool _showMouseCursor;
         private Point _lastPhysicalMouse;
@@ -68,10 +80,10 @@ public static class PartyVaultService
             string slotsLabel,
             string categoriesLabel)
             : base(
-                Math.Max(8, (Game1.uiViewport.Width - Math.Min(900, Game1.uiViewport.Width - 16)) / 2),
-                Math.Max(8, (Game1.uiViewport.Height - Math.Min(650, Game1.uiViewport.Height - 16)) / 2),
-                Math.Min(900, Game1.uiViewport.Width - 16),
-                Math.Min(650, Game1.uiViewport.Height - 16),
+                Math.Max(8, (Game1.uiViewport.Width - Math.Min(980, Game1.uiViewport.Width - 16)) / 2),
+                Math.Max(8, (Game1.uiViewport.Height - Math.Min(680, Game1.uiViewport.Height - 16)) / 2),
+                Math.Min(980, Game1.uiViewport.Width - 16),
+                Math.Min(680, Game1.uiViewport.Height - 16),
                 false)
         {
             _vaultItems = vaultItems;
@@ -82,9 +94,9 @@ public static class PartyVaultService
             _lastPhysicalMouse = new Point(Mouse.GetState().X, Mouse.GetState().Y);
 
             int inventoryWidth = Columns * 64;
-            int inventoryX = xPositionOnScreen + (width - inventoryWidth) / 2;
-            int vaultY = yPositionOnScreen + 92;
-            int playerY = yPositionOnScreen + 356;
+            int inventoryX = xPositionOnScreen + (width - inventoryWidth) / 2 - 18;
+            int vaultY = yPositionOnScreen + 100;
+            int playerY = yPositionOnScreen + 382;
 
             _vaultMenu = new InventoryMenu(
                 inventoryX,
@@ -104,8 +116,27 @@ public static class PartyVaultService
                 SlotCount,
                 Rows);
 
+            int sideX = xPositionOnScreen + width - 82;
+            _fillStacksButton = new ClickableTextureComponent(
+                "",
+                new Rectangle(sideX, yPositionOnScreen + 138, 64, 64),
+                "",
+                Game1.content.LoadString("Strings\\UI:ItemGrab_FillStacks"),
+                Game1.mouseCursors,
+                new Rectangle(103, 469, 16, 16),
+                4f);
+
+            _organizeButton = new ClickableTextureComponent(
+                "",
+                new Rectangle(sideX, yPositionOnScreen + 210, 64, 64),
+                "",
+                Game1.content.LoadString("Strings\\UI:ItemGrab_Organize"),
+                Game1.mouseCursors,
+                new Rectangle(162, 440, 16, 16),
+                4f);
+
             _okButton = new ClickableTextureComponent(
-                new Rectangle(xPositionOnScreen + width - 76, yPositionOnScreen + height - 76, 64, 64),
+                new Rectangle(sideX, yPositionOnScreen + height - 78, 64, 64),
                 Game1.mouseCursors,
                 Game1.getSourceRectForStandardTileSheet(Game1.mouseCursors, 46),
                 1f);
@@ -120,6 +151,18 @@ public static class PartyVaultService
             _showMouseCursor = true;
             _lastPhysicalMouse = new Point(Mouse.GetState().X, Mouse.GetState().Y);
 
+            if (_fillStacksButton.containsPoint(x, y))
+            {
+                FillExistingVaultStacks();
+                return;
+            }
+
+            if (_organizeButton.containsPoint(x, y))
+            {
+                OrganizeVault();
+                return;
+            }
+
             if (_okButton.containsPoint(x, y))
             {
                 TryClose();
@@ -128,12 +171,20 @@ public static class PartyVaultService
 
             if (IsWithin(_vaultMenu, x, y))
             {
-                HandleLeftClick(_vaultMenu, x, y, playSound);
+                if (IsQuickTransferModifierDown() && _heldItem is null)
+                    QuickTransferAt(_vaultMenu, _playerMenu, x, y);
+                else
+                    HandleLeftClick(_vaultMenu, x, y, playSound);
                 return;
             }
 
             if (IsWithin(_playerMenu, x, y))
-                HandleLeftClick(_playerMenu, x, y, playSound);
+            {
+                if (IsQuickTransferModifierDown() && _heldItem is null)
+                    QuickTransferAt(_playerMenu, _vaultMenu, x, y);
+                else
+                    HandleLeftClick(_playerMenu, x, y, playSound);
+            }
         }
 
         public override void receiveRightClick(int x, int y, bool playSound = true)
@@ -203,7 +254,13 @@ public static class PartyVaultService
             }
 
             if (b == Buttons.X)
+            {
                 ActivateSelected(rightClick: true);
+                return;
+            }
+
+            if (b == Buttons.Y)
+                QuickTransferSelected();
         }
 
         public override void performHoverAction(int x, int y)
@@ -217,6 +274,9 @@ public static class PartyVaultService
 
             _vaultMenu.hover(x, y, _heldItem);
             _playerMenu.hover(x, y, _heldItem);
+            _fillStacksButton.tryHover(x, y, 0.2f);
+            _organizeButton.tryHover(x, y, 0.2f);
+            _okButton.tryHover(x, y, 0.2f);
         }
 
         public override void draw(SpriteBatch b)
@@ -236,21 +296,30 @@ public static class PartyVaultService
 
             int used = _vaultItems.Count(item => item is not null);
             string header = $"{_title}    {used}/{Capacity} {_slotsLabel}";
-            b.DrawString(Game1.dialogueFont, header, new Vector2(xPositionOnScreen + 34, yPositionOnScreen + 24), Game1.textColor);
+            b.DrawString(Game1.dialogueFont, header, new Vector2(xPositionOnScreen + 34, yPositionOnScreen + 22), Game1.textColor);
             b.DrawString(Game1.smallFont, _subtitle, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 58), new Color(112, 73, 44));
-            b.DrawString(Game1.smallFont, _categoriesLabel, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 322), new Color(112, 73, 44));
+            b.DrawString(Game1.smallFont, _categoriesLabel, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 348), new Color(112, 73, 44));
 
             DrawInventoryPanel(b, _vaultMenu, 22);
             DrawInventoryPanel(b, _playerMenu, 22);
             _vaultMenu.draw(b);
             _playerMenu.draw(b);
+
+            _fillStacksButton.draw(b);
+            _organizeButton.draw(b);
+            _okButton.draw(b);
             DrawControllerSelection(b);
 
-            _okButton.draw(b);
+            string hoverText = string.Empty;
+            if (_fillStacksButton.containsPoint(Game1.getOldMouseX(), Game1.getOldMouseY()))
+                hoverText = _fillStacksButton.hoverText;
+            else if (_organizeButton.containsPoint(Game1.getOldMouseX(), Game1.getOldMouseY()))
+                hoverText = _organizeButton.hoverText;
+            else if (!string.IsNullOrWhiteSpace(_vaultMenu.hoverText))
+                hoverText = _vaultMenu.hoverText;
+            else if (!string.IsNullOrWhiteSpace(_playerMenu.hoverText))
+                hoverText = _playerMenu.hoverText;
 
-            string hoverText = !string.IsNullOrWhiteSpace(_vaultMenu.hoverText)
-                ? _vaultMenu.hoverText
-                : _playerMenu.hoverText;
             if (!string.IsNullOrWhiteSpace(hoverText))
                 IClickableMenu.drawHoverText(b, hoverText, Game1.smallFont);
 
@@ -263,8 +332,7 @@ public static class PartyVaultService
                 }
                 else
                 {
-                    InventoryMenu menu = _controllerInVault ? _vaultMenu : _playerMenu;
-                    Rectangle selected = menu.inventory[Math.Clamp(_controllerIndex, 0, menu.inventory.Count - 1)].bounds;
+                    Rectangle selected = GetControllerBounds();
                     heldPosition = new Vector2(selected.X + 10, selected.Y + 10);
                 }
 
@@ -292,9 +360,7 @@ public static class PartyVaultService
 
         private void DrawControllerSelection(SpriteBatch b)
         {
-            InventoryMenu menu = _controllerInVault ? _vaultMenu : _playerMenu;
-            int index = Math.Clamp(_controllerIndex, 0, menu.inventory.Count - 1);
-            Rectangle r = menu.inventory[index].bounds;
+            Rectangle r = GetControllerBounds();
             const int thickness = 4;
             Color c = new(255, 220, 120);
             b.Draw(Game1.staminaRect, new Rectangle(r.X, r.Y, r.Width, thickness), c);
@@ -303,17 +369,60 @@ public static class PartyVaultService
             b.Draw(Game1.staminaRect, new Rectangle(r.Right - thickness, r.Y, thickness, r.Height), c);
         }
 
+        private Rectangle GetControllerBounds()
+        {
+            return _controllerArea switch
+            {
+                ControllerArea.FillStacks => _fillStacksButton.bounds,
+                ControllerArea.Organize => _organizeButton.bounds,
+                ControllerArea.Ok => _okButton.bounds,
+                ControllerArea.Player => _playerMenu.inventory[Math.Clamp(_controllerIndex, 0, _playerMenu.inventory.Count - 1)].bounds,
+                _ => _vaultMenu.inventory[Math.Clamp(_controllerIndex, 0, _vaultMenu.inventory.Count - 1)].bounds
+            };
+        }
+
         private void MoveHorizontal(int delta)
         {
+            if (_controllerArea is ControllerArea.FillStacks or ControllerArea.Organize or ControllerArea.Ok)
+            {
+                if (delta < 0)
+                    _controllerArea = _lastInventoryArea;
+                Game1.playSound("shiny4");
+                return;
+            }
+
             int col = _controllerIndex % Columns;
             int row = _controllerIndex / Columns;
-            col = Math.Clamp(col + delta, 0, Columns - 1);
-            _controllerIndex = row * Columns + col;
+            if (delta > 0 && col == Columns - 1)
+            {
+                _lastInventoryArea = _controllerArea;
+                _controllerArea = ControllerArea.FillStacks;
+            }
+            else
+            {
+                col = Math.Clamp(col + delta, 0, Columns - 1);
+                _controllerIndex = row * Columns + col;
+            }
+
             Game1.playSound("shiny4");
         }
 
         private void MoveVertical(int delta)
         {
+            if (_controllerArea is ControllerArea.FillStacks or ControllerArea.Organize or ControllerArea.Ok)
+            {
+                _controllerArea = (_controllerArea, delta) switch
+                {
+                    (ControllerArea.FillStacks, > 0) => ControllerArea.Organize,
+                    (ControllerArea.Organize, < 0) => ControllerArea.FillStacks,
+                    (ControllerArea.Organize, > 0) => ControllerArea.Ok,
+                    (ControllerArea.Ok, < 0) => ControllerArea.Organize,
+                    _ => _controllerArea
+                };
+                Game1.playSound("shiny4");
+                return;
+            }
+
             int col = _controllerIndex % Columns;
             int row = _controllerIndex / Columns;
 
@@ -321,9 +430,10 @@ public static class PartyVaultService
             {
                 if (row > 0)
                     row--;
-                else if (!_controllerInVault)
+                else if (_controllerArea == ControllerArea.Player)
                 {
-                    _controllerInVault = true;
+                    _controllerArea = ControllerArea.Vault;
+                    _lastInventoryArea = ControllerArea.Vault;
                     row = Rows - 1;
                 }
             }
@@ -331,9 +441,10 @@ public static class PartyVaultService
             {
                 if (row < Rows - 1)
                     row++;
-                else if (_controllerInVault)
+                else if (_controllerArea == ControllerArea.Vault)
                 {
-                    _controllerInVault = false;
+                    _controllerArea = ControllerArea.Player;
+                    _lastInventoryArea = ControllerArea.Player;
                     row = 0;
                 }
             }
@@ -344,7 +455,28 @@ public static class PartyVaultService
 
         private void ActivateSelected(bool rightClick)
         {
-            InventoryMenu menu = _controllerInVault ? _vaultMenu : _playerMenu;
+            if (_controllerArea == ControllerArea.FillStacks)
+            {
+                if (!rightClick)
+                    FillExistingVaultStacks();
+                return;
+            }
+
+            if (_controllerArea == ControllerArea.Organize)
+            {
+                if (!rightClick)
+                    OrganizeVault();
+                return;
+            }
+
+            if (_controllerArea == ControllerArea.Ok)
+            {
+                if (!rightClick)
+                    TryClose();
+                return;
+            }
+
+            InventoryMenu menu = _controllerArea == ControllerArea.Vault ? _vaultMenu : _playerMenu;
             int index = Math.Clamp(_controllerIndex, 0, menu.inventory.Count - 1);
             Rectangle slot = menu.inventory[index].bounds;
             int x = slot.Center.X;
@@ -354,6 +486,109 @@ public static class PartyVaultService
                 HandleRightClick(menu, x, y, playSound: true);
             else
                 HandleLeftClick(menu, x, y, playSound: true);
+        }
+
+        private void QuickTransferSelected()
+        {
+            if (_heldItem is not null)
+                return;
+
+            if (_controllerArea == ControllerArea.Vault)
+                QuickTransferIndex(_vaultMenu, _playerMenu, _controllerIndex);
+            else if (_controllerArea == ControllerArea.Player)
+                QuickTransferIndex(_playerMenu, _vaultMenu, _controllerIndex);
+        }
+
+        private void QuickTransferAt(InventoryMenu source, InventoryMenu destination, int x, int y)
+        {
+            int index = source.getInventoryPositionOfClick(x, y);
+            QuickTransferIndex(source, destination, index);
+        }
+
+        private static void QuickTransferIndex(InventoryMenu source, InventoryMenu destination, int index)
+        {
+            if (index < 0 || index >= source.actualInventory.Count || source.actualInventory[index] is null)
+                return;
+
+            Item moving = Utility.removeItemFromInventory(index, source.actualInventory);
+            Item? leftover = destination.tryToAddItem(moving, "Ship");
+            if (leftover is not null)
+                Utility.addItemToInventory(leftover, index, source.actualInventory);
+        }
+
+        private void FillExistingVaultStacks()
+        {
+            if (_heldItem is not null)
+            {
+                Game1.playSound("cancel");
+                return;
+            }
+
+            bool movedAny = false;
+            for (int playerIndex = 0; playerIndex < _playerMenu.actualInventory.Count; playerIndex++)
+            {
+                Item? playerItem = _playerMenu.actualInventory[playerIndex];
+                if (playerItem is null || playerItem.maximumStackSize() <= 1)
+                    continue;
+
+                int original = playerItem.Stack;
+                for (int vaultIndex = 0; vaultIndex < Math.Min(Capacity, _vaultItems.Count); vaultIndex++)
+                {
+                    Item? vaultItem = _vaultItems[vaultIndex];
+                    if (vaultItem is null || !vaultItem.canStackWith(playerItem))
+                        continue;
+
+                    playerItem.Stack = vaultItem.addToStack(playerItem);
+                    if (playerItem.Stack <= 0)
+                    {
+                        _playerMenu.actualInventory[playerIndex] = null!;
+                        break;
+                    }
+                }
+
+                if (playerItem.Stack < original)
+                    movedAny = true;
+            }
+
+            Game1.playSound(movedAny ? "Ship" : "cancel");
+        }
+
+        private void OrganizeVault()
+        {
+            if (_heldItem is not null)
+            {
+                Game1.playSound("cancel");
+                return;
+            }
+
+            List<Item> source = _vaultItems
+                .Where(item => item is not null)
+                .OrderBy(item => item.Category)
+                .ThenBy(item => item.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+                .ToList()!;
+
+            var compacted = new List<Item>();
+            foreach (Item item in source)
+            {
+                Item current = item;
+                foreach (Item existing in compacted)
+                {
+                    if (!existing.canStackWith(current))
+                        continue;
+
+                    current.Stack = existing.addToStack(current);
+                    if (current.Stack <= 0)
+                        break;
+                }
+
+                if (current.Stack > 0)
+                    compacted.Add(current);
+            }
+
+            for (int i = 0; i < Capacity; i++)
+                _vaultItems[i] = i < compacted.Count ? compacted[i] : null!;
+
+            Game1.playSound("Ship");
         }
 
         private void HandleLeftClick(InventoryMenu menu, int x, int y, bool playSound)
@@ -411,6 +646,12 @@ public static class PartyVaultService
 
             if (_heldItem is null)
                 _heldOriginMenu = null;
+        }
+
+        private static bool IsQuickTransferModifierDown()
+        {
+            KeyboardState state = Keyboard.GetState();
+            return state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift);
         }
 
         private static bool IsWithin(InventoryMenu menu, int x, int y)
