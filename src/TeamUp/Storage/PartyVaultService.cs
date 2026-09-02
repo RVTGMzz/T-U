@@ -55,6 +55,7 @@ public static class PartyVaultService
         private readonly ClickableTextureComponent _okButton;
 
         private Item? _heldItem;
+        private InventoryMenu? _heldOriginMenu;
         private bool _controllerInVault = true;
         private int _controllerIndex;
         private bool _showMouseCursor;
@@ -112,7 +113,7 @@ public static class PartyVaultService
 
         public override bool areGamePadControlsImplemented() => true;
 
-        public override bool readyToClose() => _heldItem is null;
+        public override bool readyToClose() => true;
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
@@ -127,15 +128,12 @@ public static class PartyVaultService
 
             if (IsWithin(_vaultMenu, x, y))
             {
-                _heldItem = _vaultMenu.leftClick(x, y, _heldItem, playSound);
+                HandleLeftClick(_vaultMenu, x, y, playSound);
                 return;
             }
 
             if (IsWithin(_playerMenu, x, y))
-            {
-                _heldItem = _playerMenu.leftClick(x, y, _heldItem, playSound);
-                return;
-            }
+                HandleLeftClick(_playerMenu, x, y, playSound);
         }
 
         public override void receiveRightClick(int x, int y, bool playSound = true)
@@ -145,12 +143,12 @@ public static class PartyVaultService
 
             if (IsWithin(_vaultMenu, x, y))
             {
-                _heldItem = _vaultMenu.rightClick(x, y, _heldItem, playSound);
+                HandleRightClick(_vaultMenu, x, y, playSound);
                 return;
             }
 
             if (IsWithin(_playerMenu, x, y))
-                _heldItem = _playerMenu.rightClick(x, y, _heldItem, playSound);
+                HandleRightClick(_playerMenu, x, y, playSound);
         }
 
         public override void receiveKeyPress(Keys key)
@@ -205,10 +203,7 @@ public static class PartyVaultService
             }
 
             if (b == Buttons.X)
-            {
                 ActivateSelected(rightClick: true);
-                return;
-            }
         }
 
         public override void performHoverAction(int x, int y)
@@ -259,10 +254,22 @@ public static class PartyVaultService
             if (!string.IsNullOrWhiteSpace(hoverText))
                 IClickableMenu.drawHoverText(b, hoverText, Game1.smallFont);
 
-            _heldItem?.drawInMenu(
-                b,
-                new Vector2(Game1.getOldMouseX() + 16, Game1.getOldMouseY() + 16),
-                1f);
+            if (_heldItem is not null)
+            {
+                Vector2 heldPosition;
+                if (_showMouseCursor)
+                {
+                    heldPosition = new Vector2(Game1.getOldMouseX() + 16, Game1.getOldMouseY() + 16);
+                }
+                else
+                {
+                    InventoryMenu menu = _controllerInVault ? _vaultMenu : _playerMenu;
+                    Rectangle selected = menu.inventory[Math.Clamp(_controllerIndex, 0, menu.inventory.Count - 1)].bounds;
+                    heldPosition = new Vector2(selected.X + 10, selected.Y + 10);
+                }
+
+                _heldItem.drawInMenu(b, heldPosition, 1f);
+            }
 
             if (_showMouseCursor)
                 drawMouse(b);
@@ -343,13 +350,43 @@ public static class PartyVaultService
             int x = slot.Center.X;
             int y = slot.Center.Y;
 
-            _heldItem = rightClick
-                ? menu.rightClick(x, y, _heldItem, playSound: true)
-                : menu.leftClick(x, y, _heldItem, playSound: true);
+            if (rightClick)
+                HandleRightClick(menu, x, y, playSound: true);
+            else
+                HandleLeftClick(menu, x, y, playSound: true);
+        }
+
+        private void HandleLeftClick(InventoryMenu menu, int x, int y, bool playSound)
+        {
+            Item? before = _heldItem;
+            Item? after = menu.leftClick(x, y, before, playSound);
+            UpdateHeldOrigin(menu, before, after);
+            _heldItem = after;
+        }
+
+        private void HandleRightClick(InventoryMenu menu, int x, int y, bool playSound)
+        {
+            Item? before = _heldItem;
+            Item? after = menu.rightClick(x, y, before, playSound);
+            UpdateHeldOrigin(menu, before, after);
+            _heldItem = after;
+        }
+
+        private void UpdateHeldOrigin(InventoryMenu clickedMenu, Item? before, Item? after)
+        {
+            if (after is null)
+            {
+                _heldOriginMenu = null;
+                return;
+            }
+
+            if (before is null || !ReferenceEquals(before, after))
+                _heldOriginMenu = clickedMenu;
         }
 
         private void TryClose()
         {
+            ReturnHeldItemSafely();
             if (_heldItem is not null)
             {
                 Game1.playSound("cancel");
@@ -358,6 +395,22 @@ public static class PartyVaultService
 
             Game1.playSound("bigDeSelect");
             exitThisMenuNoSound();
+        }
+
+        private void ReturnHeldItemSafely()
+        {
+            if (_heldItem is null)
+                return;
+
+            InventoryMenu first = _heldOriginMenu ?? _playerMenu;
+            InventoryMenu second = ReferenceEquals(first, _vaultMenu) ? _playerMenu : _vaultMenu;
+
+            _heldItem = first.tryToAddItem(_heldItem, string.Empty);
+            if (_heldItem is not null)
+                _heldItem = second.tryToAddItem(_heldItem, string.Empty);
+
+            if (_heldItem is null)
+                _heldOriginMenu = null;
         }
 
         private static bool IsWithin(InventoryMenu menu, int x, int y)
