@@ -1,0 +1,80 @@
+TEAM UP! v0.2.0-alpha.5 — SMOKE TEST THREAT + AGGRO + COMBAT AI + BALANCE
+
+1) BUILD
+- Chạy duy nhất BUILD_V0_2_ALPHA5.bat.
+- ZIP mong đợi: release/TeamUp_v0.2.0-alpha.5_THREAT_AGGRO_AI_BALANCE_TEST.zip
+- Nếu đỏ: gửi nguyên BUILD_LOG.txt.
+
+2) REGRESSION ALPHA 3+4
+- Save cũ phải giữ Level/EXP/Mastery/Gear.
+- HP/Downed/Revive/Withdraw vẫn hoạt động.
+- Equipment/Vault/Codex/hint/follow/leave schedule không được mất.
+
+3) PARTY TEST KHUYÊN DÙNG
+- Alex = Tank / Balanced.
+- Abigail = DPS / Aggressive.
+- Harvey = Healer / Cautious.
+- Maru = Control / Balanced.
+- Test trước ở Mines 40–60, sau đó Mines 80–100.
+
+4) THREAT TABLE
+- Cho Alex đứng gần Farmer khi 2–4 quái xuất hiện.
+- Alex phải định kỳ hiện TAUNT khi có quái chưa tập trung pressure vào Tank.
+- Alex đánh quái phải giữ pressure tốt hơn DPS/Healer.
+- Abigail gây damage mạnh vẫn có thể giành pressure nếu đánh lâu, nhưng Tank phải dễ lấy lại hơn nhờ taunt/aura.
+
+5) TANK GUARD / INTERCEPT
+- Để quái áp sát Farmer khi Alex còn khỏe và đứng trong khoảng ~4 ô.
+- Khi Alex đang giữ đủ threat, một phần damage Farmer phải được hoàn lại và chuyển thành Team Up HP damage lên Alex.
+- Alex phải hiện text GUARD -X.
+- Tank mastery cao phải guard tốt hơn một chút, tối đa vẫn bị giới hạn để không bất tử.
+
+6) NPC INCOMING DAMAGE
+- Một Monster không được cùng lúc gây Team Up HP damage cho cả 3–4 NPC như Alpha 3+4 foundation.
+- NPC đứng đầu threat của Monster mới là người chịu pressure damage khi quái áp sát/intercept.
+- Tank chịu damage tốt hơn nhờ role scale + DEF.
+
+7) ANTI-DOGPILE AI
+- Tạo encounter có 3+ quái.
+- Party không nên 4 người cùng khóa một con yếu nếu còn mục tiêu hợp lệ khác.
+- DPS ưu tiên quái máu thấp hơn.
+- Control ưu tiên cụm quái và tránh spam mục tiêu đang stun nếu có lựa chọn khác.
+- Tank ưu tiên quái đang gây pressure lên Farmer/Healer/Support.
+
+8) HEALER/SUPPORT AI
+- Làm 1 NPC bị thương trong khi Farmer vẫn khỏe: Harvey ưu tiên NPC nguy cấp.
+- Làm Farmer bị thương khi nhiều quái đang pressure Farmer: ngưỡng cứu Farmer phải tăng.
+- Downed ally vẫn được ưu tiên revive trước heal thường.
+- Heal/revive tạo threat nhưng thấp hơn Tank threat chuyên dụng.
+
+9) RETREAT + THREAT DROP
+- Hạ HP Abigail/Harvey dưới retreat threshold.
+- NPC phải RETREAT và threat của họ giảm mạnh để quái bớt pressure lên họ.
+- Downed/Withdrawn phải gần như rơi khỏi threat table.
+- Revive quay lại với threat thấp, không bị quái dồn ngay lập tức.
+
+10) ENGAGEMENT BALANCE
+- Passive/Cautious tạo threat thấp hơn Balanced.
+- Aggressive/Reckless tạo threat cao hơn và đánh nhanh hơn.
+- Reckless không được vô tình biến Healer thành Tank chỉ vì vài lần heal.
+
+11) SIGNATURE REGRESSION
+- Abigail Spirit Slash vẫn AoE + VFX.
+- Alex Bodyguard vẫn hoạt động và phải tạo threat lớn lên quái quanh Farmer.
+- Harvey Emergency Care vẫn cứu Farmer.
+- Emily Prismatic Aura vẫn hoạt động.
+- Maru Shock Device vẫn stun nhóm và tạo Control threat.
+
+12) STRESS TEST
+- Mines 80–120, full party 4 người, 6+ quái nếu có.
+- Theo dõi FPS/VFX spam/controller/pathfinding.
+- Sau combat, cả đội phải trả về follow formation thay vì đứng kẹt controller.
+
+13) LEAVE / DAY END
+- Cho member có gear rời đội: gear trả lại, NPC resume schedule.
+- Ngủ qua ngày: active following reset như thiết kế, roster/progression/gear vẫn còn.
+
+GHI CHÚ ALPHA 5
+- Team Up có threat table và pressure/guard thực sự ảnh hưởng HP/AI của party.
+- Vanilla Monster AI vẫn do Stardew điều khiển; Alpha 5 chưa Harmony-patch mọi lớp Monster để cưỡng ép sprite/pathfinding của từng loại quái quay sang NPC. Vì vậy hãy đánh giá threat qua TAUNT/GUARD/HP pressure + target behavior của party, không chỉ nhìn hướng sprite quái.
+- Farmer faint/death vẫn dùng flow vanilla; Alpha 5 bảo vệ Farmer tốt hơn qua Tank Guard + Healer nhưng chưa override faint screen.
