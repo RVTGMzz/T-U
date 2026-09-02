@@ -52,7 +52,7 @@ function Ensure-JsonString([string]$text, [string]$key, [string]$asciiJsonValue)
 }
 
 # -----------------------------------------------------------------------------
-# 1) ChaCha hard gate at party-manager layer.
+# 1) ChaCha hard gate at party-manager + classification layers.
 # -----------------------------------------------------------------------------
 $partyPath = Join-Path $repoRoot 'src\TeamUp\Core\PartyManager.cs'
 $party = Read-Utf8 $partyPath
@@ -65,10 +65,14 @@ Write-Utf8 $partyPath $party
 $classPath = Join-Path $repoRoot 'src\TeamUp\Core\CompanionClassificationService.cs'
 $class = Read-Utf8 $classPath
 if (-not $class.Contains('"Ronvotri.Cardcha_ChaCha"')) {
-    $class = Replace-Required $class `
-        '        "ChaCha"' `
-        "        \"ChaCha\",`r`n        \"Ronvotri.Cardcha_ChaCha\"" `
-        'Cardcha ChaCha internal identity'
+$oldSpecial = @'
+        "ChaCha"
+'@
+$newSpecial = @'
+        "ChaCha",
+        "Ronvotri.Cardcha_ChaCha"
+'@
+    $class = Replace-Required $class $oldSpecial.TrimEnd() $newSpecial.TrimEnd() 'Cardcha ChaCha internal identity'
 }
 if (-not $class.Contains('IsSpecialName(npc.displayName, specialNpcNames)')) {
     $class = Replace-Required $class `
@@ -106,10 +110,14 @@ Write-Utf8 $modPath $mod
 # -----------------------------------------------------------------------------
 $combatPath = Join-Path $repoRoot 'src\TeamUp\Combat\CombatService.cs'
 $combat = Read-Utf8 $combatPath
-$combat = Replace-Required $combat `
-    "            if (role == PartyRole.Tank)`r`n                TryTankTaunt(npc, member, monsters, validThreatActors);`r`n`r`n            Monster? target = AcquireTarget" `
-    '            Monster? target = AcquireTarget' `
-    'pre-target remote tank taunt'
+$oldPreTaunt = "            if (role == PartyRole.Tank)`r`n                TryTankTaunt(npc, member, monsters, validThreatActors);`r`n`r`n            Monster? target = AcquireTarget"
+if ($combat.Contains($oldPreTaunt)) {
+    $combat = $combat.Replace($oldPreTaunt, '            Monster? target = AcquireTarget')
+}
+elseif (-not $combat.Contains("            float distanceToTarget = Vector2.Distance(npc.Tile, target.Tile);`r`n`r`n            if (role == PartyRole.Tank)")) {
+    throw 'Alpha 6.1.3 fix could not locate the old or new Tank taunt ordering.'
+}
+
 $combat = Replace-Required $combat `
     "            float attackRange = GetAttackRange(role);`r`n            float distanceToTarget = Vector2.Distance(npc.Tile, target.Tile);" `
     "            float attackRange = GetAttackRange(role);`r`n            float distanceToTarget = Vector2.Distance(npc.Tile, target.Tile);`r`n`r`n            if (role == PartyRole.Tank)`r`n                TryTankTaunt(npc, member, monsters, validThreatActors);" `
