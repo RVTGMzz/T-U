@@ -7,18 +7,13 @@ $releaseDir = Join-Path $root 'release\Team Up'
 $releaseRoot = Join-Path $root 'release'
 $archive = Join-Path $releaseRoot 'TeamUp_v0.1.0-alpha.5.3.5_SMOKE_TEST.zip'
 $log = Join-Path $root 'BUILD_LOG.txt'
-$patch534 = Join-Path $root 'ApplyAlpha5_3_4Patches.ps1'
 $patch535 = Join-Path $root 'ApplyAlpha5_3_5Patches.ps1'
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { throw 'dotnet was not found. Install the .NET SDK first.' }
 "Team Up alpha.5.3.5 build started: $(Get-Date -Format o)" | Set-Content $log
 "dotnet: $(& dotnet --version)" | Add-Content $log
 
-"Applying alpha.5.3.4 carried-forward source hotfixes..." | Tee-Object -FilePath $log -Append
-& $patch534 2>&1 | Tee-Object -FilePath $log -Append
-if ($LASTEXITCODE -ne 0) { throw 'alpha.5.3.4 patch step failed.' }
-
-"Applying alpha.5.3.5 stability hotfixes..." | Tee-Object -FilePath $log -Append
+"Applying alpha.5.3.5 integration hotfixes..." | Tee-Object -FilePath $log -Append
 & $patch535 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'alpha.5.3.5 patch step failed.' }
 
