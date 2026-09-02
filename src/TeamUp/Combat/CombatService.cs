@@ -9,9 +9,12 @@ using StardewValley.Pathfinding;
 namespace Ronvotri.TeamUp.Combat;
 
 /// <summary>
-/// First real Team Up combat loop. Active Party Members acquire monsters around the
-/// Farmer, temporarily take movement control from the formation system, attack, then
+/// Team Up combat loop. Active Party Members acquire monsters around the Farmer,
+/// temporarily take movement control from formation, attack, recover allies, and
 /// return to normal following when combat ends.
+///
+/// Alpha 2 adds readable combat feedback: role-colored hit bursts, heal pulses,
+/// floating combat text, real Control stuns, and the first signature ability VFX.
 /// </summary>
 public sealed class CombatService
 {
@@ -22,6 +25,7 @@ public sealed class CombatService
     private readonly FollowService _follow;
     private readonly Dictionary<string, int> _attackCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _healCooldowns = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _signatureCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Monster> _targets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Vector2> _lastTargetTiles = new(StringComparer.OrdinalIgnoreCase);
 
@@ -43,6 +47,7 @@ public sealed class CombatService
         _targets.Clear();
         _attackCooldowns.Clear();
         _healCooldowns.Clear();
+        _signatureCooldowns.Clear();
         _lastTargetTiles.Clear();
     }
 
@@ -53,6 +58,7 @@ public sealed class CombatService
 
         TickCooldowns(_attackCooldowns);
         TickCooldowns(_healCooldowns);
+        TickCooldowns(_signatureCooldowns);
 
         List<Monster> monsters = Game1.currentLocation.characters
             .OfType<Monster>()
@@ -189,9 +195,8 @@ public sealed class CombatService
             return false;
 
         npc.faceTowardFarmerForPeriod(500, 4, false, Game1.player);
-        Game1.currentLocation.playSound("yoba");
-        Game1.currentLocation.temporarySprites.Add(
-            new TemporaryAnimatedSprite(10, Game1.player.Position + new Vector2(16f, -16f), Color.LightGreen, 8, false, 60f));
+        PlayHealFeedback(npc, restored, role);
+        TryTriggerRecoverySignature(npc, member, role, affinity, before);
 
         _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 240 : 360;
         return true;
@@ -255,6 +260,7 @@ public sealed class CombatService
         // Affinity is a tuning modifier, not an MMO-level power multiplier.
         damage = (int)Math.Round(damage * (0.85f + affinity * 0.05f));
 
+        int healthBefore = target.Health;
         Rectangle hitbox = target.GetBoundingBox();
         Game1.currentLocation.damageMonster(
             hitbox,
@@ -268,18 +274,235 @@ public sealed class CombatService
             triggerMonsterInvincibleTimer: false,
             Game1.player);
 
-        Color effectColor = role switch
+        int dealt = Math.Max(0, healthBefore - Math.Max(0, target.Health));
+        ApplyRoleCombatEffect(npc, target, role, affinity, dealt);
+        TryTriggerAttackSignature(npc, target, member, role, affinity);
+    }
+
+    private void PlayHealFeedback(NPC npc, int restored, PartyRole role)
+    {
+        Color color = role == PartyRole.Healer
+            ? new Color(120, 255, 160)
+            : new Color(255, 224, 120);
+
+        SpawnBurst(Game1.currentLocation, Game1.player.Position + new Vector2(16f, -12f), color,
+            role == PartyRole.Healer ? 6 : 4, 24f);
+
+        npc.showTextAboveHead($"+{restored} HP", color, 2, 1000, 0);
+        Game1.currentLocation.playSound("yoba");
+    }
+
+    private void ApplyRoleCombatEffect(NPC npc, Monster target, PartyRole role, int affinity, int dealt)
+    {
+        Color color = role switch
         {
-            PartyRole.Tank => Color.Orange,
-            PartyRole.Control => Color.Cyan,
-            PartyRole.Support => Color.Gold,
-            PartyRole.Healer => Color.LightGreen,
+            PartyRole.Tank => new Color(255, 155, 70),
+            PartyRole.Damage => new Color(225, 95, 120),
+            PartyRole.Control => new Color(80, 225, 255),
+            PartyRole.Support => new Color(255, 215, 90),
+            PartyRole.Healer => new Color(120, 255, 160),
             _ => Color.White
         };
 
-        Game1.currentLocation.temporarySprites.Add(
-            new TemporaryAnimatedSprite(10, target.Position, effectColor, 6, false, 45f));
+        SpawnBurst(Game1.currentLocation, target.Position + new Vector2(16f, 16f), color,
+            role == PartyRole.Control ? 6 : 4, role == PartyRole.Tank ? 28f : 20f);
+
+        if (dealt > 0)
+            target.showTextAboveHead($"-{dealt}", color, 2, 700, 0);
+
+        if (role == PartyRole.Control && target.Health > 0)
+        {
+            int stunMs = 350 + affinity * 100;
+            target.stunTime.Value = Math.Max(target.stunTime.Value, stunMs);
+            target.showTextAboveHead("STUN", new Color(100, 235, 255), 2, 850, 0);
+        }
+
         Game1.currentLocation.playSound(role == PartyRole.Control ? "thunder_small" : "swordswipe");
+    }
+
+    private void TryTriggerRecoverySignature(
+        NPC npc,
+        PartyMemberData member,
+        PartyRole role,
+        int affinity,
+        int healthBeforeBaseHeal)
+    {
+        if (GetCooldown(_signatureCooldowns, member.CharacterName) > 0)
+            return;
+
+        if (member.CharacterName.Equals("Harvey", StringComparison.OrdinalIgnoreCase)
+            && role == PartyRole.Healer
+            && healthBeforeBaseHeal <= (int)(Game1.player.maxHealth * 0.40f))
+        {
+            int before = Game1.player.health;
+            int bonus = 6 + affinity * 2;
+            Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + bonus);
+            int restored = Game1.player.health - before;
+
+            if (restored > 0)
+            {
+                Color green = new(125, 255, 170);
+                SpawnBurst(Game1.currentLocation, Game1.player.Position, Color.White, 8, 34f);
+                SpawnBurst(Game1.currentLocation, Game1.player.Position, green, 8, 24f);
+                npc.showTextAboveHead($"EMERGENCY +{restored}", green, 2, 1400, 0);
+                Game1.currentLocation.playSound("yoba");
+            }
+
+            _signatureCooldowns[member.CharacterName] = 600;
+            return;
+        }
+
+        if (member.CharacterName.Equals("Emily", StringComparison.OrdinalIgnoreCase)
+            && role is PartyRole.Support or PartyRole.Healer
+            && healthBeforeBaseHeal <= (int)(Game1.player.maxHealth * 0.65f))
+        {
+            int before = Game1.player.health;
+            int bonus = 2 + affinity;
+            Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + bonus);
+            int restored = Game1.player.health - before;
+
+            Color[] prism =
+            {
+                new Color(255, 110, 150),
+                new Color(255, 190, 90),
+                new Color(120, 255, 150),
+                new Color(100, 220, 255),
+                new Color(180, 120, 255)
+            };
+
+            for (int i = 0; i < prism.Length; i++)
+                SpawnBurst(Game1.currentLocation, Game1.player.Position, prism[i], 2, 20f + i * 5f);
+
+            npc.showTextAboveHead(restored > 0 ? $"PRISMATIC +{restored}" : "PRISMATIC AURA",
+                new Color(230, 160, 255), 2, 1400, 0);
+            Game1.currentLocation.playSound("yoba");
+            _signatureCooldowns[member.CharacterName] = 720;
+        }
+    }
+
+    private void TryTriggerAttackSignature(
+        NPC npc,
+        Monster target,
+        PartyMemberData member,
+        PartyRole role,
+        int affinity)
+    {
+        if (target.Health <= 0 || GetCooldown(_signatureCooldowns, member.CharacterName) > 0)
+            return;
+
+        if (member.CharacterName.Equals("Abigail", StringComparison.OrdinalIgnoreCase)
+            && role is PartyRole.Damage or PartyRole.Control)
+        {
+            Color purple = new(195, 95, 255);
+            int bonusDamage = 4 + affinity;
+            List<Monster> nearby = GetLivingMonstersNear(target.Tile, 2.25f);
+
+            foreach (Monster monster in nearby)
+            {
+                Game1.currentLocation.damageMonster(
+                    monster.GetBoundingBox(),
+                    bonusDamage,
+                    bonusDamage + 2,
+                    isBomb: false,
+                    1.0f,
+                    100,
+                    0.02f,
+                    1.5f,
+                    triggerMonsterInvincibleTimer: false,
+                    Game1.player);
+                SpawnBurst(Game1.currentLocation, monster.Position, purple, 5, 28f);
+            }
+
+            npc.showTextAboveHead("SPIRIT SLASH", purple, 2, 1300, 0);
+            Game1.currentLocation.playSound("swordswipe");
+            _signatureCooldowns[member.CharacterName] = 360;
+            return;
+        }
+
+        if (member.CharacterName.Equals("Alex", StringComparison.OrdinalIgnoreCase)
+            && role == PartyRole.Tank
+            && Vector2.Distance(target.Tile, Game1.player.Tile) <= 4.0f)
+        {
+            Color orange = new(255, 155, 70);
+            int guardDamage = 2 + affinity;
+            List<Monster> threats = GetLivingMonstersNear(Game1.player.Tile, 2.75f);
+
+            foreach (Monster monster in threats)
+            {
+                Game1.currentLocation.damageMonster(
+                    monster.GetBoundingBox(),
+                    guardDamage,
+                    guardDamage + 1,
+                    isBomb: false,
+                    2.4f,
+                    100,
+                    0f,
+                    1.25f,
+                    triggerMonsterInvincibleTimer: false,
+                    Game1.player);
+                SpawnBurst(Game1.currentLocation, monster.Position, orange, 4, 30f);
+            }
+
+            SpawnBurst(Game1.currentLocation, Game1.player.Position, orange, 8, 42f);
+            npc.showTextAboveHead("BODYGUARD", orange, 2, 1300, 0);
+            Game1.currentLocation.playSound("clubSmash");
+            _signatureCooldowns[member.CharacterName] = 420;
+            return;
+        }
+
+        if (member.CharacterName.Equals("Maru", StringComparison.OrdinalIgnoreCase)
+            && role == PartyRole.Control)
+        {
+            Color cyan = new(80, 230, 255);
+            int stunMs = 700 + affinity * 100;
+            List<Monster> nearby = GetLivingMonstersNear(target.Tile, 2.5f);
+
+            foreach (Monster monster in nearby)
+            {
+                monster.stunTime.Value = Math.Max(monster.stunTime.Value, stunMs);
+                SpawnBurst(Game1.currentLocation, monster.Position, cyan, 7, 30f);
+                monster.showTextAboveHead("SHOCK", cyan, 2, 1000, 0);
+            }
+
+            npc.showTextAboveHead("SHOCK DEVICE", cyan, 2, 1300, 0);
+            Game1.currentLocation.playSound("thunder_small");
+            _signatureCooldowns[member.CharacterName] = 480;
+        }
+    }
+
+    private static List<Monster> GetLivingMonstersNear(Vector2 centerTile, float radiusTiles)
+    {
+        return Game1.currentLocation.characters
+            .OfType<Monster>()
+            .Where(monster => monster.Health > 0)
+            .Where(monster => Vector2.Distance(monster.Tile, centerTile) <= radiusTiles)
+            .ToList();
+    }
+
+    private static void SpawnBurst(
+        GameLocation location,
+        Vector2 worldPosition,
+        Color color,
+        int count,
+        float spreadPixels)
+    {
+        int safeCount = Math.Clamp(count, 1, 16);
+        for (int i = 0; i < safeCount; i++)
+        {
+            double angle = Math.PI * 2d * i / safeCount;
+            Vector2 offset = new(
+                (float)Math.Cos(angle) * spreadPixels,
+                (float)Math.Sin(angle) * spreadPixels * 0.65f);
+
+            location.temporarySprites.Add(
+                new TemporaryAnimatedSprite(
+                    10,
+                    worldPosition + offset,
+                    color,
+                    6,
+                    false,
+                    45f + i * 3f));
+        }
     }
 
     private void Disengage(string characterName, NPC? npc)
