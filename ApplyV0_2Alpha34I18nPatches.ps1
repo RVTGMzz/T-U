@@ -10,9 +10,14 @@ function Patch-I18n([string]$path, [bool]$vi) {
     }
 
     if ($vi) {
-        $text = $text.Replace(
-            '  "member.vault": "Kho chung Party",',
-            "  \"member.equipment\": \"Trang bị\",`r`n  \"member.vault\": \"Kho chung Party\",")
+        $oldMember = @'
+  "member.vault": "Kho chung Party",
+'@.TrimEnd()
+        $newMember = @'
+  "member.equipment": "Trang bị",
+  "member.vault": "Kho chung Party",
+'@.TrimEnd()
+        $text = $text.Replace($oldMember, $newMember)
 
         $insert = @'
   "equipment.question": "TRANG BỊ · {{name}}\n{{progression}}\nChọn ô trang bị.",
@@ -31,9 +36,14 @@ function Patch-I18n([string]$path, [bool]$vi) {
 '@
     }
     else {
-        $text = $text.Replace(
-            '  "member.vault": "Party Vault",',
-            "  \"member.equipment\": \"Equipment\",`r`n  \"member.vault\": \"Party Vault\",")
+        $oldMember = @'
+  "member.vault": "Party Vault",
+'@.TrimEnd()
+        $newMember = @'
+  "member.equipment": "Equipment",
+  "member.vault": "Party Vault",
+'@.TrimEnd()
+        $text = $text.Replace($oldMember, $newMember)
 
         $insert = @'
   "equipment.question": "EQUIPMENT · {{name}}\n{{progression}}\nChoose an equipment slot.",
