@@ -92,10 +92,19 @@ $newMemberOpen = @'
 '@
 $mod = Replace-Required $mod $oldMemberOpen $newMemberOpen 'same-frame member hints'
 
-$mod = Replace-Required $mod `
-    'Follow.ReleaseToVanilla(npc);' `
-    'Follow.ReleaseToVanillaAndResumeSchedule(npc);' `
-    'leave resumes vanilla schedule'
+$oldLeaveRelease = @'
+            bool removed = Party.Remove(npc.Name, recruiterId);
+            Follow.ReleaseToVanilla(npc);
+            if (linkedNpc is not null)
+                Follow.ReleaseToVanilla(linkedNpc);
+'@
+$newLeaveRelease = @'
+            bool removed = Party.Remove(npc.Name, recruiterId);
+            Follow.ReleaseToVanillaAndResumeSchedule(npc);
+            if (linkedNpc is not null)
+                Follow.ReleaseToVanilla(linkedNpc);
+'@
+$mod = Replace-Required $mod $oldLeaveRelease $newLeaveRelease 'leave resumes vanilla schedule'
 
 Set-Content -Path $modPath -Value $mod -Encoding UTF8
 
