@@ -329,7 +329,7 @@ public sealed class PartyManager
     {
         return new PartySaveData
         {
-            SchemaVersion = 3,
+            SchemaVersion = 4,
             Members = _members
                 .Select(member => new PartyMemberData
                 {
@@ -339,7 +339,23 @@ public sealed class PartyManager
                     LinkedCompanionUnitId = member.LinkedCompanionUnitId,
                     Role = member.Role,
                     Engagement = member.Engagement,
-                    State = member.State
+                    State = member.State,
+                    Level = member.Level,
+                    Experience = member.Experience,
+                    CurrentHealth = member.CurrentHealth,
+                    TankMasteryExperience = member.TankMasteryExperience,
+                    DamageMasteryExperience = member.DamageMasteryExperience,
+                    SupportMasteryExperience = member.SupportMasteryExperience,
+                    HealerMasteryExperience = member.HealerMasteryExperience,
+                    ControlMasteryExperience = member.ControlMasteryExperience,
+                    Weapon = member.Weapon,
+                    Armor = member.Armor,
+                    Trinket = member.Trinket,
+                    IsDowned = member.IsDowned,
+                    IsWithdrawn = member.IsWithdrawn,
+                    DownedTicks = member.DownedTicks,
+                    DownCountToday = member.DownCountToday,
+                    WoundedTicks = member.WoundedTicks
                 })
                 .ToList(),
             CompanionUnits = _companionUnits
