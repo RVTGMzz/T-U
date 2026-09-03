@@ -20,6 +20,11 @@ try {
     if (-not (Test-Path $integrator)) { throw "Missing Alpha 6.4.3 integrator: $integrator" }
     if (-not (Test-Path $project)) { throw "Missing Team Up project: $project" }
 
+    # Correct the pre-materialized acceptance token used by the first 6.4.3 build attempt.
+    $integratorText = [System.IO.File]::ReadAllText($integrator, [System.Text.Encoding]::UTF8)
+    $integratorText = $integratorText.Replace('CardchaTestArenaDummy', 'CardTestArenaDummy')
+    [System.IO.File]::WriteAllText($integrator, $integratorText, $utf8NoBom)
+
     # Pre-clean only the two obsolete Region-I constants from a pristine 6.4.2 source checkout.
     # The actual arena methods are replaced by the integrator below.
     $preDebug = [System.IO.File]::ReadAllText($debugSource, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n")
