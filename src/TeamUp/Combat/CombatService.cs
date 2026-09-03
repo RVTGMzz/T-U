@@ -608,6 +608,10 @@ public sealed class CombatService
         float farmerThreshold = role == PartyRole.Healer ? 0.78f : 0.52f;
         if (farmerPressure >= 2)
             farmerThreshold = Math.Min(0.90f, farmerThreshold + 0.10f);
+        farmerThreshold = Math.Clamp(
+            farmerThreshold + _progression.GetRecoveryThresholdAdjustment(member, role),
+            0.35f,
+            0.95f);
 
         bool farmerNeedsHelp = Game1.player.health < (int)(Game1.player.maxHealth * farmerThreshold);
         float farmerRatio = Game1.player.health / (float)Math.Max(1, Game1.player.maxHealth);
@@ -831,7 +835,7 @@ public sealed class CombatService
             && healthBeforeBaseHeal <= (int)(Game1.player.maxHealth * 0.40f))
         {
             int before = Game1.player.health;
-            int bonus = Math.Max(1, (int)Math.Round((6 + affinity * 2) * _progression.GetHealingMultiplier(member, role)));
+            int bonus = Math.Max(1, (int)Math.Round((6 + affinity * 2) * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
             Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + bonus);
             int restored = Game1.player.health - before;
             if (restored > 0)
@@ -852,7 +856,7 @@ public sealed class CombatService
             && healthBeforeBaseHeal <= (int)(Game1.player.maxHealth * 0.65f))
         {
             int before = Game1.player.health;
-            int bonus = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetHealingMultiplier(member, role)));
+            int bonus = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
             Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + bonus);
             int restored = Game1.player.health - before;
             Color[] prism =
@@ -880,7 +884,7 @@ public sealed class CombatService
             && role is PartyRole.Damage or PartyRole.Control)
         {
             Color purple = new(195, 95, 255);
-            int bonusDamage = Math.Max(1, (int)Math.Round((4 + affinity) * _progression.GetDamageMultiplier(member, role)));
+            int bonusDamage = Math.Max(1, (int)Math.Round((4 + affinity) * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
             foreach (Monster monster in GetLivingMonstersNear(target.Tile, 2.25f))
             {
                 Game1.currentLocation.damageMonster(monster.GetBoundingBox(), bonusDamage, bonusDamage + 2,
@@ -899,7 +903,7 @@ public sealed class CombatService
             && Vector2.Distance(target.Tile, Game1.player.Tile) <= 4f)
         {
             Color orange = new(255, 155, 70);
-            int guardDamage = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetDamageMultiplier(member, role)));
+            int guardDamage = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
             foreach (Monster monster in GetLivingMonstersNear(Game1.player.Tile, 2.75f))
             {
                 Game1.currentLocation.damageMonster(monster.GetBoundingBox(), guardDamage, guardDamage + 1,
@@ -917,7 +921,7 @@ public sealed class CombatService
         if (member.CharacterName.Equals("Maru", StringComparison.OrdinalIgnoreCase) && role == PartyRole.Control)
         {
             Color cyan = new(80, 230, 255);
-            int stunMs = (int)Math.Round((700 + affinity * 100) * _progression.GetControlMultiplier(member, role));
+            int stunMs = (int)Math.Round((700 + affinity * 100) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
             foreach (Monster monster in GetLivingMonstersNear(target.Tile, 2.5f))
             {
                 monster.stunTime.Value = Math.Max(monster.stunTime.Value, stunMs);

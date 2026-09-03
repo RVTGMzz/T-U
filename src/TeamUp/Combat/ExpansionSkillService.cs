@@ -168,7 +168,7 @@ internal sealed class ExpansionSkillService
         if (targets.Count < 2 && tier < 3)
             return false;
 
-        int stun = (int)Math.Round((tier >= 3 ? 720 : 460) * _progression.GetControlMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 720 : 460) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
         int damage = ScaleDamage(member, role, Math.Max(1, spec.Power + affinity / 2));
         int dealt = DamageTargets(member, targets, damage, 0.35f, spec.Color, stun);
         _threat.AddThreat(targets, member.CharacterName, 10f + affinity * 2f);
@@ -234,7 +234,7 @@ internal sealed class ExpansionSkillService
             return false;
 
         int damage = ScaleDamage(member, role, spec.Power + affinity * 2 + (tier >= 3 ? 4 : 0));
-        int stun = (int)Math.Round((tier >= 3 ? 480 : 260) * _progression.GetControlMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 480 : 260) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
         int dealt = DamageTargets(member, new[] { target }, damage, tier >= 3 ? 1.8f : 1.2f, spec.Color, stun);
         if (dealt <= 0)
             return false;
@@ -253,7 +253,7 @@ internal sealed class ExpansionSkillService
         Monster? pressure = LivingNear(Game1.player.Tile, 4.5f, monsters).OrderBy(monster => monster.Health).FirstOrDefault();
         if (pressure is not null)
         {
-            int stun = (int)Math.Round((tier >= 3 ? 340 : 200) * _progression.GetControlMultiplier(member, role));
+            int stun = (int)Math.Round((tier >= 3 ? 340 : 200) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
             pressure.stunTime.Value = Math.Max(pressure.stunTime.Value, stun);
             SpawnBurst(Game1.currentLocation, pressure.Position, spec.Color, 4, 22f);
             _threat.AddThreat(pressure, member.CharacterName, 8f + affinity);
@@ -322,7 +322,7 @@ internal sealed class ExpansionSkillService
             .Where(other => GetActiveNpc(other) is not null).OrderBy(other => _progression.GetHealthRatio(other)).Take(tier >= 3 ? 3 : 2))
             restored += HealMember(target, Math.Max(2, amount / 2), spec.Color);
 
-        int stun = (int)Math.Round((tier >= 3 ? 420 : 240) * _progression.GetControlMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 420 : 240) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
         foreach (Monster monster in enemies)
         {
             monster.stunTime.Value = Math.Max(monster.stunTime.Value, stun);
@@ -343,7 +343,7 @@ internal sealed class ExpansionSkillService
             return false;
 
         int value = shouldHeal && injured is not null ? HealMember(injured, ScaleHeal(member, role, spec.Power + affinity), spec.Color) : 0;
-        int stun = (int)Math.Round((tier >= 3 ? 380 : 220) * _progression.GetControlMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 380 : 220) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
         foreach (Monster enemy in enemies)
         {
             enemy.stunTime.Value = Math.Max(enemy.stunTime.Value, stun);
@@ -400,8 +400,8 @@ internal sealed class ExpansionSkillService
         return restored;
     }
 
-    private int ScaleDamage(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetDamageMultiplier(member, role)));
-    private int ScaleHeal(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetHealingMultiplier(member, role)));
+    private int ScaleDamage(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
+    private int ScaleHeal(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
 
     private static List<Monster> LivingNear(Vector2 centerTile, float radius, IReadOnlyList<Monster> monsters)
     {

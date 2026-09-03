@@ -23,6 +23,7 @@ public sealed class ModEntry : Mod
     private PartyManager Party { get; set; } = null!;
     private FollowService Follow { get; set; } = null!;
     private ProgressionService Progression { get; set; } = null!;
+    private RelationshipBondService Relationships { get; set; } = null!;
     private EquipmentService Equipment { get; set; } = null!;
     private CombatService Combat { get; set; } = null!;
     private Alpha6CombatPolishService Alpha6Polish { get; set; } = null!;
@@ -46,6 +47,7 @@ public sealed class ModEntry : Mod
             () => Config.AllowLinkedCompanions ? Config.MaxActiveLinkedCompanions : 0);
         Follow = new FollowService(Monitor);
         Progression = new ProgressionService();
+        Relationships = new RelationshipBondService(Progression);
         Equipment = new EquipmentService();
         Combat = new CombatService(Monitor, Follow, Progression);
         Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);
@@ -60,7 +62,7 @@ public sealed class ModEntry : Mod
             Alpha6Polish,
             SavePartyNow);
         DebugTools.RegisterCommands();
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.0", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.1", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -71,7 +73,7 @@ public sealed class ModEntry : Mod
         helper.Events.Display.RenderingActiveMenu += OnRenderingActiveMenu;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.4.0 character skill identity loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.4.1 friendship & bond loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -80,6 +82,7 @@ public sealed class ModEntry : Mod
         Party.Load(saveData);
         Combat.Clear();
         Alpha6Polish.Clear();
+        Relationships.Clear();
         SkillIdentity.Clear();
         Progression.NormalizeRoster(Party.Members);
 
@@ -135,6 +138,7 @@ public sealed class ModEntry : Mod
         long recruiterId = Game1.player.UniqueMultiplayerID;
         Combat.Clear();
         Alpha6Polish.Clear();
+        Relationships.Clear();
         SkillIdentity.Clear();
         Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
         Progression.ResetForNewDay(Party.Members);
@@ -152,6 +156,7 @@ public sealed class ModEntry : Mod
         SocialCodexButtonBounds = Rectangle.Empty;
         Combat.Clear();
         Alpha6Polish.Clear();
+        Relationships.Clear();
         SkillIdentity.Clear();
         Party.Clear();
     }
@@ -170,6 +175,7 @@ public sealed class ModEntry : Mod
         }
 
         SkillIdentity.Update(Party.Members, Game1.player.UniqueMultiplayerID);
+        Relationships.Update(Party.Members, Game1.player.UniqueMultiplayerID);
         Combat.Update(Party.Members, Game1.player.UniqueMultiplayerID);
         Alpha6Polish.Update(Party.Members, Game1.player.UniqueMultiplayerID);
 
@@ -610,6 +616,16 @@ public sealed class ModEntry : Mod
         string engagement = profile is null ? string.Empty : GetEngagementLabel(profile.RecommendedEngagement);
         string passive = profile is null ? string.Empty : Helper.Translation.Get(profile.PassiveKey);
         string signature = profile is null ? string.Empty : Helper.Translation.Get(profile.AbilityKey);
+        RelationshipBondState bond = Relationships.GetState(characterName);
+        string relationship = Helper.Translation.Get("relationship.summary", new
+        {
+            hearts = bond.Hearts,
+            stage = Helper.Translation.Get(Relationships.GetStageKey(bond.Stage))
+        });
+        if (bond.IsSpouse)
+            relationship += "\n" + Helper.Translation.Get("relationship.spouse-bond");
+        if (bond.Stage == RelationshipBondStage.Soulmate && !string.IsNullOrWhiteSpace(bond.SoulmateTraitName))
+            relationship += "\n" + Helper.Translation.Get("relationship.soulmate", new { trait = bond.SoulmateTraitName });
 
         PartyMemberData? progressionMember = Party.Get(characterName, Game1.player.UniqueMultiplayerID);
         if (progressionMember is not null)
@@ -619,7 +635,7 @@ public sealed class ModEntry : Mod
         }
 
         Game1.activeClickableMenu = new CharacterProfileMenu(
-            characterName, profile, displayName, status, source, engagement, passive, signature,
+            characterName, profile, displayName, status, source, engagement, passive, signature, relationship,
             GetRoleLabel, Helper.Translation, onBack ?? OpenCodexBrowser, onOpenAll ?? OpenCodexBrowser);
     }
 

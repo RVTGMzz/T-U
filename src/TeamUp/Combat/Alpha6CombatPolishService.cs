@@ -210,7 +210,7 @@ public sealed class Alpha6CombatPolishService
             return false;
 
         int baseDamage = tier >= 3 ? 8 + affinity * 2 : 5 + affinity;
-        int damage = Math.Max(1, (int)Math.Round(baseDamage * _progression.GetDamageMultiplier(member, role)));
+        int damage = Math.Max(1, (int)Math.Round(baseDamage * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
         int dealtTotal = 0;
         Color purple = new(195, 95, 255);
         foreach (Monster monster in targets)
@@ -246,7 +246,7 @@ public sealed class Alpha6CombatPolishService
         if (nearby.Count == 0)
             return false;
 
-        int damage = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetDamageMultiplier(member, role)));
+        int damage = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
         Color orange = new(255, 165, 80);
         foreach (Monster monster in nearby)
         {
@@ -284,7 +284,7 @@ public sealed class Alpha6CombatPolishService
         if (injured.Count == 0 && farmerRatio >= (tier >= 3 ? 0.70f : 0.52f))
             return false;
 
-        int amount = Math.Max(2, (int)Math.Round((6 + affinity * 2) * _progression.GetHealingMultiplier(member, role)));
+        int amount = Math.Max(2, (int)Math.Round((6 + affinity * 2) * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
         int restoredTotal = 0;
         int farmerBefore = Game1.player.health;
         Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + amount);
@@ -338,8 +338,8 @@ public sealed class Alpha6CombatPolishService
         if (targets.Count < 2)
             return false;
 
-        int stunMs = (int)Math.Round((tier >= 3 ? 1300 : 900) * _progression.GetControlMultiplier(member, role));
-        int overloadDamage = tier >= 3 ? Math.Max(1, (int)Math.Round((3 + affinity) * _progression.GetDamageMultiplier(member, role))) : 0;
+        int stunMs = (int)Math.Round((tier >= 3 ? 1300 : 900) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
+        int overloadDamage = tier >= 3 ? Math.Max(1, (int)Math.Round((3 + affinity) * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role))) : 0;
         Color cyan = new(80, 230, 255);
         foreach (Monster monster in targets)
         {
@@ -374,7 +374,7 @@ public sealed class Alpha6CombatPolishService
         if (urgent < 2 && !(tier >= 3 && urgent >= 1 && farmerRatio < 0.58f))
             return false;
 
-        int amount = Math.Max(2, (int)Math.Round((3 + affinity) * _progression.GetHealingMultiplier(member, role)));
+        int amount = Math.Max(2, (int)Math.Round((3 + affinity) * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
         int restoredTotal = 0;
         int beforeFarmer = Game1.player.health;
         Game1.player.health = Math.Min(Game1.player.maxHealth, Game1.player.health + amount);

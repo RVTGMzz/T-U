@@ -7,7 +7,7 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Combat;
 
 /// <summary>
-/// Alpha 6.4.0 runtime for the remaining vanilla NPC signature identities.
+/// Alpha 6.4.1 runtime for vanilla NPC signature identities with relationship affinity.
 /// The five Alpha 6 signature prototypes (Abigail, Alex, Harvey, Maru, Emily)
 /// remain owned by Alpha6CombatPolishService so this layer is additive and low-risk.
 /// Temporary buffs are runtime-only and flow through ProgressionService, so generic
@@ -402,7 +402,10 @@ public sealed class CharacterSkillIdentityService
             && identity.CooldownBuffPercent <= 0)
             return;
 
-        int duration = tier >= 3 ? (int)Math.Round(identity.BuffDurationTicks * 1.25f) : identity.BuffDurationTicks;
+        float signatureAffinity = _progression.GetSignatureEffectMultiplier(owner, ResolveRole(owner));
+        int duration = tier >= 3
+            ? (int)Math.Round(identity.BuffDurationTicks * 1.25f * signatureAffinity)
+            : (int)Math.Round(identity.BuffDurationTicks * signatureAffinity);
         IEnumerable<PartyMemberData> targets = identity.PartyWideBuff ? activeMembers : new[] { owner };
         foreach (PartyMemberData target in targets)
         {
@@ -423,7 +426,7 @@ public sealed class CharacterSkillIdentityService
         if (baseDamage <= 0)
             return 0;
         float tierMultiplier = tier >= 3 ? 1.20f : 1f;
-        return Math.Max(1, (int)Math.Round((baseDamage + affinity) * tierMultiplier * _progression.GetDamageMultiplier(member, role)));
+        return Math.Max(1, (int)Math.Round((baseDamage + affinity) * tierMultiplier * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
     }
 
     private int ScaleHeal(int baseHeal, int affinity, int tier, PartyMemberData member, PartyRole role)
@@ -431,14 +434,14 @@ public sealed class CharacterSkillIdentityService
         if (baseHeal <= 0)
             return 0;
         float tierMultiplier = tier >= 3 ? 1.18f : 1f;
-        return Math.Max(1, (int)Math.Round((baseHeal + affinity) * tierMultiplier * _progression.GetHealingMultiplier(member, role)));
+        return Math.Max(1, (int)Math.Round((baseHeal + affinity) * tierMultiplier * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
     }
 
     private int ScaleStun(int baseStunMs, PartyMemberData member, PartyRole role)
     {
         if (baseStunMs <= 0)
             return 0;
-        return Math.Clamp((int)Math.Round(baseStunMs * _progression.GetControlMultiplier(member, role)), 0, 1800);
+        return Math.Clamp((int)Math.Round(baseStunMs * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)), 0, 1800);
     }
 
     private static int HealFarmer(int amount)

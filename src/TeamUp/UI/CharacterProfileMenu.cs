@@ -10,7 +10,7 @@ namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
 /// Dedicated Team Up character dossier with native controller footer navigation.
-/// Alpha 6.3.2 keeps the passive readable as text and reserves the single character icon
+/// Alpha 6.4.1 keeps the passive readable as text, adds relationship status, and reserves the single character icon
 /// for the NPC's signature ability.
 /// </summary>
 public sealed class CharacterProfileMenu : IClickableMenu
@@ -36,6 +36,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private readonly string _engagementLabel;
     private readonly string _passiveText;
     private readonly string _signatureText;
+    private readonly string _relationshipText;
     private readonly Action _onBack;
     private readonly Action _onOpenAll;
     private readonly ClickableComponent _allButton;
@@ -55,6 +56,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         string engagementLabel,
         string passiveText,
         string signatureText,
+        string relationshipText,
         Func<PartyRole, string> roleLabel,
         ITranslationHelper i18n,
         Action onBack,
@@ -74,6 +76,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         _engagementLabel = engagementLabel;
         _passiveText = passiveText;
         _signatureText = signatureText;
+        _relationshipText = relationshipText;
         _roleLabel = roleLabel;
         _i18n = i18n;
         _onBack = onBack;
@@ -274,6 +277,12 @@ public sealed class CharacterProfileMenu : IClickableMenu
         cursorY += (int)(Game1.smallFont.LineSpacing * CaptionScale) + 2;
         string wrapped = WrapScaled(_engagementLabel, panelWidth - SectionPadding * 2, BodyScale);
         DrawScaledString(b, Game1.smallFont, wrapped, new Vector2(x + SectionPadding, cursorY), Game1.textColor, BodyScale);
+        cursorY += (int)(Game1.smallFont.MeasureString(wrapped).Y * BodyScale) + 14;
+
+        DrawScaledString(b, Game1.smallFont, _i18n.Get("profile.relationship"), new Vector2(x + SectionPadding, cursorY), new Color(112, 73, 44), CaptionScale);
+        cursorY += (int)(Game1.smallFont.LineSpacing * CaptionScale) + 2;
+        string relationship = WrapScaled(_relationshipText, panelWidth - SectionPadding * 2, 1.02f);
+        DrawScaledString(b, Game1.smallFont, relationship, new Vector2(x + SectionPadding, cursorY), Game1.textColor, 1.02f);
     }
 
     private void DrawProfileDetails(SpriteBatch b, int x, int y, int panelWidth)
