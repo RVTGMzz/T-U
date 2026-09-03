@@ -337,18 +337,27 @@ public sealed class EquipmentMenu : IClickableMenu
         }
 
         Item? item = Game1.player.Items[inventoryIndex];
-        if (item is null || !CanEquip(_selectedSlot, item))
+        if (item is null)
         {
             Game1.playSound("cancel");
             return;
         }
 
+        EquipmentSlot? naturalSlot = GetNaturalSlot(item);
+        if (!naturalSlot.HasValue)
+        {
+            Game1.playSound("cancel");
+            return;
+        }
+
+        _selectedSlot = naturalSlot.Value;
         if (_equipment.TryEquip(_member, _selectedSlot, inventoryIndex, out _))
         {
             _progression.NormalizeMember(_member);
             _saveNow();
             ShowHud(_translation.Get("equipment.equipped-name", new { item = _equipment.GetEquipped(_member, _selectedSlot)?.DisplayName ?? item.DisplayName }));
             Game1.playSound("coin");
+            _hoveredItem = null;
             ClampInventoryCursor();
         }
         else
@@ -362,6 +371,7 @@ public sealed class EquipmentMenu : IClickableMenu
     {
         PartyRole role = EquipmentRpgPolishService.ResolveRole(_member);
         int changed = 0;
+        EquipmentSlot? lastChangedSlot = null;
 
         foreach (EquipmentSlot slot in new[] { EquipmentSlot.Weapon, EquipmentSlot.Armor, EquipmentSlot.Trinket })
         {
@@ -387,10 +397,15 @@ public sealed class EquipmentMenu : IClickableMenu
                 continue;
 
             changed++;
+            lastChangedSlot = slot;
         }
 
         if (changed > 0)
         {
+            if (lastChangedSlot.HasValue)
+                _selectedSlot = lastChangedSlot.Value;
+            _focusInventory = false;
+            _hoveredItem = null;
             _progression.NormalizeMember(_member);
             _saveNow();
             ShowHud(_translation.Get("equipment.auto-equip-done", new { count = changed, role = RoleLabel(role) }).ToString());
@@ -409,6 +424,18 @@ public sealed class EquipmentMenu : IClickableMenu
         EquippedItemData? current = _equipment.GetEquipped(_member, _selectedSlot);
         if (current is null)
         {
+            foreach (EquipmentSlot fallback in new[] { EquipmentSlot.Weapon, EquipmentSlot.Armor, EquipmentSlot.Trinket })
+            {
+                current = _equipment.GetEquipped(_member, fallback);
+                if (current is null)
+                    continue;
+                _selectedSlot = fallback;
+                break;
+            }
+        }
+
+        if (current is null)
+        {
             Game1.playSound("cancel");
             return;
         }
@@ -420,6 +447,8 @@ public sealed class EquipmentMenu : IClickableMenu
             _saveNow();
             ShowHud(_translation.Get("equipment.unequipped-name", new { item = itemName }));
             Game1.playSound("dwop");
+            _hoveredItem = null;
+            _focusInventory = false;
             ClampInventoryCursor();
         }
         else
@@ -429,6 +458,17 @@ public sealed class EquipmentMenu : IClickableMenu
         }
     }
 
+    private static EquipmentSlot? GetNaturalSlot(Item item)
+    {
+        return item switch
+        {
+            Boots => EquipmentSlot.Armor,
+            Ring => EquipmentSlot.Trinket,
+            Trinket => EquipmentSlot.Trinket,
+            MeleeWeapon => EquipmentSlot.Weapon,
+            _ => null
+        };
+    }
     private static bool CanEquip(EquipmentSlot slot, Item item)
     {
         return slot switch
@@ -491,12 +531,15 @@ public sealed class EquipmentMenu : IClickableMenu
 
     private void DrawHoverComparison(SpriteBatch b, Item item)
     {
-        bool compatible = CanEquip(_selectedSlot, item);
+        EquipmentSlot? naturalSlot = GetNaturalSlot(item);
+        bool compatible = naturalSlot.HasValue;
+        EquipmentSlot previewSlot = naturalSlot ?? _selectedSlot;
         int cardWidth = Math.Min(410, Math.Max(300, _inventoryPanel.Width - 32));
         int cardHeight = compatible ? 332 : 104;
+        int cardY = Math.Max(_inventoryPanel.Y + 78, _inventoryPanel.Bottom - cardHeight - 92);
         Rectangle card = new(
             _inventoryPanel.Right - cardWidth - 16,
-            _inventoryPanel.Bottom - cardHeight - 14,
+            cardY,
             cardWidth,
             cardHeight);
 
@@ -520,9 +563,9 @@ public sealed class EquipmentMenu : IClickableMenu
             return;
         }
 
-        EquippedItemData? current = _equipment.GetEquipped(_member, _selectedSlot);
-        EquippedItemData preview = EquipmentPreviewService.BuildPreview(_selectedSlot, item, _member.CharacterName);
-        EquipmentImpactPreview impact = EquipmentRpgPolishService.BuildImpact(_progression, _member, _selectedSlot, preview);
+        EquippedItemData? current = _equipment.GetEquipped(_member, previewSlot);
+        EquippedItemData preview = EquipmentPreviewService.BuildPreview(previewSlot, item, _member.CharacterName);
+        EquipmentImpactPreview impact = EquipmentRpgPolishService.BuildImpact(_progression, _member, previewSlot, preview);
 
         b.DrawString(
             Game1.smallFont,
@@ -746,7 +789,7 @@ public sealed class EquipmentMenu : IClickableMenu
             if (item is null)
                 continue;
 
-            bool compatible = CanEquip(_selectedSlot, item);
+            bool compatible = GetNaturalSlot(item).HasValue;
             Color rarityColor = EquipmentRpgPolishService.GetRarityColor(EquipmentRpgPolishService.GetRarity(item));
             DrawRarityFrame(b, bounds, rarityColor, compatible ? 0.90f : 0.28f);
             DrawItem(b, item, bounds, compatible ? 1f : 0.28f);
@@ -757,8 +800,8 @@ public sealed class EquipmentMenu : IClickableMenu
             }
         }
 
-        string hint = $"{_translation.Get("equipment.hint")} · {_translation.Get("equipment.auto-hint")}";
-        DrawFitText(b, hint, new Rectangle(_inventoryPanel.X + 18, _inventoryPanel.Bottom - 80, _inventoryPanel.Width - 36, 24), Game1.unselectedOptionColor, 0.82f);
+        string hint = _translation.Get("equipment.controls-short");
+        DrawFitText(b, hint, new Rectangle(_inventoryPanel.X + 18, _inventoryPanel.Bottom - 54, _inventoryPanel.Width - 36, 30), Game1.unselectedOptionColor, 1.02f);
     }
 
     private static void DrawRarityFrame(SpriteBatch b, Rectangle bounds, Color color, float alpha)

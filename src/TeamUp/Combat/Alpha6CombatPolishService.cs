@@ -372,7 +372,10 @@ public sealed class Alpha6CombatPolishService
             .ToList();
         float farmerRatio = Game1.player.health / (float)Math.Max(1, Game1.player.maxHealth);
         int urgent = injured.Count + (farmerRatio < 0.75f ? 1 : 0);
-        if (urgent < 2 && !(tier >= 3 && urgent >= 1 && farmerRatio < 0.58f))
+        bool signatureReady = urgent >= 2
+            || (tier >= 3 && urgent >= 1 && farmerRatio < 0.72f)
+            || (tier == 2 && urgent >= 1 && farmerRatio < 0.62f);
+        if (!signatureReady)
             return false;
 
         int amount = Math.Max(2, (int)Math.Round((3 + affinity) * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));

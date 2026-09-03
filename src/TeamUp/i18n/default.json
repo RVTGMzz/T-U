@@ -221,11 +221,12 @@
   "equipment.compare-title": "STAT COMPARISON",
   "equipment.loadout": "NPC LOADOUT",
   "equipment.incompatible": "Not compatible with this slot",
-  "equipment.inventory-filter": "Selected slot: {{slot}} \u00b7 compatible gear stays bright",
+  "equipment.inventory-filter": "Selected: {{slot}} · click supported gear to auto-select its slot",
 
   "equipment.signature-cd": "Signature CD",
   "equipment.rarity.legendary": "Legendary",
   "equipment.auto-hint": "Y: Auto Equip",
+  "equipment.controls-short": "A / Enter: Equip   ·   X: Unequip   ·   Y: Auto Equip",
   "equipment.auto-equip-done": "Auto equipped {{count}} upgrade(s) for {{role}}.",
   "equipment.fit-label": "Role fit",
   "equipment.auto-equip-none": "No stronger role-fit gear was found.",

@@ -221,11 +221,12 @@
   "equipment.compare-title": "SO S\u00c1NH CH\u1ec8 S\u1ed0",
   "equipment.loadout": "TRANG B\u1eca NPC",
   "equipment.incompatible": "Kh\u00f4ng ph\u00f9 h\u1ee3p v\u1edbi slot n\u00e0y",
-  "equipment.inventory-filter": "\u0110ang ch\u1ecdn: {{slot}} \u00b7 \u0111\u1ed3 ph\u00f9 h\u1ee3p s\u1ebd s\u00e1ng r\u00f5",
+  "equipment.inventory-filter": "\u0110ang ch\u1ecdn: {{slot}} · b\u1ea5m \u0111\u1ed3 h\u1ee3p l\u1ec7 \u0111\u1ec3 t\u1ef1 ch\u1ecdn \u0111\u00fang \u00f4",
 
   "equipment.signature-cd": "H\u1ed3i chi\u00eau \u0111\u1eb7c tr\u01b0ng",
   "equipment.rarity.legendary": "Huy\u1ec1n tho\u1ea1i",
   "equipment.auto-hint": "Y: T\u1ef1 \u0111\u1ed9ng trang b\u1ecb",
+  "equipment.controls-short": "A / Enter: Trang b\u1ecb   ·   X: Th\u00e1o   ·   Y: T\u1ef1 \u0111\u1ed9ng",
   "equipment.auto-equip-done": "\u0110\u00e3 t\u1ef1 trang b\u1ecb {{count}} m\u00f3n t\u1ed1t h\u01a1n cho {{role}}.",
   "equipment.fit-label": "\u0110\u1ed9 h\u1ee3p vai tr\u00f2",
   "equipment.auto-equip-none": "Kh\u00f4ng t\u00ecm th\u1ea5y trang b\u1ecb ph\u00f9 h\u1ee3p vai tr\u00f2 t\u1ed1t h\u01a1n.",

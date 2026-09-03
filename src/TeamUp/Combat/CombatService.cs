@@ -606,7 +606,7 @@ public sealed class CombatService
         int farmerPressure = monsters.Count(monster =>
             _threat.GetAggroActor(monster, validThreatActors) == ThreatService.FarmerActorId
             && Vector2.Distance(monster.Tile, Game1.player.Tile) <= 6f);
-        float farmerThreshold = role == PartyRole.Healer ? 0.78f : 0.52f;
+        float farmerThreshold = role == PartyRole.Healer ? 0.82f : 0.60f;
         if (farmerPressure >= 2)
             farmerThreshold = Math.Min(0.90f, farmerThreshold + 0.10f);
         farmerThreshold = Math.Clamp(
@@ -635,7 +635,7 @@ public sealed class CombatService
                     PlayHealFeedback(npc, targetNpc.Position, restored, role, targetNpc);
                     AwardProgress(member, role, 3, 2, npc);
                     AddHealingThreat(member, role, restored, monsters);
-                    _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 225 : 345;
+                    _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 210 : 315;
                     return true;
                 }
             }
@@ -655,7 +655,7 @@ public sealed class CombatService
         TryTriggerRecoverySignature(npc, member, role, affinity, farmerBefore, monsters);
         AwardProgress(member, role, 3, 2, npc);
         AddHealingThreat(member, role, farmerRestored, monsters);
-        _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 225 : 345;
+        _healCooldowns[member.CharacterName] = role == PartyRole.Healer ? 210 : 315;
         return true;
     }
 
@@ -787,9 +787,9 @@ public sealed class CombatService
         SpawnBurst(Game1.currentLocation, targetPosition + new Vector2(16f, -12f), color,
             role == PartyRole.Healer ? 6 : 4, 24f);
         if (targetNpc is not null)
-            targetNpc.showTextAboveHead($"+{restored} HP", color, 2, 1000, 0);
+            targetNpc.showTextAboveHead($"+{restored} HP", color, 2, 1250, 0);
         else
-            healer.showTextAboveHead($"+{restored} HP", color, 2, 1000, 0);
+            healer.showTextAboveHead($"HEAL +{restored}", color, 2, 1400, 0);
         Game1.currentLocation.playSound("yoba");
     }
 

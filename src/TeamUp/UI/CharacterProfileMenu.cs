@@ -10,7 +10,7 @@ namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
 /// Dedicated Team Up character dossier with native controller footer navigation.
-/// Alpha 6.4.2 doubles passive/signature description text, adds a clipped scroll region, and reserves the single character icon
+/// Alpha 6.4.4 keeps real skill descriptions large, moves relationship data into the scroll region, keeps pending kits compact, and reserves the single character icon
 /// for the NPC's signature ability.
 /// </summary>
 public sealed class CharacterProfileMenu : IClickableMenu
@@ -310,11 +310,6 @@ public sealed class CharacterProfileMenu : IClickableMenu
         string wrapped = WrapScaled(_engagementLabel, panelWidth - SectionPadding * 2, BodyScale);
         DrawScaledString(b, Game1.smallFont, wrapped, new Vector2(x + SectionPadding, cursorY), Game1.textColor, BodyScale);
         cursorY += (int)(Game1.smallFont.MeasureString(wrapped).Y * BodyScale) + 14;
-
-        DrawScaledString(b, Game1.smallFont, _i18n.Get("profile.relationship"), new Vector2(x + SectionPadding, cursorY), new Color(112, 73, 44), CaptionScale);
-        cursorY += (int)(Game1.smallFont.LineSpacing * CaptionScale) + 2;
-        string relationship = WrapScaled(_relationshipText, panelWidth - SectionPadding * 2, 1.02f);
-        DrawScaledString(b, Game1.smallFont, relationship, new Vector2(x + SectionPadding, cursorY), Game1.textColor, 1.02f);
     }
 
     private void DrawProfileDetails(SpriteBatch b, int x, int y, int panelWidth, int panelHeight)
@@ -355,7 +350,10 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private void DrawScrollableTraitArea(SpriteBatch b, Rectangle viewport, PartyRole role)
     {
         int contentWidth = Math.Max(120, viewport.Width - 16);
-        int contentHeight = CalculateTraitContentHeight(contentWidth);
+        bool pendingKit = IsPendingCombatKit();
+        float passiveScale = pendingKit ? BodyScale : DescriptionScale;
+        float signatureScale = pendingKit ? BodyScale : DescriptionScale;
+        int contentHeight = CalculateTraitContentHeight(contentWidth, passiveScale, signatureScale);
         _detailsMaxScroll = Math.Max(0, contentHeight - viewport.Height);
         _detailsScrollOffset = Math.Clamp(_detailsScrollOffset, 0, _detailsMaxScroll);
 
@@ -363,8 +361,8 @@ public sealed class CharacterProfileMenu : IClickableMenu
 
         DrawSectionTitleIfVisible(b, _i18n.Get("profile.passive"), viewport.X, contentY, viewport);
         contentY += 30;
-        string passiveWrapped = WrapScaled(_passiveText, contentWidth, DescriptionScale);
-        contentY += DrawWrappedLinesInViewport(b, passiveWrapped, viewport.X, contentY, DescriptionScale, viewport);
+        string passiveWrapped = WrapScaled(_passiveText, contentWidth, passiveScale);
+        contentY += DrawWrappedLinesInViewport(b, passiveWrapped, viewport.X, contentY, passiveScale, viewport);
         contentY += 18;
 
         const int iconSize = 56;
@@ -380,24 +378,47 @@ public sealed class CharacterProfileMenu : IClickableMenu
             viewport);
         contentY += SignatureHeaderHeight;
 
-        string signatureWrapped = WrapScaled(_signatureText, contentWidth, DescriptionScale);
-        DrawWrappedLinesInViewport(b, signatureWrapped, viewport.X, contentY, DescriptionScale, viewport);
+        string signatureWrapped = WrapScaled(_signatureText, contentWidth, signatureScale);
+        contentY += DrawWrappedLinesInViewport(b, signatureWrapped, viewport.X, contentY, signatureScale, viewport);
+        contentY += 22;
+
+        DrawSectionTitleIfVisible(b, _i18n.Get("profile.relationship"), viewport.X, contentY, viewport);
+        contentY += 30;
+        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);
+        DrawWrappedLinesInViewport(b, relationshipWrapped, viewport.X, contentY, BodyScale, viewport);
 
         if (_detailsMaxScroll > 0)
             DrawDetailsScrollBar(b, viewport);
     }
 
-    private int CalculateTraitContentHeight(int contentWidth)
+    private int CalculateTraitContentHeight(int contentWidth, float passiveScale, float signatureScale)
     {
-        string passiveWrapped = WrapScaled(_passiveText, contentWidth, DescriptionScale);
-        string signatureWrapped = WrapScaled(_signatureText, contentWidth, DescriptionScale);
+        string passiveWrapped = WrapScaled(_passiveText, contentWidth, passiveScale);
+        string signatureWrapped = WrapScaled(_signatureText, contentWidth, signatureScale);
+        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);
         return 30
-            + MeasureWrappedHeight(passiveWrapped, DescriptionScale)
+            + MeasureWrappedHeight(passiveWrapped, passiveScale)
             + 18
             + SignatureHeaderHeight
-            + MeasureWrappedHeight(signatureWrapped, DescriptionScale);
+            + MeasureWrappedHeight(signatureWrapped, signatureScale)
+            + 22
+            + 30
+            + MeasureWrappedHeight(relationshipWrapped, BodyScale);
     }
 
+    private bool IsPendingCombatKit()
+    {
+        if (_profile is null)
+            return true;
+
+        return _profile.PrimaryRole == PartyRole.Unassigned
+            && _profile.SecondaryRole == PartyRole.Unassigned
+            && _profile.TankAffinity == 0
+            && _profile.DamageAffinity == 0
+            && _profile.SupportAffinity == 0
+            && _profile.HealerAffinity == 0
+            && _profile.ControlAffinity == 0;
+    }
     private static int MeasureWrappedHeight(string wrapped, float scale)
     {
         int lines = Math.Max(1, wrapped.Replace("\r", string.Empty).Split('\n').Length);
