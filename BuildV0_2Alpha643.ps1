@@ -3,6 +3,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $integrator = Join-Path $root '_build_support\IntegrateAlpha643CardchaCombatSandbox.ps1'
 $project = Join-Path $root 'src\TeamUp\TeamUp.csproj'
 $manifest = Join-Path $root 'src\TeamUp\manifest.json'
+$debugSource = Join-Path $root 'src\TeamUp\Debugging\TeamUpDebugService.cs'
 $releaseDir = Join-Path $root 'release'
 $stageRoot = Join-Path $root '_stage_alpha643'
 $stageMod = Join-Path $stageRoot 'Team Up'
@@ -21,6 +22,15 @@ try {
 
     Log 'Integrating Alpha 6.4.3 Cardcha Combat Sandbox...'
     & $integrator 2>&1 | Tee-Object -FilePath $log -Append
+
+    # Normalize one generated reset insertion if this branch is being built from pre-materialized 6.4.2 source.
+    $debugText = [System.IO.File]::ReadAllText($debugSource, [System.Text.Encoding]::UTF8)
+    $literalReset = '_sandbox.StopWaves(clearMonsters: true);`n                ResetCombatState();'
+    if ($debugText.Contains($literalReset))
+    {
+        $debugText = $debugText.Replace($literalReset, "_sandbox.StopWaves(clearMonsters: true);`n                ResetCombatState();")
+        [System.IO.File]::WriteAllText($debugSource, $debugText, $utf8NoBom)
+    }
 
     Log 'Restoring Team Up...'
     & dotnet restore $project 2>&1 | Tee-Object -FilePath $log -Append
