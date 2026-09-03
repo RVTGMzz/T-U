@@ -4,10 +4,12 @@ $baseBuild = Join-Path $root 'BuildV0_2Alpha6.ps1'
 $generatedBuild = Join-Path $root '_generated_BuildV0_2Alpha63.ps1'
 $expansionIntegratorPath = Join-Path $root '_build_support\IntegrateExpansionSkillsWave1.ps1'
 $uiIntegratorPath = Join-Path $root '_build_support\IntegrateNpcLoadoutTraitIcons.ps1'
+$polishPath = Join-Path $root '_build_support\FixAlpha63LoadoutPolish.ps1'
 
 if (-not (Test-Path $baseBuild)) { throw "Missing base Alpha 6 build script: $baseBuild" }
 if (-not (Test-Path $expansionIntegratorPath)) { throw "Missing expansion integration helper: $expansionIntegratorPath" }
 if (-not (Test-Path $uiIntegratorPath)) { throw "Missing NPC loadout integration helper: $uiIntegratorPath" }
+if (-not (Test-Path $polishPath)) { throw "Missing Alpha 6.3 loadout polish helper: $polishPath" }
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 function Normalize-Crlf([string]$text) {
@@ -28,12 +30,13 @@ $source = $source.Replace(
 $oldVar = '$alpha613Fixer = Join-Path $root ''_build_support\FixAlpha613PartyUxCombat.ps1'''
 $newVar = $oldVar + "`r`n" +
     '$expansionIntegrator = Join-Path $root ''_build_support\IntegrateExpansionSkillsWave1.ps1''' + "`r`n" +
-    '$uiIntegrator = Join-Path $root ''_build_support\IntegrateNpcLoadoutTraitIcons.ps1'''
+    '$uiIntegrator = Join-Path $root ''_build_support\IntegrateNpcLoadoutTraitIcons.ps1''' + "`r`n" +
+    '$alpha63Polish = Join-Path $root ''_build_support\FixAlpha63LoadoutPolish.ps1'''
 if (-not $source.Contains($oldVar)) { throw 'Alpha 6.3 wrapper could not locate the Alpha 6.1.3 fixer variable.' }
 $source = $source.Replace($oldVar, $newVar)
 $source = $source.Replace(
     '@($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator, $alpha613Fixer)',
-    '@($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator, $alpha613Fixer, $expansionIntegrator, $uiIntegrator)')
+    '@($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator, $alpha613Fixer, $expansionIntegrator, $uiIntegrator, $alpha63Polish)')
 
 $anchor = Normalize-Crlf @'
 & $alpha613Fixer 2>&1 | Tee-Object -FilePath $log -Append
@@ -50,6 +53,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.2 expansion skills integration failed.
 "Integrating Alpha 6.3 NPC loadout + trait icons..." | Tee-Object -FilePath $log -Append
 & $uiIntegrator 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.3 NPC loadout integration failed.' }
+
+"Polishing Alpha 6.3 controller stat preview + nullable warning..." | Tee-Object -FilePath $log -Append
+& $alpha63Polish 2>&1 | Tee-Object -FilePath $log -Append
+if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.3 loadout polish failed.' }
 '@
 $anchor = $anchor.TrimEnd()
 $insert = $insert.TrimEnd()
@@ -65,7 +72,7 @@ $source = $source.Replace(
     'Checkpoint: NPC Loadout + Trait Icons + Expansion Skills Wave 1')
 $source = $source.Replace(
     'Vietnamese: Vault + Equipment strings are materialized through ASCII-only Unicode escapes.',
-    "Vietnamese: Vault + Equipment strings are materialized through ASCII-only Unicode escapes.`r`nExpansion: SVE + Ridgeside source-aware Codex roster; 24 curated NPCs have real Tier 2/3 signature skills.`r`nLoadout: NPC portrait + 3 live equipment slots + 6x6 Farmer backpack grid with item icons.`r`nTraits: unique generated Passive + Signature icon per NPC.")
+    "Vietnamese: Vault + Equipment strings are materialized through ASCII-only Unicode escapes.`r`nExpansion: SVE + Ridgeside source-aware Codex roster; 24 curated NPCs have real Tier 2/3 signature skills.`r`nLoadout: NPC portrait + 3 live equipment slots + 6x6 Farmer backpack grid with item icons + mouse/controller stat comparison.`r`nTraits: unique generated Passive + Signature icon per NPC.")
 $source = $source.Replace(
     "Write-Host 'BUILD SUCCESS - ALPHA 6.1.3'",
     "Write-Host 'BUILD SUCCESS - ALPHA 6.3.0'")
