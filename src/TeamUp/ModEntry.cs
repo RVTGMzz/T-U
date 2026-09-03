@@ -26,6 +26,7 @@ public sealed class ModEntry : Mod
     private EquipmentService Equipment { get; set; } = null!;
     private CombatService Combat { get; set; } = null!;
     private Alpha6CombatPolishService Alpha6Polish { get; set; } = null!;
+    private CharacterSkillIdentityService SkillIdentity { get; set; } = null!;
     private TeamUpDebugService DebugTools { get; set; } = null!;
     private Action? PendingUiAction { get; set; }
     private string? RecruitHintNpcName { get; set; }
@@ -48,6 +49,7 @@ public sealed class ModEntry : Mod
         Equipment = new EquipmentService();
         Combat = new CombatService(Monitor, Follow, Progression);
         Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);
+        SkillIdentity = new CharacterSkillIdentityService(Progression);
         DebugTools = new TeamUpDebugService(
             Helper,
             Monitor,
@@ -58,7 +60,7 @@ public sealed class ModEntry : Mod
             Alpha6Polish,
             SavePartyNow);
         DebugTools.RegisterCommands();
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.3.2", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.0", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -69,7 +71,7 @@ public sealed class ModEntry : Mod
         helper.Events.Display.RenderingActiveMenu += OnRenderingActiveMenu;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.3.2 signature icon art pass loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.4.0 character skill identity loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -78,6 +80,7 @@ public sealed class ModEntry : Mod
         Party.Load(saveData);
         Combat.Clear();
         Alpha6Polish.Clear();
+        SkillIdentity.Clear();
         Progression.NormalizeRoster(Party.Members);
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
@@ -132,6 +135,7 @@ public sealed class ModEntry : Mod
         long recruiterId = Game1.player.UniqueMultiplayerID;
         Combat.Clear();
         Alpha6Polish.Clear();
+        SkillIdentity.Clear();
         Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
         Progression.ResetForNewDay(Party.Members);
         Party.DeactivateForNewDay(recruiterId);
@@ -148,6 +152,7 @@ public sealed class ModEntry : Mod
         SocialCodexButtonBounds = Rectangle.Empty;
         Combat.Clear();
         Alpha6Polish.Clear();
+        SkillIdentity.Clear();
         Party.Clear();
     }
 
@@ -164,6 +169,7 @@ public sealed class ModEntry : Mod
             PartyActionConfirmationOpen = false;
         }
 
+        SkillIdentity.Update(Party.Members, Game1.player.UniqueMultiplayerID);
         Combat.Update(Party.Members, Game1.player.UniqueMultiplayerID);
         Alpha6Polish.Update(Party.Members, Game1.player.UniqueMultiplayerID);
 
