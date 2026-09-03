@@ -22,9 +22,9 @@ WriteUtf8 $projectPath $project
 
 $mod = ReadUtf8 $modEntryPath
 $mod = $mod.Replace('0.2.0-alpha.6.3.1', $version)
-$duplicateMarker = "        Monitor.Log(\"Team Up DEBUG HARNESS READY | command: teamup_test | build: v$version\", LogLevel.Info);`n        Monitor.Log(\"Team Up DEBUG HARNESS READY | command: teamup_test | build: v$version\", LogLevel.Info);"
-$singleMarker = "        Monitor.Log(\"Team Up DEBUG HARNESS READY | command: teamup_test | build: v$version\", LogLevel.Info);"
-$mod = $mod.Replace($duplicateMarker, $singleMarker)
+$marker = '        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v{0}", LogLevel.Info);' -f $version
+$mod = $mod.Replace($marker + "`r`n" + $marker, $marker)
+$mod = $mod.Replace($marker + "`n" + $marker, $marker)
 $mod = $mod.Replace("Team Up! v$version equipment RPG polish loaded.", "Team Up! v$version signature icon art pass loaded.")
 WriteUtf8 $modEntryPath $mod
 
