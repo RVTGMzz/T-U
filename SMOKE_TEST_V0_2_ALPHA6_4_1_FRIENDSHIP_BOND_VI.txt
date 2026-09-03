@@ -1,0 +1,109 @@
+TEAM UP v0.2.0-alpha.6.4.1 - FRIENDSHIP & BOND
+SMOKE TEST VI
+
+MUC TIEU
+- Xac nhan friendship co loi ich combat/progression nhung khong pha class balance.
+- Xac nhan spouse co Bond Trait rieng theo role.
+- Xac nhan spouse 14 tim co Soulmate Trait.
+- Khong sua friendship vanilla/SVE/RSV, khong them save field moi.
+
+1. STARTUP
+[ ] SMAPI khong co Team Up red error.
+[ ] Marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.1
+
+2. CHARACTER PROFILE / RELATIONSHIP
+Mo Codex -> Character Profile cua NPC co muc tim khac nhau.
+[ ] Co muc MOI QUAN HE.
+[ ] Hien dung so tim hien tai.
+[ ] 0-3 tim: Quen biet.
+[ ] 4-7 tim: Tin cay.
+[ ] 8-9 tim: Dong hanh than thiet.
+[ ] 10+ tim khong phai spouse: Tinh ban toi da.
+[ ] spouse duoi 14 tim: Gan ket vo/chong.
+[ ] spouse 14 tim: Tri ky + hien ten Soulmate Trait.
+
+3. 4 TIM - TRUSTED
+Dung NPC >=4 tim trong party va danh quai binh thuong.
+[ ] Character XP/Mastery van tang binh thuong.
+[ ] Sau nhieu lan award, tong XP/Mastery cao hon nhe NPC <4 tim (muc tieu ~10%).
+[ ] Khong co dot bien +1 moi hit lam progression tang qua nhanh.
+
+4. 8 TIM - CLOSE COMPANION / AI SYNERGY
+[ ] Tank 8+ tim it retreat som hon mot chut, van retreat khi HP thap.
+[ ] DPS 8+ tim giu ap luc tot hon mot chut, khong thanh Reckless bat buoc.
+[ ] Healer/Support 8+ tim bat dau ho tro Farmer som hon mot chut.
+[ ] Control 8+ tim van uu tien an toan/khong che, khong tang raw damage dot bien.
+
+5. 10 TIM - SIGNATURE AFFINITY
+So sanh cung NPC, cung level/mastery/gear neu co the.
+[ ] Signature o 10 tim tang nhe hieu qua (~5%).
+[ ] Basic attack/heal khong duoc +5% chi vi max friendship.
+[ ] Tier 2/3 vanilla 6.4.0 co affinity.
+[ ] 24 SVE/RSV Wave 1 co affinity.
+[ ] Abigail/Alex/Harvey/Maru/Emily Signature cu van hoat dong.
+
+6. SPOUSE BOND THEO ROLE
+Cho spouse vao Main Party va vao combat.
+[ ] Tank spouse: khi Farmer bi thuong, spouse co defensive utility nhe.
+[ ] DPS spouse: khi co quai gan Farmer, spouse co damage synergy nhe.
+[ ] Support spouse: khi party bi ap luc, co CDR utility nhe.
+[ ] Healer spouse: khi Farmer bi thuong, heal synergy tang nhe.
+[ ] Control spouse: khi co nhieu quai, control synergy tang nhe.
+[ ] Bond khong kich hoat khi spouse khong nam trong active Following party.
+
+7. 14 TIM - SOULMATE
+Vanilla romance candidates co trait bespoke:
+Abigail - Dungeon Pact
+Alex - Always By Your Side
+Elliott - Rousing Devotion
+Emily - Two Hearts, One Aura
+Haley - Perfect Focus
+Harvey - I Won't Lose You
+Leah - Rooted Together
+Maru - Linked Systems
+Penny - Second Wind Together
+Sam - Shared Tempo
+Sebastian - Shadow Sync
+Shane - Stay Standing
+
+[ ] Dung spouse 14 tim va xem Character Profile hien dung trait.
+[ ] Trait chi kich hoat trong dieu kien phu hop, khong buff 100% thoi gian vo ly.
+[ ] Harvey duoi 25% HP Farmer co emergency Soulmate heal, sau do co cooldown dai.
+[ ] Expansion spouse neu khong co bespoke trait van dung role-based fallback an toan.
+
+8. BUFF SAFETY
+[ ] Bond/Soulmate buff tu het khi dieu kien khong con.
+[ ] Khong stack vo han sau nhieu lan refresh.
+[ ] Damage/heal/control khong tang dan vo han.
+[ ] CDR tong van bi cap.
+[ ] Save/load, sleep, return title khong giu buff tam thoi.
+
+9. EQUIPMENT REGRESSION
+[ ] Rarity frame van dung.
+[ ] Role Score / Combat Impact van dung.
+[ ] Auto Equip van khong lam mat/duplicate item.
+[ ] Signature CD preview van hien.
+
+10. SKILL / ICON REGRESSION
+[ ] Moi NPC vanilla 6.4.0 van co Signature runtime.
+[ ] Passive text-only.
+[ ] Moi kit hoan thien van chi co 1 Signature icon.
+[ ] SVE/RSV Wave 1 icon + Signature van dung.
+
+11. CORE REGRESSION
+[ ] ChaCha khong vao Main Party.
+[ ] Alex/Tank approach truoc TAUNT.
+[ ] Party Vault category line khong bi che.
+[ ] Farmer pass-through party members.
+[ ] Team Up khong lam thay doi monster AI vanilla toan cuc.
+
+NEU CO LOI
+Gui:
+- NPC
+- so tim
+- co phai spouse khong
+- role hien tai
+- level/mastery
+- map
+- screenshot Character Profile neu loi UI
+- SMAPI log do neu co
