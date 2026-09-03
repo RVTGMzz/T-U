@@ -1,0 +1,59 @@
+TEAM UP v0.2.0-alpha.6.3.0 - SMOKE TEST NPC LOADOUT + TRAIT ICONS
+================================================================
+
+0. BUILD
+- Chay BUILD_V0_2_ALPHA6.bat.
+- SMAPI startup marker phai co: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.3.0
+- ZIP du kien: release/TeamUp_v0.2.0-alpha.6.3.0_NPC_LOADOUT_TRAIT_ICONS_TEST.zip
+
+1. MO TRANG BI NPC
+- Thu nap 1 NPC vao Main Party.
+- Mo menu NPC > Trang bi.
+- Phai thay 3 khu vuc ro rang:
+  A) portrait + ten + Lv/HP/Role cua NPC;
+  B) 3 slot Weapon / Armor / Trinket;
+  C) luoi TUI DO FARMER 6 x 6 co icon item that.
+
+2. SLOT VA ICON ITEM
+- Dat 1 vu khi, 1 Boots, 1 Ring/Trinket vao tui Farmer.
+- Chon Weapon: vu khi sang ro, Boots/Ring bi lam mo.
+- Chon Armor: Boots sang ro, item khac bi lam mo.
+- Chon Trinket: Ring/Trinket sang ro.
+- Bam item phu hop: item bien khoi tui va icon xuat hien ngay trong slot NPC.
+- X / Thao trang bi: item quay lai tui Farmer.
+
+3. SWAP AN TOAN
+- NPC dang deo 1 mon, sau do chon mon cung slot khac.
+- Mon cu phai quay lai tui Farmer, mon moi vao slot.
+- Neu tui day va khong tra duoc mon cu, swap phai bi huy an toan.
+
+4. CONTROLLER
+- D-pad Up/Down khi focus Loadout: doi Weapon/Armor/Trinket.
+- D-pad Right: sang tui Farmer.
+- D-pad trong tui: di chuyen o.
+- A: trang bi item dang chon.
+- X: thao slot dang chon.
+- B: quay lai menu NPC.
+
+5. CODEX TRAIT ICONS
+- Mo Team Up Codex > profile NPC.
+- Muc NOI TAI phai co 1 icon pixel ben trai.
+- Muc KY NANG DAC TRUNG phai co 1 icon pixel khac ben trai.
+- Mo 3 NPC khac nhau: icon phai thay doi theo NPC.
+- Dong/mo lai game: icon cung NPC phai giu nguyen, khong random moi lan.
+
+6. MOD NPC
+- Test it nhat 1 SVE va 1 Ridgeside Village NPC.
+- Portrait phai load neu mod do cung cap Portraits/<NpcName>.
+- Trait icon khong phu thuoc asset cua SVE/RSV, nen van phai hien.
+- Signature combat Wave 1 cua Alpha 6.2 van phai kich hoat binh thuong.
+
+7. REGRESSION
+- ChaCha van khong vao Main Party.
+- Tank van approach truoc khi TAUNT.
+- Party Vault khong de chu bi panel che.
+- Farmer van di xuyen qua party member.
+- Codex Back van quay dung filter/vi tri truoc do.
+
+Neu BUILD FAILED: gui BUILD_LOG.txt.
+Neu UI bi tran/lech: chup nguyen man hinh Equipment + do phan giai game.
