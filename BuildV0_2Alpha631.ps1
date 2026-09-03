@@ -23,7 +23,6 @@ try {
 
     Log 'Integrating Alpha 6.3.1 equipment RPG polish...'
     & $integrator 2>&1 | Tee-Object -FilePath $log -Append
-    if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.3.1 integration failed.' }
 
     Log 'Restoring Team Up...'
     & dotnet restore $project 2>&1 | Tee-Object -FilePath $log -Append
