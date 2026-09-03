@@ -12,14 +12,18 @@ Expected ZIP:
 Expected SMAPI marker:
 `Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.1.3`
 
+Latest gameplay/code commit before this handoff update:
+`28b06e0d6d75e2253b832dcdab4e4eca24e491c9`
+Commit message: `Fix Party Vault label overlap in Alpha 6.1.3`
+
 This checkpoint is NOT compile-verified yet. User must run `BUILD_V0_2_ALPHA6.bat`. Never claim compile-clean until the user shows a successful build/log.
 
 ## User observations immediately before this checkpoint
 
 1. ChaCha showed Team Up recruit confirmation even though ChaCha is a special Farmer/Cardcha companion and must never be recruited into Main Party.
-2. User saw Abigail appear after warp, then clarified they had run `teamup_test preset fullparty`. This is expected because the preset intentionally adds Alex + Abigail + Harvey + Maru and saves the roster. Do NOT treat Abigail persistence as a warp bug.
+2. User saw Abigail appear after warp, then clarified they had run `teamup_test preset fullparty`. This is EXPECTED because the preset intentionally adds Alex + Abigail + Harvey + Maru and saves the roster. Do NOT treat Abigail persistence as a warp bug.
 3. Alex Tank displayed `TAUNT` but appeared to stand still instead of moving toward monsters first.
-4. Party Vault Vietnamese text still showed mojibake/encoding corruption.
+4. Party Vault Vietnamese text itself was NOT broken. The real bug in the screenshot was layout overlap: the category line `Thức ăn · Hồi phục · Tiện ích · Chiến lợi phẩm` was being covered by the player-inventory panel drawn below it.
 5. Equipment was still presented through Stardew question-dialogue rows and user said it was difficult to read.
 
 ## Alpha 6.1.3 fixes authored
@@ -66,16 +70,20 @@ Design:
 - returns to Team Up member menu
 - EquipmentService remains source of truth for exact Item-object storage and save behavior
 
-### Vault + Equipment Vietnamese encoding
-Alpha 6.1.3 consolidated fixer rewrites Vault and Equipment Vietnamese strings through ASCII-only JSON Unicode escapes to avoid Windows PowerShell 5.1 mojibake.
+### Party Vault layout overlap fix
+Important correction: the user's Party Vault screenshot did NOT show broken Vietnamese encoding.
+The category line was simply being drawn too close to the player inventory panel, then the panel painted over the lower part of the text.
 
-Vault expected strings:
-- `KHO PARTY`
-- `Vật tư dùng chung cho toàn đội`
-- `ô đã dùng`
-- `Thức ăn · Hồi phục · Tiện ích · Chiến lợi phẩm`
+Latest layout fix in `PartyVaultService.cs`:
+- category label Y moved from roughly `y + 348` to `y + 330`
+- player inventory Y moved from roughly `y + 382` to `y + 404`
+- creates a dedicated visual gap between vault inventory and player inventory
+- expected result: `Thức ăn · Hồi phục · Tiện ích · Chiến lợi phẩm` is fully visible and not clipped/covered
 
-No `Æ`, `Ã`, `»`, `trá»¯`, `lÆ°u`, etc.
+Do NOT describe this screenshot as a Vietnamese encoding bug in the next chat.
+
+### Vietnamese Equipment text safety
+Equipment Vietnamese strings are still intentionally written/materialized with ASCII-only JSON Unicode escapes where the build fixer touches them. This is only a build-safety measure for Windows PowerShell 5.1 and should not be confused with the Party Vault overlap bug above.
 
 ### Existing Alpha 6.1.2 fixes retained
 - dialogue Profile -> return hint restore
@@ -129,7 +137,6 @@ Alpha 6.1.3 build has verification gates for:
 - Farmer-through-party collision
 - ChaCha internal/display identity + PartyManager hard gate
 - EquipmentMenu integration
-- Vault Unicode repair
 - Tank-local taunt radius
 
 ## Highest-priority next action
@@ -138,9 +145,9 @@ Ask user to download a fresh source ZIP from the branch and run `BUILD_V0_2_ALPH
 If build fails, request the complete `BUILD_LOG.txt` and fix all compiler/helper errors in one pass.
 
 If build succeeds, test in this order:
-1. ChaCha has no Recruit option.
-2. Party Vault Vietnamese text is clean.
-3. Equipment opens dedicated panel and controller navigation works.
+1. Party Vault category line is fully visible and not covered by the lower inventory panel.
+2. Equipment opens dedicated panel and controller navigation works.
+3. ChaCha has no Recruit option.
 4. Alex Tank moves toward enemy before TAUNT and continues combat after taunting.
 5. Profile return hint / Codex focus regression.
 6. Flying Aerodactyl over lake performance.
