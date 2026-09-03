@@ -1,0 +1,72 @@
+TEAM UP v0.2.0-alpha.6.4.2 - UI READABILITY PASS
+SMOKE TEST VI
+
+MUC TIEU
+- Tang dung x2 co chu phan MO TA cua NOI TAI va KY NANG DAC TRUNG trong Character Profile.
+- Giu nguyen title/label/affinity/relationship de UI khong bi phong toan bo.
+- Man hinh thap van doc duoc bang vung cuon co clipping.
+- Passive van text-only; Signature van chi co 1 icon.
+- Khong regression Friendship/Bond 6.4.1, Skill Identity 6.4.0, Equipment 6.3.1, icon 6.3.2.
+
+1. STARTUP
+[ ] SMAPI khong co Team Up red error.
+[ ] Co marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.2
+
+2. PROFILE - CO CHU
+Mo profile Emily nhu anh test truoc.
+[ ] Dong mo ta Positive Energy lon xap xi gap 2 lan ban 6.4.1.
+[ ] Dong mo ta Prismatic Aura lon xap xi gap 2 lan ban 6.4.1.
+[ ] Tieu de NOI TAI / KY NANG DAC TRUNG khong bi phong to x2.
+[ ] Affinity, role, engagement, relationship van giu kich thuoc cu de tranh roi layout.
+
+3. PROFILE - SCROLL
+O do phan giai gan 1008x646 hoac thap hon:
+[ ] Neu mo ta khong vua, co thanh scroll nho ben phai vung mo ta.
+[ ] Mouse wheel cuon len/xuong phan mo ta.
+[ ] Phim Up/Down va PageUp/PageDown cuon phan mo ta.
+[ ] Controller D-pad Up/Down hoac Left Stick Up/Down cuon phan mo ta.
+[ ] Noi dung khong ve de len footer Tat ca nhan vat / Quay lai.
+[ ] Noi dung khong ve de len vien panel.
+
+4. ONE ICON RULE
+[ ] Passive khong co icon rieng.
+[ ] Signature co dung 1 icon.
+[ ] Icon Signature khong bi keo meo khi cuon.
+[ ] Emily, Alex, Abigail, Wizard, Alesia, Ysabelle van co icon bespoke.
+
+5. PROFILE KHAC
+Mo it nhat 4 NPC co mo ta dai/ngan khac nhau, goi y:
+- Emily
+- Sebastian
+- Caroline
+- Wizard
+[ ] Mo ta ngan khong tao scroll vo ly.
+[ ] Mo ta dai cuon den duoc dong cuoi.
+[ ] Chuyen NPC/profile moi thi scroll bat dau o dau trang.
+
+6. FRIENDSHIP & BOND REGRESSION
+[ ] 0 tim hien Quen biet / Acquaintance.
+[ ] 4 tim Trusted.
+[ ] 8 tim Close Companion.
+[ ] 10 tim Max Friendship / Signature Affinity.
+[ ] Spouse co Bond.
+[ ] 14 tim co Soulmate Trait/fallback dung.
+[ ] Relationship block ben trai khong bi mat/cat chu bat thuong.
+
+7. EQUIPMENT / SKILL REGRESSION
+[ ] Equipment rarity frame, Role Score, Combat Impact, Auto Equip van hoat dong.
+[ ] Signature cooldown preview van hien.
+[ ] Signature runtime vanilla + SVE/RSV Wave 1 van kich hoat.
+[ ] Buff runtime het han va khong stack vo han.
+
+8. CORE REGRESSION
+[ ] ChaCha khong vao Main Party.
+[ ] Alex/Tank approach truoc TAUNT.
+[ ] Party Vault category line khong bi che.
+[ ] Farmer van pass-through Team Up party members.
+
+NEU UI LOI
+- Chup full Character Profile.
+- Gui do phan giai game.
+- Neu loi cuon, noi ro mouse / keyboard / controller.
+- Neu chu qua lon hoac kho doc, gui NPC dang mo va anh full panel.
