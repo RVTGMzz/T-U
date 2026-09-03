@@ -19,10 +19,21 @@ try {
     if (-not (Test-Path $integrator)) { throw "Missing Alpha 6.4.5 integrator: $integrator" }
     if (-not (Test-Path $project)) { throw "Missing Team Up project: $project" }
 
-    # Normalize two PowerShell interpolation tokens before loading the integrator. This is
-    # idempotent and lets the workflow materialize the normalized source on the first green run.
+    # Normalize first-run source tokens before PowerShell parses the integrator. The green
+    # workflow then commits the normalized integrator, so local builds remain idempotent.
     $integratorText = [System.IO.File]::ReadAllText($integrator, [System.Text.Encoding]::UTF8)
     $normalizedIntegrator = $integratorText.Replace('$name:', '${name}:').Replace('$signature:', '${signature}:')
+
+    $badReplacement = @'
+    "        DrawButton(b, _autoEquipBounds, _translation.Get(\"equipment.auto-equip\"), !_focusInventory && _loadoutFocusIndex == 3);`n        DrawButton(b, _unequipBounds, _translation.Get(\"equipment.unequip-button\"), !_focusInventory && _loadoutFocusIndex == 4);",
+'@
+    $goodReplacement = @'
+    ('        DrawButton(b, _autoEquipBounds, _translation.Get("equipment.auto-equip"), !_focusInventory && _loadoutFocusIndex == 3);' + "`n" + '        DrawButton(b, _unequipBounds, _translation.Get("equipment.unequip-button"), !_focusInventory && _loadoutFocusIndex == 4);'),
+'@
+    $normalizedIntegrator = $normalizedIntegrator.Replace(
+        $badReplacement.TrimEnd("`r", "`n"),
+        $goodReplacement.TrimEnd("`r", "`n"))
+
     if ($normalizedIntegrator -ne $integratorText)
     {
         [System.IO.File]::WriteAllText($integrator, $normalizedIntegrator, $utf8NoBom)
