@@ -1,0 +1,95 @@
+TEAM UP v0.2.0-alpha.6.4.0 - CHARACTER SKILL IDENTITY
+SMOKE TEST VI
+
+MUC TIEU
+- Xac nhan 24 NPC Stardew vanilla con lai co Signature runtime that.
+- Moi NPC van bi khoa theo class: Primary ~70%, Secondary ~30%.
+- Buff tam thoi co tac dung qua ProgressionService, khong tao save field moi.
+- Moi kit hoan thien co 1 icon Signature bespoke; Passive chi hien text.
+- Khong lam hong Equipment 6.3.1, icon pass 6.3.2, SVE/RSV Wave 1, ChaCha, Tank/Vault.
+
+1. STARTUP
+[ ] SMAPI khong co Team Up red error.
+[ ] Co marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.0
+
+2. MO TIER 2 / TIER 3 NHANH
+Dung mot save test va command:
+teamup_test add <NPC>
+teamup_test preset tier2
+teamup_test cooldowns clear
+
+Sau do test Tier 3:
+teamup_test preset tier3
+teamup_test cooldowns clear
+
+3. TEST NHOM HEAL / SUPPORT
+Thu Caroline, Evelyn, Gus, Jodi, Marnie, Penny.
+[ ] Khi Farmer/party bi mat mau, Signature kich hoat dung ngu canh.
+[ ] Heal khong vuot max HP.
+[ ] Buff heal/CDR/DEF chi la bonus nhe, khong bien Healer/Support thanh DPS manh.
+[ ] Tier 3 tot hon Tier 2 nhung khong nhay suc manh bat thuong.
+
+4. TEST NHOM TANK / FRONT LINE
+Thu Clint, George, Kent, Lewis, Pam, Robin.
+[ ] Tank uu tien knockback/guard/control hon raw damage.
+[ ] Clint/George/Robin co cam giac khac nhau, khong chi doi ten skill.
+[ ] Kent/Pam co Damage secondary nhung khong vuot DPS chuyen dung.
+[ ] Buff DEF het han binh thuong, khong ton tai vinh vien sau combat.
+
+5. TEST NHOM DPS
+Thu Haley, Leah, Pierre, Sam, Shane, Willy.
+[ ] Haley/Pierre/Shane tap trung burst single-target theo identity.
+[ ] Leah/Sam/Willy co sweep/AoE khac nhau ve range, knockback, stun/utility.
+[ ] DPS khong co heal/tank utility qua manh.
+
+6. TEST NHOM CONTROL
+Thu Demetrius, Linus, Sandy, Sebastian, Wizard.
+[ ] Stun/control co cap thoi gian, khong khoa quai vo han.
+[ ] Sebastian thien single-target pin.
+[ ] Wizard/Demetrius/Linus/Sandy thien area/utility voi cam giac khac nhau.
+[ ] Control co damage thap hon DPS thuong.
+
+7. TEST ELLIOTT
+[ ] Rousing Verse uu tien rally/support.
+[ ] Co buff party nhe + damage/heal phu, khong lam ca 3 phan deu manh ngang class chuyen dung.
+
+8. ICON SIGNATURE
+Mo Codex / Character Profile cua vai NPC moi:
+Caroline, Clint, Haley, Robin, Sam, Sebastian, Wizard.
+[ ] Passive khong co icon rieng.
+[ ] Signature co dung 1 icon.
+[ ] Icon cua cac NPC tren co silhouette khac nhau.
+[ ] Abigail/Alex/Harvey/Maru/Emily van co icon bespoke cu.
+[ ] 24 SVE/RSV Wave 1 van co icon bespoke cu.
+
+9. EQUIPMENT COOLDOWN PREVIEW
+Mo Equipment tren NPC moi da Tier 2/3.
+[ ] Hover/focus gear van hien Signature CD.
+[ ] Gear CDR lam cooldown preview giam.
+[ ] Role Score / Combat Impact / rarity frame / Auto Equip van hoat dong.
+
+10. BUFF LIFECYCLE
+[ ] Buff runtime co tac dung trong vai giay roi het.
+[ ] Save/load khong tao field moi va khong giu buff tam thoi.
+[ ] Ket thuc ngay / ve title khong de lai buff cu.
+[ ] Khong thay damage/heal/control tang chong vo han sau nhieu lan dung skill.
+
+11. REGRESSION ALPHA 6.2 - 6.3.2
+[ ] SVE/RSV Wave 1 Signature van kich hoat.
+[ ] Abigail/Alex/Harvey/Maru/Emily Signature + Farmer Rescue van hoat dong.
+[ ] Auto Equip khong mat/duplicate item.
+[ ] ChaCha khong vao Main Party.
+[ ] Alex/Tank van approach truoc TAUNT.
+[ ] Party Vault category line khong bi che.
+[ ] Farmer van pass-through Team Up party members.
+
+12. GOI Y TEST CAN BANG NHANH
+- Cung level/mastery/gear, cho Tank va DPS danh cung loai monster.
+- Tank phai song/giu vi tri/knockback tot hon, DPS phai ket lieu nhanh hon.
+- Healer/Support phai gia tang kha nang song cua party, khong co raw DPS cao.
+- Control phai tao khoang trong/thoi gian an toan, khong stun-lock vo han.
+
+NEU CO LOI
+- Chup full man hinh luc skill kich hoat.
+- Gui NPC, Role dang dung, Lv/Mastery, map, va SMAPI log do neu co.
+- Neu la UI, gui them do phan giai game.
