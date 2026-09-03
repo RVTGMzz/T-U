@@ -1,0 +1,45 @@
+TEAM UP v0.2.0-alpha.6.3.1 - EQUIPMENT RPG POLISH SMOKE TEST
+
+1. STARTUP
+- SMAPI phai hien: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.3.1
+- Khong co red error cua Team Up.
+
+2. RARITY FRAME
+- Mo Trang bi NPC.
+- Cac item trong tui Farmer co vien rarity nhe.
+- Item dang mac trong 3 slot cung co vien rarity va ten item theo mau rarity.
+- Item khong hop slot van bi lam mo ro rang.
+
+3. ROLE-AWARE COMPARISON
+- Hover chuot hoac focus controller vao mot item hop slot.
+- Card phai hien: rarity, stat comparison, DO HOP VAI TRO, DIEM VAI TRO.
+- Thu NPC Tank va DPS: cung mot mon do phai co cach danh gia khac nhau neu stat khac role.
+
+4. COMBAT IMPACT
+- Tank: card uu tien hien tac dong DEF.
+- DPS: card hien DMG multiplier.
+- Healer: card hien HEAL multiplier.
+- Control: card hien CTRL multiplier.
+- Support: card hien CDR.
+- NPC co signature cooldown da biet phai hien Hoi chieu dac trung truoc -> sau.
+
+5. AUTO EQUIP
+- Mouse: bam TU DONG TRANG BI.
+- Controller/keyboard: bam Y.
+- He thong chi thay mon neu Role Score tot hon mon dang mac.
+- Khong duplicate/mat item.
+- Neu khong co upgrade thi thong bao khong tim thay gear tot hon.
+- Sau Auto Equip save/load lai, gear phai con dung.
+
+6. REGRESSION ALPHA 6.3
+- 3 slot Weapon/Armor/Trinket van equip/unequip binh thuong.
+- X unequip va tra dung item ve tui Farmer.
+- Controller focus van hien comparison card.
+- Passive/Signature icon van hien trong Profile.
+
+7. REGRESSION ALPHA 6.1.3/6.2
+- ChaCha khong co Recruit vao Main Party.
+- Alex Tank tien den quai truoc khi TAUNT.
+- Party Vault category line khong bi inventory che.
+- Farmer di xuyen qua Team Up member dang follow/wait.
+- SVE/RSV Wave 1 signature skills van hoat dong.
