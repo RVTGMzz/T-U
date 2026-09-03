@@ -512,8 +512,17 @@ public sealed class EquipmentMenu : IClickableMenu
 
         DrawButton(b, _backBounds, _translation.Get("common.back"), false);
 
-        if (_hoveredItem is not null)
-            DrawHoverComparison(b, _hoveredItem);
+        Item? comparisonItem = _hoveredItem;
+        if (comparisonItem is null
+            && _focusInventory
+            && _inventoryCursor >= 0
+            && _inventoryCursor < Game1.player.Items.Count)
+        {
+            comparisonItem = Game1.player.Items[_inventoryCursor];
+        }
+
+        if (comparisonItem is not null)
+            DrawHoverComparison(b, comparisonItem);
 
         drawMouse(b);
     }

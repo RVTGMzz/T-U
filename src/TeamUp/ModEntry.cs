@@ -59,6 +59,7 @@ public sealed class ModEntry : Mod
             SavePartyNow);
         DebugTools.RegisterCommands();
         Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.3.0", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.3.0", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -697,11 +698,11 @@ public sealed class ModEntry : Mod
         long recruiterId = Game1.player.UniqueMultiplayerID;
         PartyMemberData? member = Party.Get(speaker.Name, recruiterId);
 
-        string leftText = Helper.Translation.Get("hint.profile");
+        string leftText = Helper.Translation.Get("hint.profile").ToString();
         string? rightText = member is not null
-            ? Helper.Translation.Get("hint.leave")
+            ? Helper.Translation.Get("hint.leave").ToString()
             : IsRecruitableNpc(speaker)
-                ? Helper.Translation.Get("hint.recruit")
+                ? Helper.Translation.Get("hint.recruit").ToString()
                 : null;
 
         const int tagHeight = 50;
