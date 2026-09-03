@@ -422,7 +422,7 @@ $equipment = $equipment.Replace(
 $equipment = [regex]::Replace(
     $equipment,
     '        DrawButton\(b, _autoEquipBounds, _translation\.Get\("equipment\.auto-equip"\), false\);\n        DrawButton\(b, _unequipBounds, _translation\.Get\("equipment\.unequip-button"\), false\);',
-    "        DrawButton(b, _autoEquipBounds, _translation.Get(\"equipment.auto-equip\"), !_focusInventory && _loadoutFocusIndex == 3);`n        DrawButton(b, _unequipBounds, _translation.Get(\"equipment.unequip-button\"), !_focusInventory && _loadoutFocusIndex == 4);",
+    ('        DrawButton(b, _autoEquipBounds, _translation.Get("equipment.auto-equip"), !_focusInventory && _loadoutFocusIndex == 3);' + "`n" + '        DrawButton(b, _unequipBounds, _translation.Get("equipment.unequip-button"), !_focusInventory && _loadoutFocusIndex == 4);'),
     1)
 WriteText $equipmentMenuPath $equipment
 
@@ -729,10 +729,10 @@ foreach ($name in $specs.Keys | Sort-Object) {
     $secondaryVi = RoleVi $spec.Secondary
     $engagementVi = EngagementVi $spec.Engagement
 
-    AddJsonProperty $en "codex.expansion.$key.passive" "$name: a Team Up $primaryEn/$secondaryEn specialist using $($spec.Engagement.ToLowerInvariant()) positioning and class-safe utility."
-    AddJsonProperty $en "codex.expansion.$key.ability" "$signature: a unique Team Up signature tuned around $primaryEn with $secondaryEn utility; secondary effects trade against raw power to preserve class balance."
-    AddJsonProperty $vi "codex.expansion.$key.passive" "$name: chiến đấu theo hướng $primaryVi/$secondaryVi của Team Up, giữ vị trí $engagementVi và ưu tiên đúng nhiệm vụ class."
-    AddJsonProperty $vi "codex.expansion.$key.ability" "$signature: kỹ năng đặc trưng riêng của Team Up thiên về $primaryVi, kèm tiện ích $secondaryVi; hiệu ứng phụ được đổi bằng sức mạnh thô để giữ cân bằng class."
+    AddJsonProperty $en "codex.expansion.$key.passive" "${name}: a Team Up $primaryEn/$secondaryEn specialist using $($spec.Engagement.ToLowerInvariant()) positioning and class-safe utility."
+    AddJsonProperty $en "codex.expansion.$key.ability" "${signature}: a unique Team Up signature tuned around $primaryEn with $secondaryEn utility; secondary effects trade against raw power to preserve class balance."
+    AddJsonProperty $vi "codex.expansion.$key.passive" "${name}: chiến đấu theo hướng $primaryVi/$secondaryVi của Team Up, giữ vị trí $engagementVi và ưu tiên đúng nhiệm vụ class."
+    AddJsonProperty $vi "codex.expansion.$key.ability" "${signature}: kỹ năng đặc trưng riêng của Team Up thiên về $primaryVi, kèm tiện ích $secondaryVi; hiệu ứng phụ được đổi bằng sức mạnh thô để giữ cân bằng class."
 }
 WriteText $defaultI18nPath ($en | ConvertTo-Json -Depth 20)
 WriteText $viI18nPath ($vi | ConvertTo-Json -Depth 20)

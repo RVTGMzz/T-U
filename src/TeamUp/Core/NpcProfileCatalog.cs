@@ -75,7 +75,10 @@ public static class NpcProfileCatalog
         };
 
         foreach (NpcCombatProfile profile in ExpansionNpcProfileCatalog.All)
-            profiles[profile.CharacterName] = profile;
+        {
+            NpcCombatProfile resolved = ExpansionRosterCompletion.Resolve(profile);
+            profiles[resolved.CharacterName] = resolved;
+        }
 
         return profiles;
     }

@@ -10,7 +10,7 @@ namespace Ronvotri.TeamUp.Combat;
 /// Skills unlock at the same signature tiers as Alpha 6: Tier 2 at Lv10 / mastery 4,
 /// Tier 3 at Lv20 / mastery 8. No new save fields are required.
 /// </summary>
-internal sealed class ExpansionSkillService
+internal sealed partial class ExpansionSkillService
 {
     private readonly ProgressionService _progression;
     private readonly ThreatService _threat;
@@ -447,7 +447,8 @@ internal sealed class ExpansionSkillService
     {
         npc.showTextAboveHead($"{spec.Label} {value}", spec.Color, 2, 1450, 0);
         SpawnBurst(Game1.currentLocation, npc.Position, spec.Color, 8, 30f);
-        Game1.currentLocation.playSound(sound);
+        if (!string.IsNullOrWhiteSpace(sound))
+            Game1.currentLocation.playSound(sound);
     }
 
     private static PartyRole ResolveRole(PartyMemberData member)

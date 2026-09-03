@@ -476,7 +476,8 @@ public sealed class CharacterSkillIdentityService
     {
         npc.showTextAboveHead(name + suffix, color, 2, 1450, 0);
         if (Game1.currentLocation is not null)
-            Game1.currentLocation.playSound(sound);
+            if (!string.IsNullOrWhiteSpace(sound))
+                Game1.currentLocation.playSound(sound);
     }
 
     private void AwardSkillProgress(PartyMemberData member, PartyRole role, NPC npc, int xp, int masteryXp)

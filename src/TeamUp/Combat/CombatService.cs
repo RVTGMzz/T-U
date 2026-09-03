@@ -16,10 +16,12 @@ namespace Ronvotri.TeamUp.Combat;
 public sealed class CombatService
 {
     private const float HardLeashTiles = 12f;
-    private const float RepathThresholdTiles = 0.9f;
+    private const float RepathThresholdTiles = 1.35f;
     private const int AutoReviveTicks = 720;
     private const int ReviveGraceTicks = 600;
     private const int ThreatPulseInterval = 30;
+    private const int TargetLockDurationTicks = 45;
+    private const int FacingHoldDurationTicks = 10;
 
     private readonly IMonitor _monitor;
     private readonly FollowService _follow;
@@ -34,6 +36,9 @@ public sealed class CombatService
     private readonly Dictionary<string, int> _selfRecoveryCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Monster> _targets = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Vector2> _lastTargetTiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _targetLockTicks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _facingHoldTicks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _lastFacingDirections = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _retreatNotified = new(StringComparer.OrdinalIgnoreCase);
 
     private int _threatPulseTicks;
@@ -64,6 +69,9 @@ public sealed class CombatService
         _incomingDamageCooldowns.Clear();
         _selfRecoveryCooldowns.Clear();
         _lastTargetTiles.Clear();
+        _targetLockTicks.Clear();
+        _facingHoldTicks.Clear();
+        _lastFacingDirections.Clear();
         _retreatNotified.Clear();
         _threat.Clear();
         _expansionSkills.Clear();
@@ -82,6 +90,8 @@ public sealed class CombatService
         TickCooldowns(_tauntCooldowns);
         TickCooldowns(_incomingDamageCooldowns);
         TickCooldowns(_selfRecoveryCooldowns);
+        TickCooldowns(_targetLockTicks);
+        TickCooldowns(_facingHoldTicks);
 
         List<Monster> monsters = Game1.currentLocation.characters
             .OfType<Monster>()
@@ -186,9 +196,10 @@ public sealed class CombatService
             npc.controller = null;
             npc.temporaryController = null;
             npc.Halt();
-            npc.faceDirection(GetFacingDirection(npc.Position, target.Position));
+            bool attackReady = GetCooldown(_attackCooldowns, member.CharacterName) <= 0;
+            FaceTargetStable(npc, target, attackReady);
 
-            if (GetCooldown(_attackCooldowns, member.CharacterName) > 0)
+            if (!attackReady)
                 continue;
 
             PerformAttack(npc, target, member, role, affinity);
@@ -498,7 +509,8 @@ public sealed class CombatService
         Vector2 farmerTile = Game1.player.Tile;
         List<Monster> candidates = monsters
             .Where(monster => ReferenceEquals(monster.currentLocation, Game1.currentLocation))
-            .Where(monster => Vector2.Distance(monster.Tile, farmerTile) <= radius)
+            .Where(monster => Vector2.Distance(monster.Tile, farmerTile) <= radius
+                || Vector2.Distance(monster.Tile, npc.Tile) <= Math.Min(radius, 5.5f))
             .ToList();
 
         if (member.Engagement == EngagementStyle.Passive)
@@ -511,6 +523,9 @@ public sealed class CombatService
             && candidates.Contains(tracked)
                 ? tracked
                 : null;
+
+        if (current is not null && GetCooldown(_targetLockTicks, member.CharacterName) > 0)
+            return current;
 
         double Score(Monster monster)
         {
@@ -542,7 +557,10 @@ public sealed class CombatService
             };
         }
 
-        return candidates.OrderBy(Score).FirstOrDefault();
+        Monster? chosen = candidates.OrderBy(Score).FirstOrDefault();
+        if (chosen is not null && !ReferenceEquals(chosen, current))
+            _targetLockTicks[member.CharacterName] = TargetLockDurationTicks;
+        return chosen;
     }
 
     private bool TryPerformRecovery(
@@ -960,6 +978,9 @@ public sealed class CombatService
     {
         _targets.Remove(characterName);
         _lastTargetTiles.Remove(characterName);
+        _targetLockTicks.Remove(characterName);
+        _facingHoldTicks.Remove(characterName);
+        _lastFacingDirections.Remove(characterName);
         if (npc is not null)
             _follow.SetCombatControl(npc, false);
     }
@@ -981,9 +1002,9 @@ public sealed class CombatService
         return style switch
         {
             EngagementStyle.Passive => 2.75f,
-            EngagementStyle.Cautious => 4.5f,
-            EngagementStyle.Balanced => 6.5f,
-            EngagementStyle.Aggressive => 8.5f,
+            EngagementStyle.Cautious => 5.5f,
+            EngagementStyle.Balanced => 7.0f,
+            EngagementStyle.Aggressive => 9.0f,
             EngagementStyle.Reckless => 10.5f,
             _ => 6.5f
         };
@@ -1047,6 +1068,22 @@ public sealed class CombatService
         return best;
     }
 
+    private void FaceTargetStable(NPC npc, Monster target, bool force)
+    {
+        int desired = GetFacingDirection(npc.Position, target.Position);
+        if (!force
+            && _lastFacingDirections.TryGetValue(npc.Name, out int last)
+            && last != desired
+            && GetCooldown(_facingHoldTicks, npc.Name) > 0)
+            return;
+
+        if (!_lastFacingDirections.TryGetValue(npc.Name, out int previous) || previous != desired || force)
+        {
+            npc.faceDirection(desired);
+            _lastFacingDirections[npc.Name] = desired;
+            _facingHoldTicks[npc.Name] = FacingHoldDurationTicks;
+        }
+    }
     private static int GetFacingDirection(Vector2 from, Vector2 to)
     {
         Vector2 delta = to - from;

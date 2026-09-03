@@ -22,6 +22,7 @@ public sealed class EquipmentMenu : IClickableMenu
     private const int InventoryRows = 6;
     private const int InventoryCell = 62;
     private const int SlotCardHeight = 96;
+    private const long DoubleClickWindowMs = 450;
 
     private readonly NPC _npc;
     private readonly PartyMemberData _member;
@@ -42,6 +43,9 @@ public sealed class EquipmentMenu : IClickableMenu
     private Rectangle _unequipBounds;
 
     private EquipmentSlot _selectedSlot = EquipmentSlot.Weapon;
+    private int _loadoutFocusIndex;
+    private int _lastMouseClickId = -1;
+    private long _lastMouseClickAtMs;
     private bool _focusInventory;
     private int _inventoryCursor;
     private Texture2D? _portrait;
@@ -159,8 +163,12 @@ public sealed class EquipmentMenu : IClickableMenu
                 continue;
 
             _selectedSlot = (EquipmentSlot)i;
+            _loadoutFocusIndex = i;
             _focusInventory = false;
-            Game1.playSound("smallSelect");
+            if (IsDoubleClick(2000 + i) && _equipment.GetEquipped(_member, _selectedSlot) is not null)
+                UnequipSelected();
+            else
+                Game1.playSound("smallSelect");
             return;
         }
 
@@ -171,18 +179,32 @@ public sealed class EquipmentMenu : IClickableMenu
 
             _focusInventory = true;
             _inventoryCursor = i;
-            EquipInventoryIndex(i);
+            if (i < Game1.player.Items.Count && Game1.player.Items[i] is Item item)
+            {
+                EquipmentSlot? naturalSlot = GetNaturalSlot(item);
+                if (naturalSlot.HasValue)
+                    _selectedSlot = naturalSlot.Value;
+            }
+
+            if (IsDoubleClick(1000 + i))
+                EquipInventoryIndex(i);
+            else
+                Game1.playSound("smallSelect");
             return;
         }
 
         if (_autoEquipBounds.Contains(x, y))
         {
+            _focusInventory = false;
+            _loadoutFocusIndex = 3;
             AutoEquipBest();
             return;
         }
 
         if (_unequipBounds.Contains(x, y))
         {
+            _focusInventory = false;
+            _loadoutFocusIndex = 4;
             UnequipSelected();
             return;
         }
@@ -271,7 +293,7 @@ public sealed class EquipmentMenu : IClickableMenu
     {
         if (!_focusInventory)
         {
-            if (delta > 0)
+            if (delta > 0 && _loadoutFocusIndex <= 2)
             {
                 _focusInventory = true;
                 ClampInventoryCursor();
@@ -284,6 +306,7 @@ public sealed class EquipmentMenu : IClickableMenu
         if (delta < 0 && col == 0)
         {
             _focusInventory = false;
+            _loadoutFocusIndex = (int)_selectedSlot;
             Game1.playSound("shiny4");
             return;
         }
@@ -298,8 +321,9 @@ public sealed class EquipmentMenu : IClickableMenu
     {
         if (!_focusInventory)
         {
-            int next = Math.Clamp((int)_selectedSlot + delta, 0, 2);
-            _selectedSlot = (EquipmentSlot)next;
+            _loadoutFocusIndex = Math.Clamp(_loadoutFocusIndex + delta, 0, 4);
+            if (_loadoutFocusIndex <= 2)
+                _selectedSlot = (EquipmentSlot)_loadoutFocusIndex;
             Game1.playSound("shiny4");
             return;
         }
@@ -314,6 +338,18 @@ public sealed class EquipmentMenu : IClickableMenu
     {
         if (!_focusInventory)
         {
+            if (_loadoutFocusIndex == 3)
+            {
+                AutoEquipBest();
+                return;
+            }
+            if (_loadoutFocusIndex == 4)
+            {
+                UnequipSelected();
+                return;
+            }
+
+            _selectedSlot = (EquipmentSlot)Math.Clamp(_loadoutFocusIndex, 0, 2);
             _focusInventory = true;
             ClampInventoryCursor();
             Game1.playSound("smallSelect");
@@ -321,6 +357,17 @@ public sealed class EquipmentMenu : IClickableMenu
         }
 
         EquipInventoryIndex(_inventoryCursor);
+    }
+
+    private bool IsDoubleClick(int clickId)
+    {
+        long now = Environment.TickCount64;
+        bool isDouble = _lastMouseClickId == clickId
+            && now - _lastMouseClickAtMs >= 0
+            && now - _lastMouseClickAtMs <= DoubleClickWindowMs;
+        _lastMouseClickId = clickId;
+        _lastMouseClickAtMs = now;
+        return isDouble;
     }
 
     private void ClampInventoryCursor()
@@ -743,7 +790,7 @@ public sealed class EquipmentMenu : IClickableMenu
             EquipmentSlot slot = (EquipmentSlot)i;
             Rectangle bounds = _slotBounds[i];
             bool selected = slot == _selectedSlot;
-            DrawInset(b, bounds, selected && !_focusInventory);
+            DrawInset(b, bounds, selected && !_focusInventory && _loadoutFocusIndex == i);
 
             Item? actualItem = GetActualEquippedItem(slot);
             EquippedItemData? data = _equipment.GetEquipped(_member, slot);
@@ -766,8 +813,8 @@ public sealed class EquipmentMenu : IClickableMenu
                 DrawFitText(b, stats, new Rectangle(bounds.X + 82, bounds.Y + 66, bounds.Width - 94, 20), Game1.unselectedOptionColor, 0.78f);
         }
 
-        DrawButton(b, _autoEquipBounds, _translation.Get("equipment.auto-equip"), false);
-        DrawButton(b, _unequipBounds, _translation.Get("equipment.unequip-button"), false);
+        DrawButton(b, _autoEquipBounds, _translation.Get("equipment.auto-equip"), !_focusInventory && _loadoutFocusIndex == 3);
+        DrawButton(b, _unequipBounds, _translation.Get("equipment.unequip-button"), !_focusInventory && _loadoutFocusIndex == 4);
     }
 
     private void DrawInventoryColumn(SpriteBatch b)

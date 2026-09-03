@@ -72,6 +72,8 @@ public static class PartyVaultService
         private int _controllerIndex;
         private bool _showMouseCursor;
         private Point _lastPhysicalMouse;
+        private bool _mouseDragCandidate;
+        private Point _mouseDragStart;
 
         public PartyVaultMenu(
             IList<Item> vaultItems,
@@ -149,6 +151,7 @@ public static class PartyVaultService
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
             _showMouseCursor = true;
+            _mouseDragCandidate = false;
             _lastPhysicalMouse = new Point(Mouse.GetState().X, Mouse.GetState().Y);
 
             if (_fillStacksButton.containsPoint(x, y))
@@ -174,7 +177,10 @@ public static class PartyVaultService
                 if (IsQuickTransferModifierDown() && _heldItem is null)
                     QuickTransferAt(_vaultMenu, _playerMenu, x, y);
                 else
+                {
+                    BeginMouseDragCandidate(_vaultMenu, x, y);
                     HandleLeftClick(_vaultMenu, x, y, playSound);
+                }
                 return;
             }
 
@@ -183,13 +189,56 @@ public static class PartyVaultService
                 if (IsQuickTransferModifierDown() && _heldItem is null)
                     QuickTransferAt(_playerMenu, _vaultMenu, x, y);
                 else
+                {
+                    BeginMouseDragCandidate(_playerMenu, x, y);
                     HandleLeftClick(_playerMenu, x, y, playSound);
+                }
             }
         }
 
+        public override void releaseLeftClick(int x, int y)
+        {
+            if (!_mouseDragCandidate)
+                return;
+
+            int dx = x - _mouseDragStart.X;
+            int dy = y - _mouseDragStart.Y;
+            bool actualDrag = dx * dx + dy * dy >= 64;
+            _mouseDragCandidate = false;
+            if (!actualDrag || _heldItem is null)
+                return;
+
+            if (IsWithin(_vaultMenu, x, y))
+            {
+                HandleLeftClick(_vaultMenu, x, y, playSound: true);
+                return;
+            }
+
+            if (IsWithin(_playerMenu, x, y))
+            {
+                HandleLeftClick(_playerMenu, x, y, playSound: true);
+                return;
+            }
+
+            ReturnHeldItemSafely();
+        }
+
+        private void BeginMouseDragCandidate(InventoryMenu menu, int x, int y)
+        {
+            if (_heldItem is not null)
+                return;
+
+            int index = menu.getInventoryPositionOfClick(x, y);
+            if (index < 0 || index >= menu.actualInventory.Count || menu.actualInventory[index] is null)
+                return;
+
+            _mouseDragCandidate = true;
+            _mouseDragStart = new Point(x, y);
+        }
         public override void receiveRightClick(int x, int y, bool playSound = true)
         {
             _showMouseCursor = true;
+            _mouseDragCandidate = false;
             _lastPhysicalMouse = new Point(Mouse.GetState().X, Mouse.GetState().Y);
 
             if (IsWithin(_vaultMenu, x, y))

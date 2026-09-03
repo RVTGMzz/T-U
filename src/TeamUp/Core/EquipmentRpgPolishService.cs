@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Ronvotri.TeamUp.Combat;
 using StardewValley;
 
 namespace Ronvotri.TeamUp.Core;
@@ -234,7 +235,8 @@ public static class EquipmentRpgPolishService
 
     private static float? GetSignatureCooldownSeconds(ProgressionService progression, PartyMemberData member, PartyRole role)
     {
-        if (!SignatureCooldownTicks.TryGetValue(member.CharacterName, out int baseTicks))
+        if (!SignatureCooldownTicks.TryGetValue(member.CharacterName, out int baseTicks)
+            && !ExpansionSkillService.TryGetBaseCooldownTicks(member.CharacterName, out baseTicks))
             return null;
 
         bool expansionSkill = !member.CharacterName.Equals("Abigail", StringComparison.OrdinalIgnoreCase)
