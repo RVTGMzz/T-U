@@ -19,6 +19,9 @@ $source = $source.Replace(
 $source = $source.Replace(
     'TeamUp_v0.2.0-alpha.6.1.3_PARTY_UX_TANK_CHACHA_TEST.sha256.txt',
     'TeamUp_v0.2.0-alpha.6.2.0_EXPANSION_SKILLS_WAVE1_TEST.sha256.txt')
+$source = $source.Replace(
+    'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt',
+    'SMOKE_TEST_V0_2_ALPHA6_2_EXPANSION_SKILLS_VI.txt')
 
 $oldVar = '$alpha613Fixer = Join-Path $root ''_build_support\FixAlpha613PartyUxCombat.ps1'''
 $newVar = $oldVar + "`r`n" + '$expansionIntegrator = Join-Path $root ''_build_support\IntegrateExpansionSkillsWave1.ps1'''
@@ -53,6 +56,15 @@ $source = $source.Replace(
 $source = $source.Replace(
     'Vietnamese: Vault + Equipment strings are materialized through ASCII-only Unicode escapes.',
     "Vietnamese: Vault + Equipment strings are materialized through ASCII-only Unicode escapes.`r`nExpansion: SVE + Ridgeside source-aware Codex roster; 24 curated NPCs have real Tier 2/3 signature skills.")
+$source = $source.Replace('BUILD SUCCESS - ALPHA 6.1.3', 'BUILD SUCCESS - ALPHA 6.2.0')
+$source = $source.Replace('SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.1.3', 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.2.0')
+$source = $source.Replace('VAULT: VIETNAMESE UTF-8 REPAIR ENABLED', 'VAULT: CATEGORY LAYOUT + UTF-8 SAFETY RETAINED')
+$source = $source.Replace(
+    "Write-Host 'EQUIPMENT: DEDICATED PANEL ENABLED'",
+    "Write-Host 'EQUIPMENT: DEDICATED PANEL ENABLED'`r`nWrite-Host 'EXPANSION: 24 REAL SVE/RSV SIGNATURE SKILLS ENABLED'")
+
+if (-not $source.Contains('& $expansionIntegrator')) { throw 'Alpha 6.2 generated build is missing the expansion integration execution hook.' }
+if (-not $source.Contains('SMOKE_TEST_V0_2_ALPHA6_2_EXPANSION_SKILLS_VI.txt')) { throw 'Alpha 6.2 generated build did not select the expansion smoke test.' }
 
 [System.IO.File]::WriteAllText($generatedBuild, $source, $utf8NoBom)
 try {
