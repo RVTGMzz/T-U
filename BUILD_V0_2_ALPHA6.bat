@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.4.0 - CHARACTER SKILL IDENTITY
+echo   Team Up! v0.2.0-alpha.6.4.1 - FRIENDSHIP ^& BOND
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha640.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha641.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,14 +25,14 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.4.0.
+echo BUILD OK - ALPHA 6.4.1.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.4.0
-echo Test 1: 24 NPC vanilla moi co Signature Tier 2/3 runtime that.
-echo Test 2: Skill khac nhau nhung giu balance 70 Primary / 30 Secondary.
-echo Test 3: Buff tam thoi het han dung, khong stack vo han va khong luu save.
-echo Test 4: Moi kit vanilla hoan thien co 1 Signature icon bespoke.
-echo Test 5: Equipment 6.3.1 + icons 6.3.2 + SVE/RSV + ChaCha/Tank/Vault khong regression.
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.4.1
+echo Test 1: 4 tim Trusted tang progression nhe.
+echo Test 2: 8 tim Close Companion cai thien timing AI theo role.
+echo Test 3: 10 tim Signature Affinity tang nhe hieu qua Signature.
+echo Test 4: spouse co Bond Trait theo role; 14 tim co Soulmate Trait.
+echo Test 5: relationship buff khong stack vo han va khong luu vao save.
 echo.
 explorer "%~dp0release"
 pause
