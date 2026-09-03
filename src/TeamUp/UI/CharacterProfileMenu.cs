@@ -10,7 +10,8 @@ namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
 /// Dedicated Team Up character dossier with native controller footer navigation.
-/// Passive and signature sections now include stable, character-specific pixel icons.
+/// Alpha 6.3.2 keeps the passive readable as text and reserves the single character icon
+/// for the NPC's signature ability.
 /// </summary>
 public sealed class CharacterProfileMenu : IClickableMenu
 {
@@ -303,41 +304,51 @@ public sealed class CharacterProfileMenu : IClickableMenu
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Control), _profile.ControlAffinity, innerWidth);
         cursorY += 38;
 
-        cursorY += DrawTraitBlock(
+        cursorY += DrawTextTraitBlock(
             b,
             innerX,
             cursorY,
             innerWidth,
             _i18n.Get("profile.passive"),
-            _passiveText,
-            TraitIconRenderer.TraitIconKind.Passive,
-            _profile.PrimaryRole);
-        cursorY += 12;
+            _passiveText);
+        cursorY += 14;
 
-        DrawTraitBlock(
+        DrawSignatureBlock(
             b,
             innerX,
             cursorY,
             innerWidth,
             _i18n.Get("profile.signature"),
             _signatureText,
-            TraitIconRenderer.TraitIconKind.Signature,
             _profile.PrimaryRole);
     }
 
-    private int DrawTraitBlock(
+    private static int DrawTextTraitBlock(
+        SpriteBatch b,
+        int x,
+        int y,
+        int width,
+        string title,
+        string body)
+    {
+        DrawSectionTitle(b, title, x, y + 1);
+        string wrapped = WrapScaled(body, width, BodyScale);
+        DrawScaledString(b, Game1.smallFont, wrapped, new Vector2(x, y + 29), Game1.textColor, BodyScale);
+        return 29 + (int)(Game1.smallFont.MeasureString(wrapped).Y * BodyScale);
+    }
+
+    private int DrawSignatureBlock(
         SpriteBatch b,
         int x,
         int y,
         int width,
         string title,
         string body,
-        TraitIconRenderer.TraitIconKind kind,
         PartyRole role)
     {
         const int iconSize = 68;
         Rectangle iconBounds = new(x, y, iconSize, iconSize);
-        TraitIconRenderer.Draw(b, _characterName, kind, role, iconBounds);
+        TraitIconRenderer.Draw(b, _characterName, TraitIconRenderer.TraitIconKind.Signature, role, iconBounds);
 
         int textX = x + iconSize + 16;
         int textWidth = Math.Max(80, width - iconSize - 16);
