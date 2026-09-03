@@ -47,10 +47,11 @@ $modPath = Join-Path $repoRoot 'src\TeamUp\ModEntry.cs'
 $equipmentMenuPath = Join-Path $repoRoot 'src\TeamUp\UI\EquipmentMenu.cs'
 $profileMenuPath = Join-Path $repoRoot 'src\TeamUp\UI\CharacterProfileMenu.cs'
 $traitIconPath = Join-Path $repoRoot 'src\TeamUp\UI\TraitIconRenderer.cs'
+$previewPath = Join-Path $repoRoot 'src\TeamUp\Core\EquipmentPreviewService.cs'
 $defaultPath = Join-Path $repoRoot 'src\TeamUp\i18n\default.json'
 $viPath = Join-Path $repoRoot 'src\TeamUp\i18n\vi.json'
 
-foreach ($path in @($projectPath, $modPath, $equipmentMenuPath, $profileMenuPath, $traitIconPath, $defaultPath, $viPath)) {
+foreach ($path in @($projectPath, $modPath, $equipmentMenuPath, $profileMenuPath, $traitIconPath, $previewPath, $defaultPath, $viPath)) {
     if (-not (Test-Path $path)) { throw "NPC loadout required source is missing: $path" }
 }
 
@@ -70,6 +71,7 @@ Ensure-Translation $defaultPath @{
     'equipment.inventory-filter' = 'Selected slot: {{slot}} · compatible gear stays bright'
     'equipment.compatible' = 'Compatible'
     'equipment.incompatible' = 'Not compatible with this slot'
+    'equipment.compare-title' = 'STAT COMPARISON'
 }
 
 Ensure-Translation $viPath @{
@@ -78,17 +80,129 @@ Ensure-Translation $viPath @{
     'equipment.inventory-filter' = 'Đang chọn: {{slot}} · đồ phù hợp sẽ sáng rõ'
     'equipment.compatible' = 'Có thể trang bị'
     'equipment.incompatible' = 'Không phù hợp với slot này'
+    'equipment.compare-title' = 'SO SÁNH CHỈ SỐ'
+}
+
+$equipment = Normalize-Crlf ([System.IO.File]::ReadAllText($equipmentMenuPath, [System.Text.Encoding]::UTF8))
+if (-not $equipment.Contains('private void DrawHoverComparison(SpriteBatch b, Item item)')) {
+$methods = @'
+    private void DrawHoverComparison(SpriteBatch b, Item item)
+    {
+        bool compatible = CanEquip(_selectedSlot, item);
+        int cardWidth = Math.Min(390, Math.Max(280, _inventoryPanel.Width - 36));
+        int cardHeight = compatible ? 198 : 82;
+        Rectangle card = new(
+            _inventoryPanel.Right - cardWidth - 18,
+            _inventoryPanel.Bottom - cardHeight - 16,
+            cardWidth,
+            cardHeight);
+
+        DrawPanel(b, card, Color.White);
+        b.DrawString(Game1.smallFont, item.DisplayName, new Vector2(card.X + 16, card.Y + 12), Game1.textColor);
+
+        if (!compatible)
+        {
+            b.DrawString(
+                Game1.smallFont,
+                _translation.Get("equipment.incompatible"),
+                new Vector2(card.X + 16, card.Y + 44),
+                Color.DarkRed);
+            return;
+        }
+
+        EquippedItemData? current = _equipment.GetEquipped(_member, _selectedSlot);
+        EquippedItemData preview = EquipmentPreviewService.BuildPreview(_selectedSlot, item, _member.CharacterName);
+        b.DrawString(
+            Game1.smallFont,
+            _translation.Get("equipment.compare-title"),
+            new Vector2(card.X + 16, card.Y + 42),
+            new Color(112, 73, 44));
+
+        int y = card.Y + 72;
+        DrawComparisonLine(b, card.X + 16, ref y, "ATK", current?.AttackBonus ?? 0, preview.AttackBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "DEF", current?.DefenseBonus ?? 0, preview.DefenseBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "HEAL", current?.HealPowerBonus ?? 0, preview.HealPowerBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "CTRL", current?.ControlPowerBonus ?? 0, preview.ControlPowerBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "CDR", current?.CooldownReductionPercent ?? 0, preview.CooldownReductionPercent, true);
+    }
+
+    private static void DrawComparisonLine(
+        SpriteBatch b,
+        int x,
+        ref int y,
+        string label,
+        int current,
+        int next,
+        bool percent)
+    {
+        if (current == 0 && next == 0)
+            return;
+
+        int delta = next - current;
+        string suffix = percent ? "%" : string.Empty;
+        string deltaText = delta == 0 ? string.Empty : $"  ({(delta > 0 ? "+" : string.Empty)}{delta}{suffix})";
+        string text = $"{label}  {current}{suffix} \u2192 {next}{suffix}{deltaText}";
+        Color color = delta > 0
+            ? new Color(72, 145, 76)
+            : delta < 0
+                ? new Color(175, 72, 66)
+                : Game1.unselectedOptionColor;
+
+        b.DrawString(Game1.smallFont, text, new Vector2(x, y), color);
+        y += 24;
+    }
+
+'@
+    $needle = '    public override void draw(SpriteBatch b)'
+    if (-not $equipment.Contains($needle)) { throw 'NPC loadout comparison could not locate draw method insertion point.' }
+    $equipment = $equipment.Replace($needle, $methods + $needle)
+
+$oldHover = @'
+        if (_hoveredItem is not null)
+        {
+            string compatibility = CanEquip(_selectedSlot, _hoveredItem)
+                ? _translation.Get("equipment.compatible")
+                : _translation.Get("equipment.incompatible");
+            string hover = $"{_hoveredItem.DisplayName}  ·  {compatibility}";
+            Vector2 size = Game1.smallFont.MeasureString(hover);
+            Rectangle strip = new(
+                _inventoryPanel.X + 18,
+                _inventoryPanel.Bottom - 48,
+                _inventoryPanel.Width - 36,
+                30);
+            float scale = size.X <= strip.Width ? 1f : Math.Max(0.72f, strip.Width / size.X);
+            b.DrawString(Game1.smallFont, hover, new Vector2(strip.X, strip.Y), Game1.textColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 1f);
+        }
+'@
+$newHover = @'
+        if (_hoveredItem is not null)
+            DrawHoverComparison(b, _hoveredItem);
+'@
+    if (-not $equipment.Contains((Normalize-Crlf ($oldHover.TrimEnd())))) {
+        throw 'NPC loadout comparison could not locate the old hover strip.'
+    }
+    $equipment = $equipment.Replace((Normalize-Crlf ($oldHover.TrimEnd())), (Normalize-Crlf ($newHover.TrimEnd())))
+    [System.IO.File]::WriteAllText($equipmentMenuPath, $equipment, $utf8NoBom)
 }
 
 $equipment = [System.IO.File]::ReadAllText($equipmentMenuPath, [System.Text.Encoding]::UTF8)
 $profile = [System.IO.File]::ReadAllText($profileMenuPath, [System.Text.Encoding]::UTF8)
 $icons = [System.IO.File]::ReadAllText($traitIconPath, [System.Text.Encoding]::UTF8)
+$preview = [System.IO.File]::ReadAllText($previewPath, [System.Text.Encoding]::UTF8)
 $modVerify = [System.IO.File]::ReadAllText($modPath, [System.Text.Encoding]::UTF8)
 
 if (-not $equipment.Contains('private const int InventoryColumns = 6;')
     -or -not $equipment.Contains('item.drawInMenu(')
     -or -not $equipment.Contains('GetActualEquippedItem')) {
     throw 'NPC loadout verification failed: visual item-grid equipment menu markers are missing.'
+}
+if (-not $equipment.Contains('DrawHoverComparison')
+    -or -not $equipment.Contains('EquipmentPreviewService.BuildPreview')
+    -or -not $equipment.Contains('STAT COMPARISON') -and -not ([System.IO.File]::ReadAllText($defaultPath)).Contains('equipment.compare-title')) {
+    throw 'NPC loadout stat comparison verification failed.'
+}
+if (-not $preview.Contains('BuildPreview') -or -not $preview.Contains('CooldownReductionPercent')) {
+    throw 'Equipment preview formula verification failed.'
 }
 if (-not $profile.Contains('TraitIconRenderer.Draw(')
     -or -not $profile.Contains('TraitIconRenderer.TraitIconKind.Passive')
@@ -103,5 +217,5 @@ if (-not $modVerify.Contains('build: v0.2.0-alpha.6.3.0')) {
 }
 
 Write-Host 'Alpha 6.3.0 NPC loadout + unique trait icon integration complete.'
-Write-Host 'Equipment UI: portrait + 3 live gear slots + 6x6 Farmer backpack grid.'
+Write-Host 'Equipment UI: portrait + 3 live gear slots + 6x6 Farmer backpack grid + hover stat comparison.'
 Write-Host 'Trait UI: deterministic unique Passive + Signature pixel icon per NPC.'
