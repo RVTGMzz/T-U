@@ -3,8 +3,7 @@ namespace Ronvotri.TeamUp.Core;
 /// <summary>
 /// Owns persistent Team Up progression math. Character Level is broad growth;
 /// Role Mastery rewards actually using a role; equipment adds bounded modifiers.
-/// Alpha 6.4.0 also supports short-lived runtime combat modifiers for signature buffs.
-/// These modifiers are not saved and are always cleared on lifecycle resets.
+/// Runtime combat modifiers and relationship hooks never add save fields.
 /// </summary>
 public sealed class ProgressionService
 {
@@ -25,6 +24,25 @@ public sealed class ProgressionService
     }
 
     private readonly Dictionary<string, RuntimeCombatModifier> _temporaryModifiers = new(StringComparer.OrdinalIgnoreCase);
+    private Func<PartyMemberData, int, int>? _characterExperienceTransform;
+    private Func<PartyMemberData, PartyRole, int, int>? _masteryExperienceTransform;
+    private Func<PartyMemberData, PartyRole, float>? _signatureAffinityProvider;
+    private Func<PartyMemberData, PartyRole, float>? _retreatAdjustmentProvider;
+    private Func<PartyMemberData, PartyRole, float>? _recoveryThresholdProvider;
+
+    public void ConfigureRelationshipHooks(
+        Func<PartyMemberData, int, int> characterExperienceTransform,
+        Func<PartyMemberData, PartyRole, int, int> masteryExperienceTransform,
+        Func<PartyMemberData, PartyRole, float> signatureAffinityProvider,
+        Func<PartyMemberData, PartyRole, float> retreatAdjustmentProvider,
+        Func<PartyMemberData, PartyRole, float> recoveryThresholdProvider)
+    {
+        _characterExperienceTransform = characterExperienceTransform;
+        _masteryExperienceTransform = masteryExperienceTransform;
+        _signatureAffinityProvider = signatureAffinityProvider;
+        _retreatAdjustmentProvider = retreatAdjustmentProvider;
+        _recoveryThresholdProvider = recoveryThresholdProvider;
+    }
 
     public void NormalizeRoster(IEnumerable<PartyMemberData> members)
     {
@@ -185,11 +203,24 @@ public sealed class ProgressionService
         return 1f - totalPercent / 100f;
     }
 
+    public float GetSignatureEffectMultiplier(PartyMemberData member, PartyRole role)
+    {
+        float value = _signatureAffinityProvider?.Invoke(member, role) ?? 1f;
+        return Math.Clamp(value, 1f, 1.10f);
+    }
+
+    public float GetRecoveryThresholdAdjustment(PartyMemberData member, PartyRole role)
+    {
+        float value = _recoveryThresholdProvider?.Invoke(member, role) ?? 0f;
+        return Math.Clamp(value, -0.10f, 0.10f);
+    }
+
     public bool AwardExperience(PartyMemberData member, int amount)
     {
         if (amount <= 0 || member.Level >= MaxLevel)
             return false;
 
+        amount = Math.Max(0, _characterExperienceTransform?.Invoke(member, amount) ?? amount);
         member.Experience += amount;
         bool leveled = false;
 
@@ -215,6 +246,7 @@ public sealed class ProgressionService
         if (amount <= 0 || role == PartyRole.Unassigned)
             return false;
 
+        amount = Math.Max(0, _masteryExperienceTransform?.Invoke(member, role, amount) ?? amount);
         int before = GetMasteryLevel(member, role);
         SetMasteryExperience(member, role, GetMasteryExperience(member, role) + amount);
         return GetMasteryLevel(member, role) > before;
@@ -265,6 +297,7 @@ public sealed class ProgressionService
 
     public float GetRetreatThreshold(PartyMemberData member)
     {
+        PartyRole role = ResolveRole(member);
         float baseThreshold = member.Engagement switch
         {
             EngagementStyle.Passive => 0.50f,
@@ -278,7 +311,8 @@ public sealed class ProgressionService
         if (member.WoundedTicks > 0)
             baseThreshold = Math.Min(0.70f, baseThreshold + 0.10f);
 
-        return baseThreshold;
+        float relationshipAdjustment = _retreatAdjustmentProvider?.Invoke(member, role) ?? 0f;
+        return Math.Clamp(baseThreshold + relationshipAdjustment, 0.05f, 0.75f);
     }
 
     public string BuildCompactSummary(PartyMemberData member)
