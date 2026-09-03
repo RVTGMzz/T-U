@@ -55,7 +55,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
     private readonly Func<string, bool> _isInParty;
     private readonly Func<string, bool> _canRecruit;
     private readonly ITranslationHelper _i18n;
-    private readonly Action<string> _openProfile;
+    private readonly Action<string, CodexBrowserMenu> _openProfile;
     private readonly Action _onClose;
 
     private readonly ClickableComponent _roleButton;
@@ -89,7 +89,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         Func<string, bool> isInParty,
         Func<string, bool> canRecruit,
         ITranslationHelper i18n,
-        Action<string> openProfile,
+        Action<string, CodexBrowserMenu> openProfile,
         Action onClose)
         : base(
             Math.Max(6, (Game1.uiViewport.Width - Math.Min(1512, Game1.uiViewport.Width - 12)) / 2),
@@ -671,7 +671,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
 
         _selectedIndex = Math.Clamp(_selectedIndex, 0, filtered.Count - 1);
         Game1.playSound("smallSelect");
-        _openProfile(filtered[_selectedIndex].CharacterName);
+        _openProfile(filtered[_selectedIndex].CharacterName, this);
     }
 
     private void RebuildRows()

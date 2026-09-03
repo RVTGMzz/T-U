@@ -239,7 +239,7 @@ public sealed class Alpha6CombatPolishService
         if (role != PartyRole.Tank)
             return false;
 
-        List<Monster> nearby = monsters.Where(monster => Vector2.Distance(monster.Tile, Game1.player.Tile) <= 3.75f).Take(6).ToList();
+        List<Monster> nearby = monsters.Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 4.5f).Take(6).ToList();
         float farmerRatio = Game1.player.health / (float)Math.Max(1, Game1.player.maxHealth);
         if (nearby.Count < 2 && farmerRatio > 0.45f)
             return false;

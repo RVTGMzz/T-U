@@ -8,9 +8,11 @@ namespace Ronvotri.TeamUp.Following;
 
 public sealed class FollowService
 {
-    private const float StopDistanceTiles = 1.55f;
-    private const float WarpDistanceTiles = 10f;
-    private const float RepathDistanceTiles = 1.35f;
+    private const float StopDistanceTiles = 1.45f;
+    private const float WarpDistanceTiles = 11f;
+    private const float RepathDistanceTiles = 0.90f;
+    private const int RepathCooldownUpdates = 6;
+    private const int UnsafeTargetCooldownUpdates = 15;
 
     private static readonly Point[] FormationOffsets =
     {
@@ -36,6 +38,11 @@ public sealed class FollowService
     private readonly Dictionary<NPC, PathFindController> _ownedControllers = new();
     private readonly Dictionary<NPC, Vector2> _lastTargets = new();
     private readonly Dictionary<NPC, float> _baseAddedSpeeds = new();
+    private readonly Dictionary<NPC, bool> _baseFarmerPassesThrough = new();
+    private readonly Dictionary<NPC, int> _repathCooldowns = new();
+    private readonly HashSet<NPC> _unsafeTargetNpcs = new();
+    private readonly HashSet<string> _releasedCharacters = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _combatControlled = new(StringComparer.OrdinalIgnoreCase);
 
     public FollowService(IMonitor monitor)
     {
@@ -57,15 +64,50 @@ public sealed class FollowService
     public void PrepareForParty(NPC npc)
     {
         RememberBaseSpeed(npc);
+        EnableFarmerPassThrough(npc);
         npc.followSchedule = false;
         npc.ignoreScheduleToday = true;
     }
 
-    /// <summary>Take movement ownership from vanilla scheduling once, without destroying Team Up paths every tick.</summary>
     public void TakePartyControl(NPC npc)
     {
+        _releasedCharacters.Remove(npc.Name);
+        _combatControlled.Remove(npc.Name);
         PrepareForParty(npc);
         ClearPath(npc);
+        ResetToStandingPose(npc);
+    }
+
+    private static void ResetToStandingPose(NPC npc)
+    {
+        int facing = Math.Clamp(npc.FacingDirection, 0, 3);
+        npc.doingEndOfRouteAnimation.Value = false;
+        npc.nextEndOfRouteMessage = null;
+        npc.endOfRouteMessage.Value = null;
+        npc.Halt();
+        npc.Sprite.StopAnimation();
+        npc.faceDirection(facing);
+    }
+
+    public void SetCombatControl(NPC npc, bool active)
+    {
+        if (active)
+        {
+            _releasedCharacters.Remove(npc.Name);
+            if (!_combatControlled.Add(npc.Name))
+                return;
+
+            PrepareForParty(npc);
+            ClearPath(npc);
+            npc.Halt();
+            return;
+        }
+
+        if (!_combatControlled.Remove(npc.Name))
+            return;
+
+        ClearPath(npc);
+        RestoreBaseSpeed(npc, keepTracked: true);
         npc.Halt();
     }
 
@@ -79,11 +121,59 @@ public sealed class FollowService
 
     public void ReleaseToVanilla(NPC npc)
     {
+        _releasedCharacters.Add(npc.Name);
+        _combatControlled.Remove(npc.Name);
         ClearPath(npc);
         RestoreBaseSpeed(npc, keepTracked: false);
+        RestoreFarmerPassThrough(npc);
         npc.Halt();
         npc.followSchedule = true;
         npc.ignoreScheduleToday = false;
+    }
+
+    public void ReleaseToVanillaAndResumeSchedule(NPC npc)
+    {
+        ReleaseToVanilla(npc);
+        ResumeVanillaSchedulePosition(npc);
+    }
+
+    private void ResumeVanillaSchedulePosition(NPC npc)
+    {
+        if (npc.Schedule is null || npc.Schedule.Count == 0)
+            return;
+
+        var currentEntry = npc.Schedule.Where(pair => pair.Key <= Game1.timeOfDay).OrderByDescending(pair => pair.Key).FirstOrDefault();
+        SchedulePathDescription? destination = currentEntry.Value;
+        if (destination is null || string.IsNullOrWhiteSpace(destination.targetLocationName))
+            return;
+
+        GameLocation? targetLocation = Game1.getLocationFromName(destination.targetLocationName);
+        if (targetLocation is null)
+            return;
+
+        npc.queuedSchedulePaths.Clear();
+        npc.lastAttemptedSchedule = Game1.timeOfDay;
+
+        if (ReferenceEquals(npc.currentLocation, targetLocation))
+        {
+            try
+            {
+                var controller = new PathFindController(npc, targetLocation, destination.targetTile, destination.facingDirection);
+                if (controller.pathToEndPoint is not null && controller.pathToEndPoint.Count > 0)
+                {
+                    npc.controller = controller;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                _monitor.LogOnce($"Schedule resume path failed for {npc.Name}: {ex.Message}", LogLevel.Trace);
+            }
+        }
+
+        Game1.warpCharacter(npc, targetLocation, new Vector2(destination.targetTile.X, destination.targetTile.Y));
+        npc.faceDirection(destination.facingDirection);
+        npc.Halt();
     }
 
     public void ReleaseAll(
@@ -116,6 +206,9 @@ public sealed class FollowService
         for (int index = 0; index < ownedMembers.Count; index++)
         {
             PartyMemberData member = ownedMembers[index];
+            if (_releasedCharacters.Contains(member.CharacterName)
+                || _combatControlled.Contains(member.CharacterName))
+                continue;
             NPC? npc = ResolveCharacter(member.CharacterName);
             if (npc is null)
                 continue;
@@ -150,6 +243,8 @@ public sealed class FollowService
 
         foreach (CompanionUnitData unit in activeUnits)
         {
+            if (_releasedCharacters.Contains(unit.CharacterName))
+                continue;
             NPC? npc = ResolveCharacter(unit.CharacterName);
             if (npc is null)
                 continue;
@@ -196,9 +291,32 @@ public sealed class FollowService
 
     private void FollowTarget(NPC npc, GameLocation targetLocation, Vector2 targetTile, int finalFacingDirection)
     {
+        int cooldown = 0;
+        if (_repathCooldowns.TryGetValue(npc, out int existingCooldown) && existingCooldown > 0)
+        {
+            cooldown = existingCooldown;
+            _repathCooldowns[npc] = existingCooldown - 1;
+        }
+
+        // Flying mounts and modded traversal can place the Farmer over water, cliffs, or other
+        // tiles NPC pathfinding cannot legally reach. Never ask PathFindController to solve an
+        // invalid destination every update; that creates severe CPU churn with a full party.
+        if (!IsOpen(targetLocation, targetTile))
+        {
+            SuspendForUnsafeTarget(npc);
+            return;
+        }
+
+        if (_unsafeTargetNpcs.Remove(npc))
+        {
+            _repathCooldowns.Remove(npc);
+            cooldown = 0;
+        }
+
         if (npc.currentLocation != targetLocation)
         {
             WarpNearTarget(npc, targetLocation, targetTile);
+            _repathCooldowns[npc] = RepathCooldownUpdates;
             return;
         }
 
@@ -208,6 +326,7 @@ public sealed class FollowService
         if (distance >= WarpDistanceTiles)
         {
             WarpNearTarget(npc, targetLocation, targetTile);
+            _repathCooldowns[npc] = RepathCooldownUpdates;
             return;
         }
 
@@ -226,14 +345,27 @@ public sealed class FollowService
         bool targetMovedEnough = _lastTargets.TryGetValue(npc, out Vector2 oldTarget)
             && Vector2.Distance(oldTarget, targetTile) >= RepathDistanceTiles;
 
-        if (hasForeignController || targetMovedEnough)
+        if (hasForeignController)
+        {
             ClearPath(npc);
+            cooldown = 0;
+        }
+        else if (targetMovedEnough && cooldown <= 0)
+        {
+            ClearPath(npc);
+        }
 
         if (npc.temporaryController is not null)
         {
             npc.temporaryController = null;
             npc.Halt();
         }
+
+        // When a mount or fast traversal moves the target every couple of game ticks, keep the
+        // current route briefly instead of rebuilding it continuously. If the controller already
+        // finished, a very short pause is preferable to a pathfinding storm.
+        if (npc.controller is null && cooldown > 0)
+            return;
 
         if (npc.controller is null)
         {
@@ -248,12 +380,25 @@ public sealed class FollowService
                 npc.controller = controller;
                 _ownedControllers[npc] = controller;
                 _lastTargets[npc] = targetTile;
+                _repathCooldowns[npc] = RepathCooldownUpdates;
             }
             catch (Exception ex)
             {
+                _repathCooldowns[npc] = UnsafeTargetCooldownUpdates;
                 _monitor.LogOnce($"Pathfinding failed for {npc.Name}: {ex.Message}", LogLevel.Warn);
             }
         }
+    }
+
+    private void SuspendForUnsafeTarget(NPC npc)
+    {
+        _repathCooldowns[npc] = UnsafeTargetCooldownUpdates;
+        if (!_unsafeTargetNpcs.Add(npc))
+            return;
+
+        ClearPath(npc);
+        RestoreBaseSpeed(npc, keepTracked: true);
+        npc.Halt();
     }
 
     private void WarpNearTarget(NPC npc, GameLocation location, Vector2 targetTile)
@@ -280,6 +425,22 @@ public sealed class FollowService
         npc.addedSpeed = baseSpeed + bonus;
     }
 
+    private void EnableFarmerPassThrough(NPC npc)
+    {
+        if (!_baseFarmerPassesThrough.ContainsKey(npc))
+            _baseFarmerPassesThrough[npc] = npc.farmerPassesThrough;
+
+        npc.farmerPassesThrough = true;
+    }
+
+    private void RestoreFarmerPassThrough(NPC npc)
+    {
+        if (!_baseFarmerPassesThrough.TryGetValue(npc, out bool original))
+            return;
+
+        npc.farmerPassesThrough = original;
+        _baseFarmerPassesThrough.Remove(npc);
+    }
     private void RememberBaseSpeed(NPC npc)
     {
         if (!_baseAddedSpeeds.ContainsKey(npc))
@@ -342,7 +503,17 @@ public sealed class FollowService
 
     private static bool IsOpen(GameLocation location, Vector2 tile)
     {
-        return location.isTileLocationTotallyClearAndPlaceable((int)tile.X, (int)tile.Y);
+        if (float.IsNaN(tile.X) || float.IsNaN(tile.Y) || tile.X < 0f || tile.Y < 0f)
+            return false;
+
+        try
+        {
+            return location.isTileLocationTotallyClearAndPlaceable((int)tile.X, (int)tile.Y);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static NPC? ResolveCharacter(string characterName)

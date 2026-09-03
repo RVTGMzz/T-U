@@ -65,6 +65,9 @@ public sealed class PartyManager
         if (string.IsNullOrWhiteSpace(characterName))
             return PartyAddResult.InvalidCharacter;
 
+        if (CompanionClassificationService.IsSpecialName(characterName, null))
+            return PartyAddResult.InvalidCharacter;
+
         if (Contains(characterName, recruiterId))
             return PartyAddResult.AlreadyInParty;
 

@@ -25,6 +25,7 @@ public sealed class CombatService
     private readonly FollowService _follow;
     private readonly ProgressionService _progression;
     private readonly ThreatService _threat = new();
+    private readonly ExpansionSkillService _expansionSkills;
     private readonly Dictionary<string, int> _attackCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _healCooldowns = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _signatureCooldowns = new(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +44,7 @@ public sealed class CombatService
         _monitor = monitor;
         _follow = follow;
         _progression = progression;
+        _expansionSkills = new ExpansionSkillService(progression, _threat);
     }
 
     public void Clear()
@@ -64,6 +66,7 @@ public sealed class CombatService
         _lastTargetTiles.Clear();
         _retreatNotified.Clear();
         _threat.Clear();
+        _expansionSkills.Clear();
         _threatPulseTicks = 0;
         _lastFarmerHealth = -1;
     }
@@ -98,6 +101,7 @@ public sealed class CombatService
         PulseAmbientThreat(activeMembers, monsters);
         ApplyTankGuardToFarmerDamage(activeMembers, monsters, validThreatActors);
         UpdateSurvivalStates(activeMembers, monsters, validThreatActors);
+        _expansionSkills.Update(activeMembers, monsters);
 
         var assignedCounts = new Dictionary<Monster, int>();
         HashSet<string> stillEngaged = new(StringComparer.OrdinalIgnoreCase);
@@ -147,9 +151,6 @@ public sealed class CombatService
 
             _retreatNotified.Remove(member.CharacterName);
 
-            if (role == PartyRole.Tank)
-                TryTankTaunt(npc, member, monsters, validThreatActors);
-
             Monster? target = AcquireTarget(npc, member, role, monsters, activeMembers, validThreatActors, assignedCounts);
             if (target is null)
             {
@@ -172,6 +173,9 @@ public sealed class CombatService
 
             float attackRange = GetAttackRange(role);
             float distanceToTarget = Vector2.Distance(npc.Tile, target.Tile);
+
+            if (role == PartyRole.Tank)
+                TryTankTaunt(npc, member, monsters, validThreatActors);
             if (distanceToTarget > attackRange)
             {
                 MoveTowardTarget(npc, target, role);
@@ -459,8 +463,7 @@ public sealed class CombatService
             return;
 
         List<Monster> candidates = monsters
-            .Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 6f
-                || Vector2.Distance(monster.Tile, Game1.player.Tile) <= 5f)
+            .Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 5f)
             .Where(monster => !_threat.GetAggroActor(monster, validThreatActors)
                 .Equals(member.CharacterName, StringComparison.OrdinalIgnoreCase))
             .ToList();

@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Ronvotri.TeamUp.Combat;
 using Ronvotri.TeamUp.Core;
+using Ronvotri.TeamUp.Debugging;
 using Ronvotri.TeamUp.Following;
 using Ronvotri.TeamUp.Storage;
 using Ronvotri.TeamUp.UI;
@@ -20,6 +22,11 @@ public sealed class ModEntry : Mod
     private ModConfig Config { get; set; } = new();
     private PartyManager Party { get; set; } = null!;
     private FollowService Follow { get; set; } = null!;
+    private ProgressionService Progression { get; set; } = null!;
+    private EquipmentService Equipment { get; set; } = null!;
+    private CombatService Combat { get; set; } = null!;
+    private Alpha6CombatPolishService Alpha6Polish { get; set; } = null!;
+    private TeamUpDebugService DebugTools { get; set; } = null!;
     private Action? PendingUiAction { get; set; }
     private string? RecruitHintNpcName { get; set; }
     private bool PartyActionConfirmationOpen { get; set; }
@@ -37,6 +44,21 @@ public sealed class ModEntry : Mod
             () => Config.MaxPartyMembers,
             () => Config.AllowLinkedCompanions ? Config.MaxActiveLinkedCompanions : 0);
         Follow = new FollowService(Monitor);
+        Progression = new ProgressionService();
+        Equipment = new EquipmentService();
+        Combat = new CombatService(Monitor, Follow, Progression);
+        Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);
+        DebugTools = new TeamUpDebugService(
+            Helper,
+            Monitor,
+            Party,
+            Progression,
+            Follow,
+            Combat,
+            Alpha6Polish,
+            SavePartyNow);
+        DebugTools.RegisterCommands();
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.3.0", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -44,25 +66,57 @@ public sealed class ModEntry : Mod
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
+        helper.Events.Display.RenderingActiveMenu += OnRenderingActiveMenu;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.1.0-alpha.5.3.3 dialogue hint anchor hotfix loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.3.0 NPC loadout + trait icons loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
         PartySaveData? saveData = Helper.Data.ReadSaveData<PartySaveData>(SaveDataKey);
         Party.Load(saveData);
+        Combat.Clear();
+        Alpha6Polish.Clear();
+        Progression.NormalizeRoster(Party.Members);
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
+        int migratedSpecialMembers = MigrateSpecialMembersOutOfMainParty(recruiterId);
         Party.DeactivateForNewDay(recruiterId);
         Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
+        if (migratedSpecialMembers > 0)
+            SavePartyNow();
+
         RecruitHintNpcName = null;
         PartyActionConfirmationOpen = false;
 
         Monitor.Log(
             $"Loaded {Party.Members.Count} Party Member(s) and {Party.CompanionUnits.Count} Companion Unit(s) as inactive roster entries.",
             LogLevel.Debug);
+    }
+
+    private int MigrateSpecialMembersOutOfMainParty(long recruiterId)
+    {
+        List<PartyMemberData> invalidMembers = Party.Members
+            .Where(member => member.RecruiterId == recruiterId)
+            .Where(member => CompanionClassificationService.IsSpecialName(member.CharacterName, Config.SpecialCompanionNpcNames))
+            .ToList();
+
+        int removed = 0;
+        foreach (PartyMemberData member in invalidMembers)
+        {
+            NPC? npc = Game1.getCharacterFromName(member.CharacterName);
+            if (npc is not null)
+                Follow.ReleaseToVanilla(npc);
+
+            if (!Party.Remove(member.CharacterName, recruiterId))
+                continue;
+
+            removed++;
+            Monitor.Log($"Migrated special companion {member.CharacterName} out of Main Party recruitment.", LogLevel.Info);
+        }
+
+        return removed;
     }
 
     private void OnSaving(object? sender, SavingEventArgs e)
@@ -76,7 +130,10 @@ public sealed class ModEntry : Mod
             return;
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
+        Combat.Clear();
+        Alpha6Polish.Clear();
         Follow.ReleaseAll(Party.Members, Party.CompanionUnits, recruiterId);
+        Progression.ResetForNewDay(Party.Members);
         Party.DeactivateForNewDay(recruiterId);
         RecruitHintNpcName = null;
         PartyActionConfirmationOpen = false;
@@ -89,6 +146,8 @@ public sealed class ModEntry : Mod
         RecruitHintNpcName = null;
         PartyActionConfirmationOpen = false;
         SocialCodexButtonBounds = Rectangle.Empty;
+        Combat.Clear();
+        Alpha6Polish.Clear();
         Party.Clear();
     }
 
@@ -105,7 +164,10 @@ public sealed class ModEntry : Mod
             PartyActionConfirmationOpen = false;
         }
 
-        if (!e.IsMultipleOf(4))
+        Combat.Update(Party.Members, Game1.player.UniqueMultiplayerID);
+        Alpha6Polish.Update(Party.Members, Game1.player.UniqueMultiplayerID);
+
+        if (!e.IsMultipleOf(2))
             return;
 
         Follow.Update(
@@ -237,11 +299,15 @@ public sealed class ModEntry : Mod
         {
             case PartyAddResult.Added:
                 NpcCombatProfile? profile = NpcProfileCatalog.Get(npc.Name);
-                if (profile is not null)
+                if (profile is not null && profile.PrimaryRole != PartyRole.Unassigned)
                 {
                     Party.SetRole(npc.Name, recruiterId, profile.PrimaryRole);
                     Party.SetEngagementStyle(npc.Name, recruiterId, profile.RecommendedEngagement);
                 }
+
+                PartyMemberData? recruitedMember = Party.Get(npc.Name, recruiterId);
+                if (recruitedMember is not null)
+                    Progression.NormalizeMember(recruitedMember);
 
                 Follow.TakePartyControl(npc);
                 SavePartyNow();
@@ -285,6 +351,7 @@ public sealed class ModEntry : Mod
 
     private void ShowLeaveQuestion(NPC npc)
     {
+        RecruitHintNpcName = npc.Name;
         PartyActionConfirmationOpen = true;
 
         Response[] responses =
@@ -301,8 +368,23 @@ public sealed class ModEntry : Mod
                 return;
 
             long recruiterId = Game1.player.UniqueMultiplayerID;
-            Follow.ReleaseToVanilla(npc);
-            if (Party.Remove(npc.Name, recruiterId))
+            PartyMemberData? leavingMember = Party.Get(npc.Name, recruiterId);
+            if (leavingMember is not null && !Equipment.TryReturnAll(leavingMember, out string _returnMessage))
+            {
+                ShowHud(Helper.Translation.Get("equipment.leave-blocked"), error: true);
+                return;
+            }
+
+            CompanionUnitData? linkedUnit = Party.GetLinkedCompanion(npc.Name, recruiterId);
+            NPC? linkedNpc = linkedUnit is null ? null : Game1.getCharacterFromName(linkedUnit.CharacterName);
+
+            bool removed = Party.Remove(npc.Name, recruiterId);
+            Follow.ReleaseToVanillaAndResumeSchedule(npc);
+            if (linkedNpc is not null)
+                Follow.ReleaseToVanilla(linkedNpc);
+
+            RecruitHintNpcName = null;
+            if (removed)
             {
                 SavePartyNow();
                 ShowHud(Helper.Translation.Get("member.left", new { name = npc.displayName }));
@@ -312,7 +394,8 @@ public sealed class ModEntry : Mod
 
     private void ShowMemberMenu(NPC npc, PartyMemberData member)
     {
-        RecruitHintNpcName = null;
+        RecruitHintNpcName = npc.Name;
+        PartyActionConfirmationOpen = false;
 
         string movementLabel = member.State == PartyMemberState.Following
             ? Helper.Translation.Get("member.stand")
@@ -324,62 +407,35 @@ public sealed class ModEntry : Mod
             new("Movement", movementLabel),
             new("Role", Helper.Translation.Get("member.role", new { role = GetRoleLabel(member.Role) })),
             new("Engagement", Helper.Translation.Get("member.engagement", new { style = GetEngagementLabel(member.Engagement) })),
+            new("Equipment", Helper.Translation.Get("member.equipment")),
             new("Vault", Helper.Translation.Get("member.vault")),
             new("Close", Helper.Translation.Get("common.close"))
         };
 
-        string title = Helper.Translation.Get("member.title", new
-        {
-            name = npc.displayName,
-            role = GetRoleLabel(member.Role)
-        });
-
+        string title = Helper.Translation.Get("member.title", new { name = npc.displayName, role = GetRoleLabel(member.Role) });
         Game1.currentLocation.createQuestionDialogue(title, responses, delegate(Farmer _, string answer)
         {
             switch (answer)
             {
-                case "Talk":
-                    QueueUi(() => ShowVanillaDialogue(npc));
-                    break;
-                case "Movement":
-                    ToggleMovement(npc, member);
-                    break;
-                case "Role":
-                    QueueUi(() => ShowRoleMenu(npc, member));
-                    break;
-                case "Engagement":
-                    QueueUi(() => ShowEngagementMenu(npc, member));
-                    break;
-                case "Vault":
-                    QueueUi(OpenPartyVault);
-                    break;
+                case "Talk": QueueUi(() => ShowVanillaDialogue(npc)); break;
+                case "Movement": ToggleMovement(npc, member); break;
+                case "Role": QueueUi(() => ShowRoleMenu(npc, member)); break;
+                case "Engagement": QueueUi(() => ShowEngagementMenu(npc, member)); break;
+                case "Equipment": QueueUi(() => ShowEquipmentMenu(npc, member)); break;
+                case "Vault": QueueUi(OpenPartyVault); break;
             }
         });
     }
 
     private void ShowRoleMenu(NPC npc, PartyMemberData member)
     {
+        RecruitHintNpcName = null;
         NpcCombatProfile? profile = NpcProfileCatalog.Get(npc.Name);
-        PartyRole[] roles =
-        {
-            PartyRole.Tank,
-            PartyRole.Damage,
-            PartyRole.Support,
-            PartyRole.Healer,
-            PartyRole.Control
-        };
-
-        List<Response> responses = roles
-            .Select(role => new Response(role.ToString(), GetRoleOptionLabel(role, profile)))
-            .ToList();
+        PartyRole[] roles = { PartyRole.Tank, PartyRole.Damage, PartyRole.Support, PartyRole.Healer, PartyRole.Control };
+        List<Response> responses = roles.Select(role => new Response(role.ToString(), GetRoleOptionLabel(role, profile))).ToList();
         responses.Add(new Response("Cancel", Helper.Translation.Get("common.cancel")));
 
-        string question = Helper.Translation.Get("role.question", new
-        {
-            name = npc.displayName,
-            role = GetRoleLabel(member.Role)
-        });
-
+        string question = Helper.Translation.Get("role.question", new { name = npc.displayName, role = GetRoleLabel(member.Role) });
         Game1.currentLocation.createQuestionDialogue(question, responses.ToArray(), delegate(Farmer _, string answer)
         {
             if (!Enum.TryParse(answer, out PartyRole role) || role == PartyRole.Unassigned)
@@ -387,12 +443,9 @@ public sealed class ModEntry : Mod
 
             if (Party.SetRole(npc.Name, Game1.player.UniqueMultiplayerID, role))
             {
+                Progression.NormalizeMember(member);
                 SavePartyNow();
-                ShowHud(Helper.Translation.Get("role.changed", new
-                {
-                    name = npc.displayName,
-                    role = GetRoleLabel(role)
-                }));
+                ShowHud(Helper.Translation.Get("role.changed", new { name = npc.displayName, role = GetRoleLabel(role) }));
             }
         });
     }
@@ -419,6 +472,7 @@ public sealed class ModEntry : Mod
 
     private void ShowEngagementMenu(NPC npc, PartyMemberData member)
     {
+        RecruitHintNpcName = null;
         Response[] responses =
         {
             new(nameof(EngagementStyle.Passive), Helper.Translation.Get("engagement.passive")),
@@ -429,12 +483,7 @@ public sealed class ModEntry : Mod
             new("Cancel", Helper.Translation.Get("common.cancel"))
         };
 
-        string question = Helper.Translation.Get("engagement.question", new
-        {
-            name = npc.displayName,
-            style = GetEngagementLabel(member.Engagement)
-        });
-
+        string question = Helper.Translation.Get("engagement.question", new { name = npc.displayName, style = GetEngagementLabel(member.Engagement) });
         Game1.currentLocation.createQuestionDialogue(question, responses, delegate(Farmer _, string answer)
         {
             if (!Enum.TryParse(answer, out EngagementStyle style))
@@ -443,22 +492,106 @@ public sealed class ModEntry : Mod
             if (Party.SetEngagementStyle(npc.Name, Game1.player.UniqueMultiplayerID, style))
             {
                 SavePartyNow();
-                ShowHud(Helper.Translation.Get("engagement.changed", new
-                {
-                    name = npc.displayName,
-                    style = GetEngagementLabel(style)
-                }));
+                ShowHud(Helper.Translation.Get("engagement.changed", new { name = npc.displayName, style = GetEngagementLabel(style) }));
             }
         });
     }
 
+    private void ShowEquipmentMenu(NPC npc, PartyMemberData member)
+    {
+        RecruitHintNpcName = null;
+        Game1.activeClickableMenu = new EquipmentMenu(
+            npc,
+            member,
+            Equipment,
+            Progression,
+            Helper.Translation,
+            SavePartyNow,
+            () => ShowMemberMenu(npc, member));
+    }
+
+    private void ShowEquipmentSlotMenu(NPC npc, PartyMemberData member, EquipmentSlot slot)
+    {
+        RecruitHintNpcName = null;
+        List<Response> responses = new();
+        IReadOnlyList<EquipmentService.InventoryCandidate> candidates = Equipment.GetEligibleInventoryItems(slot);
+        foreach (EquipmentService.InventoryCandidate candidate in candidates.Take(10))
+            responses.Add(new Response($"Equip_{candidate.InventoryIndex}", candidate.Item.DisplayName));
+
+        if (Equipment.GetEquipped(member, slot) is not null)
+            responses.Add(new Response("Unequip", Helper.Translation.Get("equipment.unequip")));
+        responses.Add(new Response("Back", Helper.Translation.Get("common.back")));
+
+        EquippedItemData? equipped = Equipment.GetEquipped(member, slot);
+        string current = equipped?.DisplayName ?? Helper.Translation.Get("equipment.empty").ToString();
+        string question = Helper.Translation.Get("equipment.choose", new { slot = GetEquipmentSlotLabel(slot), current });
+
+        Game1.currentLocation.createQuestionDialogue(question, responses.ToArray(), delegate(Farmer _, string answer)
+        {
+            if (answer == "Back")
+            {
+                QueueUi(() => ShowEquipmentMenu(npc, member));
+                return;
+            }
+
+            if (answer == "Unequip")
+            {
+                if (Equipment.TryUnequip(member, slot, out string _unequipMessage))
+                {
+                    Progression.NormalizeMember(member);
+                    SavePartyNow();
+                    ShowHud(Helper.Translation.Get("equipment.unequipped"));
+                }
+                else
+                {
+                    ShowHud(Helper.Translation.Get("equipment.inventory-full"), error: true);
+                }
+                QueueUi(() => ShowEquipmentMenu(npc, member));
+                return;
+            }
+
+            if (!answer.StartsWith("Equip_", StringComparison.Ordinal) || !int.TryParse(answer[6..], out int inventoryIndex))
+                return;
+
+            if (Equipment.TryEquip(member, slot, inventoryIndex, out string _equipMessage))
+            {
+                Progression.NormalizeMember(member);
+                SavePartyNow();
+                ShowHud(Helper.Translation.Get("equipment.equipped"));
+            }
+            else
+            {
+                ShowHud(Helper.Translation.Get("equipment.inventory-full"), error: true);
+            }
+            QueueUi(() => ShowEquipmentMenu(npc, member));
+        });
+    }
+
+    private string GetEquipmentSlotLabel(EquipmentSlot slot)
+    {
+        return slot switch
+        {
+            EquipmentSlot.Weapon => Helper.Translation.Get("equipment.weapon"),
+            EquipmentSlot.Armor => Helper.Translation.Get("equipment.armor"),
+            EquipmentSlot.Trinket => Helper.Translation.Get("equipment.trinket"),
+            _ => slot.ToString()
+        };
+    }
     private void OpenProfileFromDialogue(NPC npc)
     {
         IClickableMenu? dialogueMenu = Game1.activeClickableMenu;
         OpenCharacterProfile(
             npc.Name,
-            () => RestoreMenu(dialogueMenu),
-            () => OpenCodexBrowser(() => RestoreMenu(dialogueMenu)));
+            () =>
+            {
+                RecruitHintNpcName = npc.Name;
+                RestoreMenu(dialogueMenu);
+            },
+            () => OpenCodexBrowser(() =>
+            {
+                RecruitHintNpcName = npc.Name;
+                RestoreMenu(dialogueMenu);
+            }));
     }
 
     private void OpenCharacterProfile(string characterName, Action? onBack = null, Action? onOpenAll = null)
@@ -472,19 +605,16 @@ public sealed class ModEntry : Mod
         string passive = profile is null ? string.Empty : Helper.Translation.Get(profile.PassiveKey);
         string signature = profile is null ? string.Empty : Helper.Translation.Get(profile.AbilityKey);
 
+        PartyMemberData? progressionMember = Party.Get(characterName, Game1.player.UniqueMultiplayerID);
+        if (progressionMember is not null)
+        {
+            Progression.NormalizeMember(progressionMember);
+            source = $"{source}\n{Progression.BuildCompactSummary(progressionMember)}\n{Progression.BuildEquipmentSummary(progressionMember)}";
+        }
+
         Game1.activeClickableMenu = new CharacterProfileMenu(
-            characterName,
-            profile,
-            displayName,
-            status,
-            source,
-            engagement,
-            passive,
-            signature,
-            GetRoleLabel,
-            Helper.Translation,
-            onBack ?? OpenCodexBrowser,
-            onOpenAll ?? OpenCodexBrowser);
+            characterName, profile, displayName, status, source, engagement, passive, signature,
+            GetRoleLabel, Helper.Translation, onBack ?? OpenCodexBrowser, onOpenAll ?? OpenCodexBrowser);
     }
 
     private void OpenCodexBrowser()
@@ -497,13 +627,13 @@ public sealed class ModEntry : Mod
         RecruitHintNpcName = null;
 
         Game1.activeClickableMenu = new CodexBrowserMenu(
-            NpcProfileCatalog.All,
+            NpcProfileCatalog.GetAvailableProfiles(Helper.ModRegistry),
             GetNpcDisplayName,
             GetRoleLabel,
             IsCharacterInParty,
             CanRecruitCharacter,
             Helper.Translation,
-            characterName => OpenCharacterProfile(characterName, OpenCodexBrowser, OpenCodexBrowser),
+            (characterName, browser) => OpenCharacterProfile(characterName, () => Game1.activeClickableMenu = browser, () => Game1.activeClickableMenu = browser),
             onClose ?? (() => { }));
     }
 
@@ -528,6 +658,19 @@ public sealed class ModEntry : Mod
             Helper.Translation.Get("vault.categories"));
     }
 
+    private void OnRenderingActiveMenu(object? sender, RenderingActiveMenuEventArgs e)
+    {
+        if (!Context.IsWorldReady
+            || PartyActionConfirmationOpen
+            || Game1.activeClickableMenu is not DialogueBox dialogueBox
+            || !dialogueBox.isQuestion
+            || string.IsNullOrWhiteSpace(RecruitHintNpcName))
+            return;
+
+        long recruiterId = Game1.player.UniqueMultiplayerID;
+        if (Party.Get(RecruitHintNpcName, recruiterId) is not null)
+            dialogueBox.dialogueIcon = null;
+    }
     private void OnRenderedActiveMenu(object? sender, RenderedActiveMenuEventArgs e)
     {
         if (!Context.IsWorldReady)
@@ -566,8 +709,8 @@ public sealed class ModEntry : Mod
         // DialogueBox exposes the actual x/y used by Stardew. Use those directly.
         // Alpha.5.3.2 estimated top with -24 while vanilla uses -64, which pulled
         // these tags about 40px down into the dialogue frame.
-        int dialogueLeft = dialogueBox.x;
-        int dialogueTop = dialogueBox.y;
+        int dialogueLeft = Math.Max(8, (Game1.uiViewport.Width - dialogueBox.width) / 2);
+        int dialogueTop = Math.Max(8, Game1.uiViewport.Height - dialogueBox.height - 64);
         int y = Math.Max(6, dialogueTop - tagHeight - 10);
 
         DrawDialogueTag(e, leftText, dialogueLeft + 18, y, tagHeight);
@@ -669,13 +812,14 @@ public sealed class ModEntry : Mod
 
     private NPC? ResolveDialogueSpeaker()
     {
-        if (Game1.currentSpeaker is NPC currentSpeaker)
-            return currentSpeaker;
+        if (!string.IsNullOrWhiteSpace(RecruitHintNpcName))
+        {
+            NPC? pinned = Game1.getCharacterFromName(RecruitHintNpcName);
+            if (pinned is not null)
+                return pinned;
+        }
 
-        if (string.IsNullOrWhiteSpace(RecruitHintNpcName))
-            return null;
-
-        return Game1.getCharacterFromName(RecruitHintNpcName);
+        return Game1.currentSpeaker as NPC;
     }
 
     private static void RestoreMenu(IClickableMenu? menu)

@@ -424,6 +424,71 @@ public sealed class EquipmentMenu : IClickableMenu
         return string.Join("  ·  ", parts);
     }
 
+    private void DrawHoverComparison(SpriteBatch b, Item item)
+    {
+        bool compatible = CanEquip(_selectedSlot, item);
+        int cardWidth = Math.Min(390, Math.Max(280, _inventoryPanel.Width - 36));
+        int cardHeight = compatible ? 198 : 82;
+        Rectangle card = new(
+            _inventoryPanel.Right - cardWidth - 18,
+            _inventoryPanel.Bottom - cardHeight - 16,
+            cardWidth,
+            cardHeight);
+
+        DrawPanel(b, card, Color.White);
+        b.DrawString(Game1.smallFont, item.DisplayName, new Vector2(card.X + 16, card.Y + 12), Game1.textColor);
+
+        if (!compatible)
+        {
+            b.DrawString(
+                Game1.smallFont,
+                _translation.Get("equipment.incompatible"),
+                new Vector2(card.X + 16, card.Y + 44),
+                Color.DarkRed);
+            return;
+        }
+
+        EquippedItemData? current = _equipment.GetEquipped(_member, _selectedSlot);
+        EquippedItemData preview = EquipmentPreviewService.BuildPreview(_selectedSlot, item, _member.CharacterName);
+        b.DrawString(
+            Game1.smallFont,
+            _translation.Get("equipment.compare-title"),
+            new Vector2(card.X + 16, card.Y + 42),
+            new Color(112, 73, 44));
+
+        int y = card.Y + 72;
+        DrawComparisonLine(b, card.X + 16, ref y, "ATK", current?.AttackBonus ?? 0, preview.AttackBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "DEF", current?.DefenseBonus ?? 0, preview.DefenseBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "HEAL", current?.HealPowerBonus ?? 0, preview.HealPowerBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "CTRL", current?.ControlPowerBonus ?? 0, preview.ControlPowerBonus, false);
+        DrawComparisonLine(b, card.X + 16, ref y, "CDR", current?.CooldownReductionPercent ?? 0, preview.CooldownReductionPercent, true);
+    }
+
+    private static void DrawComparisonLine(
+        SpriteBatch b,
+        int x,
+        ref int y,
+        string label,
+        int current,
+        int next,
+        bool percent)
+    {
+        if (current == 0 && next == 0)
+            return;
+
+        int delta = next - current;
+        string suffix = percent ? "%" : string.Empty;
+        string deltaText = delta == 0 ? string.Empty : $"  ({(delta > 0 ? "+" : string.Empty)}{delta}{suffix})";
+        string text = $"{label}  {current}{suffix} \u2192 {next}{suffix}{deltaText}";
+        Color color = delta > 0
+            ? new Color(72, 145, 76)
+            : delta < 0
+                ? new Color(175, 72, 66)
+                : Game1.unselectedOptionColor;
+
+        b.DrawString(Game1.smallFont, text, new Vector2(x, y), color);
+        y += 24;
+    }
     public override void draw(SpriteBatch b)
     {
         b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.42f);
@@ -448,20 +513,7 @@ public sealed class EquipmentMenu : IClickableMenu
         DrawButton(b, _backBounds, _translation.Get("common.back"), false);
 
         if (_hoveredItem is not null)
-        {
-            string compatibility = CanEquip(_selectedSlot, _hoveredItem)
-                ? _translation.Get("equipment.compatible")
-                : _translation.Get("equipment.incompatible");
-            string hover = $"{_hoveredItem.DisplayName}  ·  {compatibility}";
-            Vector2 size = Game1.smallFont.MeasureString(hover);
-            Rectangle strip = new(
-                _inventoryPanel.X + 18,
-                _inventoryPanel.Bottom - 48,
-                _inventoryPanel.Width - 36,
-                30);
-            float scale = size.X <= strip.Width ? 1f : Math.Max(0.72f, strip.Width / size.X);
-            b.DrawString(Game1.smallFont, hover, new Vector2(strip.X, strip.Y), Game1.textColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 1f);
-        }
+            DrawHoverComparison(b, _hoveredItem);
 
         drawMouse(b);
     }

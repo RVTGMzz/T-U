@@ -96,7 +96,7 @@ public static class PartyVaultService
             int inventoryWidth = Columns * 64;
             int inventoryX = xPositionOnScreen + (width - inventoryWidth) / 2 - 18;
             int vaultY = yPositionOnScreen + 100;
-            int playerY = yPositionOnScreen + 382;
+            int playerY = yPositionOnScreen + 404;
 
             _vaultMenu = new InventoryMenu(
                 inventoryX,
@@ -298,7 +298,7 @@ public static class PartyVaultService
             string header = $"{_title}    {used}/{Capacity} {_slotsLabel}";
             b.DrawString(Game1.dialogueFont, header, new Vector2(xPositionOnScreen + 34, yPositionOnScreen + 22), Game1.textColor);
             b.DrawString(Game1.smallFont, _subtitle, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 58), new Color(112, 73, 44));
-            b.DrawString(Game1.smallFont, _categoriesLabel, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 348), new Color(112, 73, 44));
+            b.DrawString(Game1.smallFont, _categoriesLabel, new Vector2(xPositionOnScreen + 36, yPositionOnScreen + 330), new Color(112, 73, 44));
 
             DrawInventoryPanel(b, _vaultMenu, 22);
             DrawInventoryPanel(b, _playerMenu, 22);
