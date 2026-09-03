@@ -10,7 +10,7 @@ namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
 /// Dedicated Team Up character dossier with native controller footer navigation.
-/// Mouse cursor visibility follows the physical mouse, not Stardew's controller-snapped cursor.
+/// Passive and signature sections now include stable, character-specific pixel icons.
 /// </summary>
 public sealed class CharacterProfileMenu : IClickableMenu
 {
@@ -22,7 +22,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
 
     private const int OuterPadding = 34;
     private const int SectionPadding = 20;
-    private const float BodyScale = 1.18f;
+    private const float BodyScale = 1.14f;
     private const float CaptionScale = 1.08f;
 
     private readonly string _characterName;
@@ -99,10 +99,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         }
     }
 
-    public override bool areGamePadControlsImplemented()
-    {
-        return true;
-    }
+    public override bool areGamePadControlsImplemented() => true;
 
     public override void receiveLeftClick(int x, int y, bool playSound = true)
     {
@@ -121,7 +118,6 @@ public sealed class CharacterProfileMenu : IClickableMenu
         {
             _focus = FooterFocus.Back;
             GoBack();
-            return;
         }
     }
 
@@ -129,16 +125,15 @@ public sealed class CharacterProfileMenu : IClickableMenu
     {
         MouseState mouse = Mouse.GetState();
         Point physical = new(mouse.X, mouse.Y);
-        if (physical != _lastPhysicalMousePosition)
-        {
-            _showMouseCursor = true;
-            _lastPhysicalMousePosition = physical;
+        if (physical == _lastPhysicalMousePosition)
+            return;
 
-            if (_allButton.containsPoint(x, y))
-                _focus = FooterFocus.AllCharacters;
-            else if (_backButton.containsPoint(x, y))
-                _focus = FooterFocus.Back;
-        }
+        _showMouseCursor = true;
+        _lastPhysicalMousePosition = physical;
+        if (_allButton.containsPoint(x, y))
+            _focus = FooterFocus.AllCharacters;
+        else if (_backButton.containsPoint(x, y))
+            _focus = FooterFocus.Back;
     }
 
     public override void receiveKeyPress(Keys key)
@@ -148,21 +143,18 @@ public sealed class CharacterProfileMenu : IClickableMenu
             GoBack();
             return;
         }
-
         if (key == Keys.Left)
         {
             _focus = FooterFocus.AllCharacters;
             Game1.playSound("shiny4");
             return;
         }
-
         if (key == Keys.Right)
         {
             _focus = FooterFocus.Back;
             Game1.playSound("shiny4");
             return;
         }
-
         if (key is Keys.Enter or Keys.Space)
         {
             ActivateFocus();
@@ -183,32 +175,25 @@ public sealed class CharacterProfileMenu : IClickableMenu
             GoBack();
             return;
         }
-
         if (b == Buttons.Y)
         {
             OpenAll();
             return;
         }
-
         if (b is Buttons.DPadLeft or Buttons.LeftThumbstickLeft)
         {
             _focus = FooterFocus.AllCharacters;
             Game1.playSound("shiny4");
             return;
         }
-
         if (b is Buttons.DPadRight or Buttons.LeftThumbstickRight)
         {
             _focus = FooterFocus.Back;
             Game1.playSound("shiny4");
             return;
         }
-
         if (b == Buttons.A)
-        {
             ActivateFocus();
-            return;
-        }
     }
 
     public override void draw(SpriteBatch b)
@@ -308,26 +293,59 @@ public sealed class CharacterProfileMenu : IClickableMenu
         DrawSectionTitle(b, _i18n.Get("profile.affinities"), innerX, cursorY);
         cursorY += 36;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Tank), _profile.TankAffinity, innerWidth);
-        cursorY += 32;
+        cursorY += 30;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Damage), _profile.DamageAffinity, innerWidth);
-        cursorY += 32;
+        cursorY += 30;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Support), _profile.SupportAffinity, innerWidth);
-        cursorY += 32;
+        cursorY += 30;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Healer), _profile.HealerAffinity, innerWidth);
-        cursorY += 32;
+        cursorY += 30;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Control), _profile.ControlAffinity, innerWidth);
-        cursorY += 42;
+        cursorY += 38;
 
-        DrawSectionTitle(b, _i18n.Get("profile.passive"), innerX, cursorY);
-        cursorY += 30;
-        string passive = WrapScaled(_passiveText, innerWidth, BodyScale);
-        DrawScaledString(b, Game1.smallFont, passive, new Vector2(innerX, cursorY), Game1.textColor, BodyScale);
-        cursorY += (int)(Game1.smallFont.MeasureString(passive).Y * BodyScale) + 20;
+        cursorY += DrawTraitBlock(
+            b,
+            innerX,
+            cursorY,
+            innerWidth,
+            _i18n.Get("profile.passive"),
+            _passiveText,
+            TraitIconRenderer.TraitIconKind.Passive,
+            _profile.PrimaryRole);
+        cursorY += 12;
 
-        DrawSectionTitle(b, _i18n.Get("profile.signature"), innerX, cursorY);
-        cursorY += 30;
-        string signature = WrapScaled(_signatureText, innerWidth, BodyScale);
-        DrawScaledString(b, Game1.smallFont, signature, new Vector2(innerX, cursorY), Game1.textColor, BodyScale);
+        DrawTraitBlock(
+            b,
+            innerX,
+            cursorY,
+            innerWidth,
+            _i18n.Get("profile.signature"),
+            _signatureText,
+            TraitIconRenderer.TraitIconKind.Signature,
+            _profile.PrimaryRole);
+    }
+
+    private int DrawTraitBlock(
+        SpriteBatch b,
+        int x,
+        int y,
+        int width,
+        string title,
+        string body,
+        TraitIconRenderer.TraitIconKind kind,
+        PartyRole role)
+    {
+        const int iconSize = 68;
+        Rectangle iconBounds = new(x, y, iconSize, iconSize);
+        TraitIconRenderer.Draw(b, _characterName, kind, role, iconBounds);
+
+        int textX = x + iconSize + 16;
+        int textWidth = Math.Max(80, width - iconSize - 16);
+        DrawSectionTitle(b, title, textX, y + 1);
+        string wrapped = WrapScaled(body, textWidth, BodyScale);
+        DrawScaledString(b, Game1.smallFont, wrapped, new Vector2(textX, y + 29), Game1.textColor, BodyScale);
+        int textHeight = 29 + (int)(Game1.smallFont.MeasureString(wrapped).Y * BodyScale);
+        return Math.Max(iconSize, textHeight);
     }
 
     private void DrawFooterButtons(SpriteBatch b)
