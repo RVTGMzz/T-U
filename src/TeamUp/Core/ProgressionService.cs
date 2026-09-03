@@ -3,11 +3,28 @@ namespace Ronvotri.TeamUp.Core;
 /// <summary>
 /// Owns persistent Team Up progression math. Character Level is broad growth;
 /// Role Mastery rewards actually using a role; equipment adds bounded modifiers.
+/// Alpha 6.4.0 also supports short-lived runtime combat modifiers for signature buffs.
+/// These modifiers are not saved and are always cleared on lifecycle resets.
 /// </summary>
 public sealed class ProgressionService
 {
     public const int MaxLevel = 30;
     public const int MaxMasteryLevel = 10;
+
+    private sealed class RuntimeCombatModifier
+    {
+        public long RecruiterId { get; init; }
+        public string CharacterName { get; init; } = string.Empty;
+        public string SourceId { get; init; } = string.Empty;
+        public int RemainingTicks { get; set; }
+        public float DamageBonusPercent { get; init; }
+        public int DefenseBonus { get; init; }
+        public float HealingBonusPercent { get; init; }
+        public float ControlBonusPercent { get; init; }
+        public int CooldownReductionPercent { get; init; }
+    }
+
+    private readonly Dictionary<string, RuntimeCombatModifier> _temporaryModifiers = new(StringComparer.OrdinalIgnoreCase);
 
     public void NormalizeRoster(IEnumerable<PartyMemberData> members)
     {
@@ -34,6 +51,7 @@ public sealed class ProgressionService
 
     public void ResetForNewDay(IEnumerable<PartyMemberData> members)
     {
+        ClearTemporaryModifiers();
         foreach (PartyMemberData member in members)
         {
             member.IsDowned = false;
@@ -43,6 +61,56 @@ public sealed class ProgressionService
             member.WoundedTicks = 0;
             member.CurrentHealth = GetMaxHealth(member);
         }
+    }
+
+    public void ClearTemporaryModifiers()
+    {
+        _temporaryModifiers.Clear();
+    }
+
+    public void TickTemporaryModifiers()
+    {
+        foreach (string key in _temporaryModifiers.Keys.ToList())
+        {
+            RuntimeCombatModifier modifier = _temporaryModifiers[key];
+            modifier.RemainingTicks--;
+            if (modifier.RemainingTicks <= 0)
+                _temporaryModifiers.Remove(key);
+        }
+    }
+
+    public void ApplyTemporaryModifier(
+        PartyMemberData member,
+        string sourceId,
+        int durationTicks,
+        float damageBonusPercent = 0f,
+        int defenseBonus = 0,
+        float healingBonusPercent = 0f,
+        float controlBonusPercent = 0f,
+        int cooldownReductionPercent = 0)
+    {
+        if (durationTicks <= 0 || string.IsNullOrWhiteSpace(sourceId))
+            return;
+
+        damageBonusPercent = Math.Clamp(damageBonusPercent, 0f, 0.12f);
+        defenseBonus = Math.Clamp(defenseBonus, 0, 3);
+        healingBonusPercent = Math.Clamp(healingBonusPercent, 0f, 0.12f);
+        controlBonusPercent = Math.Clamp(controlBonusPercent, 0f, 0.12f);
+        cooldownReductionPercent = Math.Clamp(cooldownReductionPercent, 0, 5);
+
+        string key = BuildModifierKey(member, sourceId);
+        _temporaryModifiers[key] = new RuntimeCombatModifier
+        {
+            RecruiterId = member.RecruiterId,
+            CharacterName = member.CharacterName,
+            SourceId = sourceId,
+            RemainingTicks = Math.Clamp(durationTicks, 1, 900),
+            DamageBonusPercent = damageBonusPercent,
+            DefenseBonus = defenseBonus,
+            HealingBonusPercent = healingBonusPercent,
+            ControlBonusPercent = controlBonusPercent,
+            CooldownReductionPercent = cooldownReductionPercent
+        };
     }
 
     public int GetMaxHealth(PartyMemberData member)
@@ -78,7 +146,8 @@ public sealed class ProgressionService
 
         int levelBonus = Math.Max(0, member.Level - 1) / 5;
         int masteryBonus = role == PartyRole.Tank ? GetMasteryLevel(member, role) / 2 : 0;
-        return baseDefense + levelBonus + masteryBonus + GetEquipmentDefense(member);
+        int runtimeBonus = Math.Clamp(GetActiveModifiers(member).Sum(modifier => modifier.DefenseBonus), 0, 6);
+        return baseDefense + levelBonus + masteryBonus + GetEquipmentDefense(member) + runtimeBonus;
     }
 
     public float GetDamageMultiplier(PartyMemberData member, PartyRole role)
@@ -86,7 +155,8 @@ public sealed class ProgressionService
         float level = 1f + Math.Max(0, member.Level - 1) * 0.015f;
         float mastery = 1f + GetMasteryLevel(member, role) * 0.02f;
         float equipment = 1f + GetEquipmentAttack(member) * 0.02f;
-        return Math.Min(1.85f, level * mastery * equipment);
+        float runtime = 1f + Math.Clamp(GetActiveModifiers(member).Sum(modifier => modifier.DamageBonusPercent), 0f, 0.25f);
+        return Math.Min(2.05f, level * mastery * equipment * runtime);
     }
 
     public float GetHealingMultiplier(PartyMemberData member, PartyRole role)
@@ -94,21 +164,24 @@ public sealed class ProgressionService
         float level = 1f + Math.Max(0, member.Level - 1) * 0.01f;
         float mastery = 1f + GetMasteryLevel(member, role) * 0.025f;
         float equipment = 1f + GetEquipmentHeal(member) * 0.025f;
-        return Math.Min(1.9f, level * mastery * equipment);
+        float runtime = 1f + Math.Clamp(GetActiveModifiers(member).Sum(modifier => modifier.HealingBonusPercent), 0f, 0.25f);
+        return Math.Min(2.10f, level * mastery * equipment * runtime);
     }
 
     public float GetControlMultiplier(PartyMemberData member, PartyRole role)
     {
         float mastery = 1f + GetMasteryLevel(member, role) * 0.035f;
         float equipment = 1f + GetEquipmentControl(member) * 0.05f;
-        return Math.Min(1.9f, mastery * equipment);
+        float runtime = 1f + Math.Clamp(GetActiveModifiers(member).Sum(modifier => modifier.ControlBonusPercent), 0f, 0.25f);
+        return Math.Min(2.10f, mastery * equipment * runtime);
     }
 
     public float GetCooldownMultiplier(PartyMemberData member, PartyRole role)
     {
         int masteryReduction = GetMasteryLevel(member, role);
         int gearReduction = GetEquipmentCooldownReduction(member);
-        int totalPercent = Math.Clamp(masteryReduction + gearReduction, 0, 35);
+        int runtimeReduction = Math.Clamp(GetActiveModifiers(member).Sum(modifier => modifier.CooldownReductionPercent), 0, 10);
+        int totalPercent = Math.Clamp(masteryReduction + gearReduction + runtimeReduction, 0, 45);
         return 1f - totalPercent / 100f;
     }
 
@@ -223,6 +296,17 @@ public sealed class ProgressionService
         string trinket = member.Trinket?.DisplayName ?? "—";
         return $"W: {weapon} · A: {armor}\nT: {trinket}";
     }
+
+    private IEnumerable<RuntimeCombatModifier> GetActiveModifiers(PartyMemberData member)
+    {
+        return _temporaryModifiers.Values.Where(modifier =>
+            modifier.RecruiterId == member.RecruiterId
+            && modifier.CharacterName.Equals(member.CharacterName, StringComparison.OrdinalIgnoreCase)
+            && modifier.RemainingTicks > 0);
+    }
+
+    private static string BuildModifierKey(PartyMemberData member, string sourceId)
+        => $"{member.RecruiterId}|{member.CharacterName}|{sourceId}";
 
     private static PartyRole ResolveRole(PartyMemberData member)
     {
