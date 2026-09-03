@@ -16,8 +16,13 @@ public enum SandboxDifficulty
 
 /// <summary>
 /// Team Up-only wave overlay hosted inside Cardcha's existing Card Test Arena.
-/// Cardcha remains optional and owns the location, clock freeze, test lab session,
+/// Cardcha remains optional and owns the location, frozen clock, test-lab session,
 /// dummy actors, and map assets. Team Up only spawns/removes monsters carrying its own markers.
+///
+/// SMAPI intentionally doesn't expose a cross-mod console-command trigger API, so Team Up never
+/// bypasses Cardcha's private arena lifecycle. The tester enters through Cardcha's own
+/// cardcha_card_test -> TEST ARENA flow, then Team Up overlays waves once the location is active.
+/// If the Card Test Lab menu is already open, teamup_test arena can press its documented T shortcut.
 /// </summary>
 public sealed class CardchaCombatSandboxService
 {
@@ -29,6 +34,8 @@ public sealed class CardchaCombatSandboxService
     private const string CardchaLabMenuType = "Cardcha.UI.CardTestLabMenu";
     private const long BetweenWaveDelayMs = 2200L;
 
+    // These are known open perimeter tiles in Cardcha's 18x12 test room. Keeping the
+    // spawn list explicit avoids depending on private/removed GameLocation tile helpers.
     private static readonly Point[] PreferredSpawnTiles =
     {
         new(2, 2),
@@ -42,10 +49,11 @@ public sealed class CardchaCombatSandboxService
         new(15, 9)
     };
 
+    private static readonly Point BossSpawnTile = new(15, 6);
+
     private readonly IModHelper _helper;
     private readonly IMonitor _monitor;
     private bool _wavesActive;
-    private bool _enteredViaTeamUp;
     private SandboxDifficulty _difficulty = SandboxDifficulty.Normal;
     private int _wave;
     private long _nextWaveAtMs;
@@ -79,67 +87,38 @@ public sealed class CardchaCombatSandboxService
             return true;
         }
 
-        if (Game1.activeClickableMenu is not null || Game1.dialogueUp)
+        // If the tester already opened Cardcha's own Lab menu, use its public IClickableMenu
+        // keyboard path. That preserves Cardcha's snapshot, return point, and frozen-clock setup.
+        if (Game1.activeClickableMenu is not null
+            && string.Equals(Game1.activeClickableMenu.GetType().FullName, CardchaLabMenuType, StringComparison.Ordinal))
         {
-            Info("Close the current menu/dialogue before entering the Cardcha combat sandbox.");
-            return false;
-        }
-
-        try
-        {
-            // Cardcha owns important arena setup (Lab snapshot + frozen clock). Trigger its own
-            // debug lab, then press that menu's documented T shortcut so EnterArena() runs there.
-            _helper.ConsoleCommands.Trigger(CardchaOpenLabCommand, Array.Empty<string>());
-
-            if (Game1.activeClickableMenu is null
-                || !string.Equals(Game1.activeClickableMenu.GetType().FullName, CardchaLabMenuType, StringComparison.Ordinal))
+            try
             {
-                Info("Cardcha is loaded, but its Card Test Lab command/menu is unavailable. Use a Cardcha build that includes cardcha_card_test.");
-                return false;
+                Game1.activeClickableMenu.receiveKeyPress(Keys.T);
+                if (IsInArena)
+                {
+                    Info("Entered Cardcha Card Test Arena through Cardcha's open TEST ARENA menu.");
+                    return true;
+                }
             }
-
-            Game1.activeClickableMenu.receiveKeyPress(Keys.T);
-            if (!IsInArena)
+            catch (Exception ex)
             {
-                Info("Cardcha Card Test Lab opened, but its TEST ARENA action did not enter Cardcha_CardTestArena.");
-                return false;
+                _monitor.Log($"Cardcha TEST ARENA menu handoff failed: {ex}", LogLevel.Warn);
             }
+        }
 
-            _enteredViaTeamUp = true;
-            Info("Entered Cardcha Card Test Arena through Cardcha's own safe arena lifecycle.");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _monitor.Log($"Cardcha combat sandbox entry failed: {ex}", LogLevel.Error);
-            Info("Could not enter the Cardcha Card Test Arena. Check the SMAPI log for details.");
-            return false;
-        }
+        Info($"Open Cardcha's own lab first: run '{CardchaOpenLabCommand}', then choose TEST ARENA (or press T). Once inside, run 'teamup_test sandbox normal'.");
+        return false;
     }
 
     public void ExitArena()
     {
         StopWaves(clearMonsters: true);
-        if (!Context.IsWorldReady || !IsCardchaLoaded)
-        {
-            _enteredViaTeamUp = false;
-            return;
-        }
 
-        if (!_enteredViaTeamUp && !IsInArena)
-            return;
-
-        try
+        if (IsInArena)
         {
-            _helper.ConsoleCommands.Trigger(CardchaStopLabCommand, Array.Empty<string>());
-        }
-        catch (Exception ex)
-        {
-            _monitor.Log($"Cardcha combat sandbox exit failed: {ex}", LogLevel.Warn);
-        }
-        finally
-        {
-            _enteredViaTeamUp = false;
+            // Only Cardcha owns the lab snapshot/return point. Do not fake an exit here.
+            Info($"Team Up waves stopped. Exit safely with Cardcha's '{CardchaStopLabCommand}' command so Cardcha restores its Lab session and return point.");
         }
     }
 
@@ -147,7 +126,7 @@ public sealed class CardchaCombatSandboxService
     {
         if (!IsInArena)
         {
-            Info("Enter Cardcha_CardTestArena first with 'teamup_test arena' or use 'teamup_test sandbox'.");
+            Info($"Enter Cardcha_CardTestArena first via '{CardchaOpenLabCommand}' -> TEST ARENA, then run this command again.");
             return false;
         }
 
@@ -192,7 +171,6 @@ public sealed class CardchaCombatSandboxService
         }
 
         ClearOwnedMonsters();
-        Point tile = FindOpenSpawnTile(Game1.currentLocation, new Point(15, 6));
         int hp = _difficulty switch
         {
             SandboxDifficulty.Easy => 1100,
@@ -206,7 +184,7 @@ public sealed class CardchaCombatSandboxService
             _ => 70
         };
 
-        GreenSlime boss = new(new Vector2(tile.X * 64f, tile.Y * 64f), mineLevel)
+        GreenSlime boss = new(new Vector2(BossSpawnTile.X * 64f, BossSpawnTile.Y * 64f), mineLevel)
         {
             MaxHealth = hp,
             Health = hp,
@@ -258,7 +236,6 @@ public sealed class CardchaCombatSandboxService
     public void ResetRuntime()
     {
         StopWaves(clearMonsters: Context.IsWorldReady && IsInArena);
-        _enteredViaTeamUp = false;
         _wave = 0;
         _difficulty = SandboxDifficulty.Normal;
     }
@@ -313,14 +290,10 @@ public sealed class CardchaCombatSandboxService
         }
 
         int spawned = 0;
-        foreach (Point preferred in PreferredSpawnTiles.OrderBy(_ => Game1.random.Next()))
+        foreach (Point tile in PreferredSpawnTiles.OrderBy(_ => Game1.random.Next()))
         {
             if (spawned >= toSpawn)
                 break;
-
-            Point tile = FindOpenSpawnTile(Game1.currentLocation, preferred);
-            if (!IsOpen(Game1.currentLocation, tile))
-                continue;
 
             GreenSlime slime = CreateWaveSlime(tile);
             Game1.currentLocation.characters.Add(slime);
@@ -413,40 +386,6 @@ public sealed class CardchaCombatSandboxService
                 return false;
             return (value?.ToString() ?? string.Empty)
                 .Contains(OptionalTestHostCompatibility.CardchaArenaRoleToken, StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static Point FindOpenSpawnTile(GameLocation location, Point preferred)
-    {
-        if (IsOpen(location, preferred))
-            return preferred;
-
-        for (int radius = 1; radius <= 4; radius++)
-        {
-            for (int x = preferred.X - radius; x <= preferred.X + radius; x++)
-            {
-                for (int y = preferred.Y - radius; y <= preferred.Y + radius; y++)
-                {
-                    Point candidate = new(x, y);
-                    if (IsOpen(location, candidate))
-                        return candidate;
-                }
-            }
-        }
-        return preferred;
-    }
-
-    private static bool IsOpen(GameLocation location, Point tile)
-    {
-        if (tile.X < 1 || tile.Y < 1)
-            return false;
-        try
-        {
-            return location.isTileLocationTotallyClearAndPlaceable(tile.X, tile.Y);
         }
         catch
         {
