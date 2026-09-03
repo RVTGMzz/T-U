@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.1.3 - PARTY UX + TANK FIX
+echo   Team Up! v0.2.0-alpha.6.2.0 - EXPANSION SKILLS WAVE 1
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha6.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha62.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,10 +25,11 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.1.3.
+echo BUILD OK - ALPHA 6.2.0.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo Sau khi vao game, SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.1.3
-echo Test: ChaCha khong co Thu nap, Alex di toi quái truoc khi TAUNT, Trang bi mo panel rieng.
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.2.0
+echo Test SVE: Claire, Lance, Camilla. Test RSV: June, Shiro, Maddie.
+echo Dung teamup_test level NPC 20 va mastery NPC ROLE 8 de test Tier 3 nhanh.
 echo.
 explorer "%~dp0release"
 pause
