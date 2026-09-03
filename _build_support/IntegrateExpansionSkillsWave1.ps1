@@ -12,6 +12,42 @@ function Ensure-Replace([string]$text, [string]$old, [string]$new, [string]$labe
     return $text.Replace($old, $new)
 }
 
+function Convert-ToJsonAsciiString([string]$value) {
+    $builder = New-Object System.Text.StringBuilder
+    foreach ($character in $value.ToCharArray()) {
+        $code = [int][char]$character
+        if ($character -eq '"') { [void]$builder.Append('\"'); continue }
+        if ($character -eq '\') { [void]$builder.Append('\\'); continue }
+        if ($character -eq "`r") { [void]$builder.Append('\r'); continue }
+        if ($character -eq "`n") { [void]$builder.Append('\n'); continue }
+        if ($character -eq "`t") { [void]$builder.Append('\t'); continue }
+        if ($code -lt 32 -or $code -gt 126) {
+            [void]$builder.Append(('\u{0:x4}' -f $code))
+            continue
+        }
+        [void]$builder.Append($character)
+    }
+    return $builder.ToString()
+}
+
+function Patch-Translation([string]$path, [object]$map) {
+    $text = Normalize-Crlf ([System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8))
+    $newLines = New-Object System.Collections.Generic.List[string]
+    foreach ($property in $map.PSObject.Properties) {
+        $marker = '"' + $property.Name + '"'
+        if ($text.Contains($marker)) { continue }
+        $escaped = Convert-ToJsonAsciiString ([string]$property.Value)
+        $newLines.Add('  "' + $property.Name + '": "' + $escaped + '",')
+    }
+
+    if ($newLines.Count -eq 0) { return }
+    $needle = '  "common.back":'
+    if (-not $text.Contains($needle)) { throw "Expansion translations could not locate common.back in $path" }
+    $block = [string]::Join("`r`n", $newLines)
+    $text = $text.Replace($needle, $block + "`r`n`r`n" + $needle)
+    [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
+}
+
 $combatPath = Join-Path $repoRoot 'src\TeamUp\Combat\CombatService.cs'
 $skillPath = Join-Path $repoRoot 'src\TeamUp\Combat\ExpansionSkillService.cs'
 $catalogPath = Join-Path $repoRoot 'src\TeamUp\Core\NpcProfileCatalog.cs'
@@ -73,14 +109,6 @@ $project = [System.IO.File]::ReadAllText($projectPath, [System.Text.Encoding]::U
 $project = [regex]::Replace($project, '<Version>[^<]+</Version>', '<Version>0.2.0-alpha.6.2.0</Version>', 1)
 [System.IO.File]::WriteAllText($projectPath, $project, $utf8NoBom)
 
-function Patch-Translation([string]$path, [object]$map) {
-    $data = [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-    foreach ($property in $map.PSObject.Properties) {
-        $data | Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value -Force
-    }
-    [System.IO.File]::WriteAllText($path, (($data | ConvertTo-Json -Depth 8) + "`r`n"), $utf8NoBom)
-}
-
 $translations = [System.IO.File]::ReadAllText($translationsPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
 Patch-Translation $defaultPath $translations.default
 Patch-Translation $viPath $translations.vi
@@ -89,10 +117,12 @@ $combatVerify = [System.IO.File]::ReadAllText($combatPath, [System.Text.Encoding
 $modVerify = [System.IO.File]::ReadAllText($modPath, [System.Text.Encoding]::UTF8)
 $catalogVerify = [System.IO.File]::ReadAllText($catalogPath, [System.Text.Encoding]::UTF8)
 $skillVerify = [System.IO.File]::ReadAllText($skillPath, [System.Text.Encoding]::UTF8)
+$viVerify = [System.IO.File]::ReadAllText($viPath, [System.Text.Encoding]::UTF8)
 if (-not $combatVerify.Contains('_expansionSkills.Update(activeMembers, monsters);')) { throw 'Expansion skill runtime hook verification failed.' }
 if (-not $modVerify.Contains('NpcProfileCatalog.GetAvailableProfiles(Helper.ModRegistry)')) { throw 'Expansion Codex source-filter verification failed.' }
 if (-not $modVerify.Contains('build: v0.2.0-alpha.6.2.0')) { throw 'Expansion debug marker verification failed.' }
 if (-not $catalogVerify.Contains('GetAvailableProfiles(IModRegistry modRegistry)')) { throw 'Expansion profile catalog verification failed.' }
+if (-not $viVerify.Contains('"codex.expansion.claire.ability"')) { throw 'Expansion Vietnamese dossier verification failed.' }
 foreach ($skill in @('METEOR BREAK', 'SECOND TAKE', 'HIGHLAND BURST', 'RESONANT CHORD', 'SAFE HAVEN', 'GUARDIAN BREAK')) {
     if (-not $skillVerify.Contains($skill)) { throw "Expansion skill verification failed: $skill missing." }
 }
