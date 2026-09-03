@@ -1,4 +1,3 @@
-using Microsoft.Xna.Framework;
 using Ronvotri.TeamUp.Combat;
 using Ronvotri.TeamUp.Core;
 using Ronvotri.TeamUp.Following;
@@ -10,11 +9,10 @@ namespace Ronvotri.TeamUp.Debugging;
 /// <summary>
 /// Developer-only style console harness used by alpha test builds. Cardcha is optional:
 /// when loaded, Team Up can safely enter Cardcha's own Card Test Arena and overlay disposable combat waves
-/// without taking a code dependency on Cardcha or hard-coding Cardcha's internal location name.
+/// without taking a code dependency on Cardcha or hard-coding its gameplay locations.
 /// </summary>
 public sealed class TeamUpDebugService
 {
-
     private readonly IModHelper _helper;
     private readonly IMonitor _monitor;
     private readonly PartyManager _party;
@@ -123,10 +121,12 @@ public sealed class TeamUpDebugService
     private void PrintHelp()
     {
         Info("Team Up alpha test harness:");
-        Info("  teamup_test arena [exit]");
+        Info("  Cardcha arena entry: cardcha_card_test -> TEST ARENA (or T)");
+        Info("  teamup_test arena   (enters only if Cardcha Lab menu is already open)");
+        Info("  teamup_test arena exit   (clears Team Up waves; Cardcha exit remains cardcha_card_test_stop)");
         Info("  teamup_test waves <start [easy|normal|hard]|stop|clear|status>");
         Info("  teamup_test spawn boss");
-        Info("  teamup_test sandbox [easy|normal|hard]");
+        Info("  teamup_test sandbox [easy|normal|hard]   (run while already in Cardcha arena)");
         Info("  teamup_test add <NPC>");
         Info("  teamup_test level <NPC> <1-30>");
         Info("  teamup_test mastery <NPC> <tank|dps|support|healer|control> <0-10>");
@@ -136,7 +136,7 @@ public sealed class TeamUpDebugService
         Info("  teamup_test cooldowns clear");
         Info("  teamup_test reset");
         Info("  teamup_test status");
-        Info("Cardcha is optional. Arena/sandbox uses Cardcha_CardTestArena via Cardcha's own cardcha_card_test lifecycle; no Cardcha map asset is copied into Team Up.");
+        Info("Cardcha is optional. No Cardcha map asset is copied into Team Up; Cardcha owns its Lab snapshot, clock freeze, and safe exit lifecycle.");
     }
 
     public void Update()
@@ -154,7 +154,7 @@ public sealed class TeamUpDebugService
         if (args.Length >= 2 && args[1].Equals("exit", StringComparison.OrdinalIgnoreCase))
         {
             _sandbox.ExitArena();
-            Info("Cardcha combat sandbox exited; Team Up wave monsters cleared.");
+            Info("Team Up sandbox monsters cleared. If still inside Cardcha arena, run 'cardcha_card_test_stop' to restore Cardcha's Lab session safely.");
             return;
         }
 
@@ -221,6 +221,7 @@ public sealed class TeamUpDebugService
         _sandbox.StartWaves(difficulty);
         Info($"Sandbox ready: party Tier 3 + full HP + cleared Team Up cooldowns + endless {difficulty} waves.");
     }
+
     private void CommandAdd(string[] args)
     {
         if (args.Length < 2)
@@ -470,14 +471,11 @@ public sealed class TeamUpDebugService
     private void EnsureMember(string characterName)
     {
         long recruiterId = Game1.player.UniqueMultiplayerID;
-        if (_party.Get(characterName, recruiterId) is not null)
-            return;
-
-        PartyAddResult result = _party.TryAddMember(characterName, recruiterId);
-        if (result != PartyAddResult.Added)
+        if (_party.Get(characterName, recruiterId) is null)
         {
-            Info($"FullParty skipped {characterName}: {result}.");
-            return;
+            PartyAddResult result = _party.TryAddMember(characterName, recruiterId);
+            if (result != PartyAddResult.Added)
+                return;
         }
 
         PartyMemberData member = _party.Get(characterName, recruiterId)!;
@@ -488,20 +486,41 @@ public sealed class TeamUpDebugService
             member.Engagement = profile.RecommendedEngagement;
         }
         member.State = PartyMemberState.Following;
-        _progression.NormalizeMember(member);
-        member.CurrentHealth = _progression.GetMaxHealth(member);
+        member.IsDowned = false;
+        member.IsWithdrawn = false;
+        member.WoundedTicks = 0;
         TakeControlIfPresent(member);
+    }
+
+    private void SetRoleIfPresent(string name, PartyRole role, long recruiterId)
+    {
+        PartyMemberData? member = _party.Get(name, recruiterId);
+        if (member is null)
+            return;
+
+        member.Role = role;
+        member.State = PartyMemberState.Following;
+        member.IsDowned = false;
+        member.IsWithdrawn = false;
+        member.WoundedTicks = 0;
+        _progression.NormalizeMember(member);
+        TakeControlIfPresent(member);
+    }
+
+    private void TakeControlIfPresent(PartyMemberData member)
+    {
+        NPC? npc = Game1.getCharacterFromName(member.CharacterName);
+        if (npc is not null)
+            _follow.TakePartyControl(npc);
     }
 
     private void ResetCombatState()
     {
         foreach (PartyMemberData member in OwnedMembers())
         {
-            member.State = PartyMemberState.Following;
             member.IsDowned = false;
             member.IsWithdrawn = false;
             member.DownedTicks = 0;
-            member.DownCountToday = 0;
             member.WoundedTicks = 0;
             _progression.NormalizeMember(member);
             member.CurrentHealth = _progression.GetMaxHealth(member);
@@ -523,32 +542,16 @@ public sealed class TeamUpDebugService
     {
         List<PartyMemberData> members = OwnedMembers();
         Info($"Team Up test status: {members.Count} party member(s); Farmer HP {Game1.player.health}/{Game1.player.maxHealth}; Cardcha loaded={_helper.ModRegistry.IsLoaded(OptionalTestHostCompatibility.CardchaUniqueId)}.");
+        Info(_sandbox.Describe());
         foreach (PartyMemberData member in members)
         {
             PartyRole role = ResolveActiveRole(member);
-            Info($"  {member.CharacterName}: {_progression.BuildCompactSummary(member)} | role={RoleName(role)} | state={member.State} | downed={member.IsDowned} withdrawn={member.IsWithdrawn}");
+            NpcCombatProfile? profile = NpcProfileCatalog.Get(member.CharacterName);
+            int max = _progression.GetMaxHealth(member);
+            int mastery = _progression.GetMasteryLevel(member, role);
+            string source = profile?.SourceModId ?? "stardew-valley";
+            Info($"  {member.CharacterName}: {member.State}, {RoleName(role)}, {member.Engagement}, Lv{member.Level}, M{mastery}, HP {member.CurrentHealth}/{max}, Source={source}");
         }
-    }
-
-    private PartyMemberData? FindMember(string input)
-    {
-        string? resolved = ResolveProfileCharacterName(input);
-        long recruiterId = Game1.player.UniqueMultiplayerID;
-        PartyMemberData? member = resolved is null ? null : _party.Get(resolved, recruiterId);
-        member ??= _party.Members.FirstOrDefault(candidate =>
-            candidate.RecruiterId == recruiterId
-            && string.Equals(candidate.CharacterName, input, StringComparison.OrdinalIgnoreCase));
-
-        if (member is null)
-            Info($"'{input}' is not in your Team Up party. Use 'teamup_test add {input}' first.");
-        return member;
-    }
-
-    private static string? ResolveProfileCharacterName(string input)
-    {
-        return NpcProfileCatalog.All
-            .FirstOrDefault(profile => string.Equals(profile.CharacterName, input, StringComparison.OrdinalIgnoreCase))
-            ?.CharacterName;
     }
 
     private List<PartyMemberData> OwnedMembers()
@@ -557,21 +560,34 @@ public sealed class TeamUpDebugService
         return _party.Members.Where(member => member.RecruiterId == recruiterId).ToList();
     }
 
-    private void TakeControlIfPresent(PartyMemberData member)
+    private PartyMemberData? FindMember(string rawName)
     {
-        NPC? npc = Game1.getCharacterFromName(member.CharacterName);
-        if (npc is not null)
-            _follow.TakePartyControl(npc);
+        string? characterName = ResolveProfileCharacterName(rawName);
+        if (characterName is null)
+        {
+            Info($"No authored Team Up profile found for '{rawName}'.");
+            return null;
+        }
+
+        PartyMemberData? member = _party.Get(characterName, Game1.player.UniqueMultiplayerID);
+        if (member is null)
+        {
+            Info($"{characterName} is not in the Team Up party. Use 'teamup_test add {characterName}' first.");
+            return null;
+        }
+
+        return member;
     }
 
-    private void SetRoleIfPresent(string name, PartyRole role, long recruiterId)
+    private string? ResolveProfileCharacterName(string raw)
     {
-        PartyMemberData? member = _party.Get(name, recruiterId);
-        if (member is null)
-            return;
+        NpcCombatProfile? profile = NpcProfileCatalog.Get(raw);
+        if (profile is not null)
+            return profile.CharacterName;
 
-        member.Role = role;
-        member.State = PartyMemberState.Following;
+        profile = NpcProfileCatalog.All.FirstOrDefault(candidate =>
+            candidate.CharacterName.Equals(raw, StringComparison.OrdinalIgnoreCase));
+        return profile?.CharacterName;
     }
 
     private static PartyRole ResolveActiveRole(PartyMemberData member)
@@ -581,12 +597,9 @@ public sealed class TeamUpDebugService
         return NpcProfileCatalog.Get(member.CharacterName)?.PrimaryRole ?? PartyRole.Damage;
     }
 
-    private static void SetMasteryLevel(PartyMemberData member, PartyRole role, int masteryLevel)
+    private void SetMasteryLevel(PartyMemberData member, PartyRole role, int targetLevel)
     {
-        int xp = 0;
-        for (int level = 0; level < masteryLevel; level++)
-            xp += 30 + level * 20;
-
+        int xp = GetMasteryExperienceForLevel(targetLevel);
         switch (role)
         {
             case PartyRole.Tank:
@@ -607,47 +620,73 @@ public sealed class TeamUpDebugService
         }
     }
 
+    private static int GetMasteryExperienceForLevel(int targetLevel)
+    {
+        int total = 0;
+        for (int level = 0; level < targetLevel; level++)
+            total += 30 + level * 20;
+        return total;
+    }
+
     private static bool TryParseRole(string raw, out PartyRole role)
     {
         switch (raw.Trim().ToLowerInvariant())
         {
-            case "tank": role = PartyRole.Tank; return true;
+            case "tank":
+                role = PartyRole.Tank;
+                return true;
+            case "damage":
             case "dps":
-            case "damage": role = PartyRole.Damage; return true;
-            case "support": role = PartyRole.Support; return true;
+                role = PartyRole.Damage;
+                return true;
+            case "support":
+                role = PartyRole.Support;
+                return true;
             case "healer":
-            case "heal": role = PartyRole.Healer; return true;
-            case "control": role = PartyRole.Control; return true;
-            default: role = PartyRole.Unassigned; return false;
+            case "heal":
+                role = PartyRole.Healer;
+                return true;
+            case "control":
+            case "ctrl":
+                role = PartyRole.Control;
+                return true;
+            default:
+                role = PartyRole.Unassigned;
+                return false;
         }
     }
 
-    private static bool TryParseHealth(string raw, int maxHealth, out int hp)
+    private static bool TryParseHealth(string raw, int max, out int value)
     {
         raw = raw.Trim();
         if (raw.EndsWith('%'))
         {
             string percentText = raw[..^1];
-            if (!float.TryParse(percentText, out float percent))
+            if (double.TryParse(percentText, out double percent))
             {
-                hp = 0;
-                return false;
+                value = Math.Clamp((int)Math.Ceiling(max * Math.Clamp(percent, 0d, 100d) / 100d), 0, max);
+                return true;
             }
-
-            hp = (int)Math.Round(maxHealth * Math.Clamp(percent, 0f, 100f) / 100f);
+        }
+        else if (int.TryParse(raw, out int absolute))
+        {
+            value = Math.Clamp(absolute, 0, max);
             return true;
         }
 
-        return int.TryParse(raw, out hp);
-    }
-
-    private static string RoleName(PartyRole role)
-    {
-        return role == PartyRole.Damage ? "DPS" : role.ToString();
+        value = 0;
+        return false;
     }
 
     private void Info(string message)
     {
         _monitor.Log(message, LogLevel.Info);
+        if (Context.IsWorldReady)
+            Game1.showGlobalMessage(message);
+    }
+
+    private static string RoleName(PartyRole role)
+    {
+        return role == PartyRole.Damage ? "DPS" : role.ToString().ToUpperInvariant();
     }
 }
