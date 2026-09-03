@@ -20,6 +20,15 @@ try {
     if (-not (Test-Path $integrator)) { throw "Missing Alpha 6.4.3 integrator: $integrator" }
     if (-not (Test-Path $project)) { throw "Missing Team Up project: $project" }
 
+    # Pre-clean only the two obsolete Region-I constants from a pristine 6.4.2 source checkout.
+    # The actual arena methods are replaced by the integrator below.
+    $preDebug = [System.IO.File]::ReadAllText($debugSource, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n")
+    $preDebug = [regex]::Replace(
+        $preDebug,
+        '    private const string CardchaUniqueId = "Ronvotri\.Cardcha";\n    private const string CardchaArenaRole = "region1-hunting";\n',
+        '')
+    [System.IO.File]::WriteAllText($debugSource, $preDebug, $utf8NoBom)
+
     Log 'Integrating Alpha 6.4.3 Cardcha Combat Sandbox...'
     & $integrator 2>&1 | Tee-Object -FilePath $log -Append
 
