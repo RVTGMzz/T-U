@@ -9,6 +9,7 @@ if (-not (Test-Path $integratorPath)) { throw "Missing expansion integration hel
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $source = [System.IO.File]::ReadAllText($baseBuild, [System.Text.Encoding]::UTF8)
+$source = $source.Replace("`r`n", "`n").Replace("`r", "`n").Replace("`n", "`r`n")
 
 # Keep Alpha 6.1.3's known build chain intact. Generate the Alpha 6.2 build in memory,
 # then add one post-6.1.3 integration pass for expansion profiles and real signature skills.
