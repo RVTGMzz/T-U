@@ -1,9 +1,47 @@
+using StardewModdingAPI;
+using StardewValley;
+
 namespace Ronvotri.TeamUp.Core;
 
 public static class NpcProfileCatalog
 {
-    private static readonly Dictionary<string, NpcCombatProfile> Profiles =
-        new(StringComparer.OrdinalIgnoreCase)
+    public const string StardewValleySourceId = "stardew-valley";
+
+    private static readonly Dictionary<string, NpcCombatProfile> Profiles = BuildProfiles();
+
+    public static IReadOnlyList<NpcCombatProfile> All => Profiles.Values
+        .OrderBy(profile => profile.SourceLabel)
+        .ThenBy(profile => profile.CharacterName)
+        .ToList();
+
+    public static IReadOnlyList<NpcCombatProfile> GetAvailableProfiles(IModRegistry modRegistry)
+    {
+        bool sveLoaded = modRegistry.IsLoaded(ExpansionNpcProfileCatalog.SveModId)
+            || modRegistry.IsLoaded(ExpansionNpcProfileCatalog.SveCodeModId);
+        bool rsvLoaded = modRegistry.IsLoaded(ExpansionNpcProfileCatalog.RsvModId);
+
+        return All.Where(profile => profile.SourceId switch
+            {
+                StardewValleySourceId => true,
+                ExpansionNpcProfileCatalog.SveSourceId => sveLoaded
+                    && Game1.getCharacterFromName(profile.CharacterName) is not null,
+                ExpansionNpcProfileCatalog.RsvSourceId => rsvLoaded
+                    && Game1.getCharacterFromName(profile.CharacterName) is not null,
+                _ => Game1.getCharacterFromName(profile.CharacterName) is not null
+            })
+            .ToList();
+    }
+
+    public static NpcCombatProfile? Get(string characterName)
+    {
+        return Profiles.TryGetValue(characterName, out NpcCombatProfile? profile)
+            ? profile
+            : null;
+    }
+
+    private static Dictionary<string, NpcCombatProfile> BuildProfiles()
+    {
+        var profiles = new Dictionary<string, NpcCombatProfile>(StringComparer.OrdinalIgnoreCase)
         {
             ["Abigail"] = P("Abigail", PartyRole.Damage, PartyRole.Control, EngagementStyle.Aggressive, 2, 5, 1, 1, 4),
             ["Alex"] = P("Alex", PartyRole.Tank, PartyRole.Damage, EngagementStyle.Balanced, 5, 4, 1, 1, 2),
@@ -33,18 +71,13 @@ public static class NpcProfileCatalog
             ["Sebastian"] = P("Sebastian", PartyRole.Control, PartyRole.Damage, EngagementStyle.Cautious, 2, 4, 2, 1, 5),
             ["Shane"] = P("Shane", PartyRole.Damage, PartyRole.Tank, EngagementStyle.Aggressive, 4, 5, 1, 1, 2),
             ["Willy"] = P("Willy", PartyRole.Damage, PartyRole.Control, EngagementStyle.Balanced, 3, 4, 2, 2, 4),
-            ["Wizard"] = P("Wizard", PartyRole.Control, PartyRole.Damage, EngagementStyle.Cautious, 2, 4, 3, 2, 5)
+            ["Wizard"] = P("Wizard", PartyRole.Control, PartyRole.Damage, EngagementStyle.Cautious, 2, 4, 3, 2, 5),
         };
 
-    public static IReadOnlyList<NpcCombatProfile> All => Profiles.Values
-        .OrderBy(profile => profile.CharacterName)
-        .ToList();
+        foreach (NpcCombatProfile profile in ExpansionNpcProfileCatalog.All)
+            profiles[profile.CharacterName] = profile;
 
-    public static NpcCombatProfile? Get(string characterName)
-    {
-        return Profiles.TryGetValue(characterName, out NpcCombatProfile? profile)
-            ? profile
-            : null;
+        return profiles;
     }
 
     private static NpcCombatProfile P(
@@ -62,7 +95,7 @@ public static class NpcProfileCatalog
         return new NpcCombatProfile
         {
             CharacterName = name,
-            SourceId = "stardew-valley",
+            SourceId = StardewValleySourceId,
             SourceLabel = "Stardew Valley",
             PrimaryRole = primary,
             SecondaryRole = secondary,
