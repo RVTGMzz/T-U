@@ -37,14 +37,16 @@ try {
     Log 'Integrating Alpha 6.4.3 Cardcha Combat Sandbox...'
     & $integrator 2>&1 | Tee-Object -FilePath $log -Append
 
-    # Normalize one generated reset insertion if this branch is being built from pre-materialized 6.4.2 source.
+    # Normalize generated debug source before compile. This supports both pristine 6.4.2 input
+    # and already-materialized 6.4.3 input without changing gameplay behavior.
     $debugText = [System.IO.File]::ReadAllText($debugSource, [System.Text.Encoding]::UTF8)
     $literalReset = '_sandbox.StopWaves(clearMonsters: true);`n                ResetCombatState();'
     if ($debugText.Contains($literalReset))
     {
         $debugText = $debugText.Replace($literalReset, "_sandbox.StopWaves(clearMonsters: true);`n                ResetCombatState();")
-        [System.IO.File]::WriteAllText($debugSource, $debugText, $utf8NoBom)
     }
+    $debugText = $debugText.Replace('profile?.SourceModId', 'profile?.SourceId')
+    [System.IO.File]::WriteAllText($debugSource, $debugText, $utf8NoBom)
 
     Log 'Restoring Team Up...'
     & dotnet restore $project 2>&1 | Tee-Object -FilePath $log -Append
