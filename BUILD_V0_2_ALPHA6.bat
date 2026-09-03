@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.3.2 - SIGNATURE ICON ART PASS
+echo   Team Up! v0.2.0-alpha.6.4.0 - CHARACTER SKILL IDENTITY
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha632.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha640.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,14 +25,14 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.3.2.
+echo BUILD OK - ALPHA 6.4.0.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.3.2
-echo Test 1: Character Profile chi co 1 icon cho Signature, Passive text-only.
-echo Test 2: Abigail/Alex/Harvey/Maru/Emily co icon silhouette rieng.
-echo Test 3: 24 NPC SVE/RSV Wave 1 co icon bespoke rieng.
-echo Test 4: NPC chua art-pass van fallback icon an toan, khong crash.
-echo Test 5: Equipment 6.3.1 + combat + ChaCha/Tank/Vault khong regression.
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.4.0
+echo Test 1: 24 NPC vanilla moi co Signature Tier 2/3 runtime that.
+echo Test 2: Skill khac nhau nhung giu balance 70 Primary / 30 Secondary.
+echo Test 3: Buff tam thoi het han dung, khong stack vo han va khong luu save.
+echo Test 4: Moi kit vanilla hoan thien co 1 Signature icon bespoke.
+echo Test 5: Equipment 6.3.1 + icons 6.3.2 + SVE/RSV + ChaCha/Tank/Vault khong regression.
 echo.
 explorer "%~dp0release"
 pause
