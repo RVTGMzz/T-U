@@ -1,0 +1,132 @@
+name: Team Up v0.2.0-alpha.6.4.3 Cardcha Combat Sandbox
+
+on:
+  push:
+    branches: [ v0.2-alpha6-4-3-cardcha-combat-sandbox ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.4.3 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha643.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.4.3'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          debug = (root/'Debugging/TeamUpDebugService.cs').read_text(encoding='utf-8')
+          sandbox = (root/'Debugging/CardchaCombatSandboxService.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/OptionalTestHostCompatibility.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          identity = (root/'Combat/CharacterSkillIdentityService.cs').read_text(encoding='utf-8')
+          alpha6 = (root/'Combat/Alpha6CombatPolishService.cs').read_text(encoding='utf-8')
+          relationship = (root/'Core/RelationshipBondService.cs').read_text(encoding='utf-8')
+          profile = (root/'UI/CharacterProfileMenu.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'build: v{version}' in mod
+          assert mod.count(f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}') == 1
+          assert 'Cardcha combat sandbox loaded' in mod
+          assert 'DebugTools.Update();' in mod
+          assert 'DebugTools.ClearSandboxRuntime();' in mod
+
+          # Exact Cardcha Card Test Arena, never the old Region I bridge.
+          assert 'Cardcha_CardTestArena' in sandbox
+          assert 'CardchaTestArenaRole' in compat
+          assert 'isolated-combat-test' in compat
+          assert 'cardcha_card_test' in sandbox
+          assert 'cardcha_card_test_stop' in sandbox
+          assert 'receiveKeyPress(Keys.T)' in sandbox
+          assert 'region1-hunting' not in debug
+          assert 'CardchaRegionRole' not in debug
+
+          # Sandbox commands and bounded wave behavior.
+          for token in ['case "waves":', 'case "spawn":', 'case "sandbox":', 'CommandWaves', 'CommandSandbox']:
+              assert token in debug, token
+          assert 'BetweenWaveDelayMs = 2200L' in sandbox
+          assert 'SandboxDifficulty.Easy => 5' in sandbox
+          assert 'SandboxDifficulty.Hard => 11' in sandbox
+          assert 'WaveMarker = "Ronvotri.TeamUp/CardchaSandboxWave"' in sandbox
+          assert 'BossMarker = "Ronvotri.TeamUp/CardchaSandboxBoss"' in sandbox
+          assert 'clearMonsters: true' in debug
+
+          # Cardcha owns its instrumentation. Team Up excludes it from all runtime target layers.
+          assert 'CardTestArenaDummy' in compat
+          assert 'CardTestArenaKillTarget' in compat
+          for source in [combat, identity, alpha6, relationship]:
+              assert 'IsCardchaHarnessMonster' in source
+
+          # Alpha 6.4.2 readability lock remains.
+          assert 'DescriptionScale = BodyScale * 2f' in profile
+          assert 'DrawScrollableTraitArea' in profile
+          assert 'receiveScrollWheelAction(int direction)' in profile
+          assert 'Buttons.LeftThumbstickDown' in profile
+          assert 'TraitIconKind.Passive' not in profile
+          assert 'TraitIconKind.Signature' in profile
+
+          # Previous relationship/equipment/icon locks remain.
+          for token in ['TrustedHearts = 4', 'CloseCompanionHearts = 8', 'MaxFriendshipHearts = 10', 'SoulmateHearts = 14']:
+              assert token in relationship, token
+          assert 'AutoEquipBest()' in equipment
+          assert 'DrawRarityFrame' in equipment
+          for name in ['Abigail','Alex','Harvey','Maru','Emily','Caroline','Wizard','Alesia','Ysabelle']:
+              assert f'["{name}"] = P(' in renderer, name
+
+          print('Alpha 6.4.3 source acceptance PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.4.3_CARDCHA_COMBAT_SANDBOX_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.4.3_CARDCHA_COMBAT_SANDBOX_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.4.3' BUILD_LOG.txt
+          echo 'Alpha 6.4.3 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp _build_support/IntegrateAlpha643CardchaCombatSandbox.ps1 BuildV0_2Alpha643.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_4_3_CARDCHA_SANDBOX_VI.txt .github/workflows/team-up-alpha6-4-3-cardcha-combat-sandbox.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.4.3 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-4-3-cardcha-combat-sandbox
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-4-3-cardcha-combat-sandbox
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.4.3_CARDCHA_COMBAT_SANDBOX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.4.3_CARDCHA_COMBAT_SANDBOX_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_4_3_CARDCHA_SANDBOX_VI.txt
+          if-no-files-found: error
