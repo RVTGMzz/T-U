@@ -6,9 +6,10 @@ using StardewValley;
 namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
-/// Small original pixel icons for NPC passives and signature abilities.
-/// The glyph is deterministic from character identity + trait kind, so every NPC
-/// gets a stable icon without shipping art assets from vanilla or expansion mods.
+/// Original runtime pixel icons for Team Up character traits.
+/// Alpha 6.3.2 gives completed signature kits a hand-authored 8x8 silhouette,
+/// while retaining the old deterministic renderer as a safe fallback for future NPCs.
+/// No vanilla, SVE, or RSV art assets are copied or redistributed.
 /// </summary>
 public static class TraitIconRenderer
 {
@@ -16,6 +17,13 @@ public static class TraitIconRenderer
     {
         Passive,
         Signature
+    }
+
+    private static readonly IReadOnlyDictionary<string, bool[,]> BespokeSignaturePatterns = BuildBespokeSignaturePatterns();
+
+    public static bool HasBespokeSignature(string characterName)
+    {
+        return BespokeSignaturePatterns.ContainsKey(characterName);
     }
 
     public static void Draw(
@@ -44,28 +52,315 @@ public static class TraitIconRenderer
         int startX = bounds.Center.X - glyphWidth / 2;
         int startY = bounds.Center.Y - glyphHeight / 2;
 
-        bool[,] pattern = BuildPattern(characterName, kind);
+        bool[,] pattern = kind == TraitIconKind.Signature && BespokeSignaturePatterns.TryGetValue(characterName, out bool[,]? bespoke)
+            ? bespoke
+            : BuildProceduralPattern(characterName, kind);
+
         Color shadow = Color.Black * (0.55f * alpha);
         DrawPattern(b, pattern, startX + 2, startY + 2, pixel, shadow);
         DrawPattern(b, pattern, startX, startY, pixel, fill * alpha);
 
-        // Tiny corner pip makes Passive and Signature instantly distinguishable,
-        // even when two procedural silhouettes happen to feel related.
-        Rectangle pip = kind == TraitIconKind.Passive
-            ? new Rectangle(bounds.X + 6, bounds.Y + 6, 5, 5)
-            : new Rectangle(bounds.Right - 11, bounds.Y + 6, 5, 5);
-        b.Draw(Game1.staminaRect, pip, Color.White * (0.85f * alpha));
+        if (kind == TraitIconKind.Signature && BespokeSignaturePatterns.ContainsKey(characterName))
+        {
+            Rectangle spark = new(bounds.Right - 12, bounds.Y + 5, 6, 6);
+            b.Draw(Game1.staminaRect, spark, Color.White * (0.88f * alpha));
+        }
     }
 
-    private static bool[,] BuildPattern(string characterName, TraitIconKind kind)
+    private static IReadOnlyDictionary<string, bool[,]> BuildBespokeSignaturePatterns()
+    {
+        return new Dictionary<string, bool[,]>(StringComparer.OrdinalIgnoreCase)
+        {
+            // Stardew Valley locked signature prototypes.
+            ["Abigail"] = P(
+                "...##...",
+                "..###...",
+                "...##...",
+                "...##...",
+                "..####..",
+                ".##.##..",
+                "##...##.",
+                "....##.."),
+            ["Alex"] = P(
+                "..####..",
+                ".######.",
+                "##.##.##",
+                "##.##.##",
+                "##.##.##",
+                ".######.",
+                "..####..",
+                "...##..."),
+            ["Harvey"] = P(
+                "...##...",
+                "...##...",
+                ".######.",
+                ".######.",
+                "...##...",
+                "...##...",
+                "..####..",
+                ".##..##."),
+            ["Maru"] = P(
+                "....##..",
+                "...##...",
+                "..####..",
+                "....##..",
+                "...##...",
+                "..##....",
+                ".##.###.",
+                "##...##."),
+            ["Emily"] = P(
+                "...##...",
+                "..####..",
+                ".######.",
+                "###..###",
+                ".######.",
+                "..####..",
+                "...##...",
+                "..#..#.."),
+
+            // Stardew Valley Expanded Wave 1.
+            ["Alesia"] = P(
+                "...##...",
+                "..####..",
+                ".######.",
+                "..####..",
+                "...##...",
+                "..####..",
+                ".##..##.",
+                "##....##"),
+            ["Andy"] = P(
+                "##....##",
+                "########",
+                "..####..",
+                "..####..",
+                "########",
+                "##....##",
+                ".##..##.",
+                "..####.."),
+            ["Camilla"] = P(
+                "..#..#..",
+                ".##..##.",
+                "..####..",
+                "###..###",
+                "..####..",
+                ".##..##.",
+                "..#..#..",
+                "...##..."),
+            ["Claire"] = P(
+                "########",
+                "##..##..",
+                "..##..##",
+                "########",
+                "##......",
+                "##.####.",
+                "##.#..#.",
+                "...####."),
+            ["Isaac"] = P(
+                "......##",
+                "....####",
+                "..####..",
+                ".####...",
+                "####....",
+                "..##....",
+                "...##...",
+                "....##.."),
+            ["Jadu"] = P(
+                "..####..",
+                ".##..##.",
+                "##.##.##",
+                "#.####.#",
+                "#.####.#",
+                "##.##.##",
+                ".##..##.",
+                "..####.."),
+            ["Lance"] = P(
+                "......##",
+                ".....###",
+                "....####",
+                "########",
+                "....####",
+                ".....###",
+                "....#.#.",
+                "...#...."),
+            ["Martin"] = P(
+                "..##....",
+                ".####...",
+                "######..",
+                "..####..",
+                "...####.",
+                "....####",
+                "...##...",
+                "..##...."),
+            ["Morgan"] = P(
+                "#......#",
+                ".#....#.",
+                "..####..",
+                "###..###",
+                "###..###",
+                "..####..",
+                ".#....#.",
+                "#......#"),
+            ["Olivia"] = P(
+                ".######.",
+                "..####..",
+                "..####..",
+                "...##...",
+                "...##...",
+                "..####..",
+                ".######.",
+                "##....##"),
+            ["Sophia"] = P(
+                "#.#.#.#.",
+                ".######.",
+                "########",
+                "##....##",
+                "##....##",
+                "########",
+                ".######.",
+                "...##..."),
+            ["Victor"] = P(
+                "########",
+                "#..##..#",
+                "#..##..#",
+                "########",
+                "#..##..#",
+                "#..##..#",
+                "########",
+                "..#..#.."),
+
+            // Ridgeside Village Wave 1.
+            ["Aguar"] = P(
+                "..####..",
+                ".##..##.",
+                "##....##",
+                "##.##.##",
+                "##.##.##",
+                "##....##",
+                ".######.",
+                "...##..."),
+            ["Blair"] = P(
+                "...##...",
+                "..####..",
+                ".##.##..",
+                "....##..",
+                "...##...",
+                "..##....",
+                ".##.....",
+                "######.."),
+            ["Carmen"] = P(
+                "...##...",
+                "..####..",
+                ".######.",
+                "##.##.##",
+                "##.##.##",
+                "##....##",
+                "########",
+                "##....##"),
+            ["Daia"] = P(
+                "##..##..",
+                ".####...",
+                "..##....",
+                "...##...",
+                "....##..",
+                "...####.",
+                "..##..##",
+                ".##....#"),
+            ["Ian"] = P(
+                "##......",
+                "####....",
+                "######..",
+                "########",
+                "..######",
+                "....####",
+                "......##",
+                "...##..."),
+            ["Jio"] = P(
+                ".....###",
+                "....###.",
+                "...###..",
+                "..###...",
+                ".###....",
+                "###.....",
+                "..##..##",
+                "...####."),
+            ["June"] = P(
+                "...##...",
+                "...###..",
+                "...##.#.",
+                "...##.##",
+                "..###.##",
+                ".##...##",
+                ".##..##.",
+                "..####.."),
+            ["Kenneth"] = P(
+                ".######.",
+                "##....##",
+                "##.##.##",
+                "...##...",
+                "..####..",
+                "...##...",
+                "##.##.##",
+                ".######."),
+            ["Kiarra"] = P(
+                "...##...",
+                "..####..",
+                ".######.",
+                "########",
+                "...##...",
+                "..##....",
+                ".##.....",
+                "##......"),
+            ["Maddie"] = P(
+                "..#..#..",
+                ".######.",
+                "########",
+                "########",
+                ".######.",
+                "..####..",
+                "...##...",
+                "..####.."),
+            ["Shiro"] = P(
+                "..####..",
+                ".######.",
+                "##.##.##",
+                "##.##.##",
+                ".###.##.",
+                "..##.##.",
+                ".##...##",
+                "##.....#"),
+            ["Ysabelle"] = P(
+                "...##...",
+                ".######.",
+                "##.##.##",
+                "...##...",
+                "..####..",
+                ".##..##.",
+                "##....##",
+                ".##..##.")
+        };
+    }
+
+    private static bool[,] P(params string[] rows)
+    {
+        if (rows.Length != 8 || rows.Any(row => row.Length != 8))
+            throw new InvalidOperationException("Team Up signature icon patterns must be exactly 8x8.");
+
+        bool[,] result = new bool[8, 8];
+        for (int y = 0; y < 8; y++)
+        {
+            for (int x = 0; x < 8; x++)
+                result[x, y] = rows[y][x] == '#';
+        }
+        return result;
+    }
+
+    private static bool[,] BuildProceduralPattern(string characterName, TraitIconKind kind)
     {
         uint seed = StableHash($"{characterName}|{kind}");
         bool[,] result = new bool[8, 8];
 
         if (kind == TraitIconKind.Passive)
         {
-            // Passive glyphs read as compact crests. Build one half from the seed,
-            // then mirror it for a recognizable emblem silhouette.
             for (int y = 0; y < 8; y++)
             {
                 for (int x = 0; x < 4; x++)
@@ -86,7 +381,6 @@ public static class TraitIconRenderer
         }
         else
         {
-            // Signature glyphs are more directional and explosive.
             for (int y = 0; y < 8; y++)
             {
                 for (int x = 0; x < 8; x++)
@@ -104,7 +398,6 @@ public static class TraitIconRenderer
             result[4, 4] = true;
         }
 
-        // Guarantee enough ink for very sparse hashes.
         int count = 0;
         foreach (bool pixel in result)
         {
