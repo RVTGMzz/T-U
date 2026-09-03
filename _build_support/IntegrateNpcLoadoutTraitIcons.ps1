@@ -178,10 +178,12 @@ $newHover = @'
         if (_hoveredItem is not null)
             DrawHoverComparison(b, _hoveredItem);
 '@
-    if (-not $equipment.Contains((Normalize-Crlf ($oldHover.TrimEnd())))) {
+    $oldHoverNormalized = Normalize-Crlf ($oldHover.TrimEnd())
+    $newHoverNormalized = Normalize-Crlf ($newHover.TrimEnd())
+    if (-not $equipment.Contains($oldHoverNormalized)) {
         throw 'NPC loadout comparison could not locate the old hover strip.'
     }
-    $equipment = $equipment.Replace((Normalize-Crlf ($oldHover.TrimEnd())), (Normalize-Crlf ($newHover.TrimEnd())))
+    $equipment = $equipment.Replace($oldHoverNormalized, $newHoverNormalized)
     [System.IO.File]::WriteAllText($equipmentMenuPath, $equipment, $utf8NoBom)
 }
 
@@ -189,29 +191,34 @@ $equipment = [System.IO.File]::ReadAllText($equipmentMenuPath, [System.Text.Enco
 $profile = [System.IO.File]::ReadAllText($profileMenuPath, [System.Text.Encoding]::UTF8)
 $icons = [System.IO.File]::ReadAllText($traitIconPath, [System.Text.Encoding]::UTF8)
 $preview = [System.IO.File]::ReadAllText($previewPath, [System.Text.Encoding]::UTF8)
+$defaultVerify = [System.IO.File]::ReadAllText($defaultPath, [System.Text.Encoding]::UTF8)
 $modVerify = [System.IO.File]::ReadAllText($modPath, [System.Text.Encoding]::UTF8)
 
-if (-not $equipment.Contains('private const int InventoryColumns = 6;')
-    -or -not $equipment.Contains('item.drawInMenu(')
-    -or -not $equipment.Contains('GetActualEquippedItem')) {
+$loadoutOk = $equipment.Contains('private const int InventoryColumns = 6;') -and $equipment.Contains('item.drawInMenu(') -and $equipment.Contains('GetActualEquippedItem')
+if (-not $loadoutOk) {
     throw 'NPC loadout verification failed: visual item-grid equipment menu markers are missing.'
 }
-if (-not $equipment.Contains('DrawHoverComparison')
-    -or -not $equipment.Contains('EquipmentPreviewService.BuildPreview')
-    -or -not $equipment.Contains('STAT COMPARISON') -and -not ([System.IO.File]::ReadAllText($defaultPath)).Contains('equipment.compare-title')) {
+
+$comparisonOk = $equipment.Contains('DrawHoverComparison') -and $equipment.Contains('EquipmentPreviewService.BuildPreview') -and $defaultVerify.Contains('equipment.compare-title')
+if (-not $comparisonOk) {
     throw 'NPC loadout stat comparison verification failed.'
 }
-if (-not $preview.Contains('BuildPreview') -or -not $preview.Contains('CooldownReductionPercent')) {
+
+$previewOk = $preview.Contains('BuildPreview') -and $preview.Contains('CooldownReductionPercent')
+if (-not $previewOk) {
     throw 'Equipment preview formula verification failed.'
 }
-if (-not $profile.Contains('TraitIconRenderer.Draw(')
-    -or -not $profile.Contains('TraitIconRenderer.TraitIconKind.Passive')
-    -or -not $profile.Contains('TraitIconRenderer.TraitIconKind.Signature')) {
+
+$profileOk = $profile.Contains('TraitIconRenderer.Draw(') -and $profile.Contains('TraitIconRenderer.TraitIconKind.Passive') -and $profile.Contains('TraitIconRenderer.TraitIconKind.Signature')
+if (-not $profileOk) {
     throw 'Trait icon profile verification failed.'
 }
-if (-not $icons.Contains('StableHash') -or -not $icons.Contains('BuildPattern')) {
+
+$iconsOk = $icons.Contains('StableHash') -and $icons.Contains('BuildPattern')
+if (-not $iconsOk) {
     throw 'Trait icon renderer verification failed.'
 }
+
 if (-not $modVerify.Contains('build: v0.2.0-alpha.6.3.0')) {
     throw 'Alpha 6.3 debug marker verification failed.'
 }
