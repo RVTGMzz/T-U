@@ -68,6 +68,21 @@ $source = $source.Replace(
     "Write-Host 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.1.3'",
     "Write-Host 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.3.0'")
 
+$smokeAnchor = @'
+$smoke = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt'
+if (Test-Path $smoke) { Copy-Item $smoke (Join-Path $releaseDir 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt') }
+'@
+$smokeInsert = @'
+$smoke = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt'
+if (Test-Path $smoke) { Copy-Item $smoke (Join-Path $releaseDir 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt') }
+$smoke63 = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_3_NPC_LOADOUT_VI.txt'
+if (Test-Path $smoke63) { Copy-Item $smoke63 (Join-Path $releaseDir 'SMOKE_TEST_V0_2_ALPHA6_3_NPC_LOADOUT_VI.txt') }
+'@
+if (-not $source.Contains($smokeAnchor.TrimEnd())) {
+    throw 'Alpha 6.3 wrapper could not locate smoke-test packaging block.'
+}
+$source = $source.Replace($smokeAnchor.TrimEnd(), $smokeInsert.TrimEnd())
+
 [System.IO.File]::WriteAllText($generatedBuild, $source, $utf8NoBom)
 try {
     & $generatedBuild
