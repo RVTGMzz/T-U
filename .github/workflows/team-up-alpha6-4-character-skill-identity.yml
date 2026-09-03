@@ -1,0 +1,139 @@
+name: Team Up v0.2.0-alpha.6.4.0 Character Skill Identity
+
+on:
+  push:
+    branches: [ v0.2-alpha6-4-character-skill-identity ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.4.0 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha640.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.4.0'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          catalog = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          runtime = (root/'Combat/CharacterSkillIdentityService.cs').read_text(encoding='utf-8')
+          progression = (root/'Core/ProgressionService.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          rpg = (root/'Core/EquipmentRpgPolishService.cs').read_text(encoding='utf-8')
+          profile = (root/'UI/CharacterProfileMenu.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'build: v{version}' in mod
+          assert mod.count(f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}') == 1
+          assert 'character skill identity loaded' in mod
+          assert 'CharacterSkillIdentityService SkillIdentity' in mod
+          assert 'SkillIdentity.Update(Party.Members' in mod
+          assert 'SkillIdentity.Clear()' in mod
+
+          expected_new = [
+              'Caroline','Clint','Demetrius','Elliott','Evelyn','George','Gus','Haley','Jodi','Kent','Leah','Lewis',
+              'Linus','Marnie','Pam','Penny','Pierre','Robin','Sam','Sandy','Sebastian','Shane','Willy','Wizard'
+          ]
+          for name in expected_new:
+              assert f'["{name}"] = I(' in catalog, name
+              assert f'["{name}"] = P(' in renderer, name
+              assert f'["{name}"] =' in rpg, name
+
+          # Locked Alpha 6.4.0 design rules.
+          assert 'PrimaryRoleBudget = 70' in catalog
+          assert 'SecondaryRoleBudget = 30' in catalog
+          assert 'must use Team Up\'s locked 70/30 role budget' in catalog
+          assert 'ApplyConfiguredBuff' in runtime
+          assert 'CharacterSignatureArchetype.Recovery' in runtime
+          assert 'CharacterSignatureArchetype.Guard' in runtime
+          assert 'CharacterSignatureArchetype.Control' in runtime
+          assert 'CharacterSignatureArchetype.Rally' in runtime
+          assert 'CharacterSignatureArchetype.Burst' in runtime
+          assert 'CharacterSignatureArchetype.Sweep' in runtime
+          assert 'CharacterSignatureArchetype.Hybrid' in runtime
+
+          # Runtime buffs are bounded and transient, with no PartyMemberData save fields added.
+          assert 'ApplyTemporaryModifier' in progression
+          assert 'TickTemporaryModifiers' in progression
+          assert 'ClearTemporaryModifiers' in progression
+          assert 'Math.Clamp(damageBonusPercent, 0f, 0.12f)' in progression
+          assert 'Math.Clamp(masteryReduction + gearReduction + runtimeReduction, 0, 45)' in progression
+          party_data = (root/'Core/PartyMemberData.cs').read_text(encoding='utf-8')
+          assert 'RuntimeCombatModifier' not in party_data
+
+          # Alpha 6.3.2 one-icon rule remains locked.
+          assert 'DrawTextTraitBlock' in profile
+          assert 'DrawSignatureBlock' in profile
+          assert 'TraitIconKind.Passive' not in profile
+          assert 'TraitIconKind.Signature' in profile
+
+          # Existing completed kits must remain bespoke.
+          old_expected = [
+              'Abigail','Alex','Harvey','Maru','Emily',
+              'Alesia','Andy','Camilla','Claire','Isaac','Jadu','Lance','Martin','Morgan','Olivia','Sophia','Victor',
+              'Aguar','Blair','Carmen','Daia','Ian','Jio','June','Kenneth','Kiarra','Maddie','Shiro','Ysabelle'
+          ]
+          for name in old_expected:
+              assert f'["{name}"] = P(' in renderer, name
+
+          # Alpha 6.3.1 equipment polish remains materialized.
+          assert 'AutoEquipBest()' in equipment
+          assert 'DrawRarityFrame' in equipment
+          assert 'EquipmentImpactPreview' in equipment
+
+          print('Alpha 6.4.0 source acceptance PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.4.0_CHARACTER_SKILL_IDENTITY_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.4.0_CHARACTER_SKILL_IDENTITY_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.4.0' BUILD_LOG.txt
+          echo 'Alpha 6.4.0 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp _build_support/IntegrateAlpha640CharacterSkillIdentity.ps1 BuildV0_2Alpha640.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_4_0_CHARACTER_SKILL_IDENTITY_VI.txt .github/workflows/team-up-alpha6-4-character-skill-identity.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.4.0 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-4-character-skill-identity
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-4-character-skill-identity
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.4.0_CHARACTER_SKILL_IDENTITY_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.4.0_CHARACTER_SKILL_IDENTITY_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_4_0_CHARACTER_SKILL_IDENTITY_VI.txt
+          if-no-files-found: error
