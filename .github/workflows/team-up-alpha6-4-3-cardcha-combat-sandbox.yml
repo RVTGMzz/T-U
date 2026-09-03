@@ -1,3 +1,4 @@
+# Alpha 6.4.3 verification rerun after legacy Region I bridge cleanup.
 name: Team Up v0.2.0-alpha.6.4.3 Cardcha Combat Sandbox
 
 on:
@@ -53,7 +54,6 @@ jobs:
           assert 'DebugTools.Update();' in mod
           assert 'DebugTools.ClearSandboxRuntime();' in mod
 
-          # Exact Cardcha Card Test Arena, never the old Region I bridge.
           assert 'Cardcha_CardTestArena' in sandbox
           assert 'CardchaTestArenaRole' in compat
           assert 'isolated-combat-test' in compat
@@ -63,7 +63,6 @@ jobs:
           assert 'region1-hunting' not in debug
           assert 'CardchaRegionRole' not in debug
 
-          # Sandbox commands and bounded wave behavior.
           for token in ['case "waves":', 'case "spawn":', 'case "sandbox":', 'CommandWaves', 'CommandSandbox']:
               assert token in debug, token
           assert 'BetweenWaveDelayMs = 2200L' in sandbox
@@ -73,13 +72,11 @@ jobs:
           assert 'BossMarker = "Ronvotri.TeamUp/CardchaSandboxBoss"' in sandbox
           assert 'clearMonsters: true' in debug
 
-          # Cardcha owns its instrumentation. Team Up excludes it from all runtime target layers.
           assert 'CardTestArenaDummy' in compat
           assert 'CardTestArenaKillTarget' in compat
           for source in [combat, identity, alpha6, relationship]:
               assert 'IsCardchaHarnessMonster' in source
 
-          # Alpha 6.4.2 readability lock remains.
           assert 'DescriptionScale = BodyScale * 2f' in profile
           assert 'DrawScrollableTraitArea' in profile
           assert 'receiveScrollWheelAction(int direction)' in profile
@@ -87,7 +84,6 @@ jobs:
           assert 'TraitIconKind.Passive' not in profile
           assert 'TraitIconKind.Signature' in profile
 
-          # Previous relationship/equipment/icon locks remain.
           for token in ['TrustedHearts = 4', 'CloseCompanionHearts = 8', 'MaxFriendshipHearts = 10', 'SoulmateHearts = 14']:
               assert token in relationship, token
           assert 'AutoEquipBest()' in equipment
