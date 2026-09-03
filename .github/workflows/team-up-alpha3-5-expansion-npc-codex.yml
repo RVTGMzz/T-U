@@ -1,0 +1,143 @@
+name: Team Up v0.2.0-alpha.3.5 Expansion NPC Codex
+
+on:
+  push:
+    branches: [ v0.2-alpha3-5-expansion-npc-codex ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Materialize alpha3.4 foundation
+        shell: pwsh
+        run: |
+          ./_build_support/FinalizeV0_2Alpha34.ps1
+          ./_build_support/FixCompileV0_2Alpha34.ps1
+
+      - name: Apply expansion NPC Codex
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/alpha3_5_expansion_npc_codex.py
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.3.5'
+          catalog = (root/'Core/NpcProfileCatalog.cs').read_text(encoding='utf-8')
+          entry = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          en = json.loads((root/'i18n/default.json').read_text(encoding='utf-8'))
+          vi = json.loads((root/'i18n/vi.json').read_text(encoding='utf-8'))
+
+          assert f'<Version>{version}</Version>' in project
+          assert 'FlashShifter.StardewValleyExpandedCP' in catalog
+          assert 'FlashShifter.SVECode' in catalog
+          assert 'Rafseazz.RSVCP' in catalog
+          assert 'Stardew Valley Expanded' in catalog
+          assert 'Ridgeside Village' in catalog
+          assert 'GetAvailableProfiles(IModRegistry modRegistry)' in catalog
+          assert 'Game1.getCharacterFromName(profile.CharacterName) is not null' in catalog
+          assert 'NpcProfileCatalog.GetAvailableProfiles(Helper.ModRegistry)' in entry
+          assert 'profile.PrimaryRole != PartyRole.Unassigned' in entry
+
+          for name in ['Andy','Claire','Lance','Martin','Olivia','Sophia','Victor','Alesia','Jadu','Jolyne']:
+              assert f'["{name}"] = X(' in catalog, name
+          for name in ['Aguar','Alissa','Anton','Blair','Corine','Daia','Ian','Jeric','June','Kenneth','Kiarra','Maddie','Shiro','Torts','Ysabelle','Zayne']:
+              assert f'["{name}"] = X(' in catalog, name
+
+          assert en.get('codex.expansion.passive')
+          assert vi.get('codex.expansion.passive')
+          print('Expansion NPC Codex source acceptance PASS')
+          PY
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Compile test build
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore src/TeamUp/TeamUp.csproj
+          dotnet build src/TeamUp/TeamUp.csproj -c Release --no-restore -p:EnableModDeploy=false -p:EnableModZip=false
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/TeamUp/ModEntry.cs \
+            src/TeamUp/Core/NpcProfileCatalog.cs \
+            src/TeamUp/Following/FollowService.cs \
+            src/TeamUp/TeamUp.csproj \
+            src/TeamUp/i18n/default.json \
+            src/TeamUp/i18n/vi.json \
+            src/TeamUp/UI/CharacterProfileMenu.cs \
+            src/TeamUp/UI/CodexBrowserMenu.cs \
+            src/TeamUp/UI/PartyManagementMenu.cs \
+            tools/alpha3_5_expansion_npc_codex.py \
+            .github/workflows/team-up-alpha3-5-expansion-npc-codex.yml || true
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.3.5 Expansion NPC Codex [skip ci]"
+            git push origin HEAD:v0.2-alpha3-5-expansion-npc-codex
+          fi
+
+      - name: Package compiled test build
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf artifact stage
+          mkdir -p artifact "stage/Team Up"
+
+          dll="$(find src/TeamUp/bin/Release -name TeamUp.dll -print -quit)"
+          test -n "$dll" && test -s "$dll"
+          cp "$dll" "stage/Team Up/TeamUp.dll"
+
+          built_manifest="$(find src/TeamUp/bin/Release -name manifest.json -print -quit || true)"
+          if [ -n "$built_manifest" ] && [ -s "$built_manifest" ]; then
+            cp "$built_manifest" "stage/Team Up/manifest.json"
+          else
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/TeamUp/manifest.json')
+          s=p.read_text(encoding='utf-8').replace('%ProjectVersion%','0.2.0-alpha.3.5')
+          Path('stage/Team Up/manifest.json').write_text(s,encoding='utf-8')
+          PY
+          fi
+
+          cp -a src/TeamUp/i18n "stage/Team Up/i18n"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('stage/Team Up/manifest.json').read_text(encoding='utf-8-sig'))
+          assert manifest['Version']=='0.2.0-alpha.3.5', manifest['Version']
+          print('Packaged manifest version PASS')
+          PY
+
+          (cd stage && zip -qr ../artifact/TeamUp_v0.2.0-alpha.3.5_EXPANSION_NPC_CODEX_TEST.zip "Team Up")
+          sha256sum artifact/*.zip > artifact/SHA256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha3-5-expansion-npc-codex
+          path: artifact
+          if-no-files-found: error
