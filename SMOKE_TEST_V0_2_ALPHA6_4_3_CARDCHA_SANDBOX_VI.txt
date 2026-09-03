@@ -3,14 +3,24 @@ SMOKE TEST VI
 
 MUC TIEU
 - Team Up KHONG tao/copy map moi.
-- Dung dung Cardcha Card Test Arena: Cardcha_CardTestArena, khong phai map tau/Region I hunting.
-- Team Up vao arena thong qua lifecycle cua Cardcha Card Test Lab de Cardcha tu quan ly freeze time/return point.
-- Endless waves chi spawn monster co Team Up marker, co cap, roi khoi arena thi tu dung.
-- Team Up bo qua immortal dummy + 4 kill target cua Cardcha de NPC khong danh nham thiet bi test.
+- Dung dung Cardcha Card Test Arena: Cardcha_CardTestArena, KHONG phai map tau / Region I hunting.
+- Cardcha van la chu so huu lifecycle arena: Lab snapshot, freeze time, return point, dummy/kill targets.
+- Team Up chi overlay Endless Waves/Boss co marker rieng cua Team Up.
+- Team Up bo qua immortal dummy + 4 kill targets cua Cardcha de party khong danh nham thiet bi test.
 
 YEU CAU
-- Cai Cardcha test build co command cardcha_card_test va map Cardcha_CardTestArena.
-- Cai Team Up 6.4.3.
+- Cardcha test build co command: cardcha_card_test
+- Cardcha co map: Cardcha_CardTestArena
+- Team Up 6.4.3
+
+QUY TRINH TEST NHANH NHAT
+1. Trong SMAPI chay: cardcha_card_test
+2. Trong Cardcha Lab chon TEST ARENA, hoac bam phim T.
+3. Khi da vao Cardcha_CardTestArena, chay: teamup_test sandbox normal
+4. Muon thoat an toan: cardcha_card_test_stop
+
+LUU Y
+SMAPI khong cung cap API de mod A tu kich hoat console command cua mod B. Vi vay Team Up KHONG gia lap viec vao/thoat Cardcha Lab bang cach warp thang. Day la chu y de khong lam hong clock, Lab snapshot hay return point cua Cardcha.
 
 1. STARTUP
 [ ] SMAPI khong co Team Up red error.
@@ -19,21 +29,24 @@ YEU CAU
 
 2. VAO DUNG CARD TEST ARENA
 Chay:
-teamup_test arena
+cardcha_card_test
 
-[ ] Tu dong mo lifecycle Cardcha Card Test Lab va vao Cardcha_CardTestArena.
-[ ] Khong bi dua sang map tau / Region I hunting.
-[ ] Time cua Cardcha arena duoc freeze dung nhu Cardcha test lab.
-[ ] Cardcha immortal dummy + 4 kill targets van ton tai.
+Sau do chon TEST ARENA / bam T.
 
-Neu Cardcha bao khong co cardcha_card_test: build Cardcha dang dung qua cu, can dung build co Card Test Lab.
+[ ] Vao Cardcha_CardTestArena.
+[ ] KHONG bi dua sang map tau / Region I hunting.
+[ ] Time duoc freeze theo Cardcha Card Test Lab.
+[ ] Cardcha immortal dummy + 4 kill targets xuat hien.
 
-3. ONE-SHOT SANDBOX
-Co the test tu ngoai arena bang:
+Neu dang mo Cardcha Lab menu, co the chay teamup_test arena de Team Up gui phim T vao menu dang mo. Neu menu chua mo, teamup_test arena chi huong dan chay cardcha_card_test, khong warp thang.
+
+3. ONE-SHOT TEAM UP SANDBOX
+KHI DA O TRONG Cardcha_CardTestArena, chay:
 teamup_test sandbox normal
 
-[ ] Vao dung Cardcha_CardTestArena.
-[ ] Party hien co duoc set Tier 3, full HP, clear Team Up combat/signature cooldown.
+[ ] Party hien co duoc set Tier 3.
+[ ] Farmer + party full HP.
+[ ] Team Up combat/signature cooldown duoc clear.
 [ ] Wave 1 xuat hien ngay.
 
 4. ENDLESS WAVES
@@ -56,7 +69,7 @@ teamup_test waves start hard
 
 5. CARDCHA HARNESS TARGET FILTER
 Trong luc Team Up waves dang chay:
-[ ] NPC Team Up uu tien monster wave Team Up.
+[ ] NPC Team Up danh monster wave/boss Team Up.
 [ ] NPC KHONG khoa muc tieu vao immortal dummy Cardcha.
 [ ] NPC KHONG dung Signature vao 4 Cardcha kill targets.
 [ ] Cardcha dummy/kill targets khong bi Team Up waves clear xoa.
@@ -79,18 +92,24 @@ teamup_test spawn boss
 [ ] 1 slime boss Team Up xuat hien.
 [ ] Normal boss khoang 1600 HP.
 [ ] Trong luc boss con song, endless wave khong bo sung.
-[ ] Neu Waves dang ON, sau boss chet wave co the tiep tuc theo pacing sandbox.
+[ ] Neu Waves van ON, sau boss chet wave co the tiep tuc theo pacing sandbox.
 
 8. ARENA EXIT
+Truoc tien co the chay:
 teamup_test arena exit
 
-[ ] Cardcha Card Test Lab stop/restore lifecycle chay.
+[ ] Team Up wave/boss monsters duoc clear.
+[ ] Lenh nay KHONG tu warp khoi map vi Cardcha so huu lifecycle.
+
+Sau do chay:
+cardcha_card_test_stop
+
+[ ] Cardcha ket thuc Lab session an toan.
 [ ] Quay lai vi tri truoc arena theo Cardcha.
-[ ] Team Up wave monsters duoc clear.
 [ ] Clock tro lai binh thuong.
 
-9. ROI ARENA NGOAI Y MUON
-Bat waves, sau do thoat Cardcha arena bang cach hop le neu co.
+9. ROI ARENA
+Bat waves, sau do thoat arena bang cardcha_card_test_stop.
 [ ] Team Up tu stop wave runtime khi current location khong con la Cardcha_CardTestArena.
 [ ] Khong spawn monster o Farm/Town/mine khac.
 
@@ -99,12 +118,13 @@ Goi y:
 teamup_test add Alex
 teamup_test add Abigail
 teamup_test add Harvey
-teamup_test preset tier3
+cardcha_card_test
+-> TEST ARENA / T
 teamup_test sandbox normal
 
 [ ] Tank approach/taunt van hoat dong.
 [ ] DPS/Control co target hop ly.
-[ ] Healer/Support phan ung khi ha HP Farmer bang teamup_test farmerhp 20%.
+[ ] Healer/Support phan ung khi chay: teamup_test farmerhp 20%
 [ ] Signature Tier 3 kich hoat lap lai de quan sat cooldown/balance.
 
 11. REGRESSION 6.4.2 / 6.4.1 / 6.4.0 / 6.3.1
@@ -116,13 +136,18 @@ teamup_test sandbox normal
 [ ] SVE/RSV Wave 1 Signature van hoat dong.
 [ ] ChaCha van khong vao Main Party.
 
-12. TEST CARDCHA OPTIONAL
+12. CARDCHA OPTIONAL
 Tat/xoa Cardcha va load Team Up.
 [ ] Team Up van load khong red error.
 [ ] teamup_test arena chi bao Cardcha chua load.
 [ ] Party/Codex/Equipment/combat Team Up ngoai sandbox van hoat dong.
 
 LENH NHANH
+CARDCHA:
+cardcha_card_test
+cardcha_card_test_stop
+
+TEAM UP:
 teamup_test arena
 teamup_test arena exit
 teamup_test sandbox [easy|normal|hard]
@@ -135,6 +160,6 @@ teamup_test status
 
 NEU CO LOI
 - Gui full SMAPI log do.
-- Gui screenshot arena.
+- Gui screenshot Cardcha_CardTestArena.
 - Gui output teamup_test status + teamup_test waves status.
-- Neu arena vao sai map, gui Cardcha version dang load.
+- Gui Cardcha version dang load neu khong co cardcha_card_test.
