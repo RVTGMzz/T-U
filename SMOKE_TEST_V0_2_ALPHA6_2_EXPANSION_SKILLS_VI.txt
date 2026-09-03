@@ -1,0 +1,51 @@
+TEAM UP v0.2.0-alpha.6.2.0 - EXPANSION SKILLS WAVE 1
+
+Dieu kien:
+- Cai Stardew Valley Expanded va/hoac Ridgeside Village.
+- SMAPI startup phai co marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.2.0
+- Codex > Nguon chi hien expansion khi mod do dang load va NPC do da ton tai trong save.
+
+1) CODEX / NGUON
+- Mo Team Up Codex.
+- Nguon co Stardew Valley Expanded neu SVE dang load.
+- Nguon co Ridgeside Village neu RSV dang load.
+- NPC expansion chua duoc balance van co the xuat hien voi trang thai chua phan vai.
+
+2) WAVE 1 PROFILE
+SVE: Alesia, Andy, Camilla, Claire, Isaac, Jadu, Lance, Martin, Morgan, Olivia, Sophia, Victor.
+RSV: Aguar, Blair, Carmen, Daia, Ian, Jio, June, Kenneth, Kiarra, Maddie, Shiro, Ysabelle.
+- Mo profile va kiem tra vai tro / passive / signature khong con la placeholder.
+
+3) TEST TIER 2 / TIER 3
+Vi du:
+  teamup_test add Claire
+  teamup_test level Claire 20
+  teamup_test mastery Claire support 8
+
+  teamup_test add Shiro
+  teamup_test level Shiro 20
+  teamup_test mastery Shiro tank 8
+
+- Tier 2: Lv10 hoac mastery 4.
+- Tier 3: Lv20 hoac mastery 8.
+- Skill chi tu dong dung khi dung vai tro Primary/Secondary cua profile.
+
+4) SKILL DE NHIN RO
+- Claire / Maddie: hoi phuc muc tieu yeu, Tier 3 co hoi phuc phu.
+- Camilla / Jadu / Morgan / Victor / Aguar / Kenneth: stun/khong che cum quai.
+- Andy / Ian / Shiro: damage + knockback + threat; Tier 3 co tu hoi phuc.
+- Alesia / Blair: AoE burst tren muc tieu yeu/cum quai.
+- Isaac: Execution Arc tren quai mau thap.
+- Lance / Daia / Jio: damage + control ngan.
+- June: Resonant Chord hoi phuc + stun xung quanh.
+- Olivia / Carmen: party rally heal.
+- Sophia / Kiarra / Ysabelle / Martin: hybrid support.
+
+5) REGRESSION ALPHA 6.1.3
+- ChaCha khong co Recruit.
+- Alex Tank di toi quai truoc khi TAUNT.
+- Equipment dung panel rieng.
+- Party Vault category line khong bi panel inventory de len.
+- Farmer di xuyen party member dang follow/wait.
+
+Neu build fail: gui toan bo BUILD_LOG.txt.
