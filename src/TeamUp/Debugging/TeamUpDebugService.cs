@@ -106,6 +106,7 @@ public sealed class TeamUpDebugService
                 break;
             case "reset":
                 _sandbox.StopWaves(clearMonsters: true);
+                _sandbox.StopWaves(clearMonsters: true);
                 ResetCombatState();
                 Info("Team Up test combat state reset.");
                 break;
@@ -549,7 +550,7 @@ public sealed class TeamUpDebugService
             NpcCombatProfile? profile = NpcProfileCatalog.Get(member.CharacterName);
             int max = _progression.GetMaxHealth(member);
             int mastery = _progression.GetMasteryLevel(member, role);
-            string source = profile?.SourceModId ?? "stardew-valley";
+            string source = profile?.SourceId ?? "stardew-valley";
             Info($"  {member.CharacterName}: {member.State}, {RoleName(role)}, {member.Engagement}, Lv{member.Level}, M{mastery}, HP {member.CurrentHealth}/{max}, Source={source}");
         }
     }
