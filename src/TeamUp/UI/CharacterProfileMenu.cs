@@ -10,7 +10,7 @@ namespace Ronvotri.TeamUp.UI;
 
 /// <summary>
 /// Dedicated Team Up character dossier with native controller footer navigation.
-/// Alpha 6.4.1 keeps the passive readable as text, adds relationship status, and reserves the single character icon
+/// Alpha 6.4.2 doubles passive/signature description text, adds a clipped scroll region, and reserves the single character icon
 /// for the NPC's signature ability.
 /// </summary>
 public sealed class CharacterProfileMenu : IClickableMenu
@@ -25,6 +25,9 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private const int SectionPadding = 20;
     private const float BodyScale = 1.14f;
     private const float CaptionScale = 1.08f;
+    private const float DescriptionScale = BodyScale * 2f;
+    private const int DescriptionScrollStep = 56;
+    private const int SignatureHeaderHeight = 64;
 
     private readonly string _characterName;
     private readonly NpcCombatProfile? _profile;
@@ -46,6 +49,8 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private FooterFocus _focus = FooterFocus.AllCharacters;
     private bool _showMouseCursor;
     private Point _lastPhysicalMousePosition;
+    private int _detailsScrollOffset;
+    private int _detailsMaxScroll;
 
     public CharacterProfileMenu(
         string characterName,
@@ -140,11 +145,28 @@ public sealed class CharacterProfileMenu : IClickableMenu
             _focus = FooterFocus.Back;
     }
 
+    public override void receiveScrollWheelAction(int direction)
+    {
+        if (direction == 0)
+            return;
+
+        AdjustDetailsScroll(direction > 0 ? -DescriptionScrollStep : DescriptionScrollStep);
+    }
     public override void receiveKeyPress(Keys key)
     {
         if (key == Keys.Escape)
         {
             GoBack();
+            return;
+        }
+        if (key is Keys.Up or Keys.PageUp)
+        {
+            AdjustDetailsScroll(-DescriptionScrollStep);
+            return;
+        }
+        if (key is Keys.Down or Keys.PageDown)
+        {
+            AdjustDetailsScroll(DescriptionScrollStep);
             return;
         }
         if (key == Keys.Left)
@@ -182,6 +204,16 @@ public sealed class CharacterProfileMenu : IClickableMenu
         if (b == Buttons.Y)
         {
             OpenAll();
+            return;
+        }
+        if (b is Buttons.DPadUp or Buttons.LeftThumbstickUp)
+        {
+            AdjustDetailsScroll(-DescriptionScrollStep);
+            return;
+        }
+        if (b is Buttons.DPadDown or Buttons.LeftThumbstickDown)
+        {
+            AdjustDetailsScroll(DescriptionScrollStep);
             return;
         }
         if (b is Buttons.DPadLeft or Buttons.LeftThumbstickLeft)
@@ -229,7 +261,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         DrawPanel(b, rightX, bodyY, rightWidth, bodyBottom - bodyY);
 
         DrawPortraitAndIdentity(b, leftX, bodyY, leftWidth);
-        DrawProfileDetails(b, rightX, bodyY, rightWidth);
+        DrawProfileDetails(b, rightX, bodyY, rightWidth, bodyBottom - bodyY);
         DrawFooterButtons(b);
 
         if (_showMouseCursor)
@@ -285,7 +317,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         DrawScaledString(b, Game1.smallFont, relationship, new Vector2(x + SectionPadding, cursorY), Game1.textColor, 1.02f);
     }
 
-    private void DrawProfileDetails(SpriteBatch b, int x, int y, int panelWidth)
+    private void DrawProfileDetails(SpriteBatch b, int x, int y, int panelWidth, int panelHeight)
     {
         int cursorY = y + SectionPadding;
         int innerX = x + SectionPadding;
@@ -297,6 +329,8 @@ public sealed class CharacterProfileMenu : IClickableMenu
             cursorY += 40;
             string pending = WrapScaled(_i18n.Get("profile.pending-body"), innerWidth, BodyScale);
             DrawScaledString(b, Game1.smallFont, pending, new Vector2(innerX, cursorY), Game1.textColor, BodyScale);
+            _detailsMaxScroll = 0;
+            _detailsScrollOffset = 0;
             return;
         }
 
@@ -313,61 +347,123 @@ public sealed class CharacterProfileMenu : IClickableMenu
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Control), _profile.ControlAffinity, innerWidth);
         cursorY += 38;
 
-        cursorY += DrawTextTraitBlock(
-            b,
-            innerX,
-            cursorY,
-            innerWidth,
-            _i18n.Get("profile.passive"),
-            _passiveText);
-        cursorY += 14;
+        int viewportBottom = y + panelHeight - SectionPadding;
+        Rectangle viewport = new(innerX, cursorY, innerWidth, Math.Max(44, viewportBottom - cursorY));
+        DrawScrollableTraitArea(b, viewport, _profile.PrimaryRole);
+    }
 
-        DrawSignatureBlock(
+    private void DrawScrollableTraitArea(SpriteBatch b, Rectangle viewport, PartyRole role)
+    {
+        int contentWidth = Math.Max(120, viewport.Width - 16);
+        int contentHeight = CalculateTraitContentHeight(contentWidth);
+        _detailsMaxScroll = Math.Max(0, contentHeight - viewport.Height);
+        _detailsScrollOffset = Math.Clamp(_detailsScrollOffset, 0, _detailsMaxScroll);
+
+        int contentY = viewport.Y - _detailsScrollOffset;
+
+        DrawSectionTitleIfVisible(b, _i18n.Get("profile.passive"), viewport.X, contentY, viewport);
+        contentY += 30;
+        string passiveWrapped = WrapScaled(_passiveText, contentWidth, DescriptionScale);
+        contentY += DrawWrappedLinesInViewport(b, passiveWrapped, viewport.X, contentY, DescriptionScale, viewport);
+        contentY += 18;
+
+        const int iconSize = 56;
+        Rectangle iconBounds = new(viewport.X, contentY + 4, iconSize, iconSize);
+        if (ContainsVertically(viewport, iconBounds))
+            TraitIconRenderer.Draw(b, _characterName, TraitIconRenderer.TraitIconKind.Signature, role, iconBounds);
+
+        DrawSectionTitleIfVisible(
             b,
-            innerX,
-            cursorY,
-            innerWidth,
             _i18n.Get("profile.signature"),
-            _signatureText,
-            _profile.PrimaryRole);
+            viewport.X + iconSize + 16,
+            contentY + 13,
+            viewport);
+        contentY += SignatureHeaderHeight;
+
+        string signatureWrapped = WrapScaled(_signatureText, contentWidth, DescriptionScale);
+        DrawWrappedLinesInViewport(b, signatureWrapped, viewport.X, contentY, DescriptionScale, viewport);
+
+        if (_detailsMaxScroll > 0)
+            DrawDetailsScrollBar(b, viewport);
     }
 
-    private static int DrawTextTraitBlock(
+    private int CalculateTraitContentHeight(int contentWidth)
+    {
+        string passiveWrapped = WrapScaled(_passiveText, contentWidth, DescriptionScale);
+        string signatureWrapped = WrapScaled(_signatureText, contentWidth, DescriptionScale);
+        return 30
+            + MeasureWrappedHeight(passiveWrapped, DescriptionScale)
+            + 18
+            + SignatureHeaderHeight
+            + MeasureWrappedHeight(signatureWrapped, DescriptionScale);
+    }
+
+    private static int MeasureWrappedHeight(string wrapped, float scale)
+    {
+        int lines = Math.Max(1, wrapped.Replace("\r", string.Empty).Split('\n').Length);
+        return lines * GetScaledLineHeight(scale);
+    }
+
+    private static int DrawWrappedLinesInViewport(
         SpriteBatch b,
+        string wrapped,
         int x,
         int y,
-        int width,
-        string title,
-        string body)
+        float scale,
+        Rectangle viewport)
     {
-        DrawSectionTitle(b, title, x, y + 1);
-        string wrapped = WrapScaled(body, width, BodyScale);
-        DrawScaledString(b, Game1.smallFont, wrapped, new Vector2(x, y + 29), Game1.textColor, BodyScale);
-        return 29 + (int)(Game1.smallFont.MeasureString(wrapped).Y * BodyScale);
+        string[] lines = wrapped.Replace("\r", string.Empty).Split('\n');
+        int lineHeight = GetScaledLineHeight(scale);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            int lineY = y + i * lineHeight;
+            Rectangle lineBounds = new(x, lineY, viewport.Width - 16, lineHeight);
+            if (!ContainsVertically(viewport, lineBounds))
+                continue;
+
+            DrawScaledString(b, Game1.smallFont, lines[i], new Vector2(x, lineY), Game1.textColor, scale);
+        }
+        return Math.Max(1, lines.Length) * lineHeight;
     }
 
-    private int DrawSignatureBlock(
-        SpriteBatch b,
-        int x,
-        int y,
-        int width,
-        string title,
-        string body,
-        PartyRole role)
+    private static void DrawSectionTitleIfVisible(SpriteBatch b, string text, int x, int y, Rectangle viewport)
     {
-        const int iconSize = 68;
-        Rectangle iconBounds = new(x, y, iconSize, iconSize);
-        TraitIconRenderer.Draw(b, _characterName, TraitIconRenderer.TraitIconKind.Signature, role, iconBounds);
-
-        int textX = x + iconSize + 16;
-        int textWidth = Math.Max(80, width - iconSize - 16);
-        DrawSectionTitle(b, title, textX, y + 1);
-        string wrapped = WrapScaled(body, textWidth, BodyScale);
-        DrawScaledString(b, Game1.smallFont, wrapped, new Vector2(textX, y + 29), Game1.textColor, BodyScale);
-        int textHeight = 29 + (int)(Game1.smallFont.MeasureString(wrapped).Y * BodyScale);
-        return Math.Max(iconSize, textHeight);
+        int height = Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * CaptionScale));
+        Rectangle bounds = new(x, y, Math.Max(1, viewport.Right - x), height);
+        if (ContainsVertically(viewport, bounds))
+            DrawSectionTitle(b, text, x, y);
     }
 
+    private static bool ContainsVertically(Rectangle viewport, Rectangle bounds)
+        => bounds.Top >= viewport.Top && bounds.Bottom <= viewport.Bottom;
+
+    private static int GetScaledLineHeight(float scale)
+        => Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * scale) + 2);
+
+    private void DrawDetailsScrollBar(SpriteBatch b, Rectangle viewport)
+    {
+        Rectangle track = new(viewport.Right - 6, viewport.Y + 2, 4, Math.Max(12, viewport.Height - 4));
+        b.Draw(Game1.staminaRect, track, new Color(109, 73, 48) * 0.20f);
+
+        float visibleRatio = viewport.Height / (float)Math.Max(viewport.Height, viewport.Height + _detailsMaxScroll);
+        int thumbHeight = Math.Clamp((int)Math.Round(track.Height * visibleRatio), 24, track.Height);
+        int travel = Math.Max(0, track.Height - thumbHeight);
+        float scrollRatio = _detailsMaxScroll <= 0 ? 0f : _detailsScrollOffset / (float)_detailsMaxScroll;
+        int thumbY = track.Y + (int)Math.Round(travel * scrollRatio);
+        Rectangle thumb = new(track.X - 1, thumbY, 6, thumbHeight);
+        b.Draw(Game1.staminaRect, thumb, new Color(126, 78, 43) * 0.82f);
+    }
+
+    private void AdjustDetailsScroll(int delta)
+    {
+        if (_detailsMaxScroll <= 0 || delta == 0)
+            return;
+
+        int before = _detailsScrollOffset;
+        _detailsScrollOffset = Math.Clamp(_detailsScrollOffset + delta, 0, _detailsMaxScroll);
+        if (_detailsScrollOffset != before)
+            Game1.playSound("shiny4");
+    }
     private void DrawFooterButtons(SpriteBatch b)
     {
         DrawInset(b, _allButton.bounds, _focus == FooterFocus.AllCharacters);
