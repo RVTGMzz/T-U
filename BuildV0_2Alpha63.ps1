@@ -10,8 +10,11 @@ if (-not (Test-Path $expansionIntegratorPath)) { throw "Missing expansion integr
 if (-not (Test-Path $uiIntegratorPath)) { throw "Missing NPC loadout integration helper: $uiIntegratorPath" }
 
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-$source = [System.IO.File]::ReadAllText($baseBuild, [System.Text.Encoding]::UTF8)
-$source = $source.Replace("`r`n", "`n").Replace("`r", "`n").Replace("`n", "`r`n")
+function Normalize-Crlf([string]$text) {
+    return $text.Replace("`r`n", "`n").Replace("`r", "`n").Replace("`n", "`r`n")
+}
+
+$source = Normalize-Crlf ([System.IO.File]::ReadAllText($baseBuild, [System.Text.Encoding]::UTF8))
 
 # Preserve the stable 6.1.3 regression chain, then layer expansion skills and the
 # visual NPC loadout/profile pass immediately before source verification + compile.
@@ -32,11 +35,11 @@ $source = $source.Replace(
     '@($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator, $alpha613Fixer)',
     '@($finalizer, $compileFixer, $uxFixer, $followPerfFixer, $partyGhostFixer, $debugIntegrator, $alpha613Fixer, $expansionIntegrator, $uiIntegrator)')
 
-$anchor = @'
+$anchor = Normalize-Crlf @'
 & $alpha613Fixer 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.1.3 consolidated hotfix failed.' }
 '@
-$insert = @'
+$insert = Normalize-Crlf @'
 & $alpha613Fixer 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.1.3 consolidated hotfix failed.' }
 
@@ -48,10 +51,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.2 expansion skills integration failed.
 & $uiIntegrator 2>&1 | Tee-Object -FilePath $log -Append
 if ($LASTEXITCODE -ne 0) { throw 'Alpha 6.3 NPC loadout integration failed.' }
 '@
-if (-not $source.Contains($anchor.TrimEnd())) {
+$anchor = $anchor.TrimEnd()
+$insert = $insert.TrimEnd()
+if (-not $source.Contains($anchor)) {
     throw 'Alpha 6.3 wrapper could not locate the post-Alpha 6.1.3 insertion point.'
 }
-$source = $source.Replace($anchor.TrimEnd(), $insert.TrimEnd())
+$source = $source.Replace($anchor, $insert)
 
 # The base build's final verification/package metadata should expect the final layer.
 $source = $source.Replace('0.2.0-alpha.6.1.3', '0.2.0-alpha.6.3.0')
@@ -68,20 +73,22 @@ $source = $source.Replace(
     "Write-Host 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.1.3'",
     "Write-Host 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.3.0'")
 
-$smokeAnchor = @'
+$smokeAnchor = Normalize-Crlf @'
 $smoke = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt'
 if (Test-Path $smoke) { Copy-Item $smoke (Join-Path $releaseDir 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt') }
 '@
-$smokeInsert = @'
+$smokeInsert = Normalize-Crlf @'
 $smoke = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt'
 if (Test-Path $smoke) { Copy-Item $smoke (Join-Path $releaseDir 'SMOKE_TEST_V0_2_ALPHA6_1_VI.txt') }
 $smoke63 = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_3_NPC_LOADOUT_VI.txt'
 if (Test-Path $smoke63) { Copy-Item $smoke63 (Join-Path $releaseDir 'SMOKE_TEST_V0_2_ALPHA6_3_NPC_LOADOUT_VI.txt') }
 '@
-if (-not $source.Contains($smokeAnchor.TrimEnd())) {
+$smokeAnchor = $smokeAnchor.TrimEnd()
+$smokeInsert = $smokeInsert.TrimEnd()
+if (-not $source.Contains($smokeAnchor)) {
     throw 'Alpha 6.3 wrapper could not locate smoke-test packaging block.'
 }
-$source = $source.Replace($smokeAnchor.TrimEnd(), $smokeInsert.TrimEnd())
+$source = $source.Replace($smokeAnchor, $smokeInsert)
 
 [System.IO.File]::WriteAllText($generatedBuild, $source, $utf8NoBom)
 try {
