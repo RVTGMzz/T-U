@@ -3,6 +3,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $integrator = Join-Path $root '_build_support\IntegrateAlpha644TestFeedbackEquipmentHotfix.ps1'
 $project = Join-Path $root 'src\TeamUp\TeamUp.csproj'
 $manifest = Join-Path $root 'src\TeamUp\manifest.json'
+$profileSource = Join-Path $root 'src\TeamUp\UI\CharacterProfileMenu.cs'
 $releaseDir = Join-Path $root 'release'
 $stageRoot = Join-Path $root '_stage_alpha644'
 $stageMod = Join-Path $stageRoot 'Team Up'
@@ -18,6 +19,54 @@ function Log([string]$text) { $text | Tee-Object -FilePath $log -Append }
 try {
     if (-not (Test-Path $integrator)) { throw "Missing Alpha 6.4.4 integrator: $integrator" }
     if (-not (Test-Path $project)) { throw "Missing Team Up project: $project" }
+
+    # Normalize this method before the integrator's broader text substitutions. The
+    # previous attempt changed one line inside the old method before trying to replace
+    # the whole method, so its exact-match guard could no longer find it.
+    $profileText = [System.IO.File]::ReadAllText($profileSource, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n")
+    if ($profileText -notmatch 'private bool IsPendingCombatKit\(\)')
+    {
+        $calcStart = '    private int CalculateTraitContentHeight(int contentWidth)'
+        $calcEnd = '    private static int MeasureWrappedHeight'
+        $startIndex = $profileText.IndexOf($calcStart)
+        $endIndex = $profileText.IndexOf($calcEnd)
+        if ($startIndex -lt 0 -or $endIndex -le $startIndex)
+            { throw 'Could not normalize CharacterProfile trait content-height method.' }
+
+        $newCalc = @'
+    private int CalculateTraitContentHeight(int contentWidth, float passiveScale, float signatureScale)
+    {
+        string passiveWrapped = WrapScaled(_passiveText, contentWidth, passiveScale);
+        string signatureWrapped = WrapScaled(_signatureText, contentWidth, signatureScale);
+        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);
+        return 30
+            + MeasureWrappedHeight(passiveWrapped, passiveScale)
+            + 18
+            + SignatureHeaderHeight
+            + MeasureWrappedHeight(signatureWrapped, signatureScale)
+            + 22
+            + 30
+            + MeasureWrappedHeight(relationshipWrapped, BodyScale);
+    }
+
+    private bool IsPendingCombatKit()
+    {
+        if (_profile is null)
+            return true;
+
+        return _profile.PrimaryRole == PartyRole.Unassigned
+            && _profile.SecondaryRole == PartyRole.Unassigned
+            && _profile.TankAffinity == 0
+            && _profile.DamageAffinity == 0
+            && _profile.SupportAffinity == 0
+            && _profile.HealerAffinity == 0
+            && _profile.ControlAffinity == 0;
+    }
+
+'@
+        $profileText = $profileText.Substring(0, $startIndex) + $newCalc + $profileText.Substring($endIndex)
+        [System.IO.File]::WriteAllText($profileSource, $profileText, $utf8NoBom)
+    }
 
     Log 'Integrating Alpha 6.4.4 Test Feedback + Equipment Hotfix...'
     & $integrator 2>&1 | Tee-Object -FilePath $log -Append
