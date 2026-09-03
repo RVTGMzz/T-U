@@ -9,13 +9,11 @@ namespace Ronvotri.TeamUp.Debugging;
 
 /// <summary>
 /// Developer-only style console harness used by alpha test builds. Cardcha is optional:
-/// when loaded, Team Up can discover its controlled Region I hunting map through map metadata
+/// when loaded, Team Up can safely enter Cardcha's own Card Test Arena and overlay disposable combat waves
 /// without taking a code dependency on Cardcha or hard-coding Cardcha's internal location name.
 /// </summary>
 public sealed class TeamUpDebugService
 {
-    private const string CardchaUniqueId = "Ronvotri.Cardcha";
-    private const string CardchaArenaRole = "region1-hunting";
 
     private readonly IModHelper _helper;
     private readonly IMonitor _monitor;
@@ -24,6 +22,7 @@ public sealed class TeamUpDebugService
     private readonly FollowService _follow;
     private readonly CombatService _combat;
     private readonly Alpha6CombatPolishService _alpha6;
+    private readonly CardchaCombatSandboxService _sandbox;
     private readonly Action _saveNow;
 
     public TeamUpDebugService(
@@ -43,6 +42,7 @@ public sealed class TeamUpDebugService
         _follow = follow;
         _combat = combat;
         _alpha6 = alpha6;
+        _sandbox = new CardchaCombatSandboxService(helper, monitor);
         _saveNow = saveNow;
     }
 
@@ -73,7 +73,16 @@ public sealed class TeamUpDebugService
         switch (action)
         {
             case "arena":
-                WarpToCardchaArena();
+                CommandArena(args);
+                break;
+            case "waves":
+                CommandWaves(args);
+                break;
+            case "spawn":
+                CommandSpawn(args);
+                break;
+            case "sandbox":
+                CommandSandbox(args);
                 break;
             case "add":
                 CommandAdd(args);
@@ -98,6 +107,7 @@ public sealed class TeamUpDebugService
                 Info("Team Up combat/signature runtime cooldowns cleared.");
                 break;
             case "reset":
+                _sandbox.StopWaves(clearMonsters: true);
                 ResetCombatState();
                 Info("Team Up test combat state reset.");
                 break;
@@ -113,7 +123,10 @@ public sealed class TeamUpDebugService
     private void PrintHelp()
     {
         Info("Team Up alpha test harness:");
-        Info("  teamup_test arena");
+        Info("  teamup_test arena [exit]");
+        Info("  teamup_test waves <start [easy|normal|hard]|stop|clear|status>");
+        Info("  teamup_test spawn boss");
+        Info("  teamup_test sandbox [easy|normal|hard]");
         Info("  teamup_test add <NPC>");
         Info("  teamup_test level <NPC> <1-30>");
         Info("  teamup_test mastery <NPC> <tank|dps|support|healer|control> <0-10>");
@@ -123,84 +136,91 @@ public sealed class TeamUpDebugService
         Info("  teamup_test cooldowns clear");
         Info("  teamup_test reset");
         Info("  teamup_test status");
-        Info("Cardcha is optional. 'arena' only activates when Ronvotri.Cardcha and its Region I hunting map are loaded.");
+        Info("Cardcha is optional. Arena/sandbox uses Cardcha_CardTestArena via Cardcha's own cardcha_card_test lifecycle; no Cardcha map asset is copied into Team Up.");
     }
 
-    private void WarpToCardchaArena()
+    public void Update()
     {
-        if (!_helper.ModRegistry.IsLoaded(CardchaUniqueId))
+        _sandbox.Update();
+    }
+
+    public void ClearSandboxRuntime()
+    {
+        _sandbox.ResetRuntime();
+    }
+
+    private void CommandArena(string[] args)
+    {
+        if (args.Length >= 2 && args[1].Equals("exit", StringComparison.OrdinalIgnoreCase))
         {
-            Info("Cardcha is not loaded. Team Up remains standalone; install/load Ronvotri.Cardcha only if you want the shared test arena.");
+            _sandbox.ExitArena();
+            Info("Cardcha combat sandbox exited; Team Up wave monsters cleared.");
             return;
         }
 
-        GameLocation? arena = Game1.locations.FirstOrDefault(IsCardchaArena);
-        if (arena is null)
+        _sandbox.EnterArena();
+    }
+
+    private void CommandWaves(string[] args)
+    {
+        if (args.Length < 2)
         {
-            Info("Cardcha is loaded, but Team Up could not find a loaded map tagged CardchaRegionRole=region1-hunting. Enter/unlock the Cardcha test region once, then retry.");
+            Info("Usage: teamup_test waves <start [easy|normal|hard]|stop|clear|status>");
             return;
         }
 
-        Point tile = FindArenaWarpTile(arena);
-        ClearCombatRuntime();
-        Game1.warpFarmer(arena.NameOrUniqueName, tile.X, tile.Y, false);
-        Info($"Warped to Cardcha test arena host: {arena.NameOrUniqueName} ({tile.X},{tile.Y}).");
-    }
-
-    private static bool IsCardchaArena(GameLocation location)
-    {
-        try
+        switch (args[1].Trim().ToLowerInvariant())
         {
-            if (location.Map is null
-                || !location.Map.Properties.TryGetValue("CardchaRegionRole", out var roleValue))
-                return false;
-
-            string role = roleValue?.ToString() ?? string.Empty;
-            return role.Contains(CardchaArenaRole, StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static Point FindArenaWarpTile(GameLocation location)
-    {
-        Point preferred = new(20, 24);
-        if (IsOpen(location, preferred))
-            return preferred;
-
-        for (int radius = 1; radius <= 14; radius++)
-        {
-            for (int x = preferred.X - radius; x <= preferred.X + radius; x++)
-            {
-                for (int y = preferred.Y - radius; y <= preferred.Y + radius; y++)
+            case "start":
+                if (!CardchaCombatSandboxService.TryParseDifficulty(args.Length >= 3 ? args[2] : null, out SandboxDifficulty difficulty))
                 {
-                    Point candidate = new(x, y);
-                    if (IsOpen(location, candidate))
-                        return candidate;
+                    Info("Difficulty must be easy, normal, or hard.");
+                    return;
                 }
-            }
+                _sandbox.StartWaves(difficulty);
+                break;
+            case "stop":
+                _sandbox.StopWaves(clearMonsters: true);
+                Info("Endless Team Up waves stopped and Team Up sandbox monsters cleared.");
+                break;
+            case "clear":
+                _sandbox.ClearOwnedMonsters();
+                Info("Cleared Team Up sandbox monsters only. Cardcha dummy/kill targets were preserved.");
+                break;
+            case "status":
+                Info(_sandbox.Describe());
+                break;
+            default:
+                Info("Usage: teamup_test waves <start [easy|normal|hard]|stop|clear|status>");
+                break;
         }
-
-        return preferred;
     }
 
-    private static bool IsOpen(GameLocation location, Point tile)
+    private void CommandSpawn(string[] args)
     {
-        if (tile.X < 1 || tile.Y < 1)
-            return false;
-
-        try
+        if (args.Length < 2 || !args[1].Equals("boss", StringComparison.OrdinalIgnoreCase))
         {
-            return location.isTileLocationTotallyClearAndPlaceable(tile.X, tile.Y);
+            Info("Usage: teamup_test spawn boss");
+            return;
         }
-        catch
-        {
-            return false;
-        }
+        _sandbox.SpawnBoss();
     }
 
+    private void CommandSandbox(string[] args)
+    {
+        if (!CardchaCombatSandboxService.TryParseDifficulty(args.Length >= 2 ? args[1] : null, out SandboxDifficulty difficulty))
+        {
+            Info("Usage: teamup_test sandbox [easy|normal|hard]");
+            return;
+        }
+
+        if (!_sandbox.EnterArena())
+            return;
+
+        ApplyTierPreset(20, 8);
+        _sandbox.StartWaves(difficulty);
+        Info($"Sandbox ready: party Tier 3 + full HP + cleared Team Up cooldowns + endless {difficulty} waves.");
+    }
     private void CommandAdd(string[] args)
     {
         if (args.Length < 2)
@@ -502,7 +522,7 @@ public sealed class TeamUpDebugService
     private void PrintStatus()
     {
         List<PartyMemberData> members = OwnedMembers();
-        Info($"Team Up test status: {members.Count} party member(s); Farmer HP {Game1.player.health}/{Game1.player.maxHealth}; Cardcha loaded={_helper.ModRegistry.IsLoaded(CardchaUniqueId)}.");
+        Info($"Team Up test status: {members.Count} party member(s); Farmer HP {Game1.player.health}/{Game1.player.maxHealth}; Cardcha loaded={_helper.ModRegistry.IsLoaded(OptionalTestHostCompatibility.CardchaUniqueId)}.");
         foreach (PartyMemberData member in members)
         {
             PartyRole role = ResolveActiveRole(member);

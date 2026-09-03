@@ -86,6 +86,7 @@ public sealed class CombatService
         List<Monster> monsters = Game1.currentLocation.characters
             .OfType<Monster>()
             .Where(monster => monster.Health > 0)
+            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
             .ToList();
 
         List<PartyMemberData> activeMembers = members

@@ -49,6 +49,7 @@ public sealed class CharacterSkillIdentityService
         List<Monster> monsters = Game1.currentLocation.characters
             .OfType<Monster>()
             .Where(monster => monster.Health > 0)
+            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
             .ToList();
 
         foreach (PartyMemberData member in activeMembers)

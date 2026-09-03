@@ -253,7 +253,7 @@ if ($sandbox -notmatch 'cardcha_card_test') { throw 'Cardcha safe Lab entry comm
 if ($sandbox -notmatch 'receiveKeyPress\(Keys\.T\)') { throw 'Cardcha TEST ARENA lifecycle handoff missing.' }
 if ($sandbox -notmatch 'BetweenWaveDelayMs = 2200L') { throw 'Wave pacing contract missing.' }
 if ($sandbox -notmatch 'SandboxDifficulty\.Hard => 11') { throw 'Hard wave cap missing.' }
-if ($compat -notmatch 'CardchaTestArenaDummy' -or $compat -notmatch 'CardTestArenaKillTarget') { throw 'Cardcha harness marker compatibility missing.' }
+if ($compat -notmatch 'CardTestArenaDummy' -or $compat -notmatch 'CardTestArenaKillTarget') { throw 'Cardcha harness marker compatibility missing.' }
 foreach ($text in @($combat, $identity, $alpha6, $relationship)) {
     if ($text -notmatch 'IsCardchaHarnessMonster') { throw 'A Team Up combat layer still targets Cardcha harness dummies.' }
 }
