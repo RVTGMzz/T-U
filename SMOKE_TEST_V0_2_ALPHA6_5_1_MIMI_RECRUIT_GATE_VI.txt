@@ -9,17 +9,15 @@ MIMI RECRUIT GATE HARDENING
 - MiMi runtime canonical id van la Ronvotri.Cardcha_MiMi.
 - Khi display name con la ???: KHONG duoc recruit.
 - Du co actor MiMi visible nhung Cardcha chua tao friendshipData entry: KHONG duoc recruit.
-- Trong event, dialogue, menu story presentation: KHONG duoc recruit.
-- Farm handoff: KHONG duoc recruit.
-- WizardHouse handoff truoc social unlock: KHONG duoc recruit.
+- Trong event, dialogue hoac menu story presentation: KHONG duoc recruit.
+- Farm/Wizard handoff truoc social unlock: KHONG duoc recruit.
 
-3. MIMI SOCIAL / MERCHANT UNLOCK
+3. MIMI SOCIAL UNLOCK
 - Sau khi Cardcha hoan tat Wizard meetup va tao friendship entry Ronvotri.Cardcha_MiMi:
-  + Thu 2-Thu 6, 11:00-16:59, MiMi visible o Town: CO THE recruit.
-  + Cung khung gio, harsh-weather merchant o WizardHouse: CO THE recruit.
-- Truoc 11:00 hoac tu 17:00 tro di: KHONG duoc recruit.
-- Cuoi tuan: KHONG duoc recruit qua merchant gate.
-- Team Up chi doc runtime friendshipData / actor state, KHONG ghi Cardcha save data.
+  + MiMi visible va co the tuong tac: CO THE recruit vao Main Party.
+  + Khong ep Team Up phai biet lich merchant 11:00-17:00 hay ngay trong tuan.
+  + Neu Cardcha sau nay dat MiMi o nha/lich social hop le, Team Up van ton trong vi source mod la ben dieu khien vi tri/lich.
+- Team Up chi doc runtime friendshipData + actor state, KHONG doc/ghi SaveData noi bo cua Cardcha.
 
 4. SAU KHI RECRUIT
 - MiMi vao Main Party binh thuong.
@@ -35,4 +33,5 @@ MIMI RECRUIT GATE HARDENING
 
 MUC TIEU HOTFIX
 - Fail closed voi MiMi truoc khi Cardcha chinh thuc promote co ay thanh social NPC.
-- Khong doc truc tiep SaveData cua Cardcha, khong reflection vao service noi bo, khong rewrite source save.
+- Sau social unlock, Team Up khong hardcode merchant schedule/location nua.
+- Khong reflection vao service noi bo, khong rewrite source save.
