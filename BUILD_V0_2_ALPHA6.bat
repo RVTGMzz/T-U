@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.5.3 - SURGE VALIDATION HARNESS
+echo   Team Up! v0.2.0-alpha.6.6.0 - PARTY STRATEGY FOUNDATION
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha653.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha660.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,23 +25,25 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.5.3.
+echo BUILD OK - ALPHA 6.6.0.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.5.3
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.6.0
 echo.
-echo LENH TEST SURGE MOI:
-echo - teamup_test surge status
- echo - teamup_test surge reapply
- echo - teamup_test surge clear
- echo - teamup_test surge board
+echo LENH PARTY STRATEGY:
+echo - teamup_strategy status
+echo - teamup_strategy balanced
+echo - teamup_strategy defensive
+echo - teamup_strategy aggressive
+echo - teamup_strategy hold
+echo - teamup_strategy boss
 echo.
 echo TEST NHANH:
-echo - status: hien Describe + LastTelemetry + so Surge monster hien tai.
-echo - reapply: xoa Surge extras cu truoc, sau do apply lai dung 1 budget moi.
-echo - clear: CHI xoa monster co marker Ronvotri.TeamUp/SurgeSpawn.
-echo - board: test Marlon Threat Board tai AdventureGuild sau encounter.
-echo - Cardcha_CardTestArena van suppression=cardcha-sandbox va khong inject Surge.
-echo - Safe placement 6.5.2 + MiMi/Sudoku/Origin/equipment/Vault/51 NPC van regression lock.
+echo - Defensive: radius ngan hon, heal urgency cao hon, attack cham hon nhe.
+echo - Aggressive: radius xa hon, attack nhanh hon nhe.
+echo - Hold: NPC khong chase target ngoai attack range.
+echo - Boss: uu tien candidate co MaxHealth cao nhat.
+echo - Doi strategy phai clear combat target locks sach.
+echo - Surge 6.5.3 va cac regression lock cu van phai con nguyen.
 echo.
 explorer "%~dp0release"
 pause
