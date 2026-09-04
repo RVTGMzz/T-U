@@ -19,6 +19,18 @@ try {
     if (-not (Test-Path $integrator)) { throw "Missing Alpha 6.5.0 integrator: $integrator" }
     if (-not (Test-Path $project)) { throw "Missing Team Up project: $project" }
 
+    # Keep literal source identities in the materialized catalog too. This doubles as
+    # documentation and lets the integrator's acceptance check verify the two external IDs.
+    $catalogPath = Join-Path $root 'src\TeamUp\Core\NpcProfileCatalog.cs'
+    $catalogText = [System.IO.File]::ReadAllText($catalogPath, [System.Text.Encoding]::UTF8)
+    $sourceIdNote = '// Alpha 6.5.0 custom source IDs: Ronvotri.Cardcha_MiMi | HeyYoureCursed_Sudoku'
+    if (-not $catalogText.Contains($sourceIdNote)) {
+        $catalogText = $catalogText.Replace(
+            'namespace Ronvotri.TeamUp.Core;',
+            "namespace Ronvotri.TeamUp.Core;`n`n$sourceIdNote")
+        [System.IO.File]::WriteAllText($catalogPath, $catalogText, $utf8NoBom)
+    }
+
     Log 'Integrating Alpha 6.5.0 Origin + Surge + Custom Recruits...'
     & $integrator 2>&1 | Tee-Object -FilePath $log -Append
 
