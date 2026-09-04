@@ -10,7 +10,7 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Combat;
 
 /// <summary>
-/// Alpha 6.5.2 Surge runtime overlay.
+/// Alpha 6.5.3 Surge validation harness over the Alpha 6.5.2 runtime overlay.
 /// Adds bounded safe monsters around existing combat pressure without cloning unknown entities.
 /// Placement fails closed when no clear tile exists, and every visit records compact telemetry.
 /// </summary>
@@ -18,6 +18,11 @@ public sealed class MonsterSurgeService
 {
     public const string SurgeMarker = "Ronvotri.TeamUp/SurgeSpawn";
     public const string SurgeSourceMarker = "Ronvotri.TeamUp/SurgeSource";
+
+    // Alpha 6.5.3 exposes only the active Team Up Surge service to the developer harness.
+    // This is runtime-only state and is never serialized into a save.
+    public static MonsterSurgeService? ActiveInstance { get; private set; }
+    public string LastTelemetryLine { get; private set; } = "[SurgeTelemetry] no-record";
 
     private static readonly Point[] SafeSpawnOffsets =
     {
@@ -68,6 +73,7 @@ public sealed class MonsterSurgeService
         _multiplier = multiplier;
         _extraCap = extraCap;
         _fullLoot = fullLoot;
+        ActiveInstance = this;
     }
 
     public void Reset()
@@ -121,6 +127,95 @@ public sealed class MonsterSurgeService
             + $"Location={_locationKey} | Applied={_applied} | Baseline={_lastBaselineCount} | Wanted={_lastWantedCount} | "
             + $"Spawned={_lastSpawnedCount} | UnsafeRejected={_lastUnsafeRejected} | Threat={_lastThreatLevel} | Suppress={_lastSuppressionReason}";
 
+    public int CountOwnedSurgeMonsters(GameLocation? location = null)
+    {
+        location ??= Game1.currentLocation;
+        return location?.characters.OfType<Monster>().Count(IsSurgeMonster) ?? 0;
+    }
+
+    public int ClearOwnedSurgeMonsters(GameLocation? location = null)
+    {
+        location ??= Game1.currentLocation;
+        if (location is null)
+            return 0;
+
+        List<Monster> owned = location.characters
+            .OfType<Monster>()
+            .Where(IsSurgeMonster)
+            .ToList();
+
+        foreach (Monster monster in owned)
+            location.characters.Remove(monster);
+
+        return owned.Count;
+    }
+
+    public bool DebugReapplyCurrentLocation(out string result)
+    {
+        if (!_enabled())
+        {
+            result = "Surge is disabled in config.";
+            return false;
+        }
+
+        if (!Context.IsWorldReady || !Context.IsMainPlayer || Game1.currentLocation is null)
+        {
+            result = "Load a save as the main player before reapplying The Surge.";
+            return false;
+        }
+
+        if (Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null)
+        {
+            result = "Surge reapply blocked while an event, dialogue, or menu owns presentation.";
+            return false;
+        }
+
+        GameLocation location = Game1.currentLocation;
+        int cleared = ClearOwnedSurgeMonsters(location);
+
+        _locationKey = location.NameOrUniqueName;
+        _pendingTicks = 0;
+        _applied = false;
+        ResetVisitTelemetry("debug-reapply");
+        ApplyOnce(location);
+        _applied = true;
+
+        result = $"Surge reapply complete: cleared={cleared} | {Describe()}";
+        return true;
+    }
+
+    public bool DebugShowThreatBoard(out string result)
+    {
+        if (!Context.IsWorldReady || !Context.IsMainPlayer || Game1.currentLocation is null)
+        {
+            result = "Load a save as the main player before testing Marlon's Threat Board.";
+            return false;
+        }
+
+        if (!Game1.currentLocation.NameOrUniqueName.Equals("AdventureGuild", StringComparison.OrdinalIgnoreCase))
+        {
+            result = "Threat Board debug display is only available inside AdventureGuild.";
+            return false;
+        }
+
+        if (Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null)
+        {
+            result = "Threat Board debug display blocked while an event, dialogue, or menu owns presentation.";
+            return false;
+        }
+
+        if (_recentEncounterSerial <= 0)
+        {
+            result = "No Surge encounter has been recorded yet.";
+            return false;
+        }
+
+        string message = BuildGuildThreatBrief();
+        _guildBriefShownSerial = _recentEncounterSerial;
+        Game1.showGlobalMessage(message);
+        result = message;
+        return true;
+    }
     public static bool IsSurgeMonster(Monster monster)
         => monster.modData.ContainsKey(SurgeMarker);
 
@@ -284,6 +379,8 @@ public sealed class MonsterSurgeService
         _recentThreatLevel = threat;
     }
 
+    private string BuildGuildThreatBrief()
+        => $"MARLON'S THREAT BOARD • {_recentThreatLevel} • {_recentEncounterLocation} • {_recentBaselineCount}->{_recentTotalCount}";
     private void TryShowGuildThreatBrief()
     {
         if (_recentEncounterSerial <= 0
@@ -297,17 +394,17 @@ public sealed class MonsterSurgeService
         }
 
         _guildBriefShownSerial = _recentEncounterSerial;
-        Game1.showGlobalMessage(
-            $"MARLON'S THREAT BOARD • {_recentThreatLevel} • {_recentEncounterLocation} • {_recentBaselineCount}->{_recentTotalCount}");
+        Game1.showGlobalMessage(BuildGuildThreatBrief());
     }
 
     private void LogTelemetry(GameLocation location, float multiplier)
     {
-        _monitor.Log(
+        string line =
             $"[SurgeTelemetry] location={location.NameOrUniqueName} baseline={_lastBaselineCount} wanted={_lastWantedCount} "
             + $"spawned={_lastSpawnedCount} unsafeRejected={_lastUnsafeRejected} total={_lastBaselineCount + _lastSpawnedCount} "
-            + $"multiplier={multiplier:0.00} threat={_lastThreatLevel} suppression={_lastSuppressionReason}",
-            LogLevel.Trace);
+            + $"multiplier={multiplier:0.00} threat={_lastThreatLevel} suppression={_lastSuppressionReason}";
+        LastTelemetryLine = line;
+        _monitor.Log(line, LogLevel.Trace);
     }
 
     private void ResetVisitTelemetry(string reason)

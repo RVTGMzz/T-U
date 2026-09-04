@@ -70,6 +70,9 @@ public sealed class TeamUpDebugService
 
         switch (action)
         {
+            case "surge":
+                CommandSurge(args);
+                break;
             case "arena":
                 CommandArena(args);
                 break;
@@ -125,6 +128,7 @@ public sealed class TeamUpDebugService
         Info("  Cardcha arena entry: cardcha_card_test -> TEST ARENA (or T)");
         Info("  teamup_test arena   (enters only if Cardcha Lab menu is already open)");
         Info("  teamup_test arena exit   (clears Team Up waves; Cardcha exit remains cardcha_card_test_stop)");
+        Info("  teamup_test surge <status|reapply|clear|board>");
         Info("  teamup_test waves <start [easy|normal|hard]|stop|clear|status>");
         Info("  teamup_test spawn boss");
         Info("  teamup_test sandbox [easy|normal|hard]   (run while already in Cardcha arena)");
@@ -150,6 +154,46 @@ public sealed class TeamUpDebugService
         _sandbox.ResetRuntime();
     }
 
+    private void CommandSurge(string[] args)
+    {
+        MonsterSurgeService? surge = MonsterSurgeService.ActiveInstance;
+        if (surge is null)
+        {
+            Info("Surge service is not initialized.");
+            return;
+        }
+
+        string action = args.Length >= 2 ? args[1].Trim().ToLowerInvariant() : "status";
+        switch (action)
+        {
+            case "status":
+                Info(surge.Describe());
+                Info(surge.LastTelemetryLine);
+                Info($"Owned Surge monsters in current location: {surge.CountOwnedSurgeMonsters()}.");
+                break;
+
+            case "clear":
+            {
+                int cleared = surge.ClearOwnedSurgeMonsters();
+                Info($"Cleared {cleared} Team Up Surge monster(s). Source/custom monsters were preserved.");
+                break;
+            }
+
+            case "reapply":
+                surge.DebugReapplyCurrentLocation(out string reapplyResult);
+                Info(reapplyResult);
+                break;
+
+            case "board":
+                surge.DebugShowThreatBoard(out string boardResult);
+                Info(boardResult);
+                break;
+
+            default:
+                Info("Usage: teamup_test surge <status|reapply|clear|board>");
+                break;
+        }
+    }
     private void CommandArena(string[] args)
     {
         if (args.Length >= 2 && args[1].Equals("exit", StringComparison.OrdinalIgnoreCase))
@@ -190,6 +234,7 @@ public sealed class TeamUpDebugService
                 break;
             case "status":
                 Info(_sandbox.Describe());
+        Info(MonsterSurgeService.ActiveInstance?.Describe() ?? "Surge status: service not initialized.");
                 break;
             default:
                 Info("Usage: teamup_test waves <start [easy|normal|hard]|stop|clear|status>");
@@ -544,6 +589,7 @@ public sealed class TeamUpDebugService
         List<PartyMemberData> members = OwnedMembers();
         Info($"Team Up test status: {members.Count} party member(s); Farmer HP {Game1.player.health}/{Game1.player.maxHealth}; Cardcha loaded={_helper.ModRegistry.IsLoaded(OptionalTestHostCompatibility.CardchaUniqueId)}.");
         Info(_sandbox.Describe());
+        Info(MonsterSurgeService.ActiveInstance?.Describe() ?? "Surge status: service not initialized.");
         foreach (PartyMemberData member in members)
         {
             PartyRole role = ResolveActiveRole(member);
