@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.4.5 - INTERACTION AI EXPANSION
+echo   Team Up! v0.2.0-alpha.6.4.6 - EXPANSION SIGNATURE ART BALANCE
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha645.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha646.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,17 +25,17 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.4.5.
+echo BUILD OK - ALPHA 6.4.6.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.4.5
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.4.6
 echo.
 echo TEST NHANH:
-echo - Double-click gear trong tui de trang bi; double-click gear NPC de thao.
-echo - Controller Up/Down phai toi duoc TU DONG TRANG BI va THAO TRANG BI.
-echo - Kho Party: giu chuot keo item qua lai giua tui va kho roi tha.
-echo - Combat: dung yen trong sandbox, NPC khong quay len/xuong lien tuc va van danh quai gan minh.
-echo - Ariah va cac NPC SVE/RSV con lai khong con 0/5 + ky nang cho hoan thien.
-echo - Neu van co loi sound null, gui 20-30 dong log truoc stack trace.
+echo - Mo profile cua Ariah, Apples, Torts, Zayne va cac NPC expansion moi.
+echo - Moi NPC hoan thien phai co 1 Signature icon bespoke, khong con icon procedural fallback.
+echo - Cung class nhung NPC khac nhau ve Power / Reach / Utility / Tempo.
+echo - Khong NPC nao duoc cong tat ca: budget cua moi nguoi phai tong bang 0.
+echo - Test Tier 2/Tier 3 trong Cardcha sandbox de so sanh DPS, Tank, Heal, Support, Control.
+echo - Regression: double-click gear, controller, Party Vault drag/drop, AI anti-spin van hoat dong.
 echo.
 explorer "%~dp0release"
 pause
