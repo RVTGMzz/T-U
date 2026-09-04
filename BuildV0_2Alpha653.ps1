@@ -229,9 +229,13 @@ try {
     }
 
     if (-not $debugText.Contains('teamup_test surge <status|reapply|clear|board>')) {
+        $helpReplacement = @'
+        Info("  teamup_test surge <status|reapply|clear|board>");
+        Info("  teamup_test waves <start [easy|normal|hard]|stop|clear|status>");
+'@
         $debugText = $debugText.Replace(
             '        Info("  teamup_test waves <start [easy|normal|hard]|stop|clear|status>");',
-            "        Info(\"  teamup_test surge <status|reapply|clear|board>\");`n        Info(\"  teamup_test waves <start [easy|normal|hard]|stop|clear|status>\");")
+            $helpReplacement.TrimEnd())
     }
 
     if (-not $debugText.Contains('private void CommandSurge(string[] args)')) {
@@ -284,9 +288,13 @@ try {
     }
 
     if (-not $debugText.Contains('Surge status: service not initialized.')) {
+        $statusReplacement = @'
+        Info(_sandbox.Describe());
+        Info(MonsterSurgeService.ActiveInstance?.Describe() ?? "Surge status: service not initialized.");
+'@
         $debugText = $debugText.Replace(
             '        Info(_sandbox.Describe());',
-            "        Info(_sandbox.Describe());`n        Info(MonsterSurgeService.ActiveInstance?.Describe() ?? \"Surge status: service not initialized.\");")
+            $statusReplacement.TrimEnd())
     }
 
     [System.IO.File]::WriteAllText($debug, $debugText, $utf8NoBom)
