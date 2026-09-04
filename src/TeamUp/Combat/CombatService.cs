@@ -26,6 +26,7 @@ public sealed class CombatService
     private readonly IMonitor _monitor;
     private readonly FollowService _follow;
     private readonly ProgressionService _progression;
+    private readonly Func<PartyStrategy> _strategy;
     private readonly ThreatService _threat = new();
     private readonly ExpansionSkillService _expansionSkills;
     private readonly Dictionary<string, int> _attackCooldowns = new(StringComparer.OrdinalIgnoreCase);
@@ -44,13 +45,19 @@ public sealed class CombatService
     private int _threatPulseTicks;
     private int _lastFarmerHealth = -1;
 
-    public CombatService(IMonitor monitor, FollowService follow, ProgressionService progression)
+    public CombatService(IMonitor monitor, FollowService follow, ProgressionService progression, Func<PartyStrategy> strategy)
     {
         _monitor = monitor;
         _follow = follow;
         _progression = progression;
+        _strategy = strategy;
         _expansionSkills = new ExpansionSkillService(progression, _threat);
     }
+
+    public PartyStrategy CurrentStrategy => _strategy();
+
+    public string DescribeStrategy()
+        => $"Party Strategy: {CurrentStrategy} | Radius x{GetStrategyEngagementRadiusMultiplier(CurrentStrategy):0.00} | AttackCD x{GetStrategyAttackCooldownMultiplier(CurrentStrategy):0.00}";
 
     public void Clear()
     {
@@ -189,6 +196,17 @@ public sealed class CombatService
                 TryTankTaunt(npc, member, monsters, validThreatActors);
             if (distanceToTarget > attackRange)
             {
+                if (_strategy() == PartyStrategy.HoldPosition)
+                {
+                    npc.controller = null;
+                    npc.temporaryController = null;
+                    npc.Halt();
+                    if (!_lastTargetTiles.ContainsKey(member.CharacterName))
+                        npc.showTextAboveHead("HOLD POSITION", new Color(150, 210, 255), 2, 850, 0);
+                    _lastTargetTiles[member.CharacterName] = npc.Tile;
+                    continue;
+                }
+
                 MoveTowardTarget(npc, target, role);
                 continue;
             }
@@ -204,7 +222,7 @@ public sealed class CombatService
 
             PerformAttack(npc, target, member, role, affinity);
             int cooldown = GetAttackCooldown(role, member.Engagement, affinity);
-            cooldown = Math.Max(12, (int)Math.Round(cooldown * _progression.GetCooldownMultiplier(member, role)));
+            cooldown = Math.Max(12, (int)Math.Round(cooldown * _progression.GetCooldownMultiplier(member, role) * GetStrategyAttackCooldownMultiplier(_strategy())));
             _attackCooldowns[member.CharacterName] = cooldown;
         }
 
@@ -505,7 +523,7 @@ public sealed class CombatService
         if (monsters.Count == 0)
             return null;
 
-        float radius = GetEngagementRadius(member.Engagement);
+            float radius = GetEngagementRadius(member.Engagement) * GetStrategyEngagementRadiusMultiplier(_strategy());
         Vector2 farmerTile = Game1.player.Tile;
         List<Monster> candidates = monsters
             .Where(monster => ReferenceEquals(monster.currentLocation, Game1.currentLocation))
@@ -515,6 +533,8 @@ public sealed class CombatService
 
         if (member.Engagement == EngagementStyle.Passive)
             candidates = candidates.Where(monster => Vector2.Distance(monster.Tile, farmerTile) <= 2.75f).ToList();
+        if (_strategy() == PartyStrategy.HoldPosition)
+            candidates = candidates.Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 4.5f).ToList();
         if (candidates.Count == 0)
             return null;
 
@@ -557,7 +577,9 @@ public sealed class CombatService
             };
         }
 
-        Monster? chosen = candidates.OrderBy(Score).FirstOrDefault();
+        Monster? chosen = _strategy() == PartyStrategy.BossFocus
+            ? candidates.OrderByDescending(monster => monster.MaxHealth).ThenBy(Score).FirstOrDefault()
+            : candidates.OrderBy(Score).FirstOrDefault();
         if (chosen is not null && !ReferenceEquals(chosen, current))
             _targetLockTicks[member.CharacterName] = TargetLockDurationTicks;
         return chosen;
@@ -627,6 +649,8 @@ public sealed class CombatService
         float farmerThreshold = role == PartyRole.Healer ? 0.82f : 0.60f;
         if (farmerPressure >= 2)
             farmerThreshold = Math.Min(0.90f, farmerThreshold + 0.10f);
+        if (_strategy() == PartyStrategy.Defensive)
+            farmerThreshold = Math.Min(0.95f, farmerThreshold + 0.10f);
         farmerThreshold = Math.Clamp(
             farmerThreshold + _progression.GetRecoveryThresholdAdjustment(member, role),
             0.35f,
@@ -995,6 +1019,29 @@ public sealed class CombatService
     private static string RoleShort(PartyRole role)
     {
         return role == PartyRole.Damage ? "DPS" : role.ToString();
+    }
+
+    private static float GetStrategyEngagementRadiusMultiplier(PartyStrategy strategy)
+    {
+        return strategy switch
+        {
+            PartyStrategy.Defensive => 0.78f,
+            PartyStrategy.Aggressive => 1.18f,
+            PartyStrategy.HoldPosition => 0.70f,
+            PartyStrategy.BossFocus => 1.00f,
+            _ => 1.00f
+        };
+    }
+
+    private static float GetStrategyAttackCooldownMultiplier(PartyStrategy strategy)
+    {
+        return strategy switch
+        {
+            PartyStrategy.Defensive => 1.08f,
+            PartyStrategy.Aggressive => 0.88f,
+            PartyStrategy.BossFocus => 0.96f,
+            _ => 1.00f
+        };
     }
 
     private static float GetEngagementRadius(EngagementStyle style)

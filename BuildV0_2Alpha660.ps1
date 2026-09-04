@@ -71,7 +71,7 @@ try {
         $combatText = Replace-Required $combatText '    public void Clear()' $describeInsert.TrimEnd() 'Combat strategy describe'
     }
 
-    $combatText = Replace-Required $combatText '            float radius = GetEngagementRadius(member.Engagement);' '            float radius = GetEngagementRadius(member.Engagement) * GetStrategyEngagementRadiusMultiplier(_strategy());' 'strategy engagement radius'
+    $combatText = Replace-Required $combatText '        float radius = GetEngagementRadius(member.Engagement);' '            float radius = GetEngagementRadius(member.Engagement) * GetStrategyEngagementRadiusMultiplier(_strategy());' 'strategy engagement radius'
 
     if (-not $combatText.Contains('Vector2.Distance(monster.Tile, npc.Tile) <= 4.5f')) {
         $oldPassive = @'

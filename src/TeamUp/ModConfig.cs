@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
 using StardewModdingAPI.Utilities;
+using Ronvotri.TeamUp.Core;
 
 namespace Ronvotri.TeamUp;
 
@@ -45,6 +46,10 @@ public sealed class ModConfig
     // Extra Surge monsters are reward-suppressed by default so x2 danger does not
     // automatically become x2 economy. Set true only if the player wants full drops.
     public bool SurgeMonstersDropLoot { get; set; } = false;
+
+    // Alpha 6.6.0: party-wide tactical posture. This is config-backed so changing strategy
+    // never migrates or mutates PartySaveData.
+    public PartyStrategy PartyStrategy { get; set; } = PartyStrategy.Balanced;
 
     // Farmer-owned/special companions bypass Main Party recruitment entirely.
     // ChaCha is the first compatibility entry. Future adapters should prefer the
