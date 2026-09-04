@@ -209,9 +209,7 @@ public sealed class MonsterSurgeService
         LogTelemetry(location, multiplier);
 
         if (spawned > 0)
-        {
             Game1.showGlobalMessage($"THE SURGE • {_lastThreatLevel} • +{spawned} MONSTERS");
-        }
     }
 
     private bool TryFindSafeSpawnPosition(GameLocation location, Monster source, int seed, out Vector2 position)
@@ -256,9 +254,10 @@ public sealed class MonsterSurgeService
 
         try
         {
-            // Stardew's own placeability test catches solid map tiles, occupied tiles,
-            // furniture/objects, terrain blockers, and most modded-map collision cases.
-            return location.isTileLocationTotallyClearAndPlaceable(tileX, tileY);
+            Vector2 tile = new(tileX, tileY);
+            return location.isTileOnMap(tile)
+                && location.isTilePassable(tile)
+                && !location.IsTileBlockedBy(tile, ignorePassables: CollisionMask.All);
         }
         catch
         {
