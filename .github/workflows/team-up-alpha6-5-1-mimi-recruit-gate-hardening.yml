@@ -30,7 +30,6 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import json
 
           root = Path('src/TeamUp')
           version = '0.2.0-alpha.6.5.1'
@@ -52,28 +51,23 @@ jobs:
 
           # Alpha 6.5.1 core: fail-closed Cardcha social unlock contract.
           required = [
-              'Ronvotri.Cardcha_MiMi',
+              'CardchaModId = "Ronvotri.Cardcha"',
+              'MimiNpcId = "Ronvotri.Cardcha_MiMi"',
               'Game1.player.friendshipData.ContainsKey(MimiNpcId)',
-              'MimiMerchantStartTime = 1100',
-              'MimiMerchantEndTime = 1700',
-              'IsMimiMerchantWeekday()',
+              'npc.displayName.Equals("MiMi"',
               'Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null',
-              'location.Equals("Town"',
-              'location.Equals("WizardHouse"'
+              'return npc.canTalk() || npc.IsVillager;'
           ]
           for token in required:
               assert token in compat, token
 
-          # Team Up must not couple to Cardcha internal save/service implementation.
-          assert 'MimiMeetupCompleted' not in compat
-          assert 'Cardcha.Services' not in compat
-          assert 'SaveData' not in compat
-          assert 'Reflection' not in compat
-          assert 'GetApi<' not in compat
+          # Team Up must not couple to Cardcha internal save/service implementation or work schedule.
+          for forbidden in [
+              'MimiMeetupCompleted', 'Cardcha.Services', 'SaveData', 'Reflection', 'GetApi<',
+              'MimiMerchantStartTime', 'MimiMerchantEndTime', 'IsMimiMerchantWeekday'
+          ]:
+              assert forbidden not in compat, forbidden
 
-          # Mystery/source identity and ChaCha separation remain explicit.
-          assert 'CardchaModId = "Ronvotri.Cardcha"' in compat
-          assert 'npc.displayName.Equals("MiMi"' in compat
           assert 'CustomNpcCompatibilityService.CanRecruit(npc, Helper.ModRegistry)' in mod
 
           # Alpha 6.5.0 systems and prior regression fixes remain materialized.
@@ -93,8 +87,8 @@ jobs:
           assert 'FacingHoldDurationTicks = 10' in combat
 
           print('Alpha 6.5.1 source acceptance PASS')
-          print('MiMi social-unlock fail-closed gate PASS')
-          print('No Cardcha save/internal-service coupling PASS')
+          print('MiMi Cardcha-social-unlock gate PASS')
+          print('No Cardcha private-save/work-schedule coupling PASS')
           print('Alpha 6.5.0 Origin/Surge/custom regressions retained PASS')
           PY
 
