@@ -22,7 +22,7 @@ jobs:
       - name: Build Alpha 6.6.0 end-to-end
         shell: pwsh
         run: |
-          ./BuildV0_2Alpha660.ps1
+          ./FixAndBuildV0_2Alpha660.ps1
 
       - name: Source acceptance
         shell: bash
@@ -49,7 +49,6 @@ jobs:
           assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
           assert 'Party Strategy foundation + Surge/Origin/MiMi/Sudoku integration loaded' in mod
 
-          # Strategy contract and config persistence.
           for token in ['Balanced', 'Defensive', 'Aggressive', 'HoldPosition', 'BossFocus']:
               assert token in strategy, token
           assert 'public PartyStrategy PartyStrategy { get; set; } = PartyStrategy.Balanced;' in config
@@ -59,7 +58,6 @@ jobs:
           assert 'OnStrategyCommand' in mod
           assert 'Combat.Clear()' in mod
 
-          # Runtime effects must be real, not enum-only.
           for token in [
               'GetStrategyEngagementRadiusMultiplier',
               'GetStrategyAttackCooldownMultiplier',
@@ -75,12 +73,10 @@ jobs:
               assert token in combat, token
           assert 'Combat = new CombatService(Monitor, Follow, Progression, () => Config.PartyStrategy);' in mod
 
-          # Hard leash and anti-spin locks remain.
           assert 'HardLeashTiles = 12f' in combat
           assert 'TargetLockDurationTicks = 45' in combat
           assert 'FacingHoldDurationTicks = 10' in combat
 
-          # Alpha 6.5.3 Surge harness remains intact.
           for token in [
               'ActiveInstance', 'LastTelemetryLine', 'DebugReapplyCurrentLocation',
               'DebugShowThreatBoard', 'ClearOwnedSurgeMonsters', '[SurgeTelemetry]'
@@ -91,7 +87,6 @@ jobs:
           assert 'Activator.CreateInstance' not in surge
           assert 'MemberwiseClone' not in surge
 
-          # Custom recruit / skill / UI regressions.
           assert 'Game1.player.friendshipData.ContainsKey(MimiNpcId)' in compat
           assert 'BROOMTAIL SIGIL' in identity
           assert 'NINEFOLD SEAL' in identity
