@@ -22,7 +22,7 @@ jobs:
       - name: Build Alpha 6.6.0 end-to-end
         shell: pwsh
         run: |
-          ./FixAndBuildV0_2Alpha660.ps1
+          ./BuildV0_2Alpha660.ps1
 
       - name: Source acceptance
         shell: bash
