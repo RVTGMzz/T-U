@@ -1,0 +1,152 @@
+name: Team Up v0.2.0-alpha.6.5.0 Origin Surge Custom Recruits
+
+on:
+  push:
+    branches: [ v0.2-alpha6-5-origin-surge-custom-recruits ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.5.0 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha650.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.5.0'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          config = (root/'ModConfig.cs').read_text(encoding='utf-8')
+          catalog = (root/'Core/NpcProfileCatalog.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/CustomNpcCompatibilityService.cs').read_text(encoding='utf-8')
+          identity = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          origin = (root/'Story/OriginStoryService.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          default_i18n = json.loads((root/'i18n/default.json').read_text(encoding='utf-8'))
+          vi_i18n = json.loads((root/'i18n/vi.json').read_text(encoding='utf-8'))
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'origin story + The Surge + MiMi/Sudoku recruit integration loaded' in mod
+
+          # Narrative spine.
+          for token in ['OriginStage', 'origin.linus', 'origin.marlon.surge', 'origin.awakening', 'origin.marlon.teamup']:
+              assert token in origin, token
+          assert 'AdventureGuild' in origin and 'Forest' in origin
+          assert 'Farmer.modData' in origin or 'Game1.player.modData' in origin
+          assert 'Origin.OnWarped(e.NewLocation)' in mod
+          assert 'Origin.Update()' in mod
+
+          # The Surge is a bounded spawn-budget overlay, not a blind clone system.
+          for token in ['MonsterDensityMultiplier', 'MonsterSurgeExtraCap', 'SurgeMonstersDropLoot']:
+              assert token in config, token
+          assert 'SurgeMarker' in surge
+          assert 'Math.Clamp(_multiplier(), 1f, 2.5f)' in surge
+          assert 'MonsterSurgeExtraCap' in config
+          assert 'OptionalTestHostCompatibility.CardchaArenaLocationName' in surge
+          assert 'SuppressKnownLootCollections' in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+          assert 'GetType().GetConstructor' not in surge
+          assert 'GreenSlime extra = new' in surge
+
+          # Custom NPC source gates and identities.
+          assert 'Ronvotri.Cardcha_MiMi' in compat
+          assert 'ronvotri.HeyYoureCursed_Sudoku' in compat
+          assert 'displayName.Equals("MiMi"' in compat
+          assert 'location.Equals("Farm"' in compat
+          assert 'CustomNpcCompatibilityService.CanRecruit(npc, Helper.ModRegistry)' in mod
+          assert 'ChaCha' not in catalog.split('// Ronvotri custom characters.')[1].split('return profiles;')[0]
+
+          assert 'BROOMTAIL SIGIL' in identity
+          assert 'NINEFOLD SEAL' in identity
+          assert 'PartyRole.Support' in catalog and 'PartyRole.Control' in catalog
+          assert '[CustomNpcCompatibilityService.MimiNpcId] = P(' in renderer
+          assert '[CustomNpcCompatibilityService.SudokuCanonicalNpcId] = P(' in renderer
+
+          # Balance: exact planned affinities and class-safe custom skills.
+          assert 'tank: 1, damage: 2, support: 5, healer: 2, control: 4' in catalog
+          assert 'tank: 1, damage: 4, support: 2, healer: 1, control: 5' in catalog
+          assert 'damage: 5, radius: 5.4f, maxTargets: 4' in identity
+          assert 'controlBuff: 0.06f, cdrBuff: 3, partyWide: true' in identity
+          assert 'damage: 4, radius: 4.6f, maxTargets: 4' in identity
+          assert 'controlBuff: 0.08f' in identity
+
+          # Localization required for story and both custom profiles.
+          for key in [
+              'codex.custom.mimi.passive', 'codex.custom.mimi.ability',
+              'codex.custom.sudoku.passive', 'codex.custom.sudoku.ability',
+              'origin.linus', 'origin.marlon.surge', 'origin.awakening',
+              'origin.marlon.teamup', 'origin.complete'
+          ]:
+              assert key in default_i18n, key
+              assert key in vi_i18n, key
+
+          # Previous live-test fixes remain materialized.
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert 'public override void releaseLeftClick' in vault
+          assert 'TargetLockDurationTicks = 45' in combat
+          assert 'FacingHoldDurationTicks = 10' in combat
+
+          print('Alpha 6.5.0 source acceptance PASS')
+          print('Origin story spine PASS')
+          print('Safe x2-target Surge budget PASS')
+          print('MiMi + Sudoku identity / icon / balance PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.5.0_ORIGIN_SURGE_CUSTOM_RECRUITS_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.5.0_ORIGIN_SURGE_CUSTOM_RECRUITS_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.5.0' BUILD_LOG.txt
+          echo 'Alpha 6.5.0 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp _build_support/IntegrateAlpha650OriginSurgeCustomRecruits.ps1 BuildV0_2Alpha650.ps1 SMOKE_TEST_V0_2_ALPHA6_5_0_ORIGIN_SURGE_CUSTOM_RECRUITS_VI.txt .github/workflows/team-up-alpha6-5-origin-surge-custom-recruits.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.5.0 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-5-origin-surge-custom-recruits
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-5-origin-surge-custom-recruits
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.5.0_ORIGIN_SURGE_CUSTOM_RECRUITS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.5.0_ORIGIN_SURGE_CUSTOM_RECRUITS_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_5_0_ORIGIN_SURGE_CUSTOM_RECRUITS_VI.txt
+          if-no-files-found: error
