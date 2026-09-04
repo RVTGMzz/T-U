@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.5.2 - SURGE RUNTIME POLISH
+echo   Team Up! v0.2.0-alpha.6.5.3 - SURGE VALIDATION HARNESS
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha652.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha653.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,17 +25,23 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.5.2.
+echo BUILD OK - ALPHA 6.5.3.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.5.2
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.5.3
+echo.
+echo LENH TEST SURGE MOI:
+echo - teamup_test surge status
+ echo - teamup_test surge reapply
+ echo - teamup_test surge clear
+ echo - teamup_test surge board
 echo.
 echo TEST NHANH:
-echo - Vao Mines/Cave co quai, doi khoang 1 giay: Surge spawn tren tile clear/placeable.
-echo - Map hep co the spawn it hon x2, nhung KHONG duoc nhai quai vao tuong/vat can.
-echo - SMAPI log co [SurgeTelemetry] baseline/wanted/spawned/unsafeRejected/threat/suppression.
-echo - Cardcha_CardTestArena van suppression=cardcha-sandbox, khong inject Surge.
-echo - Quay ve AdventureGuild sau encounter: Marlon Threat Board hien 1 lan neu khong co dialogue/event/menu.
-echo - Regression MiMi gate + Sudoku + Origin + equipment + Party Vault + 51 NPC expansion.
+echo - status: hien Describe + LastTelemetry + so Surge monster hien tai.
+echo - reapply: xoa Surge extras cu truoc, sau do apply lai dung 1 budget moi.
+echo - clear: CHI xoa monster co marker Ronvotri.TeamUp/SurgeSpawn.
+echo - board: test Marlon Threat Board tai AdventureGuild sau encounter.
+echo - Cardcha_CardTestArena van suppression=cardcha-sandbox va khong inject Surge.
+echo - Safe placement 6.5.2 + MiMi/Sudoku/Origin/equipment/Vault/51 NPC van regression lock.
 echo.
 explorer "%~dp0release"
 pause
