@@ -1,0 +1,53 @@
+TEAM UP v0.2.0-alpha.6.5.0
+ORIGIN + THE SURGE + CUSTOM RECRUITS
+
+1. XAC NHAN BUILD
+- SMAPI phai hien: Team Up DEBUG HARNESS READY ... v0.2.0-alpha.6.5.0
+- Khong co error khi Cardcha / Hey! You're Cursed! vang mat.
+
+2. THE SURGE
+- Config mac dinh EnableMonsterSurge=true, MonsterDensityMultiplier=2.0.
+- Vao Mines/Cave/Dungeon co san quái. Doi khoang 1 giay sau warp.
+- Tong mat do quái phai tang gan x2, nhung co cap MonsterSurgeExtraCap=18.
+- Khong spawn them trong Cardcha_CardTestArena.
+- Khong blind-clone boss, story entity, quest monster hay custom monster object.
+- Surge monster mang marker Ronvotri.TeamUp/SurgeSpawn.
+- Mac dinh SurgeMonstersDropLoot=false de han che economy inflation.
+- Rời map / vao map moi: moi location visit chi apply budget mot lan.
+
+3. ORIGIN STORY NHE
+- Sau khi da gap combat co quái, quay lai Forest: nhan hint cua Linus.
+- Vao AdventureGuild: Marlon noi ve The Surge va khuyen khong di mot minh.
+- Co it nhat 1 party member dang Following, vao combat: NPC hien AWAKENING va global message.
+- Quay lai AdventureGuild: Marlon chot Team Up / Stronger Together.
+- Progress luu trong Farmer.modData, khong thay doi schema PartySaveData.
+- EnableOriginStory=false: khong ep story, gameplay Team Up van hoat dong.
+
+4. MIMI
+- Khong cai Cardcha: Team Up van load binh thuong.
+- Cai Cardcha, MiMi con la ??? / mystery: KHONG duoc recruit.
+- Trong scene Farm handoff: KHONG duoc recruit.
+- Sau khi MiMi o trang thai merchant hop le Town/WizardHouse: co the recruit vao Main Party.
+- Profile: Support primary / Control secondary; affinities 1/2/5/2/4.
+- Signature: BROOMTAIL SIGIL, sweep/control utility, damage khiem ton.
+- Co icon Signature rieng.
+- ChaCha van KHONG the vao Main Party.
+
+5. SUDOKU
+- Khong co source mod/NPC: Team Up van load binh thuong.
+- Khi source mod thuc su expose Sudoku actor hop le: co the recruit.
+- Ho tro internal id ronvotri.HeyYoureCursed_Sudoku va alias Sudoku.
+- Profile: Control primary / Damage secondary; affinities 1/4/2/1/5.
+- Signature: NINEFOLD SEAL, control manh, damage thap, khong party-wide buff.
+- Co icon 3x3/grid rieng.
+
+6. BALANCE / REGRESSION
+- MiMi va Sudoku van theo 70% Primary / 30% Secondary.
+- Buff % khong vuot cap 12%; DEF <=3; CDR <=5.
+- Expansion 51 NPC 6.4.6 van co skill/icon/balance.
+- Double-click equipment, controller focus, Party Vault drag/drop 6.4.5 van hoat dong.
+- Cardcha sandbox 6.4.3 van hoat dong va khong bi The Surge chen quái.
+
+GHI CHU
+- Alpha 6.5.0 chi la safe Surge foundation: tren map modded/unknown, Team Up tang tong threat bang Surge monster an toan thay vi copy thang custom entity.
+- Adapter de nhan doi dung species Pokemon/Pelipper can API/runtime contract ro rang cua mod nguon truoc khi mo full support.
