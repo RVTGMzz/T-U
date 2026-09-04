@@ -39,7 +39,9 @@ try {
     $surgeText = [System.IO.File]::ReadAllText($surge, [System.Text.Encoding]::UTF8)
     foreach ($token in @(
         'SafeSpawnOffsets',
-        'isTileLocationTotallyClearAndPlaceable',
+        'isTileOnMap',
+        'isTilePassable',
+        'IsTileBlockedBy',
         '[SurgeTelemetry]',
         'unsafeRejected=',
         'ResolveThreatLevel',
@@ -51,7 +53,7 @@ try {
     }
 
     Log 'Building Alpha 6.5.2 Surge Runtime Polish...'
-    Log 'Placement: safe tile-ring search, clear/placeable validation, Farmer/monster spacing, fail closed.'
+    Log 'Placement: safe tile-ring search, map/passable/blocked validation, Farmer/monster spacing, fail closed.'
     Log 'Telemetry: baseline / wanted / spawned / unsafeRejected / threat / suppression reason.'
     Log 'Presentation: THE SURGE threat tier in combat + Marlon threat board on later Guild return.'
 
@@ -89,7 +91,7 @@ try {
     Log '========================================================='
     Log 'BUILD SUCCESS - ALPHA 6.5.2'
     Log 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.5.2'
-    Log 'SURGE PLACEMENT: CLEAR/PLACEABLE TILE RING + SAFE SPACING + FAIL CLOSED'
+    Log 'SURGE PLACEMENT: MAP/PASSABLE/BLOCKED TILE RING + SAFE SPACING + FAIL CLOSED'
     Log 'SURGE TELEMETRY: BASELINE/WANTED/SPAWNED/UNSAFE/THREAT/SUPPRESSION'
     Log 'THREAT: LOW / ELEVATED / HIGH / SURGE + MARLON GUILD BOARD'
     Log 'REGRESSION: ALPHA 6.5.1 MIMI GATE + 6.5.0 ORIGIN/SUDOKU + PRIOR SYSTEMS RETAINED'
