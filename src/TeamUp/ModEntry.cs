@@ -6,6 +6,7 @@ using Ronvotri.TeamUp.Core;
 using Ronvotri.TeamUp.Debugging;
 using Ronvotri.TeamUp.Following;
 using Ronvotri.TeamUp.Storage;
+using Ronvotri.TeamUp.Story;
 using Ronvotri.TeamUp.UI;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -29,6 +30,8 @@ public sealed class ModEntry : Mod
     private Alpha6CombatPolishService Alpha6Polish { get; set; } = null!;
     private CharacterSkillIdentityService SkillIdentity { get; set; } = null!;
     private TeamUpDebugService DebugTools { get; set; } = null!;
+    private OriginStoryService Origin { get; set; } = null!;
+    private MonsterSurgeService Surge { get; set; } = null!;
     private Action? PendingUiAction { get; set; }
     private string? RecruitHintNpcName { get; set; }
     private bool PartyActionConfirmationOpen { get; set; }
@@ -40,6 +43,8 @@ public sealed class ModEntry : Mod
         Config.MaxPartyMembers = Math.Clamp(Config.MaxPartyMembers, 1, 6);
         Config.MaxActiveLinkedCompanions = Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 6);
         Config.SpecialCompanionNpcNames ??= new List<string>();
+        Config.MonsterDensityMultiplier = Math.Clamp(Config.MonsterDensityMultiplier, 1f, 2.5f);
+        Config.MonsterSurgeExtraCap = Math.Clamp(Config.MonsterSurgeExtraCap, 0, 30);
         helper.WriteConfig(Config);
 
         Party = new PartyManager(
@@ -52,6 +57,13 @@ public sealed class ModEntry : Mod
         Combat = new CombatService(Monitor, Follow, Progression);
         Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);
         SkillIdentity = new CharacterSkillIdentityService(Progression);
+        Origin = new OriginStoryService(Helper, Monitor, () => Party.Members, () => Config.EnableOriginStory);
+        Surge = new MonsterSurgeService(
+            Monitor,
+            () => Config.EnableMonsterSurge,
+            () => Config.MonsterDensityMultiplier,
+            () => Config.MonsterSurgeExtraCap,
+            () => Config.SurgeMonstersDropLoot);
         DebugTools = new TeamUpDebugService(
             Helper,
             Monitor,
@@ -62,18 +74,19 @@ public sealed class ModEntry : Mod
             Alpha6Polish,
             SavePartyNow);
         DebugTools.RegisterCommands();
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.6", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.5.0", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
         helper.Events.GameLoop.DayEnding += OnDayEnding;
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
+        helper.Events.Player.Warped += OnWarped;
         helper.Events.Input.ButtonPressed += OnButtonPressed;
         helper.Events.Display.RenderingActiveMenu += OnRenderingActiveMenu;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.4.6 expansion signature art + zero-sum identity balance loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.5.0 origin story + The Surge + MiMi/Sudoku recruit integration loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -86,6 +99,9 @@ public sealed class ModEntry : Mod
         Relationships.Clear();
         SkillIdentity.Clear();
         Progression.NormalizeRoster(Party.Members);
+        Origin.OnSaveLoaded();
+        Surge.Reset();
+        Surge.OnWarped(Game1.currentLocation);
 
         long recruiterId = Game1.player.UniqueMultiplayerID;
         int migratedSpecialMembers = MigrateSpecialMembersOutOfMainParty(recruiterId);
@@ -126,6 +142,14 @@ public sealed class ModEntry : Mod
         return removed;
     }
 
+    private void OnWarped(object? sender, WarpedEventArgs e)
+    {
+        if (!Context.IsWorldReady || !Context.IsMainPlayer)
+            return;
+
+        Origin.OnWarped(e.NewLocation);
+        Surge.OnWarped(e.NewLocation);
+    }
     private void OnSaving(object? sender, SavingEventArgs e)
     {
         SavePartyNow();
@@ -161,6 +185,8 @@ public sealed class ModEntry : Mod
         Alpha6Polish.Clear();
         Relationships.Clear();
         SkillIdentity.Clear();
+        Origin.ResetRuntime();
+        Surge.Reset();
         Party.Clear();
     }
 
@@ -171,6 +197,8 @@ public sealed class ModEntry : Mod
 
         RunPendingUiAction();
         DebugTools.Update();
+        Origin.Update();
+        Surge.Update();
 
         if (Game1.activeClickableMenu is null && !Game1.dialogueUp && PendingUiAction is null)
         {
@@ -956,6 +984,9 @@ public sealed class ModEntry : Mod
 
     private bool IsRecruitableNpc(NPC npc)
     {
+        if (CustomNpcCompatibilityService.IsExplicitCustomRecruit(npc))
+            return CustomNpcCompatibilityService.CanRecruit(npc, Helper.ModRegistry);
+
         return CompanionClassificationService.CanRecruitToMainParty(npc, Config.SpecialCompanionNpcNames);
     }
 

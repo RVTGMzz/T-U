@@ -3,6 +3,8 @@ using StardewValley;
 
 namespace Ronvotri.TeamUp.Core;
 
+// Alpha 6.5.0 custom source IDs: Ronvotri.Cardcha_MiMi | HeyYoureCursed_Sudoku
+
 public static class NpcProfileCatalog
 {
     public const string StardewValleySourceId = "stardew-valley";
@@ -80,9 +82,76 @@ public static class NpcProfileCatalog
             profiles[resolved.CharacterName] = resolved;
         }
 
+        // Ronvotri custom characters. Source mods remain fully optional.
+        profiles[CustomNpcCompatibilityService.MimiNpcId] = CustomP(
+            CustomNpcCompatibilityService.MimiNpcId,
+            CustomNpcCompatibilityService.MimiSourceId,
+            "Cardcha: Shardbound",
+            PartyRole.Support,
+            PartyRole.Control,
+            EngagementStyle.Balanced,
+            tank: 1, damage: 2, support: 5, healer: 2, control: 4,
+            "codex.custom.mimi.passive",
+            "codex.custom.mimi.ability");
+
+        profiles[CustomNpcCompatibilityService.SudokuCanonicalNpcId] = CustomP(
+            CustomNpcCompatibilityService.SudokuCanonicalNpcId,
+            CustomNpcCompatibilityService.SudokuSourceId,
+            "Hey! You're Cursed!",
+            PartyRole.Control,
+            PartyRole.Damage,
+            EngagementStyle.Cautious,
+            tank: 1, damage: 4, support: 2, healer: 1, control: 5,
+            "codex.custom.sudoku.passive",
+            "codex.custom.sudoku.ability");
+
+        // Runtime alias for source builds that expose the actor simply as "Sudoku".
+        profiles["Sudoku"] = CustomP(
+            "Sudoku",
+            CustomNpcCompatibilityService.SudokuSourceId,
+            "Hey! You're Cursed!",
+            PartyRole.Control,
+            PartyRole.Damage,
+            EngagementStyle.Cautious,
+            tank: 1, damage: 4, support: 2, healer: 1, control: 5,
+            "codex.custom.sudoku.passive",
+            "codex.custom.sudoku.ability");
+
         return profiles;
     }
 
+    private static NpcCombatProfile CustomP(
+        string name,
+        string sourceId,
+        string sourceLabel,
+        PartyRole primary,
+        PartyRole secondary,
+        EngagementStyle engagement,
+        int tank,
+        int damage,
+        int support,
+        int healer,
+        int control,
+        string passiveKey,
+        string abilityKey)
+    {
+        return new NpcCombatProfile
+        {
+            CharacterName = name,
+            SourceId = sourceId,
+            SourceLabel = sourceLabel,
+            PrimaryRole = primary,
+            SecondaryRole = secondary,
+            RecommendedEngagement = engagement,
+            PassiveKey = passiveKey,
+            AbilityKey = abilityKey,
+            TankAffinity = tank,
+            DamageAffinity = damage,
+            SupportAffinity = support,
+            HealerAffinity = healer,
+            ControlAffinity = control
+        };
+    }
     private static NpcCombatProfile P(
         string name,
         PartyRole primary,

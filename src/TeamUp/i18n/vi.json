@@ -342,5 +342,14 @@
   "codex.expansion.yuuma.passive": "Yuuma: chiến đấu theo hướng Hồi phục/Hỗ trợ của Team Up, giữ vị trí thận trọng và ưu tiên đúng nhiệm vụ class.",
   "codex.expansion.yuuma.ability": "QUIET BLOOM: kỹ năng đặc trưng riêng của Team Up thiên về Hồi phục, kèm tiện ích Hỗ trợ; hiệu ứng phụ được đổi bằng sức mạnh thô để giữ cân bằng class.",
   "codex.expansion.zayne.passive": "Zayne: chiến đấu theo hướng DPS/Khống chế của Team Up, giữ vị trí hung hăng và ưu tiên đúng nhiệm vụ class.",
-  "codex.expansion.zayne.ability": "VOLT EDGE: kỹ năng đặc trưng riêng của Team Up thiên về DPS, kèm tiện ích Khống chế; hiệu ứng phụ được đổi bằng sức mạnh thô để giữ cân bằng class."
+  "codex.expansion.zayne.ability": "VOLT EDGE: kỹ năng đặc trưng riêng của Team Up thiên về DPS, kèm tiện ích Khống chế; hiệu ứng phụ được đổi bằng sức mạnh thô để giữ cân bằng class.",
+  "codex.custom.mimi.passive": "Bản năng Đường Chổi: MiMi quan sát chiến trường từ tuyến giữa và biến chuyển động thành nhịp hỗ trợ cho cả đội.",
+  "origin.marlon.teamup": "Marlon: Vậy là nó thực sự xảy ra. Nguy hiểm không biến họ thành người khác. Nó chỉ làm lộ ra thứ vốn đã có sẵn. Từ giờ, hãy chiến đấu cùng nhau. Team Up.",
+  "codex.custom.mimi.ability": "Ấn Vệt Chổi: MiMi quét qua một cụm quái, gây gián đoạn và tạm cải thiện nhịp Khống chế/Hồi chiêu của đồng đội.",
+  "origin.linus": "Linus: Có thứ gì đó đang dịch chuyển trong Thung Lũng. Muông thú trở nên bất an... còn những sinh vật dưới lòng đất đang đi xa khỏi nơi chúng vốn thuộc về.",
+  "origin.marlon.surge": "Marlon: Đây không còn là hoạt động quái vật bình thường. Ta gọi nó là Làn Sóng. Nếu cậu còn xuống những nơi nguy hiểm, đừng đi một mình nữa.",
+  "codex.custom.sudoku.ability": "Cửu Ô Phong Ấn: một lưới khống chế chính xác khóa nhiều mục tiêu, sát thương vừa phải và không kèm buff toàn đội miễn phí.",
+  "codex.custom.sudoku.passive": "Đọc Quy Luật: Sudoku giữ vị trí thận trọng và trừng phạt những nhóm quái tạo thành đội hình dễ đoán.",
+  "origin.awakening": "{{name}} đột nhiên thức tỉnh một bản năng chiến đấu chưa từng xuất hiện... hoặc có lẽ nó chỉ luôn ngủ yên bên trong.",
+  "origin.complete": "TEAM UP ORIGIN • Mạnh hơn khi đồng hành."
 }

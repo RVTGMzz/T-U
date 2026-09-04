@@ -174,7 +174,22 @@ public static class CharacterSkillIdentityCatalog
             // Control / Damage. Expensive field burst: meaningful damage, strongest area control in vanilla wave.
             ["Wizard"] = I("Wizard", "ARCANE BURST", CharacterSignatureArchetype.Control, 720, 630,
                 damage: 6, radius: 5.2f, maxTargets: 5, stun2: 760, stun3: 1180, knockback: 0.8f,
-                buffTicks: 300, controlBuff: 0.10f)
+                buffTicks: 300, controlBuff: 0.10f),
+
+            // MiMi: support-first broom sweep. Wide tempo/control utility is paid for
+            // with deliberately modest raw damage and no burst healing.
+            [CustomNpcCompatibilityService.MimiNpcId] = I(CustomNpcCompatibilityService.MimiNpcId, "BROOMTAIL SIGIL", CharacterSignatureArchetype.Sweep, 690, 600,
+                damage: 5, radius: 5.4f, maxTargets: 4, stun2: 220, stun3: 480, knockback: 2.0f,
+                buffTicks: 300, controlBuff: 0.06f, cdrBuff: 3, partyWide: true),
+
+            // Sudoku: a precision control grid. Strong disable is paid for by low damage,
+            // no party-wide buff, and a slower cooldown than aggressive DPS signatures.
+            [CustomNpcCompatibilityService.SudokuCanonicalNpcId] = I(CustomNpcCompatibilityService.SudokuCanonicalNpcId, "NINEFOLD SEAL", CharacterSignatureArchetype.Control, 750, 660,
+                damage: 4, radius: 4.6f, maxTargets: 4, stun2: 720, stun3: 1120, knockback: 0.5f,
+                buffTicks: 270, controlBuff: 0.08f),
+            ["Sudoku"] = I("Sudoku", "NINEFOLD SEAL", CharacterSignatureArchetype.Control, 750, 660,
+                damage: 4, radius: 4.6f, maxTargets: 4, stun2: 720, stun3: 1120, knockback: 0.5f,
+                buffTicks: 270, controlBuff: 0.08f)
         };
 
         Validate(result.Values);

@@ -30,6 +30,22 @@ public sealed class ModConfig
 
     public int MaxActiveLinkedCompanions { get; set; } = 2;
 
+    // Alpha 6.5.0: lightweight Team Up origin story. Existing saves remain usable;
+    // this only adds narrative progression and never deletes party state.
+    public bool EnableOriginStory { get; set; } = true;
+
+    // The Surge increases monster density in eligible combat zones through a safe
+    // spawn-budget overlay. It never blindly clones scripted/boss/custom entities.
+    public bool EnableMonsterSurge { get; set; } = true;
+
+    public float MonsterDensityMultiplier { get; set; } = 2.0f;
+
+    public int MonsterSurgeExtraCap { get; set; } = 18;
+
+    // Extra Surge monsters are reward-suppressed by default so x2 danger does not
+    // automatically become x2 economy. Set true only if the player wants full drops.
+    public bool SurgeMonstersDropLoot { get; set; } = false;
+
     // Farmer-owned/special companions bypass Main Party recruitment entirely.
     // ChaCha is the first compatibility entry. Future adapters should prefer the
     // Ronvotri.TeamUp/CompanionKind modData contract instead of growing this list.

@@ -342,5 +342,14 @@
   "codex.expansion.yuuma.passive": "Yuuma: a Team Up Healer/Support specialist using cautious positioning and class-safe utility.",
   "codex.expansion.yuuma.ability": "QUIET BLOOM: a unique Team Up signature tuned around Healer with Support utility; secondary effects trade against raw power to preserve class balance.",
   "codex.expansion.zayne.passive": "Zayne: a Team Up DPS/Control specialist using aggressive positioning and class-safe utility.",
-  "codex.expansion.zayne.ability": "VOLT EDGE: a unique Team Up signature tuned around DPS with Control utility; secondary effects trade against raw power to preserve class balance."
+  "codex.expansion.zayne.ability": "VOLT EDGE: a unique Team Up signature tuned around DPS with Control utility; secondary effects trade against raw power to preserve class balance.",
+  "codex.custom.mimi.passive": "Broomline Instinct: MiMi reads the battlefield from the mid-line and turns movement into team tempo.",
+  "origin.marlon.teamup": "Marlon: So it really happened. Danger did not turn them into someone else. It revealed what was already there. From now on, fight together. Team up.",
+  "codex.custom.mimi.ability": "Broomtail Sigil: a sweeping magical pass that disrupts a cluster and briefly improves party control/cooldown rhythm.",
+  "origin.linus": "Linus: Something is moving through the Valley. The animals are restless... and the creatures below ground are wandering farther than they should.",
+  "origin.marlon.surge": "Marlon: This is not normal monster activity. I am calling it the Surge. If you are going below, stop going alone.",
+  "codex.custom.sudoku.ability": "Ninefold Seal: a precise control grid that locks several enemies in place with modest damage and no free party-wide power.",
+  "codex.custom.sudoku.passive": "Pattern Reader: Sudoku favors deliberate spacing and punishes enemies that form predictable clusters.",
+  "origin.awakening": "{{name}} suddenly awakens a combat instinct that was never there before... or perhaps was simply sleeping.",
+  "origin.complete": "TEAM UP ORIGIN • Stronger together."
 }
