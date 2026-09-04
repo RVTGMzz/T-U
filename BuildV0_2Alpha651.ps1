@@ -28,23 +28,27 @@ try {
     [System.IO.File]::WriteAllText($project, $projectText, $utf8NoBom)
 
     $modText = [System.IO.File]::ReadAllText($modEntry, [System.Text.Encoding]::UTF8)
+    $modText = $modText.Replace(
+        'origin story + The Surge + MiMi/Sudoku recruit integration loaded.',
+        'MiMi recruit gate hardening + Origin/Surge/custom recruit integration loaded.')
     $modText = $modText.Replace('v0.2.0-alpha.6.5.0', 'v0.2.0-alpha.6.5.1')
-    $modText = $modText.Replace('Team Up! v0.2.0-alpha.6.5.0 origin story + The Surge + MiMi/Sudoku recruit integration loaded.', 'Team Up! v0.2.0-alpha.6.5.1 MiMi recruit gate hardening + Origin/Surge/custom recruit integration loaded.')
     [System.IO.File]::WriteAllText($modEntry, $modText, $utf8NoBom)
 
     $compatText = [System.IO.File]::ReadAllText($compat, [System.Text.Encoding]::UTF8)
     foreach ($token in @(
         'Game1.player.friendshipData.ContainsKey(MimiNpcId)',
-        'MimiMerchantStartTime',
-        'MimiMerchantEndTime',
-        'IsMimiMerchantWeekday()',
-        'Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null'
+        'Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null',
+        'return npc.canTalk() || npc.IsVillager;'
     )) {
         if (-not $compatText.Contains($token)) { throw "Alpha 6.5.1 gate token missing: $token" }
     }
 
+    foreach ($forbidden in @('MimiMeetupCompleted', 'Cardcha.Services', 'MimiMerchantStartTime', 'IsMimiMerchantWeekday')) {
+        if ($compatText.Contains($forbidden)) { throw "Alpha 6.5.1 forbidden coupling token present: $forbidden" }
+    }
+
     Log 'Building Alpha 6.5.1 MiMi recruit gate hardening...'
-    Log 'Gate contract: Cardcha loaded + canonical actor + known identity + friendship unlock + merchant window + no story UI.'
+    Log 'Gate contract: Cardcha loaded + canonical actor + known identity + friendship unlock + no story UI.'
 
     & dotnet restore $project 2>&1 | Tee-Object -FilePath $log -Append
     if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
@@ -81,7 +85,7 @@ try {
     Log 'BUILD SUCCESS - ALPHA 6.5.1'
     Log 'SMAPI MUST SHOW: Team Up DEBUG HARNESS READY ... 6.5.1'
     Log 'MIMI GATE: CARDCHA SOCIAL UNLOCK / FRIENDSHIP ENTRY REQUIRED'
-    Log 'MIMI GATE: MON-FRI 11:00-17:00 + TOWN/WIZARDHOUSE ONLY'
+    Log 'MIMI GATE: SOCIAL LOCATION/SCHEDULE REMAINS SOURCE-CONTROLLED'
     Log 'MIMI GATE: EVENT/DIALOGUE/MENU PRESENTATION FAILS CLOSED'
     Log 'REGRESSION: ALPHA 6.5.0 ORIGIN + SURGE + SUDOKU RETAINED'
     Log "ZIP: $zip"
