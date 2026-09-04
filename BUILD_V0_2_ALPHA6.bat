@@ -30,9 +30,10 @@ echo Mo thu muc release de lay ZIP cai vao Mods.
 echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.5.1
 echo.
 echo TEST NHANH:
-echo - MiMi con ??? hoac chua co friendship unlock: KHONG recruit.
+echo - MiMi con ??? hoac Cardcha chua tao friendship unlock: KHONG recruit.
 echo - Event/dialogue/menu Cardcha dang mo: KHONG recruit.
-echo - Sau Wizard meetup: Thu 2-6, 11:00-16:59, Town/WizardHouse merchant co the recruit.
+echo - Sau Wizard meetup, MiMi social visible va co the tuong tac: CO THE recruit.
+echo - Team Up khong hardcode lich merchant/vi tri social sau unlock.
 echo - ChaCha van Special Companion, khong Main Party.
 echo - Regression Origin + The Surge + Sudoku + equipment + Party Vault.
 echo.
