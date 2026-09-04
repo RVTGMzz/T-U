@@ -1,0 +1,95 @@
+TEAM UP v0.2.0-alpha.6.4.6 - EXPANSION SIGNATURE ART + BALANCE
+SMOKE TEST VI
+
+MUC TIEU
+- 51 NPC SVE/RSV tung la placeholder da co Signature runtime tu 6.4.5 nay co identity tuning rieng.
+- Moi NPC dung zero-sum budget: Power + Reach + Utility + Tempo = 0.
+- Moi truc chi nam trong -2..+2, nen diem manh luon phai tra bang diem yeu.
+- 51 NPC co Signature icon semantic bespoke, khong con procedural fallback cho roster da hoan thien.
+- Khong lam hong equipment/controller/vault/AI cua 6.4.5.
+
+1. STARTUP
+[ ] SMAPI khong co Team Up red error.
+[ ] Co marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.6
+
+2. ICON ART PASS
+Mo Character Profile cua toi thieu:
+Apples, Ariah, Belinda, Ezekiel, Keahi, Torts, Trinnie, Zayne.
+[ ] Moi NPC chi co 1 icon Signature.
+[ ] Icon khong con procedural ngau nhien.
+[ ] Icon phan anh motif skill: la/khien/soi/chuong/lua/mai rua/prism/set.
+[ ] Cac icon tren co silhouette khac nhau.
+
+3. ZERO-SUM BALANCE
+Dung cung Lv20, cung Mastery 8, gear gan tuong duong.
+[ ] NPC thien Power danh/heal manh hon nhung phai thua Reach/Tempo/Utility o dau do.
+[ ] NPC thien Reach co tam anh huong rong hon nhung khong co raw power cao nhat.
+[ ] NPC thien Utility co stun/knockback tot hon nhung damage/heal bi doi lai.
+[ ] NPC thien Tempo dung Signature thuong xuyen hon nhung raw effect thap hon.
+[ ] Khong thay NPC nao cung damage/heal cao, range rong, utility manh va cooldown nhanh cung luc.
+
+4. DPS COMPARISON
+Thu Ariah, Bryle, Keahi, Louie, Malaya, Zayne.
+[ ] Ariah/Louie/Malaya thien burst/focus hon, tam/tempo bi danh doi.
+[ ] Keahi/Zayne/Bryle thien tempo hon, moi hit khong vuot xa nhom burst.
+[ ] Damage/Control co stun utility nhung khong stun-lock lien tuc.
+
+5. TANK COMPARISON
+Thu Anton, Lenny, Richard, Torts, Sonny.
+[ ] Lenny/Richard/Torts thien bulwark/utility, damage thap hon Tank/Damage.
+[ ] Sonny co offensive presence hon nhung khong vuot DPS chuyen dung.
+[ ] Knockback/threat cua Tank utility cao ro hon ma khong thanh bat tu.
+
+6. HEAL/SUPPORT COMPARISON
+Thu Apples, Peaches, Susan, Alissa, Bliss, Flor, Lola, Yuuma.
+[ ] Healer thien Power cho heal lon hon nhung cooldown/range bi danh doi.
+[ ] Support/Healer thien Reach cham hon nhung bao phu party tot hon.
+[ ] Khong heal vuot max HP.
+[ ] Khong spam heal vo han.
+
+7. CONTROL COMPARISON
+Thu Jolyne, Belinda, Irene, Pipo, Trinnie, Undreya.
+[ ] Utility cao cho stun/knockback tot hon raw damage.
+[ ] Field/Reach identity co vung anh huong rong hon nhung tempo/power thap hon.
+[ ] Undreya van la Control/Damage hybrid, khong manh hon ca Control thuan lan DPS thuan.
+
+8. TIER 2 / TIER 3
+Dung:
+teamup_test preset tier2
+teamup_test cooldowns clear
+Sau do:
+teamup_test preset tier3
+teamup_test cooldowns clear
+[ ] Tier 3 ro rang tot hon Tier 2.
+[ ] Zero-sum identity van con cam giac o ca 2 tier.
+[ ] Gear CDR va Friendship Signature Affinity van anh huong dung.
+
+9. CARDCHA SANDBOX
+Trong Cardcha test arena:
+teamup_test sandbox normal
+[ ] Wave chay binh thuong.
+[ ] NPC van tim/quay mat vao target on dinh.
+[ ] Khong quay len/xuong lien tuc khi Farmer dung yen.
+[ ] Khong dung ngo trong khi co monster nam trong awareness cua NPC.
+
+10. REGRESSION 6.4.5
+[ ] Double-click item trong tui de equip.
+[ ] Double-click slot NPC de unequip.
+[ ] Controller di duoc toi Auto Equip va Unequip.
+[ ] Party Vault mouse drag/drop qua lai duoc.
+[ ] Click/controller transfer cu van con.
+[ ] Khong co Team Up null/blank sound cue call.
+
+11. NPC MOI CAN KIEM TRA PROFILE
+[ ] Ariah khong con 0/5.
+[ ] Tat ca 51 NPC completion co Primary + Secondary + affinity + Signature text.
+[ ] Khong NPC nao hien "ky nang dang cho hoan thien" neu profile da thuoc completion roster.
+
+NEU CO LOI
+- Gui ten NPC.
+- Primary/Secondary role dang dung.
+- Lv + Mastery + gear.
+- Tier 2 hay Tier 3.
+- Screenshot profile/icon neu la UI.
+- Neu combat, quay clip ngan 10-20 giay trong sandbox.
+- Gui SMAPI red log neu co.
