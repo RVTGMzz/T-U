@@ -1,0 +1,141 @@
+name: Team Up v0.2.0-alpha.6.6.0 Party Strategy Foundation
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-party-strategy-foundation ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.0 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha660.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.6.0'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          config = (root/'ModConfig.cs').read_text(encoding='utf-8')
+          strategy = (root/'Core/PartyStrategy.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/CustomNpcCompatibilityService.cs').read_text(encoding='utf-8')
+          identity = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'Party Strategy foundation + Surge/Origin/MiMi/Sudoku integration loaded' in mod
+
+          # Strategy contract and config persistence.
+          for token in ['Balanced', 'Defensive', 'Aggressive', 'HoldPosition', 'BossFocus']:
+              assert token in strategy, token
+          assert 'public PartyStrategy PartyStrategy { get; set; } = PartyStrategy.Balanced;' in config
+          assert 'Enum.IsDefined(typeof(PartyStrategy), Config.PartyStrategy)' in mod
+          assert 'Helper.WriteConfig(Config)' in mod
+          assert 'teamup_strategy' in mod
+          assert 'OnStrategyCommand' in mod
+          assert 'Combat.Clear()' in mod
+
+          # Runtime effects must be real, not enum-only.
+          for token in [
+              'GetStrategyEngagementRadiusMultiplier',
+              'GetStrategyAttackCooldownMultiplier',
+              'PartyStrategy.Defensive',
+              'PartyStrategy.Aggressive',
+              'PartyStrategy.HoldPosition',
+              'PartyStrategy.BossFocus',
+              'HOLD POSITION',
+              'OrderByDescending(monster => monster.MaxHealth)',
+              'farmerThreshold = Math.Min(0.95f, farmerThreshold + 0.10f)',
+              'CombatService(IMonitor monitor, FollowService follow, ProgressionService progression, Func<PartyStrategy> strategy)'
+          ]:
+              assert token in combat, token
+          assert 'Combat = new CombatService(Monitor, Follow, Progression, () => Config.PartyStrategy);' in mod
+
+          # Hard leash and anti-spin locks remain.
+          assert 'HardLeashTiles = 12f' in combat
+          assert 'TargetLockDurationTicks = 45' in combat
+          assert 'FacingHoldDurationTicks = 10' in combat
+
+          # Alpha 6.5.3 Surge harness remains intact.
+          for token in [
+              'ActiveInstance', 'LastTelemetryLine', 'DebugReapplyCurrentLocation',
+              'DebugShowThreatBoard', 'ClearOwnedSurgeMonsters', '[SurgeTelemetry]'
+          ]:
+              assert token in surge, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
+          assert 'OptionalTestHostCompatibility.CardchaArenaLocationName' in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+
+          # Custom recruit / skill / UI regressions.
+          assert 'Game1.player.friendshipData.ContainsKey(MimiNpcId)' in compat
+          assert 'BROOMTAIL SIGIL' in identity
+          assert 'NINEFOLD SEAL' in identity
+          assert '[CustomNpcCompatibilityService.MimiNpcId] = P(' in renderer
+          assert '[CustomNpcCompatibilityService.SudokuCanonicalNpcId] = P(' in renderer
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert 'public override void releaseLeftClick' in vault
+
+          print('Alpha 6.6.0 source acceptance PASS')
+          print('Five Party Strategy runtime hooks PASS')
+          print('Config-backed strategy persistence PASS')
+          print('Alpha 6.5.3 Surge harness regression PASS')
+          print('MiMi/Sudoku/equipment/Vault regression PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.0_PARTY_STRATEGY_FOUNDATION_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.0_PARTY_STRATEGY_FOUNDATION_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.0' BUILD_LOG.txt
+          echo 'Alpha 6.6.0 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha660.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_0_PARTY_STRATEGY_FOUNDATION_VI.txt .github/workflows/team-up-alpha6-6-party-strategy-foundation.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.0 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-party-strategy-foundation
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-party-strategy-foundation
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.0_PARTY_STRATEGY_FOUNDATION_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.0_PARTY_STRATEGY_FOUNDATION_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_0_PARTY_STRATEGY_FOUNDATION_VI.txt
+          if-no-files-found: error
