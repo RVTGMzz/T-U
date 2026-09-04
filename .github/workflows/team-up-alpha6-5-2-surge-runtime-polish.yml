@@ -49,11 +49,13 @@ jobs:
           assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
           assert 'Surge runtime polish + Origin/MiMi/Sudoku integration loaded' in mod
 
-          # Safe placement must use Stardew's own collision/placeability contract and fail closed.
+          # Safe placement uses the current Stardew 1.6 collision contract and fails closed.
           for token in [
               'SafeSpawnOffsets',
               'TryFindSafeSpawnPosition',
-              'isTileLocationTotallyClearAndPlaceable(tileX, tileY)',
+              'isTileOnMap(tile)',
+              'isTilePassable(tile)',
+              'IsTileBlockedBy(tile, ignorePassables: CollisionMask.All)',
               'MinimumFarmerSpawnDistance',
               'MinimumMonsterSpawnDistance',
               'no-safe-spawn-tile',
@@ -65,8 +67,9 @@ jobs:
           assert 'Activator.CreateInstance' not in surge
           assert 'MemberwiseClone' not in surge
           assert 'GetType().GetConstructor' not in surge
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
 
-          # Telemetry must explain every visit in one compact line.
+          # Telemetry explains every visit in one compact line.
           for token in [
               '[SurgeTelemetry]',
               'baseline=', 'wanted=', 'spawned=', 'unsafeRejected=',
@@ -98,7 +101,7 @@ jobs:
           assert 'FacingHoldDurationTicks = 10' in combat
 
           print('Alpha 6.5.2 source acceptance PASS')
-          print('Safe Surge tile placement PASS')
+          print('Current Stardew 1.6 safe tile placement PASS')
           print('Surge telemetry + suppression reasons PASS')
           print('Threat tier + Marlon Guild presentation PASS')
           print('Alpha 6.5.1 / 6.5.0 regressions retained PASS')
