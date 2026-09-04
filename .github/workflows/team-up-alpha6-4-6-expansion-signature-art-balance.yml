@@ -1,0 +1,158 @@
+name: Team Up v0.2.0-alpha.6.4.6 Expansion Signature Art Balance
+
+on:
+  push:
+    branches: [ v0.2-alpha6-4-6-expansion-signature-art-balance ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.4.6 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha646.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.4.6'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          expansion = (root/'Combat/ExpansionSkillService.cs').read_text(encoding='utf-8')
+          tuning = (root/'Combat/ExpansionSkillService.IdentityBalance.cs').read_text(encoding='utf-8')
+          skills = (root/'Combat/ExpansionSkillService.FullRoster.cs').read_text(encoding='utf-8')
+          completion = (root/'Core/ExpansionRosterCompletion.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          icons = (root/'UI/ExpansionSignatureIconCatalog.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'expansion signature art + zero-sum identity balance loaded' in mod
+
+          # Runtime axes are wired into real Signature math.
+          for token in [
+              'GetIdentityPowerScale(member.CharacterName)',
+              'GetIdentityRadius(spec, member.CharacterName)',
+              'GetIdentityUtilityScale(member.CharacterName)',
+              'GetIdentityCooldownDelta(member.CharacterName)'
+          ]:
+              assert token in expansion, token
+
+          roster = set(re.findall(r'\["([^"]+)"\]\s*=\s*R\(PartyRole\.', completion))
+          assert len(roster) == 51, len(roster)
+
+          tuning_rows = re.findall(
+              r'\["([^"]+)"\]\s*=\s*T\((-?\d+),\s*(-?\d+),\s*(-?\d+),\s*(-?\d+)\)',
+              tuning)
+          assert len(tuning_rows) == 51, len(tuning_rows)
+          tuning_map = {}
+          for name, p, r, u, t in tuning_rows:
+              axes = tuple(map(int, (p, r, u, t)))
+              assert sum(axes) == 0, (name, axes)
+              assert all(-2 <= value <= 2 for value in axes), (name, axes)
+              assert any(value > 0 for value in axes), (name, axes)
+              assert any(value < 0 for value in axes), (name, axes)
+              tuning_map[name] = axes
+          assert set(tuning_map) == roster
+
+          icon_rows = re.findall(
+              r'\["([^"]+)"\]\s*=\s*I\(Motif\.([A-Za-z]+),\s*(\d+)\)',
+              icons)
+          assert len(icon_rows) == 51, len(icon_rows)
+          icon_map = {name: (motif, int(variant)) for name, motif, variant in icon_rows}
+          assert set(icon_map) == roster
+          assert len(set(icon_map.values())) == 51, 'Every completed expansion NPC must have a distinct motif+variant pair.'
+          assert 'ExpansionSignatureIconCatalog.TryGetPattern' in renderer
+          assert 'ExpansionSignatureIconCatalog.Has(characterName)' in renderer
+
+          # Skill labels and effective gameplay fingerprints must be unique.
+          skill_rows = re.findall(
+              r'Skills\["([^"]+)"\]\s*=\s*S\("([^"]+)",\s*SkillMode\.([A-Za-z]+),\s*PartyRole\.([A-Za-z]+),\s*PartyRole\.([A-Za-z]+),\s*(\d+),\s*([0-9.]+)f,\s*(\d+),',
+              skills)
+          assert len(skill_rows) == 51, len(skill_rows)
+          labels = [row[1] for row in skill_rows]
+          assert len(set(labels)) == 51, 'Signature labels must be unique.'
+          fingerprints = []
+          for name, label, mode, primary, secondary, cooldown, radius, power in skill_rows:
+              assert name in tuning_map, name
+              p_axis, r_axis, u_axis, t_axis = tuning_map[name]
+              effective_cd = int(cooldown) - t_axis * 18
+              effective_radius = round(float(radius) + r_axis * 0.18, 2)
+              power_scale = round(1 + p_axis * 0.035, 3)
+              utility_scale = round(1 + u_axis * 0.06, 3)
+              fingerprints.append((mode, primary, secondary, effective_cd, effective_radius, int(power), power_scale, utility_scale))
+          assert len(set(fingerprints)) == 51, 'No two completion NPCs may share the exact same gameplay fingerprint.'
+
+          # Modifier envelope is intentionally small and class-safe.
+          assert '0.035f' in tuning
+          assert '0.18f' in tuning
+          assert '0.06f' in tuning
+          assert '18' in tuning
+
+          # 6.4.5 live-test fixes stay locked.
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert '_loadoutFocusIndex == 3' in equipment and '_loadoutFocusIndex == 4' in equipment
+          assert 'public override void releaseLeftClick' in vault
+          assert 'BeginMouseDragCandidate' in vault
+          assert 'TargetLockDurationTicks = 45' in combat
+          assert 'FacingHoldDurationTicks = 10' in combat
+
+          print('Alpha 6.4.6 source acceptance PASS')
+          print('51/51 zero-sum identity budgets PASS')
+          print('51/51 unique semantic icon motif+variant pairs PASS')
+          print('51/51 unique effective gameplay fingerprints PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.4.6_EXPANSION_SIGNATURE_ART_BALANCE_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.4.6_EXPANSION_SIGNATURE_ART_BALANCE_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.4.6' BUILD_LOG.txt
+          echo 'Alpha 6.4.6 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp _build_support/IntegrateAlpha646ExpansionSignatureArtBalance.ps1 BuildV0_2Alpha646.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_4_6_EXPANSION_SIGNATURE_ART_BALANCE_VI.txt .github/workflows/team-up-alpha6-4-6-expansion-signature-art-balance.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.4.6 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-4-6-expansion-signature-art-balance
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-4-6-expansion-signature-art-balance
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.4.6_EXPANSION_SIGNATURE_ART_BALANCE_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.4.6_EXPANSION_SIGNATURE_ART_BALANCE_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_4_6_EXPANSION_SIGNATURE_ART_BALANCE_VI.txt
+          if-no-files-found: error
