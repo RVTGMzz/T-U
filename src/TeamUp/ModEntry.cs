@@ -74,7 +74,7 @@ public sealed class ModEntry : Mod
             Alpha6Polish,
             SavePartyNow);
         DebugTools.RegisterCommands();
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.5.0", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.5.1", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -86,7 +86,7 @@ public sealed class ModEntry : Mod
         helper.Events.Display.RenderingActiveMenu += OnRenderingActiveMenu;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.5.0 origin story + The Surge + MiMi/Sudoku recruit integration loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.5.1 MiMi recruit gate hardening + Origin/Surge/custom recruit integration loaded.", LogLevel.Info);
     }
 
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
