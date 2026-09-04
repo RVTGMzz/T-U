@@ -23,7 +23,8 @@ public static class TraitIconRenderer
 
     public static bool HasBespokeSignature(string characterName)
     {
-        return BespokeSignaturePatterns.ContainsKey(characterName);
+        return BespokeSignaturePatterns.ContainsKey(characterName)
+            || ExpansionSignatureIconCatalog.Has(characterName);
     }
 
     public static void Draw(
@@ -52,7 +53,7 @@ public static class TraitIconRenderer
         int startX = bounds.Center.X - glyphWidth / 2;
         int startY = bounds.Center.Y - glyphHeight / 2;
 
-        bool[,] pattern = kind == TraitIconKind.Signature && BespokeSignaturePatterns.TryGetValue(characterName, out bool[,]? bespoke)
+        bool[,] pattern = kind == TraitIconKind.Signature && TryGetBespokeSignaturePattern(characterName, out bool[,] bespoke)
             ? bespoke
             : BuildProceduralPattern(characterName, kind);
 
@@ -60,13 +61,23 @@ public static class TraitIconRenderer
         DrawPattern(b, pattern, startX + 2, startY + 2, pixel, shadow);
         DrawPattern(b, pattern, startX, startY, pixel, fill * alpha);
 
-        if (kind == TraitIconKind.Signature && BespokeSignaturePatterns.ContainsKey(characterName))
+        if (kind == TraitIconKind.Signature && HasBespokeSignature(characterName))
         {
             Rectangle spark = new(bounds.Right - 12, bounds.Y + 5, 6, 6);
             b.Draw(Game1.staminaRect, spark, Color.White * (0.88f * alpha));
         }
     }
 
+    private static bool TryGetBespokeSignaturePattern(string characterName, out bool[,] pattern)
+    {
+        if (BespokeSignaturePatterns.TryGetValue(characterName, out bool[,]? existing) && existing is not null)
+        {
+            pattern = existing;
+            return true;
+        }
+
+        return ExpansionSignatureIconCatalog.TryGetPattern(characterName, out pattern);
+    }
     private static IReadOnlyDictionary<string, bool[,]> BuildBespokeSignaturePatterns()
     {
         return new Dictionary<string, bool[,]>(StringComparer.OrdinalIgnoreCase)

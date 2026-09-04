@@ -107,7 +107,7 @@ internal sealed partial class ExpansionSkillService
             if (!used)
                 continue;
 
-            _cooldowns[member.CharacterName] = ScaleCooldown(member, role, spec.BaseCooldownTicks - (tier >= 3 ? 90 : 0));
+            _cooldowns[member.CharacterName] = ScaleCooldown(member, role, spec.BaseCooldownTicks - (tier >= 3 ? 90 : 0) + GetIdentityCooldownDelta(member.CharacterName));
             AwardSkillProgress(member, role, npc, tier >= 3 ? 5 : 3, tier >= 3 ? 3 : 2);
         }
     }
@@ -119,7 +119,7 @@ internal sealed partial class ExpansionSkillService
             return false;
 
         Monster anchor = candidates.OrderBy(monster => monster.Health).ThenBy(monster => Vector2.DistanceSquared(monster.Tile, npc.Tile)).First();
-        float radius = spec.Radius + (tier >= 3 ? 0.65f : 0f);
+        float radius = GetIdentityRadius(spec, member.CharacterName) + (tier >= 3 ? 0.65f : 0f);
         List<Monster> targets = candidates.Where(monster => Vector2.Distance(monster.Tile, anchor.Tile) <= radius)
             .OrderBy(monster => monster.Health).Take(tier >= 3 ? 5 : 3).ToList();
         if (targets.Count < 2 && tier < 3 && anchor.Health > 90)
@@ -135,7 +135,7 @@ internal sealed partial class ExpansionSkillService
 
     private bool TryTankRush(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, SkillSpec spec, IReadOnlyList<Monster> monsters)
     {
-        float radius = spec.Radius + (tier >= 3 ? 0.45f : 0f);
+        float radius = GetIdentityRadius(spec, member.CharacterName) + (tier >= 3 ? 0.45f : 0f);
         List<Monster> targets = LivingNear(npc.Tile, radius, monsters).Take(tier >= 3 ? 6 : 4).ToList();
         if (targets.Count == 0)
             return false;
@@ -160,15 +160,15 @@ internal sealed partial class ExpansionSkillService
         if (candidates.Count == 0)
             return false;
 
-        Monster anchor = candidates.OrderByDescending(monster => candidates.Count(other => Vector2.Distance(other.Tile, monster.Tile) <= spec.Radius))
+        Monster anchor = candidates.OrderByDescending(monster => candidates.Count(other => Vector2.Distance(other.Tile, monster.Tile) <= GetIdentityRadius(spec, member.CharacterName)))
             .ThenBy(monster => Vector2.DistanceSquared(monster.Tile, npc.Tile)).First();
-        float radius = spec.Radius + (tier >= 3 ? 0.55f : 0f);
+        float radius = GetIdentityRadius(spec, member.CharacterName) + (tier >= 3 ? 0.55f : 0f);
         List<Monster> targets = candidates.Where(monster => Vector2.Distance(monster.Tile, anchor.Tile) <= radius)
             .OrderBy(monster => Vector2.DistanceSquared(monster.Tile, anchor.Tile)).Take(tier >= 3 ? 6 : 4).ToList();
         if (targets.Count < 2 && tier < 3)
             return false;
 
-        int stun = (int)Math.Round((tier >= 3 ? 720 : 460) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 720 : 460) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role) * GetIdentityUtilityScale(member.CharacterName));
         int damage = ScaleDamage(member, role, Math.Max(1, spec.Power + affinity / 2));
         int dealt = DamageTargets(member, targets, damage, 0.35f, spec.Color, stun);
         _threat.AddThreat(targets, member.CharacterName, 10f + affinity * 2f);
@@ -234,7 +234,7 @@ internal sealed partial class ExpansionSkillService
             return false;
 
         int damage = ScaleDamage(member, role, spec.Power + affinity * 2 + (tier >= 3 ? 4 : 0));
-        int stun = (int)Math.Round((tier >= 3 ? 480 : 260) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 480 : 260) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role) * GetIdentityUtilityScale(member.CharacterName));
         int dealt = DamageTargets(member, new[] { target }, damage, tier >= 3 ? 1.8f : 1.2f, spec.Color, stun);
         if (dealt <= 0)
             return false;
@@ -253,7 +253,7 @@ internal sealed partial class ExpansionSkillService
         Monster? pressure = LivingNear(Game1.player.Tile, 4.5f, monsters).OrderBy(monster => monster.Health).FirstOrDefault();
         if (pressure is not null)
         {
-            int stun = (int)Math.Round((tier >= 3 ? 340 : 200) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
+            int stun = (int)Math.Round((tier >= 3 ? 340 : 200) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role) * GetIdentityUtilityScale(member.CharacterName));
             pressure.stunTime.Value = Math.Max(pressure.stunTime.Value, stun);
             SpawnBurst(Game1.currentLocation, pressure.Position, spec.Color, 4, 22f);
             _threat.AddThreat(pressure, member.CharacterName, 8f + affinity);
@@ -280,7 +280,7 @@ internal sealed partial class ExpansionSkillService
             .Where(other => GetActiveNpc(other) is not null).OrderBy(other => _progression.GetHealthRatio(other)).Take(tier >= 3 ? 5 : 3))
         {
             NPC? targetNpc = GetActiveNpc(target);
-            if (targetNpc is null || Vector2.Distance(targetNpc.Tile, npc.Tile) > spec.Radius + 1f)
+            if (targetNpc is null || Vector2.Distance(targetNpc.Tile, npc.Tile) > GetIdentityRadius(spec, member.CharacterName) + 1f)
                 continue;
             restored += HealMember(target, Math.Max(2, amount * (tier >= 3 ? 3 : 2) / 4), spec.Color);
         }
@@ -299,7 +299,7 @@ internal sealed partial class ExpansionSkillService
         if (injured is not null && _progression.GetHealthRatio(injured) < 0.78f)
             value += HealMember(injured, ScaleHeal(member, role, spec.Power + affinity), spec.Color);
 
-        List<Monster> targets = LivingNear(npc.Tile, spec.Radius, monsters).OrderBy(monster => monster.Health).Take(tier >= 3 ? 3 : 2).ToList();
+        List<Monster> targets = LivingNear(npc.Tile, GetIdentityRadius(spec, member.CharacterName), monsters).OrderBy(monster => monster.Health).Take(tier >= 3 ? 3 : 2).ToList();
         if (targets.Count > 0)
             value += DamageTargets(member, targets, ScaleDamage(member, role, spec.Power + affinity + (tier >= 3 ? 3 : 0)), 0.9f, spec.Color, tier >= 3 ? 180 : 0);
         if (value <= 0)
@@ -310,7 +310,7 @@ internal sealed partial class ExpansionSkillService
 
     private bool TryResonantChord(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, SkillSpec spec, IReadOnlyList<PartyMemberData> members, IReadOnlyList<Monster> monsters)
     {
-        List<Monster> enemies = LivingNear(Game1.player.Tile, spec.Radius + (tier >= 3 ? 1f : 0f), monsters).Take(tier >= 3 ? 5 : 3).ToList();
+        List<Monster> enemies = LivingNear(Game1.player.Tile, GetIdentityRadius(spec, member.CharacterName) + (tier >= 3 ? 1f : 0f), monsters).Take(tier >= 3 ? 5 : 3).ToList();
         bool partyNeedsHelp = Game1.player.health < Game1.player.maxHealth * 0.82f
             || members.Any(other => !other.IsDowned && !other.IsWithdrawn && _progression.GetHealthRatio(other) < 0.75f);
         if (enemies.Count == 0 && !partyNeedsHelp)
@@ -322,7 +322,7 @@ internal sealed partial class ExpansionSkillService
             .Where(other => GetActiveNpc(other) is not null).OrderBy(other => _progression.GetHealthRatio(other)).Take(tier >= 3 ? 3 : 2))
             restored += HealMember(target, Math.Max(2, amount / 2), spec.Color);
 
-        int stun = (int)Math.Round((tier >= 3 ? 420 : 240) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 420 : 240) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role) * GetIdentityUtilityScale(member.CharacterName));
         foreach (Monster monster in enemies)
         {
             monster.stunTime.Value = Math.Max(monster.stunTime.Value, stun);
@@ -335,7 +335,7 @@ internal sealed partial class ExpansionSkillService
 
     private bool TrySpotlightTempo(NPC npc, PartyMemberData member, PartyRole role, int tier, int affinity, SkillSpec spec, IReadOnlyList<PartyMemberData> members, IReadOnlyList<Monster> monsters)
     {
-        List<Monster> enemies = LivingNear(npc.Tile, spec.Radius + (tier >= 3 ? 0.75f : 0f), monsters).Take(tier >= 3 ? 4 : 2).ToList();
+        List<Monster> enemies = LivingNear(npc.Tile, GetIdentityRadius(spec, member.CharacterName) + (tier >= 3 ? 0.75f : 0f), monsters).Take(tier >= 3 ? 4 : 2).ToList();
         PartyMemberData? injured = members.Where(other => !other.IsDowned && !other.IsWithdrawn && other.CurrentHealth > 0)
             .Where(other => GetActiveNpc(other) is not null).OrderBy(other => _progression.GetHealthRatio(other)).FirstOrDefault();
         bool shouldHeal = injured is not null && _progression.GetHealthRatio(injured) < 0.80f;
@@ -343,7 +343,7 @@ internal sealed partial class ExpansionSkillService
             return false;
 
         int value = shouldHeal && injured is not null ? HealMember(injured, ScaleHeal(member, role, spec.Power + affinity), spec.Color) : 0;
-        int stun = (int)Math.Round((tier >= 3 ? 380 : 220) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role));
+        int stun = (int)Math.Round((tier >= 3 ? 380 : 220) * _progression.GetControlMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role) * GetIdentityUtilityScale(member.CharacterName));
         foreach (Monster enemy in enemies)
         {
             enemy.stunTime.Value = Math.Max(enemy.stunTime.Value, stun);
@@ -361,7 +361,7 @@ internal sealed partial class ExpansionSkillService
         foreach (Monster monster in targets.Where(monster => monster.Health > 0).ToList())
         {
             int before = monster.Health;
-            Game1.currentLocation.damageMonster(monster.GetBoundingBox(), damage, damage + 2, isBomb: false, knockback, 100, 0.02f, 1.25f, triggerMonsterInvincibleTimer: false, Game1.player);
+            Game1.currentLocation.damageMonster(monster.GetBoundingBox(), damage, damage + 2, isBomb: false, knockback * GetIdentityUtilityScale(member.CharacterName), 100, 0.02f, 1.25f, triggerMonsterInvincibleTimer: false, Game1.player);
             int dealt = Math.Max(0, before - Math.Max(0, monster.Health));
             total += dealt;
             if (stunMs > 0 && monster.Health > 0)
@@ -400,9 +400,11 @@ internal sealed partial class ExpansionSkillService
         return restored;
     }
 
-    private int ScaleDamage(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
-    private int ScaleHeal(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
+    private int ScaleDamage(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role) * GetIdentityPowerScale(member.CharacterName)));
+    private int ScaleHeal(PartyMemberData member, PartyRole role, int raw) => Math.Max(1, (int)Math.Round(raw * _progression.GetHealingMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role) * GetIdentityPowerScale(member.CharacterName)));
 
+    private static float GetIdentityRadius(SkillSpec spec, string characterName)
+        => Math.Max(0.8f, spec.Radius + GetIdentityRadiusBonus(characterName));
     private static List<Monster> LivingNear(Vector2 centerTile, float radius, IReadOnlyList<Monster> monsters)
     {
         return monsters.Where(monster => monster.Health > 0).Where(monster => ReferenceEquals(monster.currentLocation, Game1.currentLocation))
