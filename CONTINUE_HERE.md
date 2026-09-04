@@ -1,19 +1,29 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.5.2**
+Current verified checkpoint: **Team Up v0.2.0-alpha.6.5.3**
 
 Status: **compile/package/source verified; in-game smoke pending**.
 
 Resume branch:
 
-`v0.2-alpha6-5-2-surge-runtime-polish-handoff`
+`v0.2-alpha6-5-3-surge-validation-harness-handoff`
 
 Read this handoff first:
 
-`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_5_2_2026-09-04.md`
+`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_5_3_2026-09-04.md`
 
-The handoff records the exact Alpha 6.5.2 materialized source commit, successful GitHub Actions run/artifact, current Stardew 1.6 safe-tile collision contract, Surge telemetry/suppression reasons, Marlon Threat Board behavior, regression locks inherited from Alpha 6.5.1/6.5.0, and the required in-game smoke tests.
+Alpha 6.5.3 adds the Surge validation harness on top of the Alpha 6.5.2 safe runtime foundation:
 
-Important: x2 monster density remains a target. On cramped or blocked maps, Alpha 6.5.2 deliberately spawns fewer extras rather than forcing monsters into unsafe geometry.
+- `teamup_test surge status`
+- `teamup_test surge reapply`
+- `teamup_test surge clear`
+- `teamup_test surge board`
+- last `[SurgeTelemetry]` snapshot retained for instant inspection
+- reapply clears only Team Up-owned Surge extras before one fresh apply, preventing debug accumulation
+- clear never broadens to arbitrary source/custom monsters
 
-Important: older README roadmap text may describe historical milestones. For current implementation state, trust the latest handoff + materialized source + current smoke checklist.
+Important: Alpha 6.5.3 does NOT change Surge balance or broaden custom monster cloning. Safe placement, Cardcha sandbox exclusion, loot suppression, MiMi/Sudoku/Origin, 51 expansion NPCs, equipment/controller/Vault, and combat anti-spin regressions remain locked.
+
+Important: current Stardew 1.6 safe placement contract remains `isTileOnMap + isTilePassable + IsTileBlockedBy`. Do not restore `isTileLocationTotallyClearAndPlaceable`.
+
+Important: CI is green, but live in-game smoke is still required before declaring The Surge runtime fully verified. For current implementation truth, trust this file + the latest handoff + materialized source + current smoke checklist, not older README roadmap text.
