@@ -1,29 +1,33 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.5.3**
+Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.0**
 
-Status: **compile/package/source verified; in-game smoke pending**.
+Status: **compile/package/direct-builder verified; in-game smoke pending**.
 
 Resume branch:
 
-`v0.2-alpha6-5-3-surge-validation-harness-handoff`
+`v0.2-alpha6-6-party-strategy-foundation-handoff`
 
 Read this handoff first:
 
-`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_5_3_2026-09-04.md`
+`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_0_2026-09-05.md`
 
-Alpha 6.5.3 adds the Surge validation harness on top of the Alpha 6.5.2 safe runtime foundation:
+Alpha 6.6.0 starts the Party Strategy foundation on top of the verified Alpha 6.5.3 Surge harness.
 
-- `teamup_test surge status`
-- `teamup_test surge reapply`
-- `teamup_test surge clear`
-- `teamup_test surge board`
-- last `[SurgeTelemetry]` snapshot retained for instant inspection
-- reapply clears only Team Up-owned Surge extras before one fresh apply, preventing debug accumulation
-- clear never broadens to arbitrary source/custom monsters
+New party-wide strategies:
 
-Important: Alpha 6.5.3 does NOT change Surge balance or broaden custom monster cloning. Safe placement, Cardcha sandbox exclusion, loot suppression, MiMi/Sudoku/Origin, 51 expansion NPCs, equipment/controller/Vault, and combat anti-spin regressions remain locked.
+- `Balanced`
+- `Defensive`
+- `Aggressive`
+- `HoldPosition`
+- `BossFocus`
 
-Important: current Stardew 1.6 safe placement contract remains `isTileOnMap + isTilePassable + IsTileBlockedBy`. Do not restore `isTileLocationTotallyClearAndPlaceable`.
+Test command:
 
-Important: CI is green, but live in-game smoke is still required before declaring The Surge runtime fully verified. For current implementation truth, trust this file + the latest handoff + materialized source + current smoke checklist, not older README roadmap text.
+`teamup_strategy <status|balanced|defensive|aggressive|hold|boss>`
+
+The selected strategy is stored in Team Up config, not PartySaveData. Switching strategy clears combat runtime locks for clean retargeting.
+
+Important: Alpha 6.5.3 Surge status/reapply/clear/board, Alpha 6.5.2 safe placement, Cardcha sandbox exclusion, MiMi/Sudoku/Origin, 51 expansion NPCs, equipment/controller/Vault, hard leash, target lock and anti-spin behavior remain regression-locked.
+
+Important: Alpha 6.6.0 is CI verified but still needs in-game strategy smoke before being declared live verified. For current implementation truth, trust this file + the latest handoff + verified source + current smoke checklist, not older README roadmap text.
