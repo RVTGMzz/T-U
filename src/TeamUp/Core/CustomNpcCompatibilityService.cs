@@ -16,6 +16,9 @@ public static class CustomNpcCompatibilityService
     public const string SudokuCanonicalNpcId = "ronvotri.HeyYoureCursed_Sudoku";
     public const string SudokuSourceId = "ronvotri-hey-youre-cursed";
 
+    private const int MimiMerchantStartTime = 1100;
+    private const int MimiMerchantEndTime = 1700;
+
     private static readonly HashSet<string> SudokuNpcAliases = new(StringComparer.OrdinalIgnoreCase)
     {
         SudokuCanonicalNpcId,
@@ -53,7 +56,8 @@ public static class CustomNpcCompatibilityService
 
     private static bool CanRecruitMimi(NPC npc, IModRegistry registry)
     {
-        if (!IsMimiLoaded(registry)
+        if (!Context.IsWorldReady
+            || !IsMimiLoaded(registry)
             || npc.isInvisible.Value
             || npc.currentLocation is null
             || !npc.displayName.Equals("MiMi", StringComparison.OrdinalIgnoreCase))
@@ -61,19 +65,38 @@ public static class CustomNpcCompatibilityService
             return false;
         }
 
-        // Cardcha's mystery phase displays "???". Its story scenes can show MiMi on
-        // the Farm/Wizard handoff, so Team Up deliberately refuses recruitment there.
-        // The post-handoff merchant routine owns Town / WizardHouse and is the first
-        // safe live state Team Up can identify without touching Cardcha save data.
+        // Alpha 6.5.1: Cardcha promotes the canonical MiMi actor into Stardew's social
+        // layer only after MimiMeetupCompleted, and that promotion creates the canonical
+        // friendshipData entry. Treat that live entry as the fail-closed unlock contract.
+        // This avoids reading or rewriting Cardcha save data while preventing Team Up from
+        // recruiting the mystery actor or the Wizard/Farm handoff presentation.
+        if (!Game1.player.friendshipData.ContainsKey(MimiNpcId))
+            return false;
+
+        // Never allow an invite while Cardcha still owns an event/dialogue/menu presentation.
+        if (Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null)
+            return false;
+
+        // Cardcha's post-handoff merchant window is Mon-Fri, 11:00-17:00. Restricting Team Up
+        // to the same observable window prevents a social MiMi at home/story staging from being
+        // mistaken for the recruitable merchant actor.
+        if (!IsMimiMerchantWeekday()
+            || Game1.timeOfDay < MimiMerchantStartTime
+            || Game1.timeOfDay >= MimiMerchantEndTime)
+        {
+            return false;
+        }
+
         string location = npc.currentLocation.NameOrUniqueName;
-        if (location.Equals("Farm", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (Game1.dialogueUp && location.Equals("WizardHouse", StringComparison.OrdinalIgnoreCase))
-            return false;
-
         return location.Equals("Town", StringComparison.OrdinalIgnoreCase)
             || location.Equals("WizardHouse", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsMimiMerchantWeekday()
+    {
+        // Stardew seasons begin on Monday: day 1..5 = Mon..Fri, 6..7 = weekend.
+        int dayIndex = (Math.Max(1, Game1.dayOfMonth) - 1) % 7;
+        return dayIndex <= 4;
     }
 
     private static bool CanRecruitSudoku(NPC npc, IModRegistry registry)
