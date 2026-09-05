@@ -1,139 +1,109 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.3**
+Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.4**
 
-Status: **compile/package/direct-builder verified; four live-test fixes require in-game validation**.
+Status: **compile/package/direct-builder verified with 0 warnings and 0 errors; controller equipment fix requires in-game confirmation**.
 
 Development branch:
 
-`v0.2-alpha6-6-3-live-test-hotfix`
+`v0.2-alpha6-6-4-controller-equipment-transaction-hotfix`
 
 Final handoff branch:
 
-`v0.2-alpha6-6-3-live-test-hotfix-handoff`
+`v0.2-alpha6-6-4-controller-equipment-transaction-hotfix-handoff`
 
 Read this handoff first:
 
+`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_4_2026-09-05.md`
+
+For the previous Pelipper/Codex/water hotfix details, see:
+
 `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_3_2026-09-05.md`
 
-## Why Alpha 6.6.3 exists
+## Why Alpha 6.6.4 exists
 
-The first Alpha 6.6.2 in-game test found four concrete runtime problems:
+A real controller test on the Equipment screen showed contradictory HUD messages such as `Đã trang bị Liềm` followed by `Đã tháo Liềm về túi`, while the NPC slot still displayed `Chưa trang bị`.
 
-1. Equipment could be equipped by mouse double-click, but controller `A` did not reliably equip.
-2. Codex right-stick scrolling moved the viewport without keeping logical selection inside the visible rows; touching left stick then snapped back to an old NPC. Left-stick row navigation also felt too slow.
-3. Pelipper Town villager Pokemon were not recognized by Team Up's generic companion contract, so the intended shared 2/2 cap was not enforced in actual gameplay.
-4. Full parties produced severe slowdown around water, bridges and narrow walkways.
+The important runtime finding was that controller activation and mouse-style activation were not sufficiently isolated. Stardew can echo controller `A` through mouse/cursor behavior, while Team Up also had a slot-card double-click unequip path. One physical action could therefore cause multiple state transitions or misleading success feedback.
 
-Alpha 6.6.3 is a focused hotfix for these four items. Do not expand formation/per-member strategy or unrelated features until this hotfix is live-smoked.
+## Alpha 6.6.4 equipment locks
 
-## Fix 1: Equipment controller activation
+File:
 
-`UI/EquipmentMenu.cs` now distinguishes logical-focus controller navigation from controller-pointer navigation.
+`src/TeamUp/UI/EquipmentMenu.cs`
 
-Locked behavior:
+Behavior:
 
-- D-pad / left stick sets logical-focus mode.
-- Right-stick pointer movement sets pointer mode.
-- `A` in logical-focus mode activates the focused slot/item.
-- `A` in pointer mode equips/activates the item/button under `Game1.getMouseX/Y()`.
-- Switching back to D-pad/left stick prevents stale pointer activation.
-- `X` unequips and `Y` auto-equips.
-- Mouse double-click remains 450 ms.
+- Controller `A`, `X`, and `Y` activation is debounced.
+- A controller activation suppresses its short-lived virtual left-click echo.
+- NPC equipment slot cards now only select the slot. They no longer support double-click unequip.
+- Unequip remains explicit through controller `X` or the `Tháo trang bị` button.
+- Mouse double-click on an eligible item in the Farmer inventory remains supported with the existing 450 ms window.
+- Equip success HUD is transactional: Team Up verifies both PartyMember equipment metadata and the actual FarmerTeam global equipment inventory slot before showing success.
+- Unequip success HUD is transactional: both metadata and the actual global equipment slot must be empty before success is shown.
+- If commit verification fails, an error is shown instead of a fake success toast.
 
-Key tokens:
+Important constants/tokens:
 
-- `_preferFocusedGamepadActivation`
-- `TryActivateControllerPointer()`
-- `EquipInventoryIndex(i)`
 - `DoubleClickWindowMs = 450`
+- `ControllerActivationDebounceMs = 180`
+- `ControllerMouseEchoSuppressionMs = 260`
+- `TryBeginControllerActivation()`
+- `_suppressMouseClickUntilMs`
+- `TryActivateControllerPointer()`
+- `GetActualEquippedItem(_selectedSlot)`
 
-## Fix 2: Codex analog navigation
+Do not restore slot-card double-click unequip. It is intentionally removed to keep one controller action equal to one state transition.
 
-`UI/CodexBrowserMenu.cs` now keeps viewport and selected row synchronized.
+## Alpha 6.6.3 behavior retained
 
-Locked behavior:
+### Codex navigation
 
-- right-stick scroll step = 2 rows;
-- after scrolling, `_selectedIndex` is clamped to `[firstVisible, lastVisible]`;
-- left stick Up/Down moves two rows per input;
-- D-pad Up/Down remains one row;
-- dropdown option navigation remains precise and should not skip two entries.
+- right-stick scroll keeps selection inside the visible viewport;
+- right-stick scroll step 2 rows;
+- left-stick Up/Down moves 2 rows;
+- D-pad remains 1 row for precision.
 
-Do not reintroduce viewport scrolling that leaves selection outside the visible window.
-
-## Fix 3: Pelipper Town shared 2/2 companion quota
+### Pelipper Town
 
 Provider compatibility ID:
 
 `Griff.PelipperTown`
 
-New optional adapter:
-
-`Core/PelipperTownCompatibilityService.cs`
-
-Important rules:
-
-- no hard Pelipper DLL reference;
+- optional adapter, no hard Pelipper DLL dependency;
 - no Pelipper private-save reading;
-- generic Team Up companion `modData` contract is checked first;
-- optional Pelipper fallback detects live actors using runtime identity/owner metadata and conservative proximity;
-- villager partner can enter normal recruit flow: NPC only / NPC + Pokemon / Cancel;
-- Pelipper Pokemon are stored as `ExternalCreature`, so existing `GetActiveCombatCompanionCount()` and hard max 2 are reused;
-- existing 6.6.2 party members are reconciled every 30 ticks on host;
-- only max two source Pokemon may remain deployed;
-- overflow Pelipper actors become Standby and are visually suppressed while Team Up owns the active party choice;
-- Pelipper remains movement authority for its Pokemon; FollowService must skip source-controlled Pelipper units;
-- Leave restores source visibility/control and clears Team Up Pelipper opt-out state;
-- SaveLoaded/DayEnding cleanup stale suppression.
+- detected Farmer/NPC Pokemon enter the shared external companion pool;
+- shared hard max remains 2/2;
+- Pelipper remains movement authority for its own source actors;
+- diagnostics remain:
+  - `teamup_pelipper status`
+  - `teamup_pelipper reconcile`
 
-Diagnostics:
+### Water / bridge performance
 
-```text
-teamup_pelipper status
-teamup_pelipper reconcile
-```
-
-If visible Pelipper partners produce `detectedPartners=0`, do not weaken the 2/2 limit and do not hard-code Pokemon species. Get a fresh SMAPI log + command output and then bind to the real Pelipper runtime/API shape in the next focused hotfix.
-
-## Fix 4: water / bridge / narrow path performance
-
-The previous follower loop was an actual Team Up CPU-risk area:
-
-- follow runtime updated every 2 ticks;
-- formation fallback could scan square rings up to radius 3 per follower;
-- each candidate used `isTileLocationTotallyClearAndPlaceable`, which is much heavier and particularly noisy with crowds/narrow terrain.
-
-Alpha 6.6.3 changes:
-
-- `Follow.Update` cadence in Alpha661 coordinator: every 4 ticks;
-- bounded deterministic `OpenSearchOffsets`;
-- Follow `IsOpen`: `location.isTileOnMap(tile) && location.isTilePassable(tile)`;
-- `isTileLocationTotallyClearAndPlaceable` must not exist in FollowService;
-- Pelipper source-owned companions are skipped by Team Up follow movement so two pathfinding controllers do not fight.
-
-Long-distance warp/catch-up remains. Surge safety rules are separate and remain unchanged.
+- Team Up Follow update cadence remains every 4 ticks;
+- bounded `OpenSearchOffsets` fallback remains;
+- Follow tile validation uses `isTileOnMap + isTilePassable`;
+- Pelipper source-controlled Pokemon are skipped by Team Up follower movement.
 
 ## Product rules still locked
 
-### Shared people capacity
+### People capacity
 
-- 6 total people across online Farmers + `Following`/`Waiting` NPCs.
-- Single-player: 1 Farmer + at most 5 active NPCs.
-- Two-player: 2 Farmers + at most 4 active NPCs.
-- overflow becomes Inactive, never deleted from roster/progression/equipment.
-- each NPC retains `RecruiterId`.
-- same NPC cannot have two owners.
+- maximum 6 total people across online Farmers + `Following` / `Waiting` Team Up NPCs;
+- a Farmer consumes a people slot;
+- single player therefore allows up to 5 active NPCs;
+- overflow becomes Inactive without deleting roster/progression/equipment;
+- ownership remains `RecruiterId` based.
 
-### Shared combat companion capacity
+### Combat companion capacity
 
-- hard max 2 deployed external creatures across the whole farm.
-- Farmer-owned and NPC-linked external creatures share the same pool.
-- `Active`, `Waiting`, `ReturningHome` reserve slots.
-- `Standby`, `Inactive` do not.
-- vanilla pet free.
-- ChaCha free and never Main Party.
-- detected Pelipper Town Pokemon now enter this same pool.
+- hard shared max 2 deployed external Pokemon/summon/creature companions across the whole farm;
+- Farmer-owned and NPC-linked creatures share the pool;
+- `Active`, `Waiting`, `ReturningHome` reserve slots;
+- `Standby`, `Inactive` do not;
+- vanilla pet is free;
+- ChaCha is free and never Main Party.
 
 ### Party Strategy
 
@@ -145,108 +115,103 @@ Five values remain unchanged:
 - `HoldPosition`
 - `BossFocus`
 
-Tactics UI remains in Codex. Multiplayer strategy remains host-authoritative via Alpha 6.6.2 request/state messages.
+Tactics UI and host-authoritative multiplayer strategy sync remain unchanged from Alpha 6.6.2.
 
 ## Custom recruit locks
 
 ### MiMi
 
-- canonical ID `Ronvotri.Cardcha_MiMi`;
-- source Cardcha `Ronvotri.Cardcha`;
-- requesting Farmer's live friendship is checked in multiplayer;
-- Team Up does not read Cardcha private SaveData/services/schedule;
-- signature `BROOMTAIL SIGIL`.
+- Cardcha UniqueID `Ronvotri.Cardcha`
+- canonical NPC `Ronvotri.Cardcha_MiMi`
+- requesting Farmer live friendship gate in multiplayer
+- no Cardcha private save/service access
+- signature `BROOMTAIL SIGIL`
 
 ### Sudoku
 
-- canonical ID `ronvotri.HeyYoureCursed_Sudoku`;
-- signature `NINEFOLD SEAL`;
-- Team Up runtime movement markers:
+- canonical NPC `ronvotri.HeyYoureCursed_Sudoku`
+- signature `NINEFOLD SEAL`
+- Team Up movement markers:
   - `Ronvotri.TeamUp/PartyControlled = true`
   - `Ronvotri.TeamUp/PartyControllerOwner = <Farmer ID>`
 - source mod remains story/trust/roommate authority.
 
-## Regression locks
+## Core regression locks
 
-- hard leash 12 tiles;
-- target lock 45 ticks;
-- facing hold 10 ticks;
-- anti-spin;
-- Hold Position no chase outside attack range;
-- Aggressive never disables hard leash;
-- Boss Focus only selects highest MaxHealth among valid candidates;
-- Surge Cardcha arena exclusion;
-- Surge safe placement uses `isTileOnMap`, `isTilePassable`, `IsTileBlockedBy`;
-- never restore `isTileLocationTotallyClearAndPlaceable` in Surge;
-- no arbitrary custom-monster cloning with `Activator.CreateInstance` or `MemberwiseClone`;
-- 51 SVE/RSV profiles/icons/balance;
-- Party Vault drag/drop and `releaseLeftClick`;
-- equipment mouse double-click 450 ms;
-- Origin story.
+- hard leash 12 tiles
+- target lock 45 ticks
+- facing hold 10 ticks
+- anti-spin
+- Hold Position no chase outside attack range
+- Aggressive never disables hard leash
+- Boss Focus only picks highest MaxHealth among already-valid candidates
+- Surge safe GreenSlime overlay
+- Cardcha arena Surge exclusion
+- Surge safe placement uses `isTileOnMap`, `isTilePassable`, `IsTileBlockedBy`
+- never restore `isTileLocationTotallyClearAndPlaceable` to Surge
+- no arbitrary custom-monster cloning through `Activator.CreateInstance` / `MemberwiseClone`
+- 51 SVE/RSV profiles/icons/balance
+- Party Vault drag/drop / `releaseLeftClick`
+- Origin story
 
-## CI checkpoint
+## Authoritative Alpha 6.6.4 CI
 
-Authoritative direct-builder run:
+Authoritative run:
 
-`33954805549`
+`33958778850`
 
 Authoritative input commit:
 
-`59cfa37002172f755c6345730027513d3f54c9be`
+`2aed2ca2a7854ad22f1290f25abeabfd57ac3e57`
 
-First Alpha 6.6.3 materialized source commit:
+Warning-clean materialization commit before authoritative run:
 
-`c45c8626aaccecce4cb8893e66c0fd9f99d15015`
-
-Final cleanup before authoritative run:
-
-`4598ff51b888aba7fbd0586b16f7d2c5b8fb1a28`
+`dc0cd99`
 
 Result:
 
-- direct `BuildV0_2Alpha663.ps1`;
-- build success;
-- 0 warnings;
-- 0 errors;
-- controller equipment source acceptance PASS;
-- Codex analog sync/speed acceptance PASS;
-- Pelipper Town shared 2/2 adapter acceptance PASS;
-- water/narrow follower performance acceptance PASS;
-- Alpha 6.6.2 / 6.6.1 regressions PASS;
-- package verification PASS;
-- `No materialized source diff.`;
-- artifact upload PASS.
+- direct `BuildV0_2Alpha664.ps1`
+- build success
+- 0 warnings
+- 0 errors
+- controller input echo guard acceptance PASS
+- transactional equip/unequip HUD confirmation PASS
+- inventory double-click 450 ms regression PASS
+- Alpha 6.6.3 regression acceptance PASS
+- package verification PASS
+- `No materialized source diff.`
+- artifact upload PASS
 
 Package:
 
-`TeamUp_v0.2.0-alpha.6.6.3_LIVE_TEST_HOTFIX_TEST.zip`
+`TeamUp_v0.2.0-alpha.6.6.4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_TEST.zip`
 
-Authoritative package SHA256:
+Package SHA256:
 
-`266e4226c09a4c39710f46a1083f90f32a11c392f35589a6c0e3aa5161b7c092`
+`5459cad0a9c4fa72e00a55fa8ff71ef0876a18f22656e1cbb9ed4fed0fc35911`
 
 Artifact ID:
 
-`9965997611`
+`9967245555`
 
 Artifact wrapper digest:
 
-`sha256:1a3164bd486d3af23008075ad99310f95282dbe0b8fb767a8c7d88cd3fdf43cd`
+`sha256:be4a75914af8d5d0277060b5b13c4790052fa4676112ca309e6bcf899cc690d9`
 
 ## Required live validation
 
 Use:
 
-`SMOKE_TEST_V0_2_ALPHA6_6_3_LIVE_TEST_HOTFIX_VI.txt`
+`SMOKE_TEST_V0_2_ALPHA6_6_4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_VI.txt`
 
 Highest priority:
 
-1. Equipment: logical focus + one `A` equips; right-stick cursor + one `A` equips correct item; switching modes never activates stale item.
-2. Codex: right-stick deep scroll then left-stick movement must not jump back upward; left stick should feel faster, D-pad precise.
-3. Pelipper: recruit NPC with visible partner and verify 3 choices. Build to 2/2, then third companion must trigger replacement/Standby rather than 3/2.
-4. Old 6.6.2 save with 4 NPC + 4 Pokemon: wait for reconcile or run `teamup_pelipper reconcile`; no more than two source Pokemon should stay deployed.
-5. Water/bridge/narrow route: compare frame-time/FPS against 6.6.2 with a full party.
-6. Leave a Pelipper-backed NPC and verify its source Pokemon returns normally.
-7. Re-test Tactics, shared people cap, multiplayer authority, MiMi, Sudoku, Surge, Vault.
+1. Select an eligible weapon with D-pad/left stick and press `A` once. Exactly one equip transition should occur and the NPC slot must visibly contain the item.
+2. Use right stick to place controller cursor over an eligible item, press `A` once, and verify the correct item is committed.
+3. Hold or quickly repeat `A`. It must not create a rapid equip/unequip pair.
+4. Confirm the old paired HUD messages `Đã trang bị` then `Đã tháo` no longer appear for one controller action.
+5. Controller `X` and the explicit Unequip button must still work.
+6. Mouse double-click on Farmer inventory items must still equip within 450 ms.
+7. Re-test Codex analog, Pelipper 2/2, water/bridge performance, Tactics, Sudoku, MiMi, Surge, and Vault.
 
-Do **not** call the Pelipper integration or performance fix live-verified until this real in-game smoke passes.
+Do **not** call the controller equipment bug live-verified until the user confirms these in game.
