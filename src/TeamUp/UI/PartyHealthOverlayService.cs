@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Ronvotri.TeamUp.Core;
+using StardewModdingAPI;
 using StardewValley;
 
 namespace Ronvotri.TeamUp.UI;
