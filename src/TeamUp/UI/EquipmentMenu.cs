@@ -535,7 +535,7 @@ public sealed class EquipmentMenu : IClickableMenu
 
             _progression.NormalizeMember(_member);
             _saveNow();
-            ShowHud(_translation.Get("equipment.equipped-name", new { item = committedData.DisplayName }));
+            ShowHud(_translation.Get("equipment.equipped-name", new { item = committedData!.DisplayName }));
             Game1.playSound("coin");
             _hoveredItem = null;
             ClampInventoryCursor();
