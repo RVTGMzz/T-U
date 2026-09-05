@@ -721,7 +721,7 @@ public sealed class EquipmentMenu : IClickableMenu
         if (item.HealPowerBonus != 0) parts.Add($"HEAL +{item.HealPowerBonus}");
         if (item.ControlPowerBonus != 0) parts.Add($"CTRL +{item.ControlPowerBonus}");
         if (item.CooldownReductionPercent != 0) parts.Add($"CDR {item.CooldownReductionPercent}%");
-        return string.Join("  ·  ", parts);
+        return string.Join("  |  ", parts);
     }
 
     private void DrawHoverComparison(SpriteBatch b, Item item)
@@ -833,7 +833,7 @@ public sealed class EquipmentMenu : IClickableMenu
         int delta = next - current;
         string suffix = percent ? "%" : string.Empty;
         string deltaText = delta == 0 ? string.Empty : $"  ({(delta > 0 ? "+" : string.Empty)}{delta}{suffix})";
-        string text = $"{label}  {current}{suffix} \u2192 {next}{suffix}{deltaText}";
+        string text = $"{label}  {current}{suffix} -> {next}{suffix}{deltaText}";
         Color color = delta > 0
             ? new Color(72, 145, 76)
             : delta < 0
@@ -857,7 +857,7 @@ public sealed class EquipmentMenu : IClickableMenu
         float delta = next - current;
         bool better = lowerIsBetter ? delta < -0.001f : delta > 0.001f;
         bool worse = lowerIsBetter ? delta > 0.001f : delta < -0.001f;
-        string arrow = "→";
+        string arrow = "->";
         string text = $"{label}  {current.ToString(format)}{suffix} {arrow} {next.ToString(format)}{suffix}";
         Color color = better
             ? new Color(72, 145, 76)

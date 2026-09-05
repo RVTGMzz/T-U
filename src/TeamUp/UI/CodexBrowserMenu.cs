@@ -349,11 +349,11 @@ public sealed class CodexBrowserMenu : IClickableMenu
         else if (b == Buttons.DPadUp)
             MoveVertical(-1);
         else if (b == Buttons.LeftThumbstickUp)
-            MoveVertical(-2);
+            MoveVertical(-1);
         else if (b == Buttons.DPadDown)
             MoveVertical(1);
         else if (b == Buttons.LeftThumbstickDown)
-            MoveVertical(2);
+            MoveVertical(1);
         else if (b == Buttons.A)
             ActivateFocus();
     }

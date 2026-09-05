@@ -320,15 +320,15 @@ public sealed class ProgressionService
         PartyRole role = ResolveRole(member);
         int mastery = GetMasteryLevel(member, role);
         int maxHealth = GetMaxHealth(member);
-        return $"Lv.{member.Level} · HP {member.CurrentHealth}/{maxHealth} · {RoleShort(role)} M{mastery}";
+        return $"Lv.{member.Level} | HP {member.CurrentHealth}/{maxHealth} | {RoleShort(role)} M{mastery}";
     }
 
     public string BuildEquipmentSummary(PartyMemberData member)
     {
-        string weapon = member.Weapon?.DisplayName ?? "—";
-        string armor = member.Armor?.DisplayName ?? "—";
-        string trinket = member.Trinket?.DisplayName ?? "—";
-        return $"W: {weapon} · A: {armor}\nT: {trinket}";
+        string weapon = member.Weapon?.DisplayName ?? "-";
+        string armor = member.Armor?.DisplayName ?? "-";
+        string trinket = member.Trinket?.DisplayName ?? "-";
+        return $"W: {weapon} | A: {armor}\nT: {trinket}";
     }
 
     private IEnumerable<RuntimeCombatModifier> GetActiveModifiers(PartyMemberData member)

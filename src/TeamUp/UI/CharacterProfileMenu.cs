@@ -25,7 +25,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private const int SectionPadding = 20;
     private const float BodyScale = 1.14f;
     private const float CaptionScale = 1.08f;
-    private const float DescriptionScale = BodyScale * 2f;
+    private const float ProfileContentScale = 1.52f;
     private const int DescriptionScrollStep = 56;
     private const int SignatureHeaderHeight = 64;
 
@@ -330,17 +330,17 @@ public sealed class CharacterProfileMenu : IClickableMenu
         }
 
         DrawSectionTitle(b, _i18n.Get("profile.affinities"), innerX, cursorY);
-        cursorY += 36;
+        cursorY += 44;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Tank), _profile.TankAffinity, innerWidth);
-        cursorY += 30;
+        cursorY += 40;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Damage), _profile.DamageAffinity, innerWidth);
-        cursorY += 30;
+        cursorY += 40;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Support), _profile.SupportAffinity, innerWidth);
-        cursorY += 30;
+        cursorY += 40;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Healer), _profile.HealerAffinity, innerWidth);
-        cursorY += 30;
+        cursorY += 40;
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Control), _profile.ControlAffinity, innerWidth);
-        cursorY += 38;
+        cursorY += 46;
 
         int viewportBottom = y + panelHeight - SectionPadding;
         Rectangle viewport = new(innerX, cursorY, innerWidth, Math.Max(44, viewportBottom - cursorY));
@@ -350,9 +350,8 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private void DrawScrollableTraitArea(SpriteBatch b, Rectangle viewport, PartyRole role)
     {
         int contentWidth = Math.Max(120, viewport.Width - 16);
-        bool pendingKit = IsPendingCombatKit();
-        float passiveScale = pendingKit ? BodyScale : DescriptionScale;
-        float signatureScale = pendingKit ? BodyScale : DescriptionScale;
+        float passiveScale = ProfileContentScale;
+        float signatureScale = ProfileContentScale;
         int contentHeight = CalculateTraitContentHeight(contentWidth, passiveScale, signatureScale);
         _detailsMaxScroll = Math.Max(0, contentHeight - viewport.Height);
         _detailsScrollOffset = Math.Clamp(_detailsScrollOffset, 0, _detailsMaxScroll);
@@ -360,7 +359,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
         int contentY = viewport.Y - _detailsScrollOffset;
 
         DrawSectionTitleIfVisible(b, _i18n.Get("profile.passive"), viewport.X, contentY, viewport);
-        contentY += 30;
+        contentY += 40;
         string passiveWrapped = WrapScaled(_passiveText, contentWidth, passiveScale);
         contentY += DrawWrappedLinesInViewport(b, passiveWrapped, viewport.X, contentY, passiveScale, viewport);
         contentY += 18;
@@ -383,9 +382,9 @@ public sealed class CharacterProfileMenu : IClickableMenu
         contentY += 22;
 
         DrawSectionTitleIfVisible(b, _i18n.Get("profile.relationship"), viewport.X, contentY, viewport);
-        contentY += 30;
-        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);
-        DrawWrappedLinesInViewport(b, relationshipWrapped, viewport.X, contentY, BodyScale, viewport);
+        contentY += 40;
+        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, ProfileContentScale);
+        DrawWrappedLinesInViewport(b, relationshipWrapped, viewport.X, contentY, ProfileContentScale, viewport);
 
         if (_detailsMaxScroll > 0)
             DrawDetailsScrollBar(b, viewport);
@@ -395,15 +394,15 @@ public sealed class CharacterProfileMenu : IClickableMenu
     {
         string passiveWrapped = WrapScaled(_passiveText, contentWidth, passiveScale);
         string signatureWrapped = WrapScaled(_signatureText, contentWidth, signatureScale);
-        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);
-        return 30
+        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, ProfileContentScale);
+        return 40
             + MeasureWrappedHeight(passiveWrapped, passiveScale)
             + 18
             + SignatureHeaderHeight
             + MeasureWrappedHeight(signatureWrapped, signatureScale)
             + 22
-            + 30
-            + MeasureWrappedHeight(relationshipWrapped, BodyScale);
+            + 40
+            + MeasureWrappedHeight(relationshipWrapped, ProfileContentScale);
     }
 
     private bool IsPendingCombatKit()
@@ -449,7 +448,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
 
     private static void DrawSectionTitleIfVisible(SpriteBatch b, string text, int x, int y, Rectangle viewport)
     {
-        int height = Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * CaptionScale));
+        int height = Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * ProfileContentScale));
         Rectangle bounds = new(x, y, Math.Max(1, viewport.Right - x), height);
         if (ContainsVertically(viewport, bounds))
             DrawSectionTitle(b, text, x, y);
@@ -511,28 +510,28 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private static void DrawAffinity(SpriteBatch b, int x, int y, string label, int value, int availableWidth)
     {
         value = Math.Clamp(value, 0, 5);
-        DrawFitString(b, Game1.smallFont, label, new Rectangle(x, y, 120, 28), Game1.textColor, BodyScale);
+        DrawFitString(b, Game1.smallFont, label, new Rectangle(x, y, 136, 34), Game1.textColor, ProfileContentScale);
 
-        int barX = x + Math.Min(150, Math.Max(112, availableWidth / 4));
+        int barX = x + Math.Min(180, Math.Max(142, availableWidth / 4));
         int segmentWidth = Math.Clamp((availableWidth - (barX - x) - 70) / 5, 20, 34);
         const int segmentHeight = 14;
         const int gap = 5;
 
         for (int i = 0; i < 5; i++)
         {
-            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 7, segmentWidth, segmentHeight);
+            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 10, segmentWidth, segmentHeight);
             Color color = i < value ? new Color(91, 143, 86) : new Color(120, 91, 64) * 0.24f;
             b.Draw(Game1.staminaRect, segment, color);
         }
 
         string score = $"{value}/5";
         int scoreX = barX + 5 * (segmentWidth + gap) + 4;
-        DrawScaledString(b, Game1.smallFont, score, new Vector2(scoreX, y), new Color(112, 73, 44), CaptionScale);
+        DrawScaledString(b, Game1.smallFont, score, new Vector2(scoreX, y), new Color(112, 73, 44), ProfileContentScale);
     }
 
     private static void DrawSectionTitle(SpriteBatch b, string text, int x, int y)
     {
-        DrawScaledString(b, Game1.smallFont, text, new Vector2(x, y), new Color(102, 63, 37), CaptionScale);
+        DrawScaledString(b, Game1.smallFont, text, new Vector2(x, y), new Color(102, 63, 37), ProfileContentScale);
     }
 
     private static string WrapScaled(string text, int pixelWidth, float scale)

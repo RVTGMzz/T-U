@@ -1,4 +1,6 @@
+using Microsoft.Xna.Framework.Input;
 using Ronvotri.TeamUp.Core;
+using Ronvotri.TeamUp.UI;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -14,12 +16,24 @@ public sealed partial class ModEntry
         Helper.Events.GameLoop.SaveLoaded += OnAlpha663SaveLoaded;
         Helper.Events.GameLoop.DayEnding += OnAlpha663DayEnding;
         Helper.Events.GameLoop.UpdateTicked += OnAlpha663UpdateTicked;
+        Helper.Events.Input.ButtonPressed += OnAlpha665EquipmentButtonPressed;
         Helper.ConsoleCommands.Add(
             "teamup_pelipper",
             "Team Up Pelipper compatibility diagnostics: status|reconcile.",
             OnAlpha663PelipperCommand);
     }
 
+    private void OnAlpha665EquipmentButtonPressed(object? sender, ButtonPressedEventArgs e)
+    {
+        if (!Context.IsWorldReady || Game1.activeClickableMenu is not EquipmentMenu menu)
+            return;
+
+        if (!e.Button.IsActionButton())
+            return;
+
+        Helper.Input.Suppress(e.Button);
+        menu.receiveGamePadButton(Buttons.A);
+    }
     private void OnAlpha663SaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
         if (!Context.IsMainPlayer || !Context.IsWorldReady)
