@@ -1,0 +1,142 @@
+name: Team Up v0.2.0-alpha.6.6.7 Water Combat Pathfinding Hotfix
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-7-water-combat-pathfinding-hotfix ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.7 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha667.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.6.7'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          pelipper = (root/'Core/PelipperTownCompatibilityService.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          alpha663 = (root/'ModEntry.Alpha663.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          profile = (root/'UI/CharacterProfileMenu.cs').read_text(encoding='utf-8')
+          progression = (root/'Core/ProgressionService.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'build: v{version}' in mod
+
+          for token in [
+              'CombatPathRetryCooldownTicks = 24',
+              'CombatMovementPulseTicks = 3',
+              '_combatPathRetryTicks',
+              'ShouldExcludeFromTeamUpCombat(monster)',
+              'TryFindApproachTile',
+              'IsLightweightCombatTile',
+              'location.isTileOnMap(tile) && location.isTilePassable(tile)',
+              '_combatMovementPulse == 0'
+          ]:
+              assert token in combat, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+
+          for token in ['CombatTargetOptInKey', 'ShouldExcludeFromTeamUpCombat']:
+              assert token in pelipper, token
+
+          assert 'OpenSearchOffsets' in follow
+          assert 'location.isTileOnMap(tile) && location.isTilePassable(tile)' in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+
+          for token in [
+              'e.Button.IsActionButton()',
+              'e.Button.IsUseToolButton()',
+              'routedButton = Buttons.A',
+              'routedButton = Buttons.X'
+          ]:
+              assert token in alpha663, token
+
+          for token in [
+              'DoubleClickWindowMs = 450',
+              'ControllerActivationDebounceMs = 180',
+              'ControllerMouseEchoSuppressionMs = 260'
+          ]:
+              assert token in equipment, token
+
+          assert 'MoveVertical(-2)' not in codex
+          assert 'MoveVertical(2)' not in codex
+          assert 'ProfileContentScale = 1.52f' in profile
+          assert ' · ' not in progression
+          assert '—' not in progression
+
+          for token in ['isTileOnMap', 'isTilePassable', 'IsTileBlockedBy']:
+              assert token in surge, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+
+          print('Alpha 6.6.7 source acceptance PASS')
+          print('Pelipper water/decorative combat target exclusion PASS')
+          print('Lightweight combat approach scan PASS')
+          print('Unreachable combat path retry cooldown PASS')
+          print('Combat movement pulse PASS')
+          print('Switch equip/unequip regression PASS')
+          print('Codex/Profile/Surge regression PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.7_WATER_COMBAT_PATHFINDING_HOTFIX_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.7_WATER_COMBAT_PATHFINDING_HOTFIX_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.7' BUILD_LOG.txt
+          grep -q 'PELIPPER COMBAT TARGET FILTER: ENABLED' BUILD_LOG.txt
+          grep -q 'LIGHTWEIGHT COMBAT TILE SEARCH: ENABLED' BUILD_LOG.txt
+          grep -q 'UNREACHABLE PATH RETRY COOLDOWN: ENABLED' BUILD_LOG.txt
+          grep -q 'COMBAT PATH MOVEMENT PULSE: ENABLED' BUILD_LOG.txt
+          grep -q 'SWITCH EQUIP/UNEQUIP REGRESSION: PRESERVED' BUILD_LOG.txt
+          echo 'Alpha 6.6.7 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha667.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_7_WATER_COMBAT_PATHFINDING_HOTFIX_VI.txt .github/workflows/team-up-alpha6-6-7-water-combat-pathfinding-hotfix.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.7 water combat pathfinding hotfix source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-7-water-combat-pathfinding-hotfix
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-7-water-combat-pathfinding-hotfix
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.7_WATER_COMBAT_PATHFINDING_HOTFIX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.7_WATER_COMBAT_PATHFINDING_HOTFIX_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_7_WATER_COMBAT_PATHFINDING_HOTFIX_VI.txt
+          if-no-files-found: error
