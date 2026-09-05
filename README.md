@@ -2,262 +2,233 @@
 
 **Party & Combat Companions for Stardew Valley**
 
-> Build an RPG-style party from Stardew Valley NPCs, bring pets and creature companions, assign combat roles, share loot, and take the team into monster-heavy content.
+> Build an RPG-style party from Stardew Valley NPCs, bring creature companions, assign combat roles, share loot, and take the team into monster-heavy content.
 
 ## Current development checkpoint
 
-Current source line: **`v0.1.0-alpha.5` - Party Identity & Codex**.
+Current verified source line: **`v0.2.0-alpha.6.6.1` - Shared Party Capacity + Companion Choice + Multiplayer Foundation**.
 
-If you are resuming development in a new chat/session, **read [`CONTINUE_HERE.md`](CONTINUE_HERE.md) first**. It records the locked recruitment/management UX, Party Vault architecture, role/Codex work, historical regressions to avoid, validation state, and the next combat milestone.
+Status: **compile/package/direct-builder verified; in-game and 2-client multiplayer smoke pending**.
 
-For what is actually present in source vs future design, see [`docs/V0_1_IMPLEMENTATION_STATUS.md`](docs/V0_1_IMPLEMENTATION_STATUS.md).
+If you are resuming development in a new chat/session, read [`CONTINUE_HERE.md`](CONTINUE_HERE.md) and the latest handoff first.
 
-## Project direction
+## Current party rules
 
-Team Up! is an independently developed companion-combat mod focused on **party building, tactical roles, pets/creatures, shared storage, and MMORPG-inspired combat systems**.
+Team Up now uses one shared party budget for the multiplayer farm.
 
-The design goal is not simply to make NPCs follow the player. Each Party Member should have a meaningful place in the team, while pets and Pokemon-like creatures can join as separate Companion Units.
+### People capacity: 6 total
 
-## Core pillars
+The six-person cap includes **online Farmers and active Team Up NPCs together**.
 
-- **Party-based combat** with NPC Party Members and creature companions.
-- **4 Main Party slots by default**, configurable up to 6.
-- **Companion Units do not consume Main Party slots.**
-- **Player main pet is a free special companion.**
-- **NPC Linked Companions** can travel and fight with their owner.
-- **2 active Linked Companions by default**, configurable from 0 to 6.
-- **Combat roles**: Tank, DPS, Support, Healer, and Control.
-- **Engagement Styles**: Passive, Cautious, Balanced, Aggressive, and Reckless.
-- **Role affinity** instead of hard class locking.
-- **Party Vault** for shared loot and expedition supplies.
-- **Threat / aggro gameplay** so Tank roles have real purpose.
-- **Combat strategies** such as Balanced, Defensive, Aggressive, Hold Position, and Boss Focus.
-- **Controller-first interaction**, with keyboard/mouse support and future mobile-friendly UI considerations.
-- **Party Codex / Wiki** showing recommended roles, traits, affinities, linked companions, skills, and suggested compositions.
-- **Integration-friendly architecture** so other mods can register bosses, dungeons, companions, pets, creature profiles, skills, loot, or encounter metadata later.
-
-## Party slot model
-
-Team Up! separates the Main Party from Companion Units.
-
-### Main Party
-
-- Player does not count toward the limit.
-- Default: 4 NPC Party Members.
-- Maximum: 6 NPC Party Members.
-
-### Companion Units
-
-- Player main pet: free special companion.
-- Linked Companion: optional pet/Pokemon-like creature attached to a Party Member.
-- Linked Companions do not consume one of the 6 Main Party slots.
-- Default active Linked Companion limit: 2.
-- Configurable active Linked Companion limit: 0 to 6.
-- Extra registered companions can remain in Standby.
-
-Recommended default combat footprint:
+Examples:
 
 ```text
-Player
-├─ Alex        Tank
-├─ Abigail     DPS / Control
-│  └─ Pikachu  Linked Companion
-├─ Emily       Support
-├─ Harvey      Healer
-├─ Dog         Player Main Pet
-└─ One optional additional active Linked Companion
+Single-player
+1 Farmer + up to 5 active NPCs = 6/6
+
+Two-player co-op
+2 Farmers + up to 4 active NPCs = 6/6
+
+Four-player co-op
+4 Farmers + up to 2 active NPCs = 6/6
 ```
 
-An advanced configuration may eventually allow 6 Party Members + 6 Linked Companions + the player's main pet, but high-entity setups will be considered experimental due to pathfinding, screen readability, balance, and performance.
+- `Following` and `Waiting` NPCs consume a people slot.
+- If another Farmer joins and the active party would exceed six, overflow NPCs are moved to `Inactive` and returned to their source/vanilla schedule.
+- Overflow never deletes roster ownership, level, equipment, progression, or linked-companion registration.
+- Each recruited NPC keeps the `RecruiterId` of the Farmer who invited them.
+- The same NPC cannot be owned by two Farmers at once.
 
-## Proposed party roles
+### Combat companion capacity: 2 shared
+
+The farm has a shared pool of **two deployed external combat companions**, including Pokemon-like creatures and summons owned by either a Farmer or a recruited NPC.
+
+- `Active`, `Waiting`, and `ReturningHome` external creatures reserve a slot.
+- `Standby` and `Inactive` do not reserve a slot.
+- Vanilla dog/cat pets are free and do not consume the 2/2 pool.
+- **ChaCha is a free Special Companion** and consumes neither a people slot nor a combat-companion slot.
+- External creature/summon providers can use Team Up's lightweight runtime `modData` contract without a hard DLL dependency.
+
+Recommended maximum combat footprint with one Farmer:
+
+```text
+Farmer
+├─ NPC 1
+├─ NPC 2
+├─ NPC 3
+├─ NPC 4
+├─ NPC 5
+├─ External Companion 1
+├─ External Companion 2
+└─ ChaCha (optional free Special Companion)
+```
+
+## NPC + companion recruitment
+
+When Team Up detects that an invited NPC currently has a linked companion, recruitment uses three top-level choices:
+
+```text
+Invite Abigail to Team Up?
+
+> Abigail only
+  Abigail + Pikachu
+  Cancel
+```
+
+If the player chooses `NPC + companion` while the shared companion pool is already 2/2, Team Up opens a replacement choice. The selected active companion is moved to Standby before the new companion is deployed.
+
+In multiplayer, a farmhand may replace their own active companion. The host retains farm-wide authority. Team Up never silently steals another farmhand's companion slot.
+
+## Multiplayer foundation
+
+Alpha 6.6.1 introduces a **host-authoritative shared-party model**.
+
+- Farmhands can interact with NPCs and request recruit/leave/member actions.
+- The host validates and commits shared party state.
+- The host broadcasts party snapshots back to clients.
+- Recruit requests are race-safe at the party-state level: once an NPC has an owner, a second Farmer cannot recruit the same NPC.
+- Each online Farmer gets their own follow/combat owner context based on `RecruiterId`.
+- NPCs follow and fight around the Farmer who recruited them, including when Farmers split across different maps.
+- On disconnect, that Farmer's NPCs are deactivated and their companions leave active deployment, while roster/progression remains saved for later.
+
+### Alpha 6.6.1 multiplayer limitation
+
+Remote farmhand inventory mutation is intentionally fail-closed in this foundation milestone. Equipment management that would transfer items between remote inventories remains host-authoritative until a later multiplayer inventory-safe implementation is live-tested.
+
+## Creature integration runtime contract
+
+External mods can identify live creature actors using `NPC.modData` instead of requiring Team Up to reference their DLL or private save model.
+
+Supported Alpha 6.6.1 keys include:
+
+```text
+Ronvotri.TeamUp/CompanionKind
+Ronvotri.TeamUp/CompanionOwnerCharacter
+Ronvotri.TeamUp/CompanionOwnerFarmerId
+Ronvotri.TeamUp/CompanionProviderId
+Ronvotri.TeamUp/CompanionProviderUnitId
+```
+
+Important companion kinds include `FarmerSummon`, `LinkedCompanion`, and the existing special-companion classifications.
+
+Provider mods remain responsible for their own story, unlock, spawning, identity, and private save data.
+
+## Sudoku compatibility handshake
+
+Team Up can recruit the Hey! You're Cursed! NPC with canonical ID:
+
+`ronvotri.HeyYoureCursed_Sudoku`
+
+When Team Up owns an NPC's follow/combat movement, it writes runtime markers on that actor:
+
+```text
+Ronvotri.TeamUp/PartyControlled = true
+Ronvotri.TeamUp/PartyControllerOwner = <Farmer UniqueMultiplayerID>
+```
+
+The markers are removed when Team Up releases the NPC. Hey! You're Cursed! can use `PartyControlled` to pause Sudoku's roommate movement while Team Up owns her, without either mod reading the other's private save/service state.
+
+## MiMi compatibility
+
+MiMi remains a source-owned custom recruit from Cardcha:
+
+- Cardcha UniqueID: `Ronvotri.Cardcha`
+- canonical MiMi NPC ID: `Ronvotri.Cardcha_MiMi`
+- Team Up uses the live Stardew social/friendship layer as its recruit gate.
+- In multiplayer, the friendship gate is checked against the **Farmer who actually sent the recruit request**, not automatically against the host.
+- Team Up does not read Cardcha private SaveData/services or hard-code MiMi's work schedule.
+
+ChaCha remains a Special/Farmer Companion and never becomes a Main Party member.
+
+## Party Strategy
+
+Alpha 6.6.0 introduced five party-wide tactical strategies, retained unchanged in Alpha 6.6.1:
+
+- `Balanced`
+- `Defensive`
+- `Aggressive`
+- `HoldPosition`
+- `BossFocus`
+
+Console command:
+
+```text
+teamup_strategy <status|balanced|defensive|aggressive|hold|boss>
+```
+
+Strategy is config-backed rather than stored in PartySaveData. Switching strategy clears combat runtime locks for clean retargeting.
+
+Key behavior locks:
+
+- hard leash remains 12 tiles;
+- Aggressive does not disable the leash;
+- Hold Position does not chase targets outside attack range;
+- Boss Focus prefers the highest-MaxHealth target only among already-valid candidates;
+- target lock, facing hold, and anti-spin protections remain active.
+
+## Party roles
 
 | Role | Purpose |
 | --- | --- |
 | Tank | Hold threat, protect allies, intercept enemies, survive pressure. |
-| DPS | Primary damage dealer. Can later branch into melee/ranged styles. |
+| DPS | Primary damage dealer. |
 | Support | Buff allies, debuff enemies, improve party performance. |
 | Healer | Restore HP, shield allies, emergency recovery. |
 | Control | Stun, slow, root, knock back, interrupt, or manipulate enemy positioning. |
 
-NPCs should not be permanently class-locked. Instead, each Party Member can have an affinity profile, for example:
+NPCs use affinity profiles rather than hard class locking. Team Up also retains Engagement Styles, equipment/loadout progression, character skill identities, friendship bonds, and expansion NPC profiles.
 
-- DPS ★★★★
-- Control ★★★
-- Tank ★★
-- Support ★
-- Healer ★
+## Custom recruit identities
 
-The player can still build unusual teams, while the future Codex can recommend stronger combinations.
+Current explicit custom recruits include:
 
-## Engagement Style
+- MiMi: Support / Control, signature `BROOMTAIL SIGIL`.
+- Sudoku: Control / Damage, signature `NINEFOLD SEAL`.
 
-Role and aggression are separate concepts.
+Team Up respects each source mod's own unlock/materialization progression.
 
-Planned Engagement Styles:
+## Monster Surge
 
-- **Passive**: never initiates combat unless forced to defend.
-- **Cautious**: short leash, stays near the party.
-- **Balanced**: normal targeting and chase behavior.
-- **Aggressive**: proactively acquires targets and chases farther.
-- **Reckless**: maximum pressure with reduced formation discipline.
+The Surge remains regression-locked from Alpha 6.5.2/6.5.3:
 
-A Healer using Aggressive does not become a melee attacker. It means the Healer reacts earlier, moves closer to active combat, and uses their support role more proactively.
+- target monster density around x2 in eligible combat zones;
+- Team Up-owned safe `GreenSlime` overlay only;
+- no blind cloning of arbitrary custom/boss/story monsters;
+- Cardcha test arena excluded;
+- Team Up Surge extras have loot suppressed by default;
+- safe placement uses `isTileOnMap`, `isTilePassable`, and `IsTileBlockedBy`;
+- never reintroduce `isTileLocationTotallyClearAndPlaceable` for this system;
+- debug commands retain status/reapply/clear/board behavior.
 
-Future AI layers include combat leash, retreat HP threshold, target priority, and threat modifiers.
+## Party Vault and UI
 
-## Linked Companions
+Party Vault remains a permanent shared-party inventory feature. Equipment double-click, controller focus/navigation, Codex/profile UI, Party Vault drag/drop, and the SVE/RSV expansion profile/icon work remain regression-locked.
 
-A Party Member may have one linked creature in the initial design.
+## Build and smoke test
 
-When an integration identifies that an invited NPC owns a companion, Team Up! can later show a prompt such as:
+One-click local build:
 
-```text
-Invite Abigail to Team Up!?
+`BUILD_V0_2_ALPHA6.bat`
 
-Pikachu can come too.
+Direct builder:
 
-> Abigail + Pikachu
-  Abigail only
-  Cancel
-```
+`BuildV0_2Alpha661.ps1`
 
-A Linked Companion follows its owner rather than competing for the same follow point behind the player. If the owner waits, resumes, retreats, or leaves the party, the linked creature should inherit the appropriate response.
+Live smoke checklist:
 
-External creature mods should eventually integrate through a registration/resolver API rather than Team Up! hard-coding every creature implementation.
+`SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt`
 
-## Party Vault
-
-**Party Vault is a permanent core Team Up! feature.**
-
-It is shared by the whole party rather than giving every NPC or pet a separate inventory.
-
-Planned uses include:
-
-- monster drops;
-- healing items;
-- bombs and consumables;
-- companion equipment;
-- loot from supported dungeons or bosses;
-- integration items from supported mods;
-- configurable auto-loot rules later.
-
-Future companion consumable use will be opt-in so followers cannot unexpectedly consume valuable player items.
-
-## Combat systems planned
-
-### Threat / Aggro
-
-Tank behavior should be more than "high HP". Team Up! will aim for a threat model where taunts, role stance, damage, healing, support actions, and skills influence enemy targeting.
-
-### Strategy presets
-
-Party-level tactical presets may include:
-
-- Balanced
-- Defensive
-- Aggressive
-- Hold Position
-- Boss Focus
-
-### Formations
-
-Travel and combat formations may differ. Tanks can advance, melee DPS can flank, ranged/support companions can maintain distance, and Linked Companions can anchor around their owner.
-
-## Party Codex / Wiki
-
-A future in-game Codex will help players build teams instead of relying on trial-and-error.
-
-Planned information:
-
-- recommended role(s) for each NPC;
-- role affinity ratings;
-- Engagement Style recommendation;
-- traits/passives;
-- skills;
-- suggested teammates;
-- linked companion information;
-- combat tips;
-- compatibility notes;
-- pet/creature role guidance.
-
-## Roadmap
-
-### v0.1 - Party Core
-
-- Invite/recruit NPC Party Members.
-- Player main pet as a free Companion Unit.
-- Linked Companion data model.
-- Follow, Wait, Resume, Leave Party.
-- Party UI.
-- Party Vault.
-- 4 Main Party slots by default, configurable to 6.
-- 2 active Linked Companions by default, configurable to 6.
-- Keyboard, mouse, and controller support.
-
-### v0.2 - Combat Roles
-
-- Tank / DPS / Support / Healer / Control.
-- Engagement Style.
-- Combat leash and retreat thresholds.
-- Target priorities.
-- Threat and aggro.
-- Combat targeting.
-- Basic combat behavior profiles.
-
-### v0.3 - Skills
-
-- Active abilities.
-- Cooldowns.
-- Buffs and debuffs.
-- Healing and shielding.
-- Status/control effects.
-- Creature skills through supported integration profiles.
-
-### v0.4 - Party Builds
-
-- NPC affinities.
-- Traits/passives.
-- Equipment.
-- Formations.
-- Strategy presets.
-- Linked Companion deployment management.
-
-### v0.5 - Party Codex
-
-- NPC recommendations.
-- Party suggestions.
-- Skill encyclopedia.
-- Companion Unit recommendations.
-- Owner/companion pairing information.
-- Compatibility information.
-
-### v0.6 - Integration API
-
-Allow other mods to register or integrate:
-
-- bosses;
-- dungeons;
-- Party Members;
-- Companion Units;
-- pets/Pokemon-like creatures;
-- skills;
-- roles;
-- loot;
-- encounter profiles;
-- live-entity resolvers.
+CI verifies compilation, source contracts, package output, and builder idempotency. Multiplayer behavior still requires a real two-client in-game smoke before Alpha 6.6.1 can be called live-verified.
 
 ## Independent development / clean-room rule
 
-Team Up! is a **new independent codebase**. It is not intended to be a fork, modification, or redistribution of The Stardew Squad.
+Team Up! is a new independent codebase. It is not intended to be a fork, modification, or redistribution of The Stardew Squad.
 
 Project rules:
 
 - Do not copy or redistribute The Stardew Squad code, DLLs, assets, translations, content packs, UI assets, or dialogue.
 - Do not port its internal classes or implementation into Team Up!.
 - Build Team Up! systems from a fresh architecture using Stardew Valley, SMAPI, and permitted dependencies/APIs.
-- Shared genre concepts such as companions, pets, following, waiting, combat, parties, or shared storage should be implemented independently.
-- Keep Git history clear so the design and implementation process remains traceable.
 - Compatibility research with other mods is allowed, but compatibility research must not become code/asset copying.
 
 ## Naming
@@ -271,4 +242,4 @@ Project rules:
 
 > Don't ask only, "What work can this NPC do for the player?" Ask, **"What role does this companion play in the party?"**
 
-That question should guide Team Up! toward its own identity: an RPG-style party framework built for Stardew Valley combat, exploration, pets, creature companions, shared loot, and future mod integrations.
+Team Up's identity is an RPG-style shared party framework for Stardew Valley combat, exploration, NPCs, creature companions, shared loot, and source-respecting mod integrations.
