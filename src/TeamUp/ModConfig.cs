@@ -23,12 +23,16 @@ public sealed class ModConfig
     // Global keyboard shortcut. The Social tab also exposes a visible Codex entry.
     public KeybindList PartyMenuKey { get; set; } = new(SButton.P);
 
-    public int MaxPartyMembers { get; set; } = 4;
+    // Alpha 6.6.1: shared people cap. Every online Farmer consumes one of these six slots;
+    // only the remaining slots may be occupied by active NPC Party Members.
+    public int MaxPartyMembers { get; set; } = 6;
 
     public bool AllowPets { get; set; } = true;
 
     public bool AllowLinkedCompanions { get; set; } = true;
 
+    // Shared combat-companion pool across the whole multiplayer farm. Alpha 6.6.1 hard-caps
+    // this at two active external creature/summon slots. Vanilla pets and ChaCha are free.
     public int MaxActiveLinkedCompanions { get; set; } = 2;
 
     // Alpha 6.5.0: lightweight Team Up origin story. Existing saves remain usable;
@@ -52,8 +56,7 @@ public sealed class ModConfig
     public PartyStrategy PartyStrategy { get; set; } = PartyStrategy.Balanced;
 
     // Farmer-owned/special companions bypass Main Party recruitment entirely.
-    // ChaCha is the first compatibility entry. Future adapters should prefer the
-    // Ronvotri.TeamUp/CompanionKind modData contract instead of growing this list.
+    // ChaCha remains a free special companion and consumes neither people nor combat-creature slots.
     public List<string> SpecialCompanionNpcNames { get; set; } = new()
     {
         "ChaCha"
