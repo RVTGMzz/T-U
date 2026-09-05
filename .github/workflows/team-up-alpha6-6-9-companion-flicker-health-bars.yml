@@ -34,9 +34,11 @@ jobs:
           root = Path('src/TeamUp')
           project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
           mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          alpha661 = (root/'ModEntry.Alpha661.cs').read_text(encoding='utf-8')
           alpha663 = (root/'ModEntry.Alpha663.cs').read_text(encoding='utf-8')
           alpha669 = (root/'ModEntry.Alpha669.cs').read_text(encoding='utf-8')
-          pelipper = (root/'Core/PelipperTownCompatibilityService.cs').read_text(encoding='utf-8')
+          deployment = (root/'Core/PelipperDeploymentStateService.cs').read_text(encoding='utf-8')
+          health = (root/'UI/PartyHealthOverlayService.cs').read_text(encoding='utf-8')
           follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
           combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
           tile = (root/'Core/PartyTileSafety.cs').read_text(encoding='utf-8')
@@ -47,34 +49,53 @@ jobs:
           assert '<Version>0.2.0-alpha.6.6.9</Version>' in project
           assert 'RegisterAlpha669HotfixEvents();' in mod
           assert 'build: v0.2.0-alpha.6.6.9' in mod
+          assert 'Companion Flicker + Thin Health Bars Hotfix loaded.' in mod
 
           for token in [
               'RenderedWorld',
-              'PartyHealthBarWidthAlpha669 = 52',
-              'PartyHealthBarCombatRadiusAlpha669 = 10f',
-              'Progression.GetMaxHealth(member)',
-              'member.CurrentHealth',
-              'member.IsDowned',
-              'hpText = isDowned ? "DOWN"',
+              'RenderedHud',
+              'PartyHealthCombatRadiusAlpha669 = 10f',
+              'BuildHealthSnapshotSignatureAlpha669',
+              'BroadcastPartySnapshot()',
+              'PelipperDeploymentStateService.CleanupLegacySuppressionOnAllPelipperActors()',
           ]:
               assert token in alpha669, token
 
           for token in [
-              'DeploymentStateKey = "Ronvotri.TeamUp/DeploymentState"',
-              'DeploymentOwnerKey = "Ronvotri.TeamUp/DeploymentOwner"',
-              'RestoreLegacySuppression(actor)',
-              'actor.modData[DeploymentStateKey] = suppressed ? "Standby" : "Active"',
-              'bool clearAllDeployment = active.Count == 0;',
+              'HudBarHeight = 5',
+              'WorldBarHeight = 4',
+              'HudRowHeight = 17',
+              'ratio < 0.999f',
+              'DrawHud',
+              'DrawWorld',
           ]:
-              assert token in pelipper, token
+              assert token in health, token
+          assert 'hpText' not in health
+          assert '100/100' not in health
 
-          start = pelipper.index('    public static void SetSuppressed')
-          end = pelipper.index('    private static void RestoreLegacySuppression', start)
-          set_body = pelipper[start:end]
-          for forbidden in ['TrySetInvisible', 'actor.Halt()', 'actor.controller', 'actor.temporaryController']:
-              assert forbidden not in set_body, forbidden
+          for token in [
+              'DeploymentStateKey = "Ronvotri.TeamUp/PelipperDeployment"',
+              'DeploymentOwnerKey = "Ronvotri.TeamUp/PelipperDeploymentOwner"',
+              'ActiveValue = "Active"',
+              'StandbyValue = "Standby"',
+              'SetDesiredDeployment',
+              'CleanupLegacySuppressionOnAllPelipperActors',
+              'ClearDesiredDeploymentOnAllPelipperActors',
+          ]:
+              assert token in deployment, token
+          assert 'PelipperTownCompatibilityService.SetSuppressed(actor, owner, false);' in deployment
+          assert 'SetSuppressed(actor, owner, true)' not in deployment
 
-          assert 'TrySetInvisible(actor, originalInvisible)' in pelipper  # legacy one-shot repair only
+          for token in [
+              'PelipperDeploymentStateService.SetDesiredDeployment',
+              'IsPelipperUnitDeployedAlpha669',
+              'source visibility/movement authority',
+          ]:
+              assert token in alpha663, token
+          assert 'PelipperTownCompatibilityService.SetSuppressed(' not in alpha663
+          assert 'PelipperTownCompatibilityService.SetSuppressed(' not in alpha661
+          assert 'PelipperDeploymentStateService.SetDesiredDeployment(replacementActor' in alpha661
+
           assert 'FindLandOpenNear' in follow
           assert 'PartyTileSafety.IsWalkableLandOrBridge(owner.currentLocation, npc.Tile)' in follow
           assert 'isTileLocationTotallyClearAndPlaceable' not in follow
@@ -96,8 +117,10 @@ jobs:
 
           print('Alpha 6.6.9 source acceptance PASS')
           print('Pelipper source render/movement authority PASS')
+          print('Soft Active/Standby deployment contract PASS')
           print('Legacy visibility one-shot repair PASS')
-          print('NPC world health bars PASS')
+          print('Thin NPC world + HUD health bars PASS')
+          print('Multiplayer health snapshot sync PASS')
           print('6.6.7 performance + 6.6.8 land-safe regression PASS')
           print('Switch input + Codex one-row regression PASS')
           PY
@@ -109,9 +132,11 @@ jobs:
           test -s release/TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.zip
           test -s release/TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.sha256.txt
           grep -q 'BUILD SUCCESS - ALPHA 6.6.9' BUILD_LOG.txt
-          grep -q 'PELIPPER SOURCE RENDER AUTHORITY: ENABLED' BUILD_LOG.txt
-          grep -q 'LEGACY VISIBILITY REPAIR: ENABLED' BUILD_LOG.txt
-          grep -q 'NPC WORLD HEALTH BARS: ENABLED' BUILD_LOG.txt
+          grep -q 'PELIPPER SOURCE RENDER/MOVEMENT AUTHORITY: ENABLED' BUILD_LOG.txt
+          grep -q 'PELIPPER SOFT DEPLOYMENT MARKERS: ENABLED' BUILD_LOG.txt
+          grep -q 'PARTY HUD HEALTH BAR HEIGHT: 5PX' BUILD_LOG.txt
+          grep -q 'OVERHEAD HEALTH BAR HEIGHT: 4PX' BUILD_LOG.txt
+          grep -q 'MULTIPLAYER HEALTH SNAPSHOT SYNC: ENABLED' BUILD_LOG.txt
           echo 'Alpha 6.6.9 package verification PASS'
 
       - name: Materialize generated source
