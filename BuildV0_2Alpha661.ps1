@@ -277,10 +277,10 @@ try {
     $followText = [System.IO.File]::ReadAllText($follow, [System.Text.Encoding]::UTF8)
 
     if (-not $followText.Contains('PartyControlledModDataKey')) {
-        $followText = Replace-Required $followText "public sealed class FollowService`n{" "public sealed class FollowService`n{`n    public const string PartyControlledModDataKey = \"Ronvotri.TeamUp/PartyControlled\";`n    public const string PartyControllerOwnerModDataKey = \"Ronvotri.TeamUp/PartyControllerOwner\";" 'FollowService handshake constants'
+        $followText = Replace-Required $followText "public sealed class FollowService`n{" "public sealed class FollowService`n{`n    public const string PartyControlledModDataKey = `"Ronvotri.TeamUp/PartyControlled`";`n    public const string PartyControllerOwnerModDataKey = `"Ronvotri.TeamUp/PartyControllerOwner`";" 'FollowService handshake constants'
     }
 
-    if (-not $followText.Contains('long recruiterId,`n        Farmer owner')) {
+    if (-not $followText.Contains("UpdatePartyMembers(members, recruiterId, owner);")) {
         $old = @'
     public void Update(
         IReadOnlyList<PartyMemberData> members,
@@ -394,7 +394,7 @@ try {
         $followText = Replace-RegexRequired $followText $pattern $replacement 'FollowService owner party route'
     }
 
-    if (-not $followText.Contains("long recruiterId,`n        Farmer owner)")) {
+    if (-not $followText.Contains("FindCompanionTile(owner.currentLocation, owner.Tile, playerPetIndex++)")) {
         $pattern = '    private void UpdateCompanionUnits\(\s*IReadOnlyList<PartyMemberData> members,\s*IReadOnlyList<CompanionUnitData> companionUnits,\s*long recruiterId\)\s*\{.*?\n    \}\n\n    private void FollowTarget'
         $replacement = @'
     private void UpdateCompanionUnits(
@@ -426,8 +426,8 @@ try {
             if (unit.OwnerKind == CompanionOwnerKind.Player)
             {
                 PrepareForParty(npc, recruiterId);
-                Vector2 target = FindCompanionTile(owner.currentLocation, owner.Tile, playerPetIndex++);
-                FollowTarget(npc, owner.currentLocation, target, owner.FacingDirection);
+                Vector2 playerTarget = FindCompanionTile(owner.currentLocation, owner.Tile, playerPetIndex++);
+                FollowTarget(npc, owner.currentLocation, playerTarget, owner.FacingDirection);
                 continue;
             }
 
@@ -443,8 +443,8 @@ try {
             PrepareForParty(npc, recruiterId);
             int index = ownerCompanionIndex.TryGetValue(ownerData.CharacterName, out int current) ? current : 0;
             ownerCompanionIndex[ownerData.CharacterName] = index + 1;
-            Vector2 target = FindCompanionTile(ownerNpc.currentLocation, ownerNpc.Tile, index);
-            FollowTarget(npc, ownerNpc.currentLocation, target, ownerNpc.FacingDirection);
+            Vector2 linkedTarget = FindCompanionTile(ownerNpc.currentLocation, ownerNpc.Tile, index);
+            FollowTarget(npc, ownerNpc.currentLocation, linkedTarget, ownerNpc.FacingDirection);
         }
     }
 

@@ -8,6 +8,8 @@ namespace Ronvotri.TeamUp.Following;
 
 public sealed class FollowService
 {
+    public const string PartyControlledModDataKey = "Ronvotri.TeamUp/PartyControlled";
+    public const string PartyControllerOwnerModDataKey = "Ronvotri.TeamUp/PartyControllerOwner";
     private const float StopDistanceTiles = 1.45f;
     private const float WarpDistanceTiles = 11f;
     private const float RepathDistanceTiles = 0.90f;
@@ -53,27 +55,37 @@ public sealed class FollowService
         IReadOnlyList<PartyMemberData> members,
         IReadOnlyList<CompanionUnitData> companionUnits,
         long recruiterId)
+        => Update(members, companionUnits, recruiterId, Game1.player);
+
+    public void Update(
+        IReadOnlyList<PartyMemberData> members,
+        IReadOnlyList<CompanionUnitData> companionUnits,
+        long recruiterId,
+        Farmer owner)
     {
-        if (!Context.IsWorldReady)
+        if (!Context.IsWorldReady || owner.currentLocation is null)
             return;
 
-        UpdatePartyMembers(members, recruiterId);
-        UpdateCompanionUnits(members, companionUnits, recruiterId);
+        UpdatePartyMembers(members, recruiterId, owner);
+        UpdateCompanionUnits(members, companionUnits, recruiterId, owner);
     }
 
-    public void PrepareForParty(NPC npc)
+    public void PrepareForParty(NPC npc, long? recruiterId = null)
     {
         RememberBaseSpeed(npc);
         EnableFarmerPassThrough(npc);
+        npc.modData[PartyControlledModDataKey] = "true";
+        if (recruiterId.HasValue)
+            npc.modData[PartyControllerOwnerModDataKey] = recruiterId.Value.ToString();
         npc.followSchedule = false;
         npc.ignoreScheduleToday = true;
     }
 
-    public void TakePartyControl(NPC npc)
+    public void TakePartyControl(NPC npc, long? recruiterId = null)
     {
         _releasedCharacters.Remove(npc.Name);
         _combatControlled.Remove(npc.Name);
-        PrepareForParty(npc);
+        PrepareForParty(npc, recruiterId);
         ClearPath(npc);
         ResetToStandingPose(npc);
     }
@@ -126,6 +138,8 @@ public sealed class FollowService
         ClearPath(npc);
         RestoreBaseSpeed(npc, keepTracked: false);
         RestoreFarmerPassThrough(npc);
+        npc.modData.Remove(PartyControlledModDataKey);
+        npc.modData.Remove(PartyControllerOwnerModDataKey);
         npc.Halt();
         npc.followSchedule = true;
         npc.ignoreScheduleToday = false;
@@ -196,48 +210,44 @@ public sealed class FollowService
         }
     }
 
-    private void UpdatePartyMembers(IReadOnlyList<PartyMemberData> members, long recruiterId)
+    private void UpdatePartyMembers(IReadOnlyList<PartyMemberData> members, long recruiterId, Farmer owner)
     {
         List<PartyMemberData> ownedMembers = members
             .Where(member => member.RecruiterId == recruiterId)
             .Take(FormationOffsets.Length)
             .ToList();
-
         for (int index = 0; index < ownedMembers.Count; index++)
         {
             PartyMemberData member = ownedMembers[index];
-            if (_releasedCharacters.Contains(member.CharacterName)
-                || _combatControlled.Contains(member.CharacterName))
+            if (_releasedCharacters.Contains(member.CharacterName) || _combatControlled.Contains(member.CharacterName))
                 continue;
             NPC? npc = ResolveCharacter(member.CharacterName);
             if (npc is null)
                 continue;
-
             if (member.State == PartyMemberState.Waiting)
             {
                 HoldPosition(npc);
                 continue;
             }
-
             if (member.State != PartyMemberState.Following)
                 continue;
 
-            PrepareForParty(npc);
-            Vector2 targetTile = FindPlayerFollowTile(Game1.currentLocation, index);
-            FollowTarget(npc, Game1.currentLocation, targetTile, Game1.player.FacingDirection);
+            PrepareForParty(npc, recruiterId);
+            Vector2 targetTile = FindPlayerFollowTile(owner.currentLocation, owner.Tile, index);
+            FollowTarget(npc, owner.currentLocation, targetTile, owner.FacingDirection);
         }
     }
 
     private void UpdateCompanionUnits(
         IReadOnlyList<PartyMemberData> members,
         IReadOnlyList<CompanionUnitData> companionUnits,
-        long recruiterId)
+        long recruiterId,
+        Farmer owner)
     {
         List<CompanionUnitData> activeUnits = companionUnits
             .Where(unit => unit.RecruiterId == recruiterId)
             .Where(unit => unit.State is CompanionDeploymentState.Active or CompanionDeploymentState.Waiting)
             .ToList();
-
         int playerPetIndex = 0;
         var ownerCompanionIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -248,7 +258,6 @@ public sealed class FollowService
             NPC? npc = ResolveCharacter(unit.CharacterName);
             if (npc is null)
                 continue;
-
             if (unit.State == CompanionDeploymentState.Waiting)
             {
                 HoldPosition(npc);
@@ -257,35 +266,26 @@ public sealed class FollowService
 
             if (unit.OwnerKind == CompanionOwnerKind.Player)
             {
-                PrepareForParty(npc);
-                Vector2 target = FindCompanionTile(
-                    Game1.currentLocation,
-                    Game1.player.Tile,
-                    playerPetIndex++);
-                FollowTarget(npc, Game1.currentLocation, target, Game1.player.FacingDirection);
+                PrepareForParty(npc, recruiterId);
+                Vector2 playerTarget = FindCompanionTile(owner.currentLocation, owner.Tile, playerPetIndex++);
+                FollowTarget(npc, owner.currentLocation, playerTarget, owner.FacingDirection);
                 continue;
             }
 
             if (unit.OwnerCharacterName is null)
                 continue;
-
             PartyMemberData? ownerData = members.FirstOrDefault(member =>
                 member.RecruiterId == recruiterId
                 && string.Equals(member.CharacterName, unit.OwnerCharacterName, StringComparison.OrdinalIgnoreCase));
-
             NPC? ownerNpc = ResolveCharacter(unit.OwnerCharacterName);
             if (ownerData is null || ownerNpc is null || ownerData.State != PartyMemberState.Following)
                 continue;
 
-            PrepareForParty(npc);
-
-            int index = ownerCompanionIndex.TryGetValue(ownerData.CharacterName, out int current)
-                ? current
-                : 0;
+            PrepareForParty(npc, recruiterId);
+            int index = ownerCompanionIndex.TryGetValue(ownerData.CharacterName, out int current) ? current : 0;
             ownerCompanionIndex[ownerData.CharacterName] = index + 1;
-
-            Vector2 ownerTarget = FindCompanionTile(ownerNpc.currentLocation, ownerNpc.Tile, index);
-            FollowTarget(npc, ownerNpc.currentLocation, ownerTarget, ownerNpc.FacingDirection);
+            Vector2 linkedTarget = FindCompanionTile(ownerNpc.currentLocation, ownerNpc.Tile, index);
+            FollowTarget(npc, ownerNpc.currentLocation, linkedTarget, ownerNpc.FacingDirection);
         }
     }
 
@@ -464,10 +464,10 @@ public sealed class FollowService
         npc.temporaryController = null;
     }
 
-    private static Vector2 FindPlayerFollowTile(GameLocation location, int slotIndex)
+    private static Vector2 FindPlayerFollowTile(GameLocation location, Vector2 farmerTile, int slotIndex)
     {
         Point offset = FormationOffsets[Math.Clamp(slotIndex, 0, FormationOffsets.Length - 1)];
-        return FindOpenNear(location, Game1.player.Tile, offset);
+        return FindOpenNear(location, farmerTile, offset);
     }
 
     private static Vector2 FindCompanionTile(GameLocation location, Vector2 anchorTile, int companionIndex)
