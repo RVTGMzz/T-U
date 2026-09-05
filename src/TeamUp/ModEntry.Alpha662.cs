@@ -1,4 +1,5 @@
 using Ronvotri.TeamUp.Core;
+using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 
@@ -75,7 +76,7 @@ public sealed partial class ModEntry
             Config.PartyStrategy = strategy;
             Helper.WriteConfig(Config);
             Combat.Clear();
-            Monitor.Log($"Party strategy configured to {strategy} outside an active multiplayer world.", StardewModdingAPI.LogLevel.Info);
+            Monitor.Log($"Party strategy configured to {strategy} outside an active multiplayer world.", LogLevel.Info);
             return;
         }
 
@@ -120,7 +121,7 @@ public sealed partial class ModEntry
             changed
                 ? $"Party strategy changed to {strategy}. Host cleared local and remote combat runtime locks."
                 : $"Party strategy request kept existing strategy {strategy}.",
-            StardewModdingAPI.LogLevel.Info);
+            LogLevel.Info);
     }
 
     private void BroadcastStrategyStateAlpha662()
