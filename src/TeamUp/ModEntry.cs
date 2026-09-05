@@ -80,7 +80,7 @@ public sealed partial class ModEntry : Mod
             "teamup_strategy",
             "Set Team Up party strategy: status|balanced|defensive|aggressive|hold|boss.",
             OnStrategyCommand);
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.10", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.11", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -96,7 +96,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha663HotfixEvents();
         RegisterAlpha669HotfixEvents();
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.6.10 Pelipper Follow Authority Hotfix loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.6.11 No Companion Profiles Hotfix loaded.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
@@ -283,6 +283,9 @@ public sealed partial class ModEntry : Mod
 
             if (Config.ProfileKey.JustPressed())
             {
+                if (!CanOpenDirectProfile(speaker))
+                    return;
+
                 Helper.Input.Suppress(e.Button);
                 OpenProfileFromDialogue(speaker);
                 return;
@@ -542,6 +545,9 @@ public sealed partial class ModEntry : Mod
     }
     private void OpenProfileFromDialogue(NPC npc)
     {
+        if (!CanOpenDirectProfile(npc))
+            return;
+
         IClickableMenu? dialogueMenu = Game1.activeClickableMenu;
         OpenCharacterProfile(
             npc.Name,
@@ -668,6 +674,11 @@ public sealed partial class ModEntry : Mod
 
     private void DrawDialogueActions(RenderedActiveMenuEventArgs e, DialogueBox dialogueBox, NPC speaker)
     {
+        // Alpha 6.6.11: creature/summon actors do not own Team Up character profiles.
+        // Do not advertise profile/recruit tags over source-owned companion dialogue.
+        if (!CanOpenDirectProfile(speaker))
+            return;
+
         long recruiterId = Game1.player.UniqueMultiplayerID;
         PartyMemberData? member = Party.Get(speaker.Name, recruiterId);
 
@@ -817,6 +828,52 @@ public sealed partial class ModEntry : Mod
         action();
     }
 
+    private bool CanOpenDirectProfile(NPC npc)
+    {
+        // Recruited people and explicit custom recruits remain valid profile owners.
+        if (Party.GetAnyOwner(npc.Name) is not null
+            || CustomNpcCompatibilityService.IsExplicitCustomRecruit(npc))
+        {
+            return true;
+        }
+
+        // Any actor already registered in the shared companion pool is a creature/summon unit,
+        // not a character-profile entry, regardless of who owns it.
+        if (Party.CompanionUnits.Any(unit =>
+            unit.CharacterName.Equals(npc.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        TeamUpCharacterKind kind = CompanionClassificationService.Classify(npc, Config.SpecialCompanionNpcNames);
+        if (kind is TeamUpCharacterKind.FarmerOrSpecialCompanion or TeamUpCharacterKind.NpcLinkedCompanion)
+            return false;
+
+        NpcCombatProfile? profile = NpcProfileCatalog.Get(npc.Name);
+
+        // Pelipper Town uses runtime proxy actors such as PelipperTown.Player.* and
+        // PelipperTown.Villager.* for Pokemon/summoned partners. They should never open the
+        // generic "Special / Companion" placeholder. A deliberately catalogued human profile
+        // can still opt in by having a real Team Up profile.
+        if (npc.Name.StartsWith("PelipperTown.", StringComparison.OrdinalIgnoreCase)
+            && profile is null)
+        {
+            return false;
+        }
+
+        if (PelipperTownCompatibilityService.LooksLikePelipperActor(npc)
+            && profile is null)
+        {
+            return false;
+        }
+
+        // Generic summoned NPC-like objects from other providers normally aren't villagers.
+        // Keep known/catalogued characters intact, but reject unknown non-villager actors.
+        if (!npc.IsVillager && profile is null)
+            return false;
+
+        return true;
+    }
     private string GetProfileStatus(string characterName)
     {
         PartyMemberData? member = Party.Get(characterName, Game1.player.UniqueMultiplayerID);
