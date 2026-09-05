@@ -6,15 +6,47 @@
 
 ## Current development checkpoint
 
-Current verified source line: **`v0.2.0-alpha.6.6.1` - Shared Party Capacity + Companion Choice + Multiplayer Foundation**.
+Current verified source line: **`v0.2.0-alpha.6.6.2` - Party Tactics + Shared Capacity UI**.
 
-Status: **compile/package/direct-builder verified; in-game and 2-client multiplayer smoke pending**.
+Status: **compile/package/direct-builder verified; in-game UI and real 2-client multiplayer smoke pending**.
 
 If you are resuming development in a new chat/session, read [`CONTINUE_HERE.md`](CONTINUE_HERE.md) and the latest handoff first.
 
+## Party Tactics UI
+
+Alpha 6.6.2 exposes the existing party-wide strategy foundation through a dedicated **Tactics** screen instead of requiring console commands for normal use.
+
+Open the Codex and use the `Tactics / Chiến thuật` footer entry. The Tactics screen supports mouse, keyboard, and controller navigation and shows:
+
+- current party strategy;
+- all five strategy choices;
+- live shared people capacity;
+- live shared external combat-companion capacity;
+- whether the current player is host authority or a farmhand requester.
+
+The five-value strategy contract remains unchanged:
+
+- `Balanced`
+- `Defensive`
+- `Aggressive`
+- `HoldPosition`
+- `BossFocus`
+
+Alpha 6.6.2 does **not** add formations or per-member strategy overrides.
+
+### Multiplayer strategy authority
+
+Strategy is farm-wide while a multiplayer world is active.
+
+- Host strategy changes apply immediately.
+- Farmhand UI or `teamup_strategy` changes are sent to the host as requests.
+- The host validates the strategy, writes the authoritative config, clears local and remote combat runtime locks, then broadcasts the resulting strategy state to farmhands.
+- A newly connected farmhand receives the host's current strategy.
+- Outside an active world, `teamup_strategy` can still update local config normally.
+
 ## Current party rules
 
-Team Up now uses one shared party budget for the multiplayer farm.
+Team Up uses one shared party budget for the multiplayer farm.
 
 ### People capacity: 6 total
 
@@ -38,6 +70,7 @@ Four-player co-op
 - Overflow never deletes roster ownership, level, equipment, progression, or linked-companion registration.
 - Each recruited NPC keeps the `RecruiterId` of the Farmer who invited them.
 - The same NPC cannot be owned by two Farmers at once.
+- The Tactics UI shows the current shared people usage and configured maximum, with the hard cap still limited to six.
 
 ### Combat companion capacity: 2 shared
 
@@ -48,6 +81,7 @@ The farm has a shared pool of **two deployed external combat companions**, inclu
 - Vanilla dog/cat pets are free and do not consume the 2/2 pool.
 - **ChaCha is a free Special Companion** and consumes neither a people slot nor a combat-companion slot.
 - External creature/summon providers can use Team Up's lightweight runtime `modData` contract without a hard DLL dependency.
+- The Tactics UI shows live external combat-companion usage and the configured maximum, with the hard cap still limited to two.
 
 Recommended maximum combat footprint with one Farmer:
 
@@ -81,7 +115,7 @@ In multiplayer, a farmhand may replace their own active companion. The host reta
 
 ## Multiplayer foundation
 
-Alpha 6.6.1 introduces a **host-authoritative shared-party model**.
+Alpha 6.6.1 introduced the **host-authoritative shared-party model**, retained in Alpha 6.6.2.
 
 - Farmhands can interact with NPCs and request recruit/leave/member actions.
 - The host validates and commits shared party state.
@@ -90,16 +124,17 @@ Alpha 6.6.1 introduces a **host-authoritative shared-party model**.
 - Each online Farmer gets their own follow/combat owner context based on `RecruiterId`.
 - NPCs follow and fight around the Farmer who recruited them, including when Farmers split across different maps.
 - On disconnect, that Farmer's NPCs are deactivated and their companions leave active deployment, while roster/progression remains saved for later.
+- Alpha 6.6.2 extends the same host-authoritative principle to party-wide strategy changes.
 
-### Alpha 6.6.1 multiplayer limitation
+### Current multiplayer limitation
 
-Remote farmhand inventory mutation is intentionally fail-closed in this foundation milestone. Equipment management that would transfer items between remote inventories remains host-authoritative until a later multiplayer inventory-safe implementation is live-tested.
+Remote farmhand inventory mutation is intentionally fail-closed. Equipment management that would transfer items between remote inventories remains host-authoritative until a later multiplayer inventory-safe implementation is live-tested.
 
 ## Creature integration runtime contract
 
 External mods can identify live creature actors using `NPC.modData` instead of requiring Team Up to reference their DLL or private save model.
 
-Supported Alpha 6.6.1 keys include:
+Supported keys include:
 
 ```text
 Ronvotri.TeamUp/CompanionKind
@@ -142,7 +177,7 @@ ChaCha remains a Special/Farmer Companion and never becomes a Main Party member.
 
 ## Party Strategy
 
-Alpha 6.6.0 introduced five party-wide tactical strategies, retained unchanged in Alpha 6.6.1:
+The five party-wide strategies remain:
 
 - `Balanced`
 - `Defensive`
@@ -150,13 +185,13 @@ Alpha 6.6.0 introduced five party-wide tactical strategies, retained unchanged i
 - `HoldPosition`
 - `BossFocus`
 
-Console command:
+Normal users can select them in the Tactics screen. The console command remains available:
 
 ```text
 teamup_strategy <status|balanced|defensive|aggressive|hold|boss>
 ```
 
-Strategy is config-backed rather than stored in PartySaveData. Switching strategy clears combat runtime locks for clean retargeting.
+Strategy remains config-backed rather than stored in PartySaveData. Changing strategy clears combat runtime locks for clean retargeting. In multiplayer, the host is authoritative and distributes the resulting state to farmhands.
 
 Key behavior locks:
 
@@ -202,7 +237,7 @@ The Surge remains regression-locked from Alpha 6.5.2/6.5.3:
 
 ## Party Vault and UI
 
-Party Vault remains a permanent shared-party inventory feature. Equipment double-click, controller focus/navigation, Codex/profile UI, Party Vault drag/drop, and the SVE/RSV expansion profile/icon work remain regression-locked.
+Party Vault remains a permanent shared-party inventory feature. Equipment double-click, controller focus/navigation, Codex/profile UI, Party Vault drag/drop, Tactics navigation, and the SVE/RSV expansion profile/icon work remain regression-locked.
 
 ## Build and smoke test
 
@@ -212,13 +247,17 @@ One-click local build:
 
 Direct builder:
 
-`BuildV0_2Alpha661.ps1`
+`BuildV0_2Alpha662.ps1`
 
 Live smoke checklist:
 
-`SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt`
+`SMOKE_TEST_V0_2_ALPHA6_6_2_PARTY_TACTICS_CAPACITY_UI_VI.txt`
 
-CI verifies compilation, source contracts, package output, and builder idempotency. Multiplayer behavior still requires a real two-client in-game smoke before Alpha 6.6.1 can be called live-verified.
+Authoritative CI run:
+
+`33944448649`
+
+CI verifies compilation, source contracts, package output, and direct-builder idempotency. The authoritative run compiled with 0 warnings and 0 errors and reported `No materialized source diff.`. Tactics UI behavior and multiplayer strategy sync still require real in-game smoke before Alpha 6.6.2 can be called live-verified.
 
 ## Independent development / clean-room rule
 
