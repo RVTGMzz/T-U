@@ -50,6 +50,8 @@ public sealed class EquipmentMenu : IClickableMenu
     private int _inventoryCursor;
     private Texture2D? _portrait;
     private Item? _hoveredItem;
+    private bool _preferFocusedGamepadActivation = true;
+    private Point _lastHoverPoint = new(int.MinValue, int.MinValue);
 
     public EquipmentMenu(
         NPC npc,
@@ -143,6 +145,13 @@ public sealed class EquipmentMenu : IClickableMenu
 
     public override void performHoverAction(int x, int y)
     {
+        Point hoverPoint = new(x, y);
+        if (hoverPoint != _lastHoverPoint)
+        {
+            _lastHoverPoint = hoverPoint;
+            _preferFocusedGamepadActivation = false;
+        }
+
         _hoveredItem = null;
         for (int i = 0; i < _inventoryBounds.Length; i++)
         {
@@ -249,6 +258,12 @@ public sealed class EquipmentMenu : IClickableMenu
 
     public override void receiveGamePadButton(Buttons b)
     {
+        if (b is Buttons.RightThumbstickUp or Buttons.RightThumbstickDown or Buttons.RightThumbstickLeft or Buttons.RightThumbstickRight)
+        {
+            _preferFocusedGamepadActivation = false;
+            return;
+        }
+
         if (b is Buttons.B or Buttons.Back)
         {
             ReturnToMemberMenu();
@@ -257,26 +272,33 @@ public sealed class EquipmentMenu : IClickableMenu
 
         if (b is Buttons.DPadLeft or Buttons.LeftThumbstickLeft)
         {
+            _preferFocusedGamepadActivation = true;
             MoveHorizontal(-1);
             return;
         }
         if (b is Buttons.DPadRight or Buttons.LeftThumbstickRight)
         {
+            _preferFocusedGamepadActivation = true;
             MoveHorizontal(1);
             return;
         }
         if (b is Buttons.DPadUp or Buttons.LeftThumbstickUp)
         {
+            _preferFocusedGamepadActivation = true;
             MoveVertical(-1);
             return;
         }
         if (b is Buttons.DPadDown or Buttons.LeftThumbstickDown)
         {
+            _preferFocusedGamepadActivation = true;
             MoveVertical(1);
             return;
         }
         if (b == Buttons.A)
         {
+            if (!_preferFocusedGamepadActivation && TryActivateControllerPointer())
+                return;
+
             ActivateFocused();
             return;
         }
@@ -289,6 +311,65 @@ public sealed class EquipmentMenu : IClickableMenu
             UnequipSelected();
     }
 
+    private bool TryActivateControllerPointer()
+    {
+        int x = Game1.getMouseX();
+        int y = Game1.getMouseY();
+
+        for (int i = 0; i < _inventoryBounds.Length; i++)
+        {
+            if (!_inventoryBounds[i].Contains(x, y))
+                continue;
+
+            _focusInventory = true;
+            _inventoryCursor = i;
+            if (i < Game1.player.Items.Count && Game1.player.Items[i] is Item item)
+            {
+                EquipmentSlot? naturalSlot = GetNaturalSlot(item);
+                if (naturalSlot.HasValue)
+                    _selectedSlot = naturalSlot.Value;
+            }
+
+            EquipInventoryIndex(i);
+            return true;
+        }
+
+        for (int i = 0; i < _slotBounds.Length; i++)
+        {
+            if (!_slotBounds[i].Contains(x, y))
+                continue;
+
+            _focusInventory = false;
+            _loadoutFocusIndex = i;
+            _selectedSlot = (EquipmentSlot)i;
+            ActivateFocused();
+            return true;
+        }
+
+        if (_autoEquipBounds.Contains(x, y))
+        {
+            _focusInventory = false;
+            _loadoutFocusIndex = 3;
+            AutoEquipBest();
+            return true;
+        }
+
+        if (_unequipBounds.Contains(x, y))
+        {
+            _focusInventory = false;
+            _loadoutFocusIndex = 4;
+            UnequipSelected();
+            return true;
+        }
+
+        if (_backBounds.Contains(x, y))
+        {
+            ReturnToMemberMenu();
+            return true;
+        }
+
+        return false;
+    }
     private void MoveHorizontal(int delta)
     {
         if (!_focusInventory)

@@ -36,6 +36,17 @@ public sealed class FollowService
         new(1, 1)
     };
 
+    // Small deterministic fallback ring. The old radius-square search could perform dozens of
+    // collision queries per follower every update around water, bridges, cliffs and narrow paths.
+    private static readonly Point[] OpenSearchOffsets =
+    {
+        new(0, 0),
+        new(0, 1), new(-1, 0), new(1, 0), new(0, -1),
+        new(-1, 1), new(1, 1), new(-1, -1), new(1, -1),
+        new(0, 2), new(-2, 0), new(2, 0), new(0, -2),
+        new(-1, 2), new(1, 2), new(-2, 1), new(2, 1)
+    };
+
     private readonly IMonitor _monitor;
     private readonly Dictionary<NPC, PathFindController> _ownedControllers = new();
     private readonly Dictionary<NPC, Vector2> _lastTargets = new();
@@ -204,6 +215,9 @@ public sealed class FollowService
 
         foreach (CompanionUnitData unit in companionUnits.Where(unit => unit.RecruiterId == recruiterId))
         {
+            if (PelipperTownCompatibilityService.IsSourceControlled(unit))
+                continue;
+
             NPC? npc = ResolveCharacter(unit.CharacterName);
             if (npc is not null)
                 ReleaseToVanilla(npc);
@@ -482,20 +496,14 @@ public sealed class FollowService
         if (IsOpen(location, preferred))
             return preferred;
 
-        for (int radius = 1; radius <= 3; radius++)
+        foreach (Point offset in OpenSearchOffsets)
         {
-            for (int x = -radius; x <= radius; x++)
-            {
-                for (int y = -radius; y <= radius; y++)
-                {
-                    if (x == 0 && y == 0)
-                        continue;
+            if (offset == preferredOffset)
+                continue;
 
-                    Vector2 candidate = anchorTile + new Vector2(x, y);
-                    if (IsOpen(location, candidate))
-                        return candidate;
-                }
-            }
+            Vector2 candidate = anchorTile + new Vector2(offset.X, offset.Y);
+            if (IsOpen(location, candidate))
+                return candidate;
         }
 
         return preferred;
@@ -508,7 +516,9 @@ public sealed class FollowService
 
         try
         {
-            return location.isTileLocationTotallyClearAndPlaceable((int)tile.X, (int)tile.Y);
+            // Follow targets only need a legal map/passable tile. Avoid the much heavier
+            // totally-clear/placeable query, which also reacts badly to crowds on narrow bridges.
+            return location.isTileOnMap(tile) && location.isTilePassable(tile);
         }
         catch
         {

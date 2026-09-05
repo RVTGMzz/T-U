@@ -268,8 +268,18 @@ public sealed class CodexBrowserMenu : IClickableMenu
 
         List<NpcCombatProfile> filtered = GetFilteredProfiles();
         int maxOffset = Math.Max(0, filtered.Count - _visibleRows);
-        _scrollOffset = Math.Clamp(_scrollOffset + (direction < 0 ? 1 : -1), 0, maxOffset);
-        _selectedIndex = Math.Clamp(_selectedIndex, 0, Math.Max(0, filtered.Count - 1));
+        int scrollStep = direction < 0 ? 2 : -2;
+        _scrollOffset = Math.Clamp(_scrollOffset + scrollStep, 0, maxOffset);
+        if (filtered.Count > 0)
+        {
+            int firstVisible = _scrollOffset;
+            int lastVisible = Math.Min(filtered.Count - 1, _scrollOffset + _visibleRows - 1);
+            _selectedIndex = Math.Clamp(_selectedIndex, firstVisible, lastVisible);
+        }
+        else
+        {
+            _selectedIndex = 0;
+        }
         Game1.playSound("shiny4");
     }
 
@@ -336,10 +346,14 @@ public sealed class CodexBrowserMenu : IClickableMenu
             MoveHorizontal(-1);
         else if (b is Buttons.DPadRight or Buttons.LeftThumbstickRight)
             MoveHorizontal(1);
-        else if (b is Buttons.DPadUp or Buttons.LeftThumbstickUp)
+        else if (b == Buttons.DPadUp)
             MoveVertical(-1);
-        else if (b is Buttons.DPadDown or Buttons.LeftThumbstickDown)
+        else if (b == Buttons.LeftThumbstickUp)
+            MoveVertical(-2);
+        else if (b == Buttons.DPadDown)
             MoveVertical(1);
+        else if (b == Buttons.LeftThumbstickDown)
+            MoveVertical(2);
         else if (b == Buttons.A)
             ActivateFocus();
     }

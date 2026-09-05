@@ -70,7 +70,7 @@ public sealed partial class ModEntry
             combat.SetFarmerContext(farmer);
             combat.Update(Party.Members, recruiterId);
 
-            if (e.IsMultipleOf(2))
+            if (e.IsMultipleOf(4))
                 Follow.Update(Party.Members, Party.CompanionUnits, recruiterId, farmer);
         }
     }
@@ -118,9 +118,18 @@ public sealed partial class ModEntry
             if (result is CompanionAddResult.AddedActive or CompanionAddResult.AddedStandbyLimitReached or CompanionAddResult.AddedStandby)
             {
                 changed = true;
-                NPC? actor = Game1.getCharacterFromName(descriptor.CharacterName);
-                if (actor is not null && result == CompanionAddResult.AddedActive)
+                NPC? actor = PelipperTownCompatibilityService.IsPelipperDescriptor(descriptor)
+                    ? PelipperTownCompatibilityService.ResolveActor(descriptor)
+                    : Game1.getCharacterFromName(descriptor.CharacterName);
+                if (PelipperTownCompatibilityService.IsPelipperDescriptor(descriptor))
+                {
+                    CompanionUnitData? registered = Party.GetCompanionByUnitId(descriptor.UnitId, recruiterId);
+                    ApplyPelipperLinkedDeploymentAlpha663(registered, descriptor);
+                }
+                else if (actor is not null && result == CompanionAddResult.AddedActive)
+                {
                     Follow.TakePartyControl(actor, recruiterId);
+                }
             }
         }
 
@@ -283,9 +292,8 @@ public sealed partial class ModEntry
             return;
         }
 
-        LiveCompanionDescriptor? liveCompanion = includeCompanion
-            ? CompanionIntegrationService.FindLinkedCompanion(npc)
-            : null;
+        LiveCompanionDescriptor? detectedCompanion = CompanionIntegrationService.FindLinkedCompanion(npc);
+        LiveCompanionDescriptor? liveCompanion = includeCompanion ? detectedCompanion : null;
 
         if (includeCompanion && liveCompanion is not null && !string.IsNullOrWhiteSpace(replacementCompanionUnitId))
         {
@@ -301,9 +309,18 @@ public sealed partial class ModEntry
             if (replacement is not null)
             {
                 Party.SetCompanionState(replacement.UnitId, replacement.RecruiterId, CompanionDeploymentState.Standby);
-                NPC? replacementNpc = Game1.getCharacterFromName(replacement.CharacterName);
-                if (replacementNpc is not null)
-                    Follow.ReleaseToVanilla(replacementNpc);
+                if (PelipperTownCompatibilityService.IsSourceControlled(replacement))
+                {
+                    NPC? replacementActor = PelipperTownCompatibilityService.ResolveActor(replacement);
+                    if (replacementActor is not null)
+                        PelipperTownCompatibilityService.SetSuppressed(replacementActor, replacement.OwnerCharacterName ?? string.Empty, true);
+                }
+                else
+                {
+                    NPC? replacementNpc = Game1.getCharacterFromName(replacement.CharacterName);
+                    if (replacementNpc is not null)
+                        Follow.ReleaseToVanilla(replacementNpc);
+                }
             }
         }
 
@@ -318,6 +335,8 @@ public sealed partial class ModEntry
             SendActionResult(responsePlayerId, false, $"Could not add {npc.displayName} to Team Up.");
             return;
         }
+
+        ApplyPelipperRecruitChoiceAlpha663(npc, detectedCompanion, includeCompanion);
 
         NpcCombatProfile? profile = NpcProfileCatalog.Get(npc.Name);
         if (profile is not null && profile.PrimaryRole != PartyRole.Unassigned)
@@ -347,11 +366,18 @@ public sealed partial class ModEntry
                 requestActive: true);
 
             CompanionUnitData? linked = Party.GetLinkedCompanion(npc.Name, recruiterId);
-            NPC? linkedNpc = linked is null ? null : Game1.getCharacterFromName(linked.CharacterName);
-            if (linkedNpc is not null && linked?.State == CompanionDeploymentState.Active)
-                Follow.TakePartyControl(linkedNpc, recruiterId);
-            else if (linkedNpc is not null)
-                Follow.ReleaseToVanilla(linkedNpc);
+            if (linked is not null && PelipperTownCompatibilityService.IsSourceControlled(linked))
+            {
+                ApplyPelipperLinkedDeploymentAlpha663(linked, liveCompanion);
+            }
+            else
+            {
+                NPC? linkedNpc = linked is null ? null : Game1.getCharacterFromName(linked.CharacterName);
+                if (linkedNpc is not null && linked?.State == CompanionDeploymentState.Active)
+                    Follow.TakePartyControl(linkedNpc, recruiterId);
+                else if (linkedNpc is not null)
+                    Follow.ReleaseToVanilla(linkedNpc);
+            }
 
             companionSuffix = companionResult == CompanionAddResult.AddedActive
                 ? $" + {liveCompanion.DisplayName}"
@@ -510,7 +536,11 @@ public sealed partial class ModEntry
 
         NPC? npc = Game1.getCharacterFromName(characterName);
         CompanionUnitData? linkedUnit = Party.GetLinkedCompanion(characterName, recruiterId);
-        NPC? linkedNpc = linkedUnit is null ? null : Game1.getCharacterFromName(linkedUnit.CharacterName);
+        NPC? linkedNpc = linkedUnit is null || PelipperTownCompatibilityService.IsSourceControlled(linkedUnit)
+            ? null
+            : Game1.getCharacterFromName(linkedUnit.CharacterName);
+        if (npc is not null)
+            ReleasePelipperOwnerAlpha663(npc, linkedUnit);
         bool removed = Party.Remove(characterName, recruiterId);
         if (!removed)
         {
