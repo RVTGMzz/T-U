@@ -1,132 +1,155 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.6**
+Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.7**
 
-Status: **compile/package verified with 0 warnings and 0 errors; Switch equip is user-confirmed working, Switch unequip semantic-input fix now requires in-game confirmation.**
+Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and no materialized source diff; water/bridge performance still requires real in-game validation.**
 
 Development branch:
 
-`v0.2-alpha6-6-6-switch-unequip-input-hotfix`
+`v0.2-alpha6-6-7-water-combat-pathfinding-hotfix`
 
-Planned handoff branch:
+Final handoff branch:
 
-`v0.2-alpha6-6-6-switch-unequip-input-hotfix-handoff`
+`v0.2-alpha6-6-7-water-combat-pathfinding-hotfix-handoff`
 
-Previous handoff:
+Read first:
 
-`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_5_2026-09-05.md`
+`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_7_2026-09-05.md`
 
-## Why Alpha 6.6.6 exists
+## Why Alpha 6.6.7 exists
 
-Live Switch/Nintendo controller testing confirmed Alpha 6.6.5 fixed **equip**, but the dedicated **unequip** shortcut still did nothing.
+Live testing still showed severe lag at some river/bridge/narrow-path locations with a full Team Up party.
 
-Root cause: Alpha 6.6.5 moved equip onto SMAPI's semantic `IsActionButton()` path, while unequip still depended on the menu receiving a hard-coded XInput `Buttons.X` event. Nintendo-labelled controllers do not reliably expose that physical face button through the same XInput label.
+Inspection found a second expensive pathfinding path outside FollowService: `CombatService` was still scanning approach tiles with `isTileLocationTotallyClearAndPlaceable` and could rebuild unreachable paths repeatedly. Pelipper Town water/decorative actors represented as monsters could also be interpreted as combat targets even when they were source-owned/non-hostile.
 
-## Alpha 6.6.6 input contract
+## Alpha 6.6.7 fixes
 
-File:
+### Pelipper combat target filter
 
-`src/TeamUp/ModEntry.Alpha663.cs`
+`PelipperTownCompatibilityService` now exposes:
 
-When `EquipmentMenu` is open:
+- `Ronvotri.TeamUp/CombatTarget`
+- `ShouldExcludeFromTeamUpCombat(NPC actor)`
 
-- `e.Button.IsActionButton()` routes to `Buttons.A` and activates/equips using the already verified 6.6.5 path;
-- `e.Button.IsUseToolButton()` routes to `Buttons.X` internally and explicitly unequips the currently selected NPC equipment slot;
-- the original SMAPI button is suppressed before forwarding so one physical press cannot also echo into Stardew's menu handling;
-- the existing EquipmentMenu transactional checks, controller debounce and virtual-mouse suppression remain authoritative.
+Pelipper actors are excluded from Team Up combat by default. A provider can explicitly opt a specific actor into Team Up combat by setting `Ronvotri.TeamUp/CombatTarget=true`.
 
-Key tokens:
+This filter applies to the main target list and Team Up signature/AoE monster queries.
 
-- `e.Button.IsActionButton()`
-- `e.Button.IsUseToolButton()`
-- `routedButton = Buttons.A`
-- `routedButton = Buttons.X`
-- `Helper.Input.Suppress(e.Button)`
-- `menu.receiveGamePadButton(routedButton.Value)`
+### Lightweight combat pathfinding
 
-Do not replace semantic Action/Use Tool mapping with assumptions about Nintendo/Xbox face-button labels.
+`CombatService` no longer contains `isTileLocationTotallyClearAndPlaceable`.
 
-## Equipment safety retained
+Approach tiles use:
 
-- controller activation debounce: 180 ms;
-- virtual mouse echo suppression: 260 ms;
-- inventory mouse double-click equip: 450 ms;
-- NPC slot-card double-click unequip remains removed;
-- explicit Unequip button remains available through normal UI focus/pointer activation;
-- equip success HUD requires both PartyMember metadata and actual shared equipment storage commit;
-- unequip success HUD requires both stores to be empty before success is reported.
+`location.isTileOnMap(tile) && location.isTilePassable(tile)`
 
-## Alpha 6.6.5 UX fixes retained
+If no legal approach tile exists, movement fails closed and enters a retry cooldown instead of creating a path toward water/blocked terrain.
 
-- Codex D-pad and left stick move exactly 1 profile per input;
-- Character Profile detailed right panel uses `ProfileContentScale = 1.52f` with scrolling;
-- unsupported UI punctuation was replaced with ASCII-safe `-`, `|`, `->`, removing hollow-star fallback glyphs.
+### Path retry throttling
 
-## Product and regression locks retained
+- unreachable combat path retry cooldown: `24` ticks;
+- combat movement path creation pulse: every `3` ticks;
+- combat cooldowns, targeting and attacks continue normally between movement pulses.
 
-- maximum 6 total people across online Farmers plus active Team Up NPCs;
-- shared deployed external Pokemon/summon/creature companion cap = 2;
-- Farmer-owned and NPC-linked external creatures share the 2/2 pool;
-- vanilla pet free;
-- ChaCha free and never Main Party;
+This targets CPU spikes without changing the five Party Strategy values, hard leash, target lock or facing hold.
+
+## Switch controller state retained
+
+Alpha 6.6.6 semantic controller bridge remains:
+
+- `IsActionButton()` -> equip/activate;
+- `IsUseToolButton()` -> unequip;
+- transactional equipment commit checks retained;
+- controller debounce 180 ms;
+- virtual mouse echo suppression 260 ms;
+- inventory mouse double-click 450 ms.
+
+Equip is already user-confirmed working. Unequip still needs user confirmation after installing a 6.6.6+ build.
+
+## UI regressions retained
+
+- Codex D-pad and left analog move exactly one profile per input;
+- Character Profile detail scale = `1.52f`;
+- ASCII-safe punctuation removes hollow-star fallback glyphs.
+
+## Product rules retained
+
+- 6 total people across online Farmers + active NPCs;
+- shared external Pokemon/summon companion cap = 2;
+- Farmer and NPC companions share the same 2/2 pool;
+- vanilla pet and ChaCha are free;
 - Party Strategy: Balanced, Defensive, Aggressive, HoldPosition, BossFocus;
-- MiMi canonical `Ronvotri.Cardcha_MiMi`, signature `BROOMTAIL SIGIL`;
-- Sudoku canonical `ronvotri.HeyYoureCursed_Sudoku`, signature `NINEFOLD SEAL`;
-- Sudoku Team Up control marker `Ronvotri.TeamUp/PartyControlled = true`;
-- Pelipper Town shared 2/2 compatibility remains source-respecting;
+- MiMi: `Ronvotri.Cardcha_MiMi`, `BROOMTAIL SIGIL`;
+- Sudoku: `ronvotri.HeyYoureCursed_Sudoku`, `NINEFOLD SEAL`;
+- Sudoku Team Up marker: `Ronvotri.TeamUp/PartyControlled = true`;
 - hard leash 12 tiles;
 - target lock 45 ticks;
 - facing hold 10 ticks;
-- Surge Cardcha sandbox and safe-placement rules retained;
-- never restore `isTileLocationTotallyClearAndPlaceable` to Surge;
+- Surge safe placement remains `isTileOnMap + isTilePassable + IsTileBlockedBy`;
+- never restore `isTileLocationTotallyClearAndPlaceable` to Surge/Follow/Combat;
+- Cardcha arena Surge exclusion retained;
 - 51 SVE/RSV profiles/icons/balance retained;
 - Party Vault drag/drop retained;
 - Origin story retained.
 
-## Alpha 6.6.6 build checkpoint
-
-First successful materializing CI run:
-
-`33962414122`
+## Authoritative checkpoint
 
 Materialized source commit:
 
-`75a76d0`
+`d97b361`
 
-First package SHA256:
+Authoritative input commit:
 
-`2c600137cea4456bc3f5dd17feaa2e7cb101515025735f12bb1a79708359b049`
+`a430575c20158624e3662679387f078722fafba8`
 
-First artifact ID:
+Authoritative CI run:
 
-`9968347630`
+`33964808233`
 
 Result:
 
-- `BuildV0_2Alpha666.ps1` success;
+- `BuildV0_2Alpha667.ps1` success;
 - 0 warnings;
 - 0 errors;
-- Switch semantic Action equip acceptance PASS;
-- Switch semantic Use Tool unequip acceptance PASS;
-- transactional equipment regression PASS;
-- Alpha 6.6.5 Codex/Profile/font regression PASS;
-- package verification PASS.
+- Pelipper combat target filter PASS;
+- lightweight combat approach scan PASS;
+- unreachable path retry cooldown PASS;
+- combat movement pulse PASS;
+- Switch equip/unequip regression PASS;
+- Codex/Profile/Surge regression PASS;
+- package verification PASS;
+- `No materialized source diff.`;
+- artifact upload PASS.
 
-A final authoritative rerun from materialized source must report `No materialized source diff.` before handoff closure.
+Package:
+
+`TeamUp_v0.2.0-alpha.6.6.7_WATER_COMBAT_PATHFINDING_HOTFIX_TEST.zip`
+
+Package SHA256:
+
+`228ed7a54d077a3cbf944b856a334ab3f62dbe818bc71bc793b08597c77abde2`
+
+Artifact ID:
+
+`9969080935`
+
+Artifact wrapper digest:
+
+`sha256:1ee65498ece6abd844a1ed56adc22823fecb7c9ffeda92a25f5a0e111c4bd03e`
 
 ## Required live validation
 
 Use:
 
-`SMOKE_TEST_V0_2_ALPHA6_6_6_SWITCH_UNEQUIP_INPUT_HOTFIX_VI.txt`
+`SMOKE_TEST_V0_2_ALPHA6_6_7_WATER_COMBAT_PATHFINDING_HOTFIX_VI.txt`
 
 Highest priority:
 
-1. Equip an item using the Action Button. This is already confirmed working on the user's Switch controller and must remain working.
-2. Select the occupied Weapon/Armor/Trinket slot and press the controller button configured by Stardew as **Use Tool** once. The item must leave the NPC slot and return to the Farmer inventory exactly once.
-3. Move focus to the on-screen `Tháo trang bị` button and press Action. It must also unequip.
-4. In controller-pointer mode, place the cursor on `Tháo trang bị` and press Action. It must also unequip.
-5. Confirm no contradictory HUD messages and no duplicate transaction.
-6. Re-test Codex one-row navigation, profile 1.52 typography, no hollow-star glyphs, Tactics, Pelipper 2/2, Sudoku, MiMi, Surge and Party Vault.
+1. Revisit the exact river/bridge location that lagged badly with a 4-6 person party.
+2. Test while Pelipper water actors are visible and verify Team Up does not chase/attack them.
+3. Enter real land combat and verify NPCs still approach and attack reachable monsters.
+4. Verify unreachable targets no longer cause sustained frame-time spikes.
+5. Re-test Switch equip and Use Tool unequip.
+6. Re-test Codex one-row navigation, Tactics, Pelipper 2/2, MiMi, Sudoku, Surge and Vault.
 
-Do not call Switch unequip live-verified until the user confirms it in game.
+Do not call the water-performance fix live-verified until the user confirms it in game.
