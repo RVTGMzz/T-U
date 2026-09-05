@@ -21,8 +21,12 @@ foreach ($relative in $normalize) {
 # builder itself once; materialization will persist the corrected direct builder.
 $builder = Join-Path $root 'BuildV0_2Alpha661.ps1'
 $builderText = [System.IO.File]::ReadAllText($builder, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n")
-$bad = "if (-not `$followText.Contains('long recruiterId,``n        Farmer owner')) {"
-$good = "if (-not `$followText.Contains(\"UpdatePartyMembers(members, recruiterId, owner);\")) {"
+$bad = @'
+if (-not $followText.Contains('long recruiterId,`n        Farmer owner')) {
+'@.Trim()
+$good = @'
+if (-not $followText.Contains("UpdatePartyMembers(members, recruiterId, owner);")) {
+'@.Trim()
 if ($builderText.Contains($bad)) {
     $builderText = $builderText.Replace($bad, $good)
 }
