@@ -80,7 +80,7 @@ public sealed partial class ModEntry : Mod
             "teamup_strategy",
             "Set Team Up party strategy: status|balanced|defensive|aggressive|hold|boss.",
             OnStrategyCommand);
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.8", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.9", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -94,8 +94,9 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha661MultiplayerEvents();
         RegisterAlpha662MultiplayerEvents();
         RegisterAlpha663HotfixEvents();
+        RegisterAlpha669HotfixEvents();
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.6.8 Land-Safe Follow Targets Hotfix loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.6.9 Companion Flicker + Thin Health Bars Hotfix loaded.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)

@@ -313,7 +313,7 @@ public sealed partial class ModEntry
                 {
                     NPC? replacementActor = PelipperTownCompatibilityService.ResolveActor(replacement);
                     if (replacementActor is not null)
-                        PelipperTownCompatibilityService.SetSuppressed(replacementActor, replacement.OwnerCharacterName ?? string.Empty, true);
+                        PelipperDeploymentStateService.SetDesiredDeployment(replacementActor, replacement.OwnerCharacterName ?? string.Empty, false);
                 }
                 else
                 {
