@@ -20,7 +20,6 @@ public sealed partial class ModEntry
         HealthOverlayAlpha669 = new PartyHealthOverlayService(Progression);
 
         Helper.Events.Display.RenderedWorld += OnAlpha669RenderedWorld;
-        Helper.Events.Display.RenderedHud += OnAlpha669RenderedHud;
         Helper.Events.GameLoop.SaveLoaded += OnAlpha669SaveLoaded;
         Helper.Events.GameLoop.ReturnedToTitle += OnAlpha669ReturnedToTitle;
         Helper.Events.GameLoop.UpdateTicked += OnAlpha669UpdateTicked;
@@ -29,10 +28,11 @@ public sealed partial class ModEntry
     private void OnAlpha669SaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
         LastHealthSnapshotSignatureAlpha669 = string.Empty;
+        HealthOverlayAlpha669.Reset();
         if (!Context.IsWorldReady)
             return;
 
-        // One-time migration cleanup only. Alpha 6.6.9 no longer continuously toggles
+        // One-time migration cleanup only. Alpha 6.6.9+ no longer continuously toggles
         // visibility, Halt(), controller or temporaryController on Pelipper-owned Pokemon.
         PelipperDeploymentStateService.CleanupLegacySuppressionOnAllPelipperActors();
     }
@@ -40,6 +40,7 @@ public sealed partial class ModEntry
     private void OnAlpha669ReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
         LastHealthSnapshotSignatureAlpha669 = string.Empty;
+        HealthOverlayAlpha669.Reset();
     }
 
     private void OnAlpha669UpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -57,18 +58,29 @@ public sealed partial class ModEntry
 
     private void OnAlpha669RenderedWorld(object? sender, RenderedWorldEventArgs e)
     {
-        if (!Context.IsWorldReady || Game1.eventUp || Game1.activeClickableMenu is not null)
+        if (!Context.IsWorldReady || Game1.eventUp)
             return;
 
-        HealthOverlayAlpha669.DrawWorld(e.SpriteBatch, Party.Members, IsMemberEngagedAlpha669);
+        // Dialogue keeps the world visible behind the dialogue box, so allow the under-foot
+        // bar to render while speaking to the member. Other menus still suppress world bars.
+        if (Game1.activeClickableMenu is not null && !Game1.dialogueUp)
+            return;
+
+        HealthOverlayAlpha669.DrawWorld(
+            e.SpriteBatch,
+            Party.Members,
+            IsMemberEngagedAlpha669,
+            IsMemberTalkingAlpha669);
     }
 
-    private void OnAlpha669RenderedHud(object? sender, RenderedHudEventArgs e)
+    private bool IsMemberTalkingAlpha669(PartyMemberData member)
     {
-        if (!Context.IsWorldReady || Game1.eventUp || Game1.activeClickableMenu is not null)
-            return;
+        if (!Game1.dialogueUp)
+            return false;
 
-        HealthOverlayAlpha669.DrawHud(e.SpriteBatch, Party.Members);
+        NPC? speaker = ResolveDialogueSpeaker();
+        return speaker is not null
+            && speaker.Name.Equals(member.CharacterName, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool IsMemberEngagedAlpha669(PartyMemberData member)
