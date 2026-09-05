@@ -22,7 +22,7 @@ jobs:
       - name: Build Alpha 6.6.1 end-to-end
         shell: pwsh
         run: |
-          ./FixAndBuildV0_2Alpha661.ps1
+          ./BuildV0_2Alpha661.ps1
 
       - name: Source acceptance
         shell: bash
@@ -140,7 +140,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/TeamUp BuildV0_2Alpha661.ps1 FixAndBuildV0_2Alpha661.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt .github/workflows/team-up-alpha6-6-1-shared-party-multiplayer.yml
+          git add src/TeamUp BuildV0_2Alpha661.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt .github/workflows/team-up-alpha6-6-1-shared-party-multiplayer.yml
           if git diff --cached --quiet; then
             echo "No materialized source diff."
           else
