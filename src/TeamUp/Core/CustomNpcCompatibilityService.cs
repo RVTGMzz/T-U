@@ -35,9 +35,12 @@ public static class CustomNpcCompatibilityService
             || SudokuNpcAliases.Contains(npc.Name);
 
     public static bool CanRecruit(NPC npc, IModRegistry registry)
+        => CanRecruit(npc, registry, Game1.player);
+
+    public static bool CanRecruit(NPC npc, IModRegistry registry, Farmer farmer)
     {
         if (npc.Name.Equals(MimiNpcId, StringComparison.OrdinalIgnoreCase))
-            return CanRecruitMimi(npc, registry);
+            return CanRecruitMimi(npc, registry, farmer);
 
         if (SudokuNpcAliases.Contains(npc.Name))
             return CanRecruitSudoku(npc, registry);
@@ -51,7 +54,7 @@ public static class CustomNpcCompatibilityService
     public static bool IsSudokuSourceLoaded(IModRegistry registry)
         => SudokuSourceModIds.Any(registry.IsLoaded);
 
-    private static bool CanRecruitMimi(NPC npc, IModRegistry registry)
+    private static bool CanRecruitMimi(NPC npc, IModRegistry registry, Farmer farmer)
     {
         if (!Context.IsWorldReady
             || !IsMimiLoaded(registry)
@@ -62,11 +65,10 @@ public static class CustomNpcCompatibilityService
             return false;
         }
 
-        // Alpha 6.5.1: Cardcha promotes the canonical MiMi actor into Stardew's social
-        // layer only after its Wizard meetup is complete, and that promotion creates the
-        // canonical friendshipData entry. Treat that live entry as the fail-closed unlock
-        // contract. Team Up never reads or rewrites Cardcha's private save/service state.
-        if (!Game1.player.friendshipData.ContainsKey(MimiNpcId))
+        // Cardcha promotes the canonical MiMi actor into Stardew's social layer only after
+        // its Wizard meetup. In multiplayer validate the friendship entry of the Farmer who
+        // actually sent the recruit request, not whichever machine happens to be the host.
+        if (!farmer.friendshipData.ContainsKey(MimiNpcId))
             return false;
 
         // A promoted social MiMi may legitimately be at her merchant spot, at home, or at a
