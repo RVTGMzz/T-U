@@ -54,3 +54,6 @@ KẾT LUẬN
 - Nếu A+B cải thiện rõ và C vẫn đánh quái thật bình thường: hotfix đạt mục tiêu chính.
 - Nếu vẫn lag đúng đoạn nước dù party không engage combat, gửi SMAPI-latest.txt ngay sau khi đứng ở đoạn lag để tách tiếp Pelipper runtime update khỏi Team Up Follow/Combat.
 - Nếu chỉ lag khi có một species/actor cụ thể, chụp đúng actor đó và chạy `teamup_pelipper status` trước khi gửi log.
+
+AUTHORITATIVE BUILDER CHECK
+- CI phải chạy lại BuildV0_2Alpha667.ps1 từ source đã materialize và báo `No materialized source diff.` trước khi phát ZIP cuối.
