@@ -15,6 +15,7 @@ public static class PelipperTownCompatibilityService
     public const string CompanionOptOutKey = "Ronvotri.TeamUp/PelipperCompanionOptOut";
     public const string SuppressedKey = "Ronvotri.TeamUp/PelipperSuppressed";
     public const string SuppressedOwnerKey = "Ronvotri.TeamUp/PelipperSuppressedOwner";
+    public const string CombatTargetOptInKey = "Ronvotri.TeamUp/CombatTarget";
     private const string OriginalInvisibleKey = "Ronvotri.TeamUp/PelipperOriginalInvisible";
 
     private static readonly string[] OwnerStringMemberHints =
@@ -202,6 +203,14 @@ public static class PelipperTownCompatibilityService
         }
     }
 
+    public static bool ShouldExcludeFromTeamUpCombat(NPC actor)
+    {
+        if (!LooksLikePelipperActor(actor))
+            return false;
+
+        return !actor.modData.TryGetValue(CombatTargetOptInKey, out string? raw)
+            || !raw.Equals("true", StringComparison.OrdinalIgnoreCase);
+    }
     public static bool LooksLikePelipperActor(NPC actor)
     {
         string typeName = actor.GetType().FullName ?? string.Empty;

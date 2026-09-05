@@ -22,6 +22,8 @@ public sealed class CombatService
     private const int ThreatPulseInterval = 30;
     private const int TargetLockDurationTicks = 45;
     private const int FacingHoldDurationTicks = 10;
+    private const int CombatPathRetryCooldownTicks = 24;
+    private const int CombatMovementPulseTicks = 3;
 
     private readonly IMonitor _monitor;
     private readonly FollowService _follow;
@@ -39,10 +41,12 @@ public sealed class CombatService
     private readonly Dictionary<string, Vector2> _lastTargetTiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _targetLockTicks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _facingHoldTicks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _combatPathRetryTicks = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, int> _lastFacingDirections = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _retreatNotified = new(StringComparer.OrdinalIgnoreCase);
 
     private int _threatPulseTicks;
+    private int _combatMovementPulse;
     private int _lastFarmerHealth = -1;
     private Farmer? _farmerContext;
 
@@ -86,6 +90,8 @@ public sealed class CombatService
         _lastTargetTiles.Clear();
         _targetLockTicks.Clear();
         _facingHoldTicks.Clear();
+        _combatPathRetryTicks.Clear();
+        _combatMovementPulse = 0;
         _lastFacingDirections.Clear();
         _retreatNotified.Clear();
         _threat.Clear();
@@ -107,11 +113,14 @@ public sealed class CombatService
         TickCooldowns(_selfRecoveryCooldowns);
         TickCooldowns(_targetLockTicks);
         TickCooldowns(_facingHoldTicks);
+        TickCooldowns(_combatPathRetryTicks);
+        _combatMovementPulse = (_combatMovementPulse + 1) % CombatMovementPulseTicks;
 
         List<Monster> monsters = FarmerContext.currentLocation.characters
             .OfType<Monster>()
             .Where(monster => monster.Health > 0)
             .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
+            .Where(monster => !PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
             .ToList();
 
         List<PartyMemberData> activeMembers = members
@@ -215,7 +224,8 @@ public sealed class CombatService
                     continue;
                 }
 
-                MoveTowardTarget(npc, target, role);
+                if (_combatMovementPulse == 0)
+                    MoveTowardTarget(npc, target, role);
                 continue;
             }
 
@@ -721,10 +731,20 @@ public sealed class CombatService
 
     private void MoveTowardTarget(NPC npc, Monster target, PartyRole role)
     {
-        Vector2 targetTile = FindApproachTile(FarmerContext.currentLocation, npc.Tile, target.Tile, GetAttackRange(role));
+        if (GetCooldown(_combatPathRetryTicks, npc.Name) > 0 && npc.controller is null)
+            return;
+
+        if (!TryFindApproachTile(FarmerContext.currentLocation, npc.Tile, target.Tile, GetAttackRange(role), out Vector2 targetTile))
+        {
+            npc.controller = null;
+            npc.temporaryController = null;
+            npc.Halt();
+            _combatPathRetryTicks[npc.Name] = CombatPathRetryCooldownTicks;
+            return;
+        }
+
         bool movedEnough = !_lastTargetTiles.TryGetValue(npc.Name, out Vector2 old)
             || Vector2.Distance(old, targetTile) >= RepathThresholdTiles;
-
         if (npc.controller is not null && !movedEnough)
             return;
 
@@ -732,15 +752,19 @@ public sealed class CombatService
         npc.temporaryController = null;
         try
         {
-            npc.controller = new PathFindController(
-                npc,
-                FarmerContext.currentLocation,
-                targetTile.ToPoint(),
-                GetFacingDirection(npc.Position, target.Position));
+            var controller = new PathFindController(npc, FarmerContext.currentLocation, targetTile.ToPoint(), GetFacingDirection(npc.Position, target.Position));
             _lastTargetTiles[npc.Name] = targetTile;
+            if (controller.pathToEndPoint is null || controller.pathToEndPoint.Count == 0)
+            {
+                _combatPathRetryTicks[npc.Name] = CombatPathRetryCooldownTicks;
+                npc.Halt();
+                return;
+            }
+            npc.controller = controller;
         }
         catch (Exception ex)
         {
+            _combatPathRetryTicks[npc.Name] = CombatPathRetryCooldownTicks;
             _monitor.LogOnce($"Combat path failed for {npc.Name}: {ex.Message}", LogLevel.Trace);
         }
     }
@@ -991,6 +1015,7 @@ public sealed class CombatService
         return FarmerContext.currentLocation.characters
             .OfType<Monster>()
             .Where(monster => monster.Health > 0)
+            .Where(monster => !PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
             .Where(monster => Vector2.Distance(monster.Tile, centerTile) <= radiusTiles)
             .ToList();
     }
@@ -1099,11 +1124,12 @@ public sealed class CombatService
         };
     }
 
-    private static Vector2 FindApproachTile(GameLocation location, Vector2 from, Vector2 target, float range)
+    private static bool TryFindApproachTile(GameLocation location, Vector2 from, Vector2 target, float range, out Vector2 best)
     {
         int radius = Math.Max(1, (int)Math.Floor(range));
-        Vector2 best = target;
+        best = Vector2.Zero;
         float bestDistance = float.MaxValue;
+        bool found = false;
         for (int x = -radius; x <= radius; x++)
         {
             for (int y = -radius; y <= radius; y++)
@@ -1111,16 +1137,31 @@ public sealed class CombatService
                 if (x == 0 && y == 0)
                     continue;
                 Vector2 candidate = target + new Vector2(x, y);
-                if (!location.isTileLocationTotallyClearAndPlaceable((int)candidate.X, (int)candidate.Y))
+                if (!IsLightweightCombatTile(location, candidate))
                     continue;
                 float distance = Vector2.DistanceSquared(candidate, from);
                 if (distance >= bestDistance)
                     continue;
                 best = candidate;
                 bestDistance = distance;
+                found = true;
             }
         }
-        return best;
+        return found;
+    }
+
+    private static bool IsLightweightCombatTile(GameLocation location, Vector2 tile)
+    {
+        if (tile.X < 0f || tile.Y < 0f || float.IsNaN(tile.X) || float.IsNaN(tile.Y))
+            return false;
+        try
+        {
+            return location.isTileOnMap(tile) && location.isTilePassable(tile);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void FaceTargetStable(NPC npc, Monster target, bool force)
