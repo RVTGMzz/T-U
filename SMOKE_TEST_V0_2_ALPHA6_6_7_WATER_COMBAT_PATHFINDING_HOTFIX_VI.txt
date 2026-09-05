@@ -1,0 +1,56 @@
+TEAM UP v0.2.0-alpha.6.6.7
+WATER COMBAT PATHFINDING HOTFIX - SMOKE TEST VI
+
+MỤC TIÊU
+Hotfix này tập trung hiện tượng FPS tụt rất nặng ở một số đoạn sông, cầu và lối hẹp khi party đông.
+
+A. ĐOẠN CẦU / BỜ SÔNG TỪ ẢNH LỖI
+[ ] 1. Lập party 4-6 người như lúc gặp lỗi.
+[ ] 2. Đi đúng đoạn cầu/bờ sông đã lag ở Alpha 6.6.6.
+[ ] 3. Đi lên xuống qua khu vực đó ít nhất 3 lần.
+[ ] 4. Đứng yên 10-15 giây ngay cạnh nước rồi chạy tiếp.
+[ ] 5. FPS/frame-time không còn tụt kéo dài kiểu đứng hình hoặc giật điên liên tục.
+[ ] 6. NPC vẫn bám Farmer, không đứng chết vĩnh viễn sau cầu.
+
+B. PELIPPER TOWN / WATER ACTORS
+[ ] 7. Test khu vực có Pokemon/cá/actor Pelipper dưới nước hoặc gần bờ.
+[ ] 8. Team Up NPC KHÔNG chạy vòng vòng cố tiếp cận Pokemon trang trí/source-owned dưới nước.
+[ ] 9. Không thấy party tự phát combat VFX/attack vào Pokemon Pelipper không hostile.
+[ ] 10. Pokemon Pelipper đi cùng party vẫn tuân quota 2/2 như 6.6.3+.
+[ ] 11. ChaCha và vanilla pet vẫn không ăn quota.
+
+C. COMBAT THẬT TRÊN ĐẤT
+[ ] 12. Vào map có quái thật trên đất.
+[ ] 13. NPC vẫn acquire target và chạy tới đánh bình thường.
+[ ] 14. Tank/DPS/Control/Support/Healer vẫn hoạt động.
+[ ] 15. Không thấy NPC đứng ngây ra 24 tick trong trường hợp target thật có đường tới.
+[ ] 16. Nếu target ở vị trí không thể tới, NPC không spam pathfinding mỗi frame; game vẫn mượt.
+[ ] 17. Hard leash 12 tiles vẫn hoạt động.
+[ ] 18. Target lock 45 ticks và facing hold 10 ticks vẫn còn.
+
+D. FOLLOW PERFORMANCE REGRESSION
+[ ] 19. Đi qua cầu hẹp không có quái, chỉ follower formation.
+[ ] 20. Follow vẫn dùng map/passable nhẹ, không lag trở lại.
+[ ] 21. NPC ở quá xa vẫn warp/catch-up được.
+
+E. SWITCH CONTROLLER REGRESSION
+[ ] 22. Equipment: Action Button trang bị được như 6.6.5.
+[ ] 23. Equipment: Use Tool Button tháo trang bị được như 6.6.6.
+[ ] 24. Một lần bấm chỉ sinh một hành động, không equip rồi unequip giả.
+[ ] 25. Double-click chuột trong túi 450ms vẫn hoạt động.
+
+F. CODEX / UI REGRESSION
+[ ] 26. Codex D-pad/left analog A -> B -> C từng hồ sơ một, không skip.
+[ ] 27. Profile typography 1.52 vẫn cân bằng.
+[ ] 28. Không còn hollow-star glyph do dấu câu unsupported.
+
+G. SURGE / CUSTOM COMPATIBILITY
+[ ] 29. Surge vẫn chỉ dùng isTileOnMap + isTilePassable + IsTileBlockedBy.
+[ ] 30. Cardcha arena vẫn excluded.
+[ ] 31. MiMi và Sudoku recruitment/skill identity còn bình thường.
+[ ] 32. Party Tactics vẫn đủ 5 strategy.
+
+KẾT LUẬN
+- Nếu A+B cải thiện rõ và C vẫn đánh quái thật bình thường: hotfix đạt mục tiêu chính.
+- Nếu vẫn lag đúng đoạn nước dù party không engage combat, gửi SMAPI-latest.txt ngay sau khi đứng ở đoạn lag để tách tiếp Pelipper runtime update khỏi Team Up Follow/Combat.
+- Nếu chỉ lag khi có một species/actor cụ thể, chụp đúng actor đó và chạy `teamup_pelipper status` trước khi gửi log.
