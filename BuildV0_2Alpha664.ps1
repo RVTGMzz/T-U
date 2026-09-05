@@ -46,6 +46,7 @@ try {
     Write-Utf8 $modEntry $modText
 
     $equipmentText = Read-Lf $equipment
+    $equipmentText = $equipmentText.Replace('committedData.DisplayName', 'committedData!.DisplayName')
 
     if (-not $equipmentText.Contains('ControllerActivationDebounceMs')) {
         $equipmentText = Replace-Required $equipmentText `
