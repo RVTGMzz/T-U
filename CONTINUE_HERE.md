@@ -1,22 +1,64 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.1**
+Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.2**
 
-Status: **compile/package/direct-builder verified; in-game and 2-client multiplayer smoke pending**.
+Status: **compile/package/direct-builder verified; in-game Tactics UI and real 2-client multiplayer smoke pending**.
 
 Development source branch:
 
-`v0.2-alpha6-6-1-party-capacity-multiplayer`
+`v0.2-alpha6-6-2-party-tactics-capacity-ui`
 
 Final handoff branch:
 
-`v0.2-alpha6-6-1-party-capacity-multiplayer-handoff`
+`v0.2-alpha6-6-2-party-tactics-capacity-ui-handoff`
 
 Read this handoff first:
 
-`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_1_2026-09-05.md`
+`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_2_2026-09-05.md`
 
-## Alpha 6.6.1 locked product rules
+## Alpha 6.6.2 new surface: Party Tactics
+
+Codex now has a `Tactics / Chiến thuật` footer entry that opens `PartyTacticsMenu`.
+
+The Tactics screen:
+
+- supports mouse, keyboard, and controller;
+- shows the current farm-wide Party Strategy;
+- exposes the existing five strategies without changing their contract;
+- shows live shared People used/max;
+- shows live shared external Combat Companion used/max;
+- shows whether the current player is host authority or farmhand requester.
+
+Five strategy values remain locked:
+
+- `Balanced`
+- `Defensive`
+- `Aggressive`
+- `HoldPosition`
+- `BossFocus`
+
+Do not add formations or per-member strategy overrides before Alpha 6.6.2 is live-smoked unless the user explicitly requests it.
+
+## Multiplayer strategy authority
+
+While a world is active:
+
+- Host is authoritative for party-wide strategy.
+- Host UI or `teamup_strategy` changes apply on host, clear local + `RemoteCombatServices` runtime locks, then broadcast the resulting strategy state.
+- Farmhand UI or console changes send `StrategyRequestMessage` to host.
+- Host validates the enum and requesting online Farmer before applying.
+- Farmhands receive `StrategyStateMessage` and update local config/UI to the host state.
+- New peers receive current strategy from host on `PeerConnected`.
+- Outside an active world, strategy console changes still update local config directly.
+
+Network types:
+
+- `Alpha662/StrategyRequest`
+- `Alpha662/StrategyState`
+- `StrategyRequestMessage`
+- `StrategyStateMessage`
+
+## Alpha 6.6.1 locked product rules retained
 
 ### Shared people capacity
 
@@ -48,13 +90,13 @@ If a recruitable NPC has a live linked companion, top-level recruitment offers:
 
 If the player chooses NPC + companion at 2/2, show a replacement selection. Farmhands may replace their own active companion; host retains farm-wide authority.
 
-### Multiplayer foundation
+### Shared-party multiplayer foundation
 
 - Shared party state is host-authoritative.
 - Farmhands send recruit/leave/member requests to host.
 - Host validates, commits, and broadcasts party snapshots.
 - NPC Follow/Combat is routed by `RecruiterId` and the corresponding online Farmer context.
-- Remote farmhand equipment inventory mutation remains intentionally fail-closed/host-authoritative in Alpha 6.6.1.
+- Remote farmhand equipment inventory mutation remains intentionally fail-closed/host-authoritative.
 
 ### Companion runtime contract
 
@@ -81,42 +123,50 @@ Markers are removed on release. Hey! You're Cursed! should use `PartyControlled`
 
 Authoritative direct-builder run:
 
-`33942539462`
+`33944448649`
+
+Authoritative input commit:
+
+`dd1f3fde561dee86ee211809079a415ecb42511f`
 
 Result:
 
-- direct `BuildV0_2Alpha661.ps1`
+- direct `BuildV0_2Alpha662.ps1`
 - build success
 - 0 warnings
 - 0 errors
-- source acceptance PASS
+- Party Tactics UI/controller source acceptance PASS
+- host-authoritative strategy sync source acceptance PASS
+- shared capacity visibility source acceptance PASS
+- Alpha 6.6.1 capacity/multiplayer regression acceptance PASS
+- Strategy/Surge/MiMi/Sudoku/equipment/vault regressions PASS
 - package verification PASS
 - `No materialized source diff.`
 - artifact upload PASS
 
 Package:
 
-`TeamUp_v0.2.0-alpha.6.6.1_SHARED_PARTY_MULTIPLAYER_TEST.zip`
+`TeamUp_v0.2.0-alpha.6.6.2_PARTY_TACTICS_CAPACITY_UI_TEST.zip`
 
-Package SHA256:
+Authoritative package SHA256:
 
-`7140af72b24b6e2eba06ebca26b0381bfc082305f1e9f18ac013e353bdd75655`
+`92519cc0367563c051c931174fc7bca0da9ab73f552d137c024f363cb47b1cf7`
 
 Artifact ID:
 
-`9962299726`
+`9962877914`
 
 Artifact wrapper digest:
 
-`sha256:26eb75d50328ba72bb96f7b4e70593aa87a8987624b79b6a97bafe1b9bb2d67b`
+`sha256:bcf3d4aa185e8552e0b9986e11e7bb75d07fd1340667a6581256c54d813def77`
 
-First successful materialized Alpha 6.6.1 source commit:
+Artifact expiry:
 
-`a6a32b11e565e51eaf598f9a97f18a254db6bc92`
+`2026-12-04T04:24:05Z`
 
-Direct-builder authoritative source/workflow checkpoint:
+First successful materialized Alpha 6.6.2 source commit:
 
-`9f0a4d00b76af620e9be6f2abd28341e4a3cc42b`
+`7905fa8fdea8caf25417ed4bf2c7b7656908fa58`
 
 ## Regression locks retained
 
@@ -127,34 +177,38 @@ Direct-builder authoritative source/workflow checkpoint:
 - Hold Position no chase outside attack range.
 - Aggressive never disables hard leash.
 - Boss Focus only prioritizes MaxHealth among already-valid candidates.
+- Strategy changes must keep clearing stale combat runtime locks.
 - Surge safe GreenSlime overlay, Cardcha sandbox exclusion, loot suppression, marker-scoped clear/reapply.
 - Never reintroduce `isTileLocationTotallyClearAndPlaceable` to Surge placement.
+- No `Activator.CreateInstance` / `MemberwiseClone` arbitrary monster cloning.
 - MiMi live social/friendship gate, with requesting Farmer checked in multiplayer.
 - Sudoku canonical ID `ronvotri.HeyYoureCursed_Sudoku` and `NINEFOLD SEAL`.
 - MiMi `BROOMTAIL SIGIL`.
 - 51 SVE/RSV expansion profiles/icons/balance.
-- equipment double-click.
+- equipment double-click 450 ms.
 - controller focus.
-- Party Vault drag/drop.
+- Party Vault drag/drop / `releaseLeftClick`.
 - Origin story.
 
 ## Required live validation
 
 Use:
 
-`SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt`
+`SMOKE_TEST_V0_2_ALPHA6_6_2_PARTY_TACTICS_CAPACITY_UI_VI.txt`
 
 Priority tests:
 
-1. Single-player Farmer + 5 NPC = 6/6; sixth NPC blocked.
-2. Two Farmers online = at most 4 active NPCs.
-3. Host and farmhand split maps; each NPC follows/fights around its recruiter.
-4. Shared external companion pool stays 2/2 across all Farmers/NPCs.
-5. NPC linked-companion 3-option recruit flow and replacement flow.
-6. ChaCha and vanilla pet remain free.
-7. Sudoku PartyControlled marker pauses source roommate movement after HeyYoureCursed compatibility patch; marker disappears on Leave.
-8. Disconnect/rejoin preserves ownership/progression and deactivates safely.
-9. MiMi gate uses requesting Farmer's friendship entry.
-10. Re-test Party Strategy, Surge, equipment/controller/Vault and expansion NPC regressions.
+1. Codex footer Tactics entry, mouse and controller focus/navigation.
+2. Tactics displays all five strategies and highlights the active one.
+3. People card: 1 Farmer + 0 NPC = 1/6; 1 Farmer + 5 NPC = 6/6; 2 Farmers + 4 NPC = 6/6.
+4. Companion card correctly shows 0/2, 1/2, 2/2 and ignores vanilla pet + ChaCha.
+5. Host changes strategy and farmhand receives matching state.
+6. Farmhand changes strategy and host applies/broadcasts it; farmhand does not diverge locally.
+7. Newly joining farmhand receives current host strategy.
+8. Host and farmhand split maps; existing RecruiterId Follow/Combat routing still works.
+9. Re-test shared 6-person cap, shared 2-companion cap, NPC+companion replacement, MiMi gate, Sudoku markers.
+10. Re-test Surge, equipment/controller/Vault and expansion NPC regressions.
 
-Do not call Alpha 6.6.1 multiplayer live-verified until a real 2-client smoke passes.
+Do not call Alpha 6.6.2 UI/multiplayer live-verified until a real in-game smoke, especially a two-client strategy sync test, passes.
+
+If a real strategy-sync/UI bug appears, prefer a focused Alpha 6.6.3 hotfix before adding formation or per-member strategy systems.
