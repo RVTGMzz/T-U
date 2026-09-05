@@ -23,6 +23,8 @@ public sealed class EquipmentMenu : IClickableMenu
     private const int InventoryCell = 62;
     private const int SlotCardHeight = 96;
     private const long DoubleClickWindowMs = 450;
+    private const long ControllerActivationDebounceMs = 180;
+    private const long ControllerMouseEchoSuppressionMs = 260;
 
     private readonly NPC _npc;
     private readonly PartyMemberData _member;
@@ -52,6 +54,8 @@ public sealed class EquipmentMenu : IClickableMenu
     private Item? _hoveredItem;
     private bool _preferFocusedGamepadActivation = true;
     private Point _lastHoverPoint = new(int.MinValue, int.MinValue);
+    private long _lastControllerActivationAtMs = long.MinValue;
+    private long _suppressMouseClickUntilMs;
 
     public EquipmentMenu(
         NPC npc,
@@ -166,6 +170,10 @@ public sealed class EquipmentMenu : IClickableMenu
 
     public override void receiveLeftClick(int x, int y, bool playSound = true)
     {
+        // Stardew can echo gamepad A as a virtual left-click. Ignore that echo so one
+        // physical controller press cannot execute both the gamepad path and mouse path.
+        if (Environment.TickCount64 <= _suppressMouseClickUntilMs)
+            return;
         for (int i = 0; i < _slotBounds.Length; i++)
         {
             if (!_slotBounds[i].Contains(x, y))
@@ -174,10 +182,11 @@ public sealed class EquipmentMenu : IClickableMenu
             _selectedSlot = (EquipmentSlot)i;
             _loadoutFocusIndex = i;
             _focusInventory = false;
-            if (IsDoubleClick(2000 + i) && _equipment.GetEquipped(_member, _selectedSlot) is not null)
-                UnequipSelected();
-            else
-                Game1.playSound("smallSelect");
+            // Slot cards only select. Unequip is explicit through X / the Unequip button.
+            // This prevents a controller A -> virtual-click echo from becoming a ghost double-click unequip.
+            _lastMouseClickId = -1;
+            _lastMouseClickAtMs = 0;
+            Game1.playSound("smallSelect");
             return;
         }
 
@@ -296,6 +305,9 @@ public sealed class EquipmentMenu : IClickableMenu
         }
         if (b == Buttons.A)
         {
+            if (!TryBeginControllerActivation())
+                return;
+
             if (!_preferFocusedGamepadActivation && TryActivateControllerPointer())
                 return;
 
@@ -304,13 +316,35 @@ public sealed class EquipmentMenu : IClickableMenu
         }
         if (b == Buttons.Y)
         {
+            if (!TryBeginControllerActivation())
+                return;
             AutoEquipBest();
             return;
         }
         if (b == Buttons.X)
+        {
+            if (!TryBeginControllerActivation())
+                return;
             UnequipSelected();
+        }
     }
 
+    private bool TryBeginControllerActivation()
+    {
+        long now = Environment.TickCount64;
+        if (_lastControllerActivationAtMs != long.MinValue)
+        {
+            long elapsed = now - _lastControllerActivationAtMs;
+            if (elapsed >= 0 && elapsed < ControllerActivationDebounceMs)
+                return false;
+        }
+
+        _lastControllerActivationAtMs = now;
+        _suppressMouseClickUntilMs = now + ControllerMouseEchoSuppressionMs;
+        _lastMouseClickId = -1;
+        _lastMouseClickAtMs = 0;
+        return true;
+    }
     private bool TryActivateControllerPointer()
     {
         int x = Game1.getMouseX();
@@ -479,18 +513,39 @@ public sealed class EquipmentMenu : IClickableMenu
         }
 
         _selectedSlot = naturalSlot.Value;
-        if (_equipment.TryEquip(_member, _selectedSlot, inventoryIndex, out _))
+        string requestedQualifiedId = item.QualifiedItemId;
+        string requestedDisplayName = item.DisplayName;
+        if (_equipment.TryEquip(_member, _selectedSlot, inventoryIndex, out string failureMessage))
         {
+            EquippedItemData? committedData = _equipment.GetEquipped(_member, _selectedSlot);
+            Item? committedItem = GetActualEquippedItem(_selectedSlot);
+            bool committed = committedData is not null
+                && committedItem is not null
+                && committedData.QualifiedItemId.Equals(committedItem.QualifiedItemId, StringComparison.OrdinalIgnoreCase)
+                && requestedQualifiedId.Equals(committedItem.QualifiedItemId, StringComparison.OrdinalIgnoreCase);
+
+            if (!committed)
+            {
+                ShowHud($"Team Up could not verify {requestedDisplayName} in the NPC equipment slot.", error: true);
+                Game1.playSound("cancel");
+                _hoveredItem = null;
+                ClampInventoryCursor();
+                return;
+            }
+
             _progression.NormalizeMember(_member);
             _saveNow();
-            ShowHud(_translation.Get("equipment.equipped-name", new { item = _equipment.GetEquipped(_member, _selectedSlot)?.DisplayName ?? item.DisplayName }));
+            ShowHud(_translation.Get("equipment.equipped-name", new { item = committedData.DisplayName }));
             Game1.playSound("coin");
             _hoveredItem = null;
             ClampInventoryCursor();
         }
         else
         {
-            ShowHud(_translation.Get("equipment.inventory-full"), error: true);
+            ShowHud(string.IsNullOrWhiteSpace(failureMessage)
+                ? _translation.Get("equipment.inventory-full").ToString()
+                : failureMessage,
+                error: true);
             Game1.playSound("cancel");
         }
     }
@@ -569,8 +624,17 @@ public sealed class EquipmentMenu : IClickableMenu
         }
 
         string itemName = current.DisplayName;
-        if (_equipment.TryUnequip(_member, _selectedSlot, out _))
+        if (_equipment.TryUnequip(_member, _selectedSlot, out string failureMessage))
         {
+            bool committed = _equipment.GetEquipped(_member, _selectedSlot) is null
+                && GetActualEquippedItem(_selectedSlot) is null;
+            if (!committed)
+            {
+                ShowHud($"Team Up could not verify that {itemName} was removed from the NPC equipment slot.", error: true);
+                Game1.playSound("cancel");
+                return;
+            }
+
             _progression.NormalizeMember(_member);
             _saveNow();
             ShowHud(_translation.Get("equipment.unequipped-name", new { item = itemName }));
@@ -581,7 +645,10 @@ public sealed class EquipmentMenu : IClickableMenu
         }
         else
         {
-            ShowHud(_translation.Get("equipment.inventory-full"), error: true);
+            ShowHud(string.IsNullOrWhiteSpace(failureMessage)
+                ? _translation.Get("equipment.inventory-full").ToString()
+                : failureMessage,
+                error: true);
             Game1.playSound("cancel");
         }
     }
