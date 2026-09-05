@@ -6,35 +6,57 @@
 
 ## Current development checkpoint
 
-Current verified source line: **`v0.2.0-alpha.6.6.7` - Water Combat Pathfinding Hotfix**.
+Current verified source line: **`v0.2.0-alpha.6.6.9` - Companion Flicker + Thin Health Bars Hotfix**.
 
-Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and no materialized source diff. Water/bridge performance still requires live in-game validation.**
+Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and no materialized source diff. Alpha 6.6.7 water/bridge performance is user-confirmed; Alpha 6.6.8 land-safe behavior and Alpha 6.6.9 companion flicker/health UI require final live validation.**
 
 Resume development from:
 
 - `CONTINUE_HERE.md`
-- `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_7_2026-09-05.md`
+- `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_9_2026-09-05.md`
 
-## Alpha 6.6.7
+## Alpha 6.6.9
 
-This hotfix targets severe frame-time spikes reported around rivers, bridges and narrow routes with a full party.
+### Pelipper source render/movement authority
 
-### Combat pathfinding
+Live testing showed flicker on both Farmer-owned Pokemon and NPC-linked Pokemon. The common cause was Team Up and Pelipper Town potentially competing over source-owned actor visibility/movement state.
 
-- Removed `isTileLocationTotallyClearAndPlaceable` from Team Up combat approach searching.
-- Approach tiles now use lightweight `isTileOnMap + isTilePassable` checks.
-- Unreachable/no-path targets enter a 24-tick retry cooldown instead of rebuilding paths every frame.
-- Combat movement path creation is pulsed every 3 ticks while targeting, cooldown and attack logic continues normally.
+Alpha 6.6.9 changes the contract:
 
-### Pelipper Town water/decorative actors
+- Team Up no longer continuously sets Pelipper Pokemon `IsInvisible`.
+- Team Up no longer calls `Halt()` or clears Pelipper `controller` / `temporaryController` during deployment reconciliation.
+- Pelipper Town remains render and movement authority for its source-owned Pokemon.
+- Team Up keeps quota/deployment bookkeeping through soft markers only:
+  - `Ronvotri.TeamUp/PelipperDeployment = Active|Standby`
+  - `Ronvotri.TeamUp/PelipperDeploymentOwner = <owner>`
+- Legacy visibility suppression written by pre-6.6.9 Team Up builds is restored once on load and is never re-applied by the new runtime.
 
-Pelipper source-owned actors are excluded from Team Up hostile combat targeting by default. This prevents party NPCs from repeatedly trying to reach non-hostile or unreachable Pokemon/world actors in water.
+If Pelipper Town does not yet consume the soft `Standby` marker, a standby actor may remain visually present. The correct follow-up is a small Pelipper-side handshake, not restoring Team Up visibility hacks.
 
-Optional provider opt-in:
+### NPC health presentation
 
-`Ronvotri.TeamUp/CombatTarget=true`
+Team Up already had real persistent NPC health. Alpha 6.6.9 exposes it in-game without adding a second fake HP system.
 
-The filter applies to both the main combat target list and Team Up signature/AoE monster queries.
+- compact party HUD on the left for up to 5 active NPCs;
+- HUD health bar height: **5 px**;
+- contextual overhead health bar height: **4 px**;
+- overhead bars appear when the NPC is wounded, downed, or near a valid combat target;
+- full-health NPCs outside combat do not carry a permanent overhead bar;
+- colors communicate healthy / caution / danger / downed state;
+- no verbose `100/100` text over NPC heads;
+- host broadcasts a party snapshot only when health/downed/state signature changes, so farmhands can receive health changes without per-frame network spam.
+
+## Performance + land safety preserved
+
+Alpha 6.6.7 and 6.6.8 remain locked:
+
+- no `isTileLocationTotallyClearAndPlaceable` in FollowService or CombatService;
+- combat unreachable-path retry cooldown = 24 ticks;
+- combat movement pulse = 3 ticks;
+- Pelipper decorative/source actors excluded from hostile Team Up targeting by default;
+- humanoid Team Up NPCs reject bare-water destinations;
+- real bridge/walkway tiles remain allowed;
+- stranded humanoid NPCs can be rescued to safe land/bridge positions.
 
 ## Party Tactics
 
@@ -73,21 +95,19 @@ The farm has one shared pool of two deployed external Pokemon/summon/creature co
 
 ## Switch controller
 
-Semantic input from Alpha 6.6.6 remains:
+Semantic controller input remains locked:
 
-- Stardew/SMAPI Action Button activates/equips.
-- Stardew/SMAPI Use Tool Button unequips.
+- Stardew/SMAPI Action Button activates/equips;
+- Stardew/SMAPI Use Tool Button unequips;
 - controller activation debounce: 180 ms;
 - virtual mouse echo suppression: 260 ms;
 - inventory mouse double-click equip: 450 ms;
-- transactional equipment state validation retained.
-
-Equip has been user-confirmed working. Unequip still requires live confirmation on the user's Switch controller.
+- transactional equipment validation retained.
 
 ## Codex / Profile UI
 
-- D-pad and left analog move one Codex profile per input.
-- Character Profile detailed content scale is `1.52f` with scrolling.
+- D-pad and left analog move exactly one Codex profile per input.
+- Character Profile detailed content scale remains `1.52f` with scrolling.
 - ASCII-safe punctuation avoids hollow-star fallback glyphs.
 
 ## Compatibility
@@ -97,6 +117,7 @@ Equip has been user-confirmed working. Unequip still requires live confirmation 
 - Cardcha source: `Ronvotri.Cardcha`
 - canonical NPC: `Ronvotri.Cardcha_MiMi`
 - signature: `BROOMTAIL SIGIL`
+- requesting Farmer live friendship gate in multiplayer
 - Team Up does not read Cardcha private SaveData/services.
 
 ### Sudoku
@@ -132,39 +153,39 @@ One-click local build:
 
 Direct builder:
 
-`BuildV0_2Alpha667.ps1`
+`BuildV0_2Alpha669.ps1`
 
 Smoke checklist:
 
-`SMOKE_TEST_V0_2_ALPHA6_6_7_WATER_COMBAT_PATHFINDING_HOTFIX_VI.txt`
+`SMOKE_TEST_V0_2_ALPHA6_6_9_COMPANION_FLICKER_HEALTH_BARS_VI.txt`
 
 Authoritative CI run:
 
-`33964808233`
+`33974465552`
 
 Authoritative input commit:
 
-`a430575c20158624e3662679387f078722fafba8`
+`ad214367f06fee1612818dc7d9e340f577a0cd90`
 
-Materialized gameplay source:
+First materialized 6.6.9 source commit:
 
-`d97b361`
+`b1ce92b`
 
 Package:
 
-`TeamUp_v0.2.0-alpha.6.6.7_WATER_COMBAT_PATHFINDING_HOTFIX_TEST.zip`
+`TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.zip`
 
 Package SHA256:
 
-`228ed7a54d077a3cbf944b856a334ab3f62dbe818bc71bc793b08597c77abde2`
+`efde24f02f12a7fbc23378cba4af2d7cdb8da2a6675ebd7a45cbaebd8e1e2949`
 
 Artifact ID:
 
-`9969080935`
+`9971897681`
 
 Artifact wrapper digest:
 
-`sha256:1ee65498ece6abd844a1ed56adc22823fecb7c9ffeda92a25f5a0e111c4bd03e`
+`sha256:729faece12dffef01beb3d22e2e1855927c77662ba461a6fd54da6c061a76741`
 
 Authoritative builder result: `No materialized source diff.`
 
