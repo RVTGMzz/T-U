@@ -1,0 +1,49 @@
+TEAM UP v0.2.0-alpha.6.6.8
+LAND-SAFE FOLLOW TARGETS HOTFIX - SMOKE TEST VI
+
+MỤC TIÊU
+Giữ nguyên cải thiện FPS của 6.6.7 nhưng NPC người không được bay/đi/warp xuống nước.
+
+A. ĐÚNG VỊ TRÍ TRONG ẢNH LỖI
+[ ] 1. Dùng party đông 4-6 người.
+[ ] 2. Đi đúng bờ sông/cầu nơi 6.6.7 đã hết lag nhưng NPC rơi xuống nước.
+[ ] 3. Chạy lên xuống khu vực ít nhất 3 vòng.
+[ ] 4. NPC người luôn đứng trên bờ hoặc cầu thật, không đứng giữa sông.
+[ ] 5. FPS vẫn mượt như 6.6.7, không tái phát lag cũ.
+
+B. RESCUE NPC ĐANG Ở NƯỚC
+[ ] 6. Nếu load save/runtime có NPC đang mắc dưới nước, chờ Team Up update.
+[ ] 7. NPC đó được kéo về formation tile an toàn gần Farmer.
+[ ] 8. Không teleport liên tục qua lại giữa bờ và nước.
+
+C. CẦU THẬT
+[ ] 9. Đi qua cầu có Back-layer là nước.
+[ ] 10. NPC vẫn được phép đứng/đi trên tile cầu.
+[ ] 11. Không bị đứng cứng ở đầu cầu vì bộ lọc nước quá mạnh.
+
+D. FARMER TRÊN TILE KHÔNG AN TOÀN
+[ ] 12. Nếu mount/mod traversal đưa Farmer ra mặt nước, NPC người không lao theo xuống nước.
+[ ] 13. NPC giữ vị trí an toàn cho tới khi gần Farmer có land/bridge tile hợp lệ.
+
+E. COMBAT
+[ ] 14. Đánh quái thật trên đất, NPC vẫn tiếp cận và tấn công bình thường.
+[ ] 15. Target gần nước không kéo NPC xuống sông.
+[ ] 16. Pelipper water/decorative actor vẫn không bị Team Up target mặc định.
+[ ] 17. Combat path retry 24 tick và pulse 3 tick vẫn giữ hiệu năng 6.6.7.
+
+F. POKEMON / SUMMON
+[ ] 18. Pokemon/summon source-owned vẫn hoạt động theo mod nguồn.
+[ ] 19. Team Up không ép toàn bộ Pokemon phải ở đất chỉ vì NPC người bị giới hạn land-safe.
+[ ] 20. Shared external companion quota vẫn 2/2.
+
+G. REGRESSION
+[ ] 21. Switch Action Button vẫn trang bị được.
+[ ] 22. Switch Use Tool Button vẫn tháo trang bị được.
+[ ] 23. Codex D-pad/analog đi đúng 1 hồ sơ mỗi lần.
+[ ] 24. Profile typography và glyph fix vẫn đúng.
+[ ] 25. Surge/Cardcha/MiMi/Sudoku/Tactics/Vault không regress.
+
+KẾT LUẬN
+- PASS chính khi NPC người không còn xuống nước và FPS vẫn mượt như 6.6.7.
+- Nếu NPC vẫn lọt xuống nước, chụp đúng tile/map và gửi SMAPI-latest.txt.
+- Nếu NPC không xuống nước nhưng bị kẹt ở cầu, chụp đúng loại cầu đó để điều chỉnh bridge overlay detection cho map mod tương ứng.
