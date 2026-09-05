@@ -19,6 +19,16 @@ public sealed class MemberCommandRequestMessage
     public string? Value { get; set; }
 }
 
+public sealed class StrategyRequestMessage
+{
+    public PartyStrategy Strategy { get; set; } = PartyStrategy.Balanced;
+}
+
+public sealed class StrategyStateMessage
+{
+    public PartyStrategy Strategy { get; set; } = PartyStrategy.Balanced;
+}
+
 public sealed class PartySnapshotMessage
 {
     public PartySaveData Data { get; set; } = new();
