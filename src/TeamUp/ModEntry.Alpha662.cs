@@ -70,6 +70,15 @@ public sealed partial class ModEntry
         if (!Enum.IsDefined(typeof(PartyStrategy), strategy))
             return;
 
+        if (!Context.IsWorldReady)
+        {
+            Config.PartyStrategy = strategy;
+            Helper.WriteConfig(Config);
+            Combat.Clear();
+            Monitor.Log($"Party strategy configured to {strategy} outside an active multiplayer world.", StardewModdingAPI.LogLevel.Info);
+            return;
+        }
+
         if (!Context.IsMainPlayer)
         {
             Helper.Multiplayer.SendMessage(
