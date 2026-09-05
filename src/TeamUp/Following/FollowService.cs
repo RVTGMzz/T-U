@@ -247,8 +247,25 @@ public sealed class FollowService
                 continue;
 
             PrepareForParty(npc, recruiterId);
-            Vector2 targetTile = FindPlayerFollowTile(owner.currentLocation, owner.Tile, index);
-            FollowTarget(npc, owner.currentLocation, targetTile, owner.FacingDirection);
+            Vector2? targetTile = FindPlayerFollowTile(owner.currentLocation, owner.Tile, index);
+            if (!targetTile.HasValue)
+            {
+                SuspendForUnsafeTarget(npc);
+                continue;
+            }
+
+            // Alpha 6.6.7 intentionally made target checks lightweight, but some water tiles are
+            // passable to the map even though humanoid NPCs should never stand there. Repair any
+            // already-stranded party member immediately to the nearest safe formation tile.
+            if (ReferenceEquals(npc.currentLocation, owner.currentLocation)
+                && !PartyTileSafety.IsWalkableLandOrBridge(owner.currentLocation, npc.Tile))
+            {
+                WarpNearTarget(npc, owner.currentLocation, targetTile.Value);
+                _repathCooldowns[npc] = RepathCooldownUpdates;
+                continue;
+            }
+
+            FollowTarget(npc, owner.currentLocation, targetTile.Value, owner.FacingDirection);
         }
     }
 
@@ -478,10 +495,31 @@ public sealed class FollowService
         npc.temporaryController = null;
     }
 
-    private static Vector2 FindPlayerFollowTile(GameLocation location, Vector2 farmerTile, int slotIndex)
+    private static Vector2? FindPlayerFollowTile(GameLocation location, Vector2 farmerTile, int slotIndex)
     {
         Point offset = FormationOffsets[Math.Clamp(slotIndex, 0, FormationOffsets.Length - 1)];
-        return FindOpenNear(location, farmerTile, offset);
+        return FindLandOpenNear(location, farmerTile, offset);
+    }
+
+    private static Vector2? FindLandOpenNear(GameLocation location, Vector2 anchorTile, Point preferredOffset)
+    {
+        Vector2 preferred = anchorTile + new Vector2(preferredOffset.X, preferredOffset.Y);
+        if (PartyTileSafety.IsWalkableLandOrBridge(location, preferred))
+            return preferred;
+
+        foreach (Point offset in OpenSearchOffsets)
+        {
+            if (offset == preferredOffset)
+                continue;
+
+            Vector2 candidate = anchorTile + new Vector2(offset.X, offset.Y);
+            if (PartyTileSafety.IsWalkableLandOrBridge(location, candidate))
+                return candidate;
+        }
+
+        // Never fall back to a known-invalid preferred tile. If the Farmer is on a mount or
+        // traversal surface with no nearby humanoid-safe tile, hold followers until land returns.
+        return PartyTileSafety.IsWalkableLandOrBridge(location, anchorTile) ? anchorTile : null;
     }
 
     private static Vector2 FindCompanionTile(GameLocation location, Vector2 anchorTile, int companionIndex)

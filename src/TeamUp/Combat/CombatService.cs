@@ -1151,18 +1151,7 @@ public sealed class CombatService
     }
 
     private static bool IsLightweightCombatTile(GameLocation location, Vector2 tile)
-    {
-        if (tile.X < 0f || tile.Y < 0f || float.IsNaN(tile.X) || float.IsNaN(tile.Y))
-            return false;
-        try
-        {
-            return location.isTileOnMap(tile) && location.isTilePassable(tile);
-        }
-        catch
-        {
-            return false;
-        }
-    }
+        => PartyTileSafety.IsWalkableLandOrBridge(location, tile);
 
     private void FaceTargetStable(NPC npc, Monster target, bool force)
     {
