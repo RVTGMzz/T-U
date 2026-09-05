@@ -50,6 +50,21 @@ $builderText = $builderText.Replace(
     '= \"Ronvotri.TeamUp/PartyControllerOwner\";',
     '= `"Ronvotri.TeamUp/PartyControllerOwner`";')
 
+# The generated companion loop originally declared `target` in both the player-owned branch
+# and the linked-NPC branch. C# rejects that nested/enclosing name reuse, so keep them explicit.
+$builderText = $builderText.Replace(
+    'Vector2 target = FindCompanionTile(owner.currentLocation, owner.Tile, playerPetIndex++);',
+    'Vector2 playerTarget = FindCompanionTile(owner.currentLocation, owner.Tile, playerPetIndex++);')
+$builderText = $builderText.Replace(
+    'FollowTarget(npc, owner.currentLocation, target, owner.FacingDirection);',
+    'FollowTarget(npc, owner.currentLocation, playerTarget, owner.FacingDirection);')
+$builderText = $builderText.Replace(
+    'Vector2 target = FindCompanionTile(ownerNpc.currentLocation, ownerNpc.Tile, index);',
+    'Vector2 linkedTarget = FindCompanionTile(ownerNpc.currentLocation, ownerNpc.Tile, index);')
+$builderText = $builderText.Replace(
+    'FollowTarget(npc, ownerNpc.currentLocation, target, ownerNpc.FacingDirection);',
+    'FollowTarget(npc, ownerNpc.currentLocation, linkedTarget, ownerNpc.FacingDirection);')
+
 [System.IO.File]::WriteAllText($builder, $builderText, $utf8NoBom)
 
 & (Join-Path $root 'BuildV0_2Alpha661.ps1')
