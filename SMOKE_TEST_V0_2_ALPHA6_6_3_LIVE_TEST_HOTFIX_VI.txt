@@ -1,0 +1,67 @@
+TEAM UP v0.2.0-alpha.6.6.3
+LIVE TEST HOTFIX - SMOKE TEST VI
+
+MỤC TIÊU
+Bản này chỉ tập trung 4 lỗi được bắt từ test thật Alpha 6.6.2:
+1. Controller không equip được dù double-click chuột được.
+2. Codex right analog cuộn viewport nhưng selection cũ làm list nhảy ngược; left analog quá chậm.
+3. Pelipper Town NPC Pokémon không đi vào quota 2/2 nên 4 NPC có thể kéo 4 Pokémon.
+4. Đội đông bị lag rõ ở vùng nước/cầu/đường hẹp.
+
+A. CONTROLLER EQUIPMENT
+[ ] 1. Mở Equipment bằng controller.
+[ ] 2. D-pad/left analog chọn slot Weapon, Armor/Shoes, Trinket bình thường.
+[ ] 3. D-pad/left analog đi vào túi, chọn item hợp lệ, bấm A một lần -> item được trang bị ngay.
+[ ] 4. Dùng right analog đưa controller cursor lên item khác, bấm A một lần -> đúng item dưới cursor được trang bị.
+[ ] 5. Sau khi dùng right analog, chuyển lại D-pad/left analog rồi bấm A -> dùng đúng focused item, không dùng stale cursor cũ.
+[ ] 6. X vẫn tháo trang bị, Y vẫn Auto Equip.
+[ ] 7. Double-click chuột 450ms vẫn hoạt động như 6.6.2.
+[ ] 8. Không mất item / nhân đôi item khi spam A/X nhẹ.
+
+B. CODEX ANALOG NAVIGATION
+[ ] 9. Mở Codex danh sách dài.
+[ ] 10. Right analog kéo xuống nhiều lần -> viewport xuống và selected row luôn nằm trong vùng đang thấy.
+[ ] 11. Sau khi right analog cuộn sâu xuống, chạm left analog Down -> KHÔNG nhảy trở lại NPC cũ phía trên.
+[ ] 12. Left analog Up/Down di chuyển 2 hàng mỗi input, cảm giác nhanh hơn 6.6.2.
+[ ] 13. D-pad Up/Down vẫn di chuyển 1 hàng để chọn chính xác.
+[ ] 14. Filter dropdown vẫn di chuyển từng option, không bị skip 2 option.
+[ ] 15. Tactics và Close footer vẫn focus/activate đúng.
+
+C. PELIPPER TOWN + SHARED 2/2
+[ ] 16. Với Pelipper Town bật Villager Pokémon, đứng gần NPC có Pokémon trước khi recruit.
+[ ] 17. Recruit question hiện 3 option: NPC only / NPC + Pokémon / Cancel.
+[ ] 18. Chọn NPC only -> NPC vào Team Up, Pokémon của NPC không còn active cùng đội.
+[ ] 19. Chọn NPC + Pokémon khi đang 0/2 -> Pokémon active, Tactics hiển thị 1/2.
+[ ] 20. NPC thứ hai + Pokémon -> Tactics hiển thị 2/2.
+[ ] 21. NPC thứ ba + Pokémon khi 2/2 -> hiện replacement flow, không được tạo 3/2.
+[ ] 22. Nếu save cũ 6.6.2 đang có 4 NPC + 4 Pokémon, chờ khoảng 1 giây hoặc chạy `teamup_pelipper reconcile`: chỉ tối đa 2 Pokémon còn deployed; phần còn lại Standby/suppressed.
+[ ] 23. `teamup_pelipper status` báo detectedPartners/registered/activeSlots để chẩn đoán nếu Pelipper thay đổi runtime identity.
+[ ] 24. Leave NPC -> Pokémon nguồn Pelipper được trả lại bình thường, không bị ẩn vĩnh viễn.
+[ ] 25. Re-save/reload -> không còn stale suppression.
+[ ] 26. Vanilla dog/cat và ChaCha vẫn không ăn quota 2/2.
+[ ] 27. Không cài Pelipper Town -> Team Up vẫn chạy bình thường, không hard dependency.
+
+D. WATER / BRIDGE / NARROW PERFORMANCE
+[ ] 28. Lập đội 4-6 người rồi đi qua cầu hẹp giống ảnh lỗi.
+[ ] 29. Đi sát mép hồ/sông, qua bridge, đường một ô hoặc hai ô.
+[ ] 30. So với 6.6.2: FPS/frame-time không tụt mạnh liên tục khi cả đội tìm formation tile.
+[ ] 31. NPC vẫn bắt kịp Farmer sau cầu, không đứng chết vĩnh viễn.
+[ ] 32. Hard warp khi quá xa vẫn hoạt động.
+[ ] 33. Với Pelipper Pokémon active, không thấy Team Up và Pelipper giật Pokémon qua lại do hai controller tranh quyền.
+[ ] 34. Nếu vẫn lag, chạy `teamup_pelipper status` và gửi SMAPI-latest.txt ngay sau đoạn lag để tách Team Up pathfinding khỏi Pelipper trail navigation/wild spawn.
+
+E. REGRESSION 6.6.2 / 6.6.1
+[ ] 35. People cap vẫn 6 tổng Farmer + active NPC.
+[ ] 36. 5 Party Strategy còn đủ trong Tactics.
+[ ] 37. Farmhand strategy request vẫn host-authoritative.
+[ ] 38. Sudoku PartyControlled handshake còn nguyên.
+[ ] 39. MiMi gate còn dùng đúng requesting Farmer.
+[ ] 40. Hard leash 12 / target lock 45 / facing hold 10 còn nguyên.
+[ ] 41. Surge không regress và Cardcha arena vẫn excluded.
+[ ] 42. Equipment/Vault/Codex/Profile controller focus không phát sinh lỗi mới.
+
+KẾT LUẬN
+- Nếu A + B pass: controller UX hotfix đạt.
+- Nếu C pass: shared 2/2 đã thực sự bao gồm Pokémon Pelipper Town trong gameplay thật.
+- Nếu D cải thiện rõ: water/narrow pathfinding churn đã được giảm.
+- Nếu C chưa detect được partner, KHÔNG tăng quota hoặc hard-code species; gửi output `teamup_pelipper status` + SMAPI log để khóa đúng Pelipper runtime identity/API ở hotfix kế tiếp.
