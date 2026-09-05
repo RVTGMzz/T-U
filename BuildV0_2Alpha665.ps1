@@ -20,12 +20,8 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 if (Test-Path $log) { Remove-Item $log -Force }
 function Log([string]$text) { $text | Tee-Object -FilePath $log -Append }
-function Read-Lf([string]$path) {
-    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n")
-}
-function Write-Utf8([string]$path, [string]$text) {
-    [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
-}
+function Read-Lf([string]$path) { return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n") }
+function Write-Utf8([string]$path, [string]$text) { [System.IO.File]::WriteAllText($path, $text, $utf8NoBom) }
 function Replace-Required([string]$text, [string]$old, [string]$new, [string]$label) {
     if ($text.Contains($new)) { return $text }
     if (-not $text.Contains($old)) { throw "Patch anchor missing: $label" }
@@ -37,44 +33,30 @@ try {
         if (-not (Test-Path $required)) { throw "Missing Alpha 6.6.5 source: $required" }
     }
 
-    # -------------------- version --------------------
+    # Version.
     $projectText = Read-Lf $project
     $projectText = [regex]::Replace($projectText, '<Version>[^<]+</Version>', "<Version>$version</Version>")
     Write-Utf8 $project $projectText
 
     $modText = Read-Lf $modEntry
-    $modText = $modText.Replace(
-        'Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.4',
-        'Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.5')
-    $modText = $modText.Replace(
-        'Team Up! v0.2.0-alpha.6.6.4 Controller Equipment Transaction Hotfix loaded.',
-        'Team Up! v0.2.0-alpha.6.6.5 Switch Input + Codex Profile Polish loaded.')
+    $modText = $modText.Replace('Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.4', 'Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.5')
+    $modText = $modText.Replace('Team Up! v0.2.0-alpha.6.6.4 Controller Equipment Transaction Hotfix loaded.', 'Team Up! v0.2.0-alpha.6.6.5 Switch Input + Codex Profile Polish loaded.')
     Write-Utf8 $modEntry $modText
 
-    # -------------------- Switch/controller action path --------------------
+    # Switch/Nintendo action input. Capture SMAPI's configured Action Button and route it once
+    # through the existing transactional EquipmentMenu controller activation path.
     $alphaText = Read-Lf $alpha663
     if (-not $alphaText.Contains('using Microsoft.Xna.Framework.Input;')) {
-        $alphaText = Replace-Required $alphaText `
-            'using Ronvotri.TeamUp.Core;' `
-            "using Microsoft.Xna.Framework.Input;`nusing Ronvotri.TeamUp.Core;`nusing Ronvotri.TeamUp.UI;" `
-            'Alpha665 controller/UI usings'
+        $alphaText = Replace-Required $alphaText 'using Ronvotri.TeamUp.Core;' "using Microsoft.Xna.Framework.Input;`nusing Ronvotri.TeamUp.Core;`nusing Ronvotri.TeamUp.UI;" 'Alpha665 controller/UI usings'
     }
-
     if (-not $alphaText.Contains('OnAlpha665EquipmentButtonPressed')) {
-        $alphaText = Replace-Required $alphaText `
-            '        Helper.Events.GameLoop.UpdateTicked += OnAlpha663UpdateTicked;' `
-            "        Helper.Events.GameLoop.UpdateTicked += OnAlpha663UpdateTicked;`n        Helper.Events.Input.ButtonPressed += OnAlpha665EquipmentButtonPressed;" `
-            'Alpha665 equipment SMAPI input subscription'
-
+        $alphaText = Replace-Required $alphaText '        Helper.Events.GameLoop.UpdateTicked += OnAlpha663UpdateTicked;' "        Helper.Events.GameLoop.UpdateTicked += OnAlpha663UpdateTicked;`n        Helper.Events.Input.ButtonPressed += OnAlpha665EquipmentButtonPressed;" 'Alpha665 SMAPI input subscription'
         $handler = @'
     private void OnAlpha665EquipmentButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
         if (!Context.IsWorldReady || Game1.activeClickableMenu is not EquipmentMenu menu)
             return;
 
-        // Use SMAPI's configured Action Button abstraction instead of assuming XInput Buttons.A.
-        // This is the authoritative path for Nintendo/Switch layouts; suppressing the raw button
-        // prevents Stardew from also translating the same press into a virtual mouse click.
         if (!e.Button.IsActionButton())
             return;
 
@@ -83,25 +65,20 @@ try {
     }
 
 '@
-        $alphaText = Replace-Required $alphaText `
-            '    private void OnAlpha663SaveLoaded(object? sender, SaveLoadedEventArgs e)' `
-            ($handler + '    private void OnAlpha663SaveLoaded(object? sender, SaveLoadedEventArgs e)') `
-            'Alpha665 equipment SMAPI action handler'
+        $alphaText = Replace-Required $alphaText '    private void OnAlpha663SaveLoaded(object? sender, SaveLoadedEventArgs e)' ($handler + '    private void OnAlpha663SaveLoaded(object? sender, SaveLoadedEventArgs e)') 'Alpha665 SMAPI Action Button bridge'
     }
     Write-Utf8 $alpha663 $alphaText
 
-    # -------------------- Codex one-row navigation --------------------
+    # Codex: every D-pad or left-stick vertical input moves exactly one profile.
     $codexText = Read-Lf $codex
     $codexText = $codexText.Replace('            MoveVertical(-2);', '            MoveVertical(-1);')
     $codexText = $codexText.Replace('            MoveVertical(2);', '            MoveVertical(1);')
     Write-Utf8 $codex $codexText
 
-    # -------------------- Character profile balanced typography --------------------
+    # Character profile: right-panel typography uses one readable 1.52 scale, roughly 2/3
+    # of the previous 2.28 giant passive/signature text. Long content scrolls instead of shrinking.
     $profileText = Read-Lf $profile
-    $profileText = Replace-Required $profileText `
-        '    private const float DescriptionScale = BodyScale * 2f;' `
-        '    private const float ProfileContentScale = 1.52f;' `
-        'profile content scale 2/3 of prior giant text'
+    $profileText = Replace-Required $profileText '    private const float DescriptionScale = BodyScale * 2f;' '    private const float ProfileContentScale = 1.52f;' 'profile content scale'
 
     $oldAffinityLayout = @'
         DrawSectionTitle(b, _i18n.Get("profile.affinities"), innerX, cursorY);
@@ -131,7 +108,7 @@ try {
         DrawAffinity(b, innerX, cursorY, _roleLabel(PartyRole.Control), _profile.ControlAffinity, innerWidth);
         cursorY += 46;
 '@
-    $profileText = Replace-Required $profileText $oldAffinityLayout $newAffinityLayout 'profile affinity typography layout'
+    $profileText = Replace-Required $profileText $oldAffinityLayout $newAffinityLayout 'profile affinity layout'
 
     $oldTraitScale = @'
         bool pendingKit = IsPendingCombatKit();
@@ -142,16 +119,9 @@ try {
         float passiveScale = ProfileContentScale;
         float signatureScale = ProfileContentScale;
 '@
-    $profileText = Replace-Required $profileText $oldTraitScale $newTraitScale 'uniform profile trait scale'
+    $profileText = Replace-Required $profileText $oldTraitScale $newTraitScale 'uniform trait scale'
 
-    $profileText = $profileText.Replace('        contentY += 30;', '        contentY += 40;')
-    $profileText = $profileText.Replace(
-        '        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);',
-        '        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, ProfileContentScale);')
-    $profileText = $profileText.Replace(
-        '        DrawWrappedLinesInViewport(b, relationshipWrapped, viewport.X, contentY, BodyScale, viewport);',
-        '        DrawWrappedLinesInViewport(b, relationshipWrapped, viewport.X, contentY, ProfileContentScale, viewport);')
-
+    # Replace the height calculator BEFORE replacing the same relationship line in the draw path.
     $oldHeightBlock = @'
         string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);
         return 30
@@ -176,43 +146,24 @@ try {
 '@
     $profileText = Replace-Required $profileText $oldHeightBlock $newHeightBlock 'profile content height scale'
 
-    $profileText = $profileText.Replace(
-        '        int height = Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * CaptionScale));',
-        '        int height = Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * ProfileContentScale));')
-    $profileText = $profileText.Replace(
-        '        DrawFitString(b, Game1.smallFont, label, new Rectangle(x, y, 120, 28), Game1.textColor, BodyScale);',
-        '        DrawFitString(b, Game1.smallFont, label, new Rectangle(x, y, 136, 34), Game1.textColor, ProfileContentScale);')
-    $profileText = $profileText.Replace(
-        '        int barX = x + Math.Min(150, Math.Max(112, availableWidth / 4));',
-        '        int barX = x + Math.Min(180, Math.Max(142, availableWidth / 4));')
-    $profileText = $profileText.Replace(
-        '            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 7, segmentWidth, segmentHeight);',
-        '            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 10, segmentWidth, segmentHeight);')
-    $profileText = $profileText.Replace(
-        '        DrawScaledString(b, Game1.smallFont, score, new Vector2(scoreX, y), new Color(112, 73, 44), CaptionScale);',
-        '        DrawScaledString(b, Game1.smallFont, score, new Vector2(scoreX, y), new Color(112, 73, 44), ProfileContentScale);')
-    $profileText = $profileText.Replace(
-        '        DrawScaledString(b, Game1.smallFont, text, new Vector2(x, y), new Color(102, 63, 37), CaptionScale);',
-        '        DrawScaledString(b, Game1.smallFont, text, new Vector2(x, y), new Color(102, 63, 37), ProfileContentScale);')
+    $profileText = $profileText.Replace('        contentY += 30;', '        contentY += 40;')
+    $profileText = $profileText.Replace('        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, BodyScale);', '        string relationshipWrapped = WrapScaled(_relationshipText, contentWidth, ProfileContentScale);')
+    $profileText = $profileText.Replace('        DrawWrappedLinesInViewport(b, relationshipWrapped, viewport.X, contentY, BodyScale, viewport);', '        DrawWrappedLinesInViewport(b, relationshipWrapped, viewport.X, contentY, ProfileContentScale, viewport);')
+    $profileText = $profileText.Replace('        int height = Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * CaptionScale));', '        int height = Math.Max(1, (int)Math.Ceiling(Game1.smallFont.LineSpacing * ProfileContentScale));')
+    $profileText = $profileText.Replace('        DrawFitString(b, Game1.smallFont, label, new Rectangle(x, y, 120, 28), Game1.textColor, BodyScale);', '        DrawFitString(b, Game1.smallFont, label, new Rectangle(x, y, 136, 34), Game1.textColor, ProfileContentScale);')
+    $profileText = $profileText.Replace('        int barX = x + Math.Min(150, Math.Max(112, availableWidth / 4));', '        int barX = x + Math.Min(180, Math.Max(142, availableWidth / 4));')
+    $profileText = $profileText.Replace('            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 7, segmentWidth, segmentHeight);', '            Rectangle segment = new(barX + i * (segmentWidth + gap), y + 10, segmentWidth, segmentHeight);')
+    $profileText = $profileText.Replace('        DrawScaledString(b, Game1.smallFont, score, new Vector2(scoreX, y), new Color(112, 73, 44), CaptionScale);', '        DrawScaledString(b, Game1.smallFont, score, new Vector2(scoreX, y), new Color(112, 73, 44), ProfileContentScale);')
+    $profileText = $profileText.Replace('        DrawScaledString(b, Game1.smallFont, text, new Vector2(x, y), new Color(102, 63, 37), CaptionScale);', '        DrawScaledString(b, Game1.smallFont, text, new Vector2(x, y), new Color(102, 63, 37), ProfileContentScale);')
     Write-Utf8 $profile $profileText
 
-    # -------------------- Stardew-font-safe summary punctuation --------------------
+    # Stardew font fallback: remove unsupported punctuation which renders as hollow stars.
     $progressionText = Read-Lf $progression
-    $progressionText = $progressionText.Replace(
-        '        return $"Lv.{member.Level} · HP {member.CurrentHealth}/{maxHealth} · {RoleShort(role)} M{mastery}";',
-        '        return $"Lv.{member.Level} | HP {member.CurrentHealth}/{maxHealth} | {RoleShort(role)} M{mastery}";')
-    $progressionText = $progressionText.Replace(
-        '        string weapon = member.Weapon?.DisplayName ?? "—";',
-        '        string weapon = member.Weapon?.DisplayName ?? "-";')
-    $progressionText = $progressionText.Replace(
-        '        string armor = member.Armor?.DisplayName ?? "—";',
-        '        string armor = member.Armor?.DisplayName ?? "-";')
-    $progressionText = $progressionText.Replace(
-        '        string trinket = member.Trinket?.DisplayName ?? "—";',
-        '        string trinket = member.Trinket?.DisplayName ?? "-";')
-    $progressionText = $progressionText.Replace(
-        '        return $"W: {weapon} · A: {armor}\nT: {trinket}";',
-        '        return $"W: {weapon} | A: {armor}\nT: {trinket}";')
+    $progressionText = $progressionText.Replace('        return $"Lv.{member.Level} · HP {member.CurrentHealth}/{maxHealth} · {RoleShort(role)} M{mastery}";', '        return $"Lv.{member.Level} | HP {member.CurrentHealth}/{maxHealth} | {RoleShort(role)} M{mastery}";')
+    $progressionText = $progressionText.Replace('        string weapon = member.Weapon?.DisplayName ?? "—";', '        string weapon = member.Weapon?.DisplayName ?? "-";')
+    $progressionText = $progressionText.Replace('        string armor = member.Armor?.DisplayName ?? "—";', '        string armor = member.Armor?.DisplayName ?? "-";')
+    $progressionText = $progressionText.Replace('        string trinket = member.Trinket?.DisplayName ?? "—";', '        string trinket = member.Trinket?.DisplayName ?? "-";')
+    $progressionText = $progressionText.Replace('        return $"W: {weapon} · A: {armor}\nT: {trinket}";', '        return $"W: {weapon} | A: {armor}\nT: {trinket}";')
     Write-Utf8 $progression $progressionText
 
     $equipmentText = Read-Lf $equipment
@@ -221,7 +172,7 @@ try {
     $equipmentText = $equipmentText.Replace('string arrow = "→";', 'string arrow = "->";')
     Write-Utf8 $equipment $equipmentText
 
-    # -------------------- launcher --------------------
+    # Local launcher.
     $launcherText = @'
 @echo off
 setlocal
@@ -231,66 +182,45 @@ echo =========================================================
 echo   Team Up! v0.2.0-alpha.6.6.5 - SWITCH + CODEX PROFILE HOTFIX
 echo =========================================================
 echo.
-
 where dotnet >nul 2>nul
 if errorlevel 1 (
   echo [ERROR] Khong tim thay .NET SDK.
-  echo Cai .NET SDK 6 hoac SDK moi hon roi chay lai file nay.
-  echo.
   pause
   exit /b 1
 )
-
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha665.ps1"
 if errorlevel 1 (
-  echo.
-  echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
+  echo BUILD FAILED. Gui BUILD_LOG.txt cho ChatGPT.
   pause
   exit /b 1
 )
-
 echo.
 echo BUILD OK - ALPHA 6.6.5.
-echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.6.5
-echo.
-echo HOTFIX CHINH:
-echo - Switch/Nintendo Action Button duoc bat truc tiep o tang SMAPI, khong phu thuoc XInput A.
-echo - Codex D-pad va left stick di dung 1 ho so moi input, khong skip A-B-C thanh A-C.
-echo - Character Profile dung scale 1.52 dong deu cho noi dung ben phai.
-echo - Bo glyph fallback ☆ do ky tu — / · / → khong duoc font Stardew ho tro.
-echo.
-echo GIU NGUYEN:
-echo - Transactional equipment confirm + controller echo guard cua 6.6.4.
-echo - Mouse double-click item trong tui 450ms.
-echo - Pelipper 2/2, Tactics, Sudoku, MiMi, Surge, Party Vault.
-echo.
+echo - Switch Action Button: SMAPI authoritative input.
+echo - Codex vertical navigation: 1 profile/input.
+echo - Profile right panel: uniform scale 1.52.
+echo - Unsupported UI punctuation replaced to remove hollow-star glyph fallback.
 explorer "%~dp0release"
 pause
 '@
     Write-Utf8 $launcher $launcherText
 
-    # -------------------- acceptance before compile --------------------
+    # Acceptance before compile.
     $alphaText = Read-Lf $alpha663
     $codexText = Read-Lf $codex
     $profileText = Read-Lf $profile
     $progressionText = Read-Lf $progression
     $equipmentText = Read-Lf $equipment
-
     foreach ($token in @('OnAlpha665EquipmentButtonPressed', 'e.Button.IsActionButton()', 'Helper.Input.Suppress(e.Button)', 'menu.receiveGamePadButton(Buttons.A)')) {
-        if (-not $alphaText.Contains($token)) { throw "Alpha 6.6.5 Switch input token missing: $token" }
+        if (-not $alphaText.Contains($token)) { throw "Switch input token missing: $token" }
     }
     if ($codexText.Contains('MoveVertical(-2)') -or $codexText.Contains('MoveVertical(2)')) { throw 'Codex still has 2-row controller navigation.' }
-    foreach ($token in @('ProfileContentScale = 1.52f', 'ProfileContentScale, viewport', 'ProfileContentScale);')) {
-        if (-not $profileText.Contains($token)) { throw "Profile polish token missing: $token" }
+    foreach ($token in @('ProfileContentScale = 1.52f', 'WrapScaled(_relationshipText, contentWidth, ProfileContentScale)', 'new Rectangle(x, y, 136, 34)')) {
+        if (-not $profileText.Contains($token)) { throw "Profile token missing: $token" }
     }
     if ($profileText.Contains('DescriptionScale = BodyScale * 2f')) { throw 'Giant profile description scale still exists.' }
-    foreach ($bad in @(' · ', '—')) {
-        if ($progressionText.Contains($bad)) { throw "Unsupported progression glyph remains: $bad" }
-    }
-    if ($equipmentText.Contains('→') -or $equipmentText.Contains('\u2192') -or $equipmentText.Contains('  ·  ')) {
-        throw 'Unsupported equipment comparison glyph remains.'
-    }
+    if ($progressionText.Contains(' · ') -or $progressionText.Contains('—')) { throw 'Unsupported progression glyph remains.' }
+    if ($equipmentText.Contains('→') -or $equipmentText.Contains('\u2192') -or $equipmentText.Contains('  ·  ')) { throw 'Unsupported equipment glyph remains.' }
 
     Log 'Building Alpha 6.6.5 Switch Input + Codex Profile Polish...'
     Log 'FIX: SMAPI Action Button drives Equipment menu on Switch/Nintendo layouts.'
@@ -319,7 +249,6 @@ pause
     if (Test-Path $zip) { Remove-Item $zip -Force }
     Compress-Archive -Path $stageMod -DestinationPath $zip -CompressionLevel Optimal -Force
     if (-not (Test-Path $zip)) { throw 'Alpha 6.6.5 ZIP was not created.' }
-
     $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
     Write-Utf8 $shaPath ("$hash  $(Split-Path $zip -Leaf)`r`n")
     $smoke = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_6_5_SWITCH_CODEX_PROFILE_POLISH_VI.txt'
