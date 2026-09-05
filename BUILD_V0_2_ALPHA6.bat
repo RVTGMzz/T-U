@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.6.1 - SHARED PARTY MULTIPLAYER
+echo   Team Up! v0.2.0-alpha.6.6.2 - PARTY TACTICS + CAPACITY UI
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha661.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha662.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,27 +25,30 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.6.1.
+echo BUILD OK - ALPHA 6.6.2.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.6.1
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.6.2
 echo.
-echo LUAT PARTY:
-echo - Tong Farmer dang online + NPC active = toi da 6 nguoi.
-echo - Pokemon/summon combat dung chung = toi da 2.
-echo - Vanilla pet va ChaCha khong chiem 2 slot companion.
-echo - NPC co companion: NPC only / NPC + companion / Cancel.
+echo TACTICS UI:
+echo - Mo Codex ^> Tactics / Chien thuat.
+echo - Xem People used/max va Combat Companions used/max.
+echo - Chon 5 strategy bang mouse / keyboard / controller.
 echo.
-echo MULTIPLAYER:
-echo - Host giu party state chinh va validate request.
-echo - NPC theo dung Farmer da recruit bang RecruiterId.
-echo - Farmhand join co the day NPC overflow ve Inactive, khong xoa roster.
+echo MULTIPLAYER STRATEGY:
+echo - Host la authority.
+echo - Farmhand doi strategy se gui request cho host.
+echo - Host apply, clear combat locks va sync strategy lai cac client.
+echo.
+echo LUAT PARTY GIU NGUYEN:
+echo - Tong Farmer online + NPC active toi da 6 nguoi.
+echo - External Pokemon/summon combat dung chung toi da 2.
+echo - Vanilla pet va ChaCha khong chiem companion slot.
 echo.
 echo TEST NHANH:
-echo - Single: Farmer + 5 NPC = 6/6; NPC tiep theo phai bi chan.
-echo - 2 Farmer: chi 4 NPC active toi da.
-echo - 2/2 companion: thu recruit NPC + companion de test replacement flow.
-echo - Sudoku: PartyControlled=true khi Follow, xoa marker khi Leave.
-echo - Re-test 5 Party Strategy va Surge 6.5.3 regression locks.
+echo - Codex footer co nut Tactics va controller focus dung.
+echo - Doi tung strategy va kiem tra UI highlight.
+echo - 2 client: farmhand doi strategy, host va farmhand phai dong bo.
+echo - Re-test cap 6 nguoi, 2 companion, Sudoku handshake va Surge regression.
 echo.
 explorer "%~dp0release"
 pause
