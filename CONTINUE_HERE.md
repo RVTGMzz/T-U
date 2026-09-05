@@ -2,107 +2,73 @@
 
 Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.5**
 
-Status: **compile/package verified with 0 warnings and 0 errors; Switch equipment, Codex navigation and Character Profile visual changes require in-game confirmation**.
+Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and no materialized source diff. Switch equipment and UI behavior still require real in-game confirmation.**
 
 Development branch:
 
 `v0.2-alpha6-6-5-switch-input-codex-profile-polish`
 
-Final handoff branch after closure:
+Final handoff branch:
 
 `v0.2-alpha6-6-5-switch-input-codex-profile-polish-handoff`
 
-Previous handoff:
+Read first:
+
+`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_5_2026-09-05.md`
+
+Previous checkpoint:
 
 `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_4_2026-09-05.md`
 
-## Why Alpha 6.6.5 exists
+## Alpha 6.6.5 fixes
 
-Real Nintendo/Switch controller testing after Alpha 6.6.4 found three remaining UX/runtime problems:
-
-1. Equipment still could not reliably equip through the physical Switch action button.
-2. Codex vertical navigation could skip one profile, e.g. A -> C instead of A -> B -> C.
-3. Character Profile typography was visually unbalanced because passive/signature descriptions were rendered at 2.28x while surrounding content stayed near 1.1x.
-
-The same test also exposed hollow `☆` glyphs in equipment summaries. Those were font fallback for punctuation such as em dash, middle dot and arrow, not corrupted equipment data.
-
-## Alpha 6.6.5 locked fixes
-
-### 1. Switch/Nintendo equipment input
-
-File:
+### Switch / Nintendo equipment input
 
 `src/TeamUp/ModEntry.Alpha663.cs`
 
-Team Up now captures the platform-configured SMAPI Action Button while `EquipmentMenu` is open:
+When `EquipmentMenu` is open, Team Up now captures SMAPI's configured Action Button instead of assuming XInput `Buttons.A` is the physical Nintendo input.
 
-- checks `e.Button.IsActionButton()` instead of assuming a physical XInput `Buttons.A` mapping;
-- suppresses the original button through `Helper.Input.Suppress(e.Button)`;
-- routes exactly one activation into the existing EquipmentMenu transactional controller path;
-- keeps Alpha 6.6.4 debounce and virtual mouse echo suppression active.
-
-Key tokens:
+Locked tokens:
 
 - `OnAlpha665EquipmentButtonPressed`
 - `e.Button.IsActionButton()`
 - `Helper.Input.Suppress(e.Button)`
 - `menu.receiveGamePadButton(Buttons.A)`
 
-Do not replace this with a hard-coded Nintendo/XInput button assumption.
+The routed activation reuses Alpha 6.6.4 transactional equipment confirmation, 180 ms controller debounce and 260 ms virtual-mouse echo suppression.
 
-### 2. Codex one-profile navigation
-
-File:
+### Codex one-row navigation
 
 `src/TeamUp/UI/CodexBrowserMenu.cs`
 
-D-pad and left-stick Up/Down now both move exactly one profile per input.
+D-pad and left-stick Up/Down both move exactly one profile per input. Do not restore `MoveVertical(2)` or `MoveVertical(-2)` in controller navigation. Right-stick/mouse-wheel viewport scrolling remains separate and selection remains clamped to the visible range.
 
-Locked behavior:
-
-- D-pad Up/Down: 1 row;
-- left-stick Up/Down: 1 row;
-- dropdown options: 1 option;
-- right-stick/mouse-wheel viewport scrolling remains separate and keeps logical selection inside the visible range.
-
-Do not restore `MoveVertical(2)` or `MoveVertical(-2)` in controller navigation.
-
-### 3. Character Profile typography
-
-File:
+### Character Profile typography
 
 `src/TeamUp/UI/CharacterProfileMenu.cs`
 
-The right-side scrollable profile panel now uses a common readable content scale:
+Right-side scrollable detail content uses:
 
 `ProfileContentScale = 1.52f`
 
-This is approximately two-thirds of the previous giant 2.28x description scale.
+This replaces the previous giant 2.28x passive/signature description scale. Affinity labels/scores, section labels, passive, signature and relationship content use the larger balanced scale with extra vertical spacing and scrolling for overflow.
 
-The scale is used for:
+### Hollow-star glyph bug
 
-- section titles in the detailed right panel;
-- affinity labels and scores;
-- passive text;
-- signature text;
-- relationship text.
+The `☆` marks seen in equipment summary were font fallback, not hidden stats or broken equipment state.
 
-Affinity row spacing was increased to fit the larger type. Long passive/signature/relationship content should scroll rather than being shrunk aggressively.
-
-### 4. Hollow-star font fallback
-
-Files:
+Unsafe punctuation was replaced in:
 
 - `src/TeamUp/Core/ProgressionService.cs`
 - `src/TeamUp/UI/EquipmentMenu.cs`
 
-Stardew's UI font was rendering unsupported punctuation as hollow stars. Alpha 6.6.5 replaces UI punctuation with safe ASCII equivalents:
+Safe UI output now uses:
 
-- empty gear: `-`
-- separators: `|`
-- comparison arrow: `->`
+- empty gear `-`
+- separator `|`
+- comparison arrow `->`
 
-Examples now render as:
+Examples:
 
 `Lv.1 | HP 90/90 | Healer M0`
 
@@ -110,117 +76,80 @@ Examples now render as:
 
 `T: -`
 
-The old hollow `☆` marks were a glyph fallback bug only. They did not represent a hidden equipment/stat mechanic.
+## Alpha 6.6.4 equipment locks retained
 
-## Alpha 6.6.4 equipment safety retained
-
-- controller activation debounce remains 180 ms;
-- virtual mouse echo suppression remains 260 ms;
-- NPC slot cards do not double-click unequip;
-- unequip remains explicit through X or the Unequip button;
-- inventory mouse double-click equip remains 450 ms;
-- equip HUD success requires committed PartyMember metadata and actual global equipment storage;
-- unequip HUD success requires both stores to be empty.
+- inventory mouse double-click = 450 ms;
+- NPC slot-card double-click unequip remains removed;
+- X / explicit Unequip button handles unequip;
+- successful equip HUD requires both PartyMember metadata and real FarmerTeam global equipment storage to contain the requested item;
+- successful unequip HUD requires both stores to be empty;
+- controller debounce = 180 ms;
+- gamepad virtual-click suppression = 260 ms.
 
 ## Product rules retained
 
-### People capacity
-
-- maximum 6 total people across online Farmers plus active `Following`/`Waiting` NPCs;
-- single player therefore allows up to 5 active NPCs;
-- overflow becomes Inactive without deleting roster/progression/equipment.
-
-### Combat companion capacity
-
-- hard shared max 2 deployed external Pokemon/summon/creature companions across the farm;
-- Farmer-owned and NPC-linked external creatures share the pool;
-- `Active`, `Waiting`, `ReturningHome` reserve slots;
-- `Standby`, `Inactive` do not;
-- vanilla pet is free;
-- ChaCha is free and never Main Party.
-
-### Party Strategy
-
-Five values remain:
-
-- `Balanced`
-- `Defensive`
-- `Aggressive`
-- `HoldPosition`
-- `BossFocus`
-
-### Custom recruits
-
-MiMi:
-
-- canonical `Ronvotri.Cardcha_MiMi`
-- source `Ronvotri.Cardcha`
-- signature `BROOMTAIL SIGIL`
-
-Sudoku:
-
-- canonical `ronvotri.HeyYoureCursed_Sudoku`
-- signature `NINEFOLD SEAL`
-- Team Up movement marker `Ronvotri.TeamUp/PartyControlled = true`
-- source mod remains story/trust/roommate authority.
-
-## Core regression locks
-
+- maximum 6 total people across online Farmers plus active Team Up NPCs;
+- shared deployed external Pokemon/summon/creature companion cap = 2;
+- Farmer-owned and NPC-linked external creatures share the 2/2 pool;
+- vanilla pet free;
+- ChaCha free and never Main Party;
+- Party Strategy values: Balanced, Defensive, Aggressive, HoldPosition, BossFocus;
+- MiMi canonical `Ronvotri.Cardcha_MiMi`, signature `BROOMTAIL SIGIL`;
+- Sudoku canonical `ronvotri.HeyYoureCursed_Sudoku`, signature `NINEFOLD SEAL`;
+- Sudoku Team Up control marker remains `Ronvotri.TeamUp/PartyControlled = true`;
+- Pelipper Town shared 2/2 compatibility remains source-respecting;
 - hard leash 12 tiles;
 - target lock 45 ticks;
 - facing hold 10 ticks;
-- anti-spin;
-- Hold Position no chase outside attack range;
-- Aggressive never disables hard leash;
-- Boss Focus only prioritizes highest MaxHealth among valid targets;
-- Pelipper Town shared 2/2 compatibility remains source-respecting;
-- Follow water/bridge bounded open-tile search remains;
-- Surge Cardcha arena exclusion and safe placement remain;
+- Surge Cardcha sandbox and safe-placement rules retained;
 - never restore `isTileLocationTotallyClearAndPlaceable` to Surge;
-- no arbitrary custom monster cloning;
-- 51 SVE/RSV profiles/icons/balance;
-- Party Vault drag/drop;
-- Origin story.
+- 51 SVE/RSV profiles/icons/balance retained;
+- Party Vault drag/drop retained;
+- Origin story retained.
 
-## Alpha 6.6.5 build checkpoint
+## Authoritative Alpha 6.6.5 checkpoint
 
-Materialized source commit from the first successful build:
+Materialized gameplay source commit:
 
-`7046dd5`
+`7046dd568ca71c0c78a51f7ee12e3ab691241c03`
 
-Successful materializing CI run:
+Final authoritative input/docs commit:
 
-`33961399608`
+`000adad903c838419e308d9c0c98c5e00605d45e`
+
+Final authoritative CI run:
+
+`33961524993`
 
 Result:
 
-- direct `BuildV0_2Alpha665.ps1` success;
+- `BuildV0_2Alpha665.ps1` success;
 - 0 warnings;
 - 0 errors;
-- Switch SMAPI Action Button bridge acceptance PASS;
-- Codex one-row controller navigation acceptance PASS;
-- Character Profile 1.52 uniform typography acceptance PASS;
-- Stardew-font-safe punctuation acceptance PASS;
-- Alpha 6.6.4 / 6.6.3 regression acceptance PASS;
-- package verification PASS.
+- Switch SMAPI Action Button bridge PASS;
+- Codex one-row controller navigation PASS;
+- Character Profile uniform 1.52 typography PASS;
+- Stardew-font-safe punctuation PASS;
+- Alpha 6.6.4 / 6.6.3 regression tokens PASS;
+- package verification PASS;
+- `No materialized source diff.`;
+- artifact upload PASS.
 
-Package:
+Authoritative package:
 
 `TeamUp_v0.2.0-alpha.6.6.5_SWITCH_CODEX_PROFILE_HOTFIX_TEST.zip`
 
 Package SHA256:
 
-`67f797a5858fc9bcdbe688040cbb1dc8017b07dcd2adfe7418fda4f6e3bacb51`
+`38706ecabac5f3e34d64fc2958e4c961252c88897f7dd5b3fe3117db16020e36`
 
-Artifact ID from the materializing run:
+Artifact ID:
 
-`9968051018`
+`9968093241`
 
 Artifact wrapper digest:
 
-`sha256:3ca2419de44eedce45e4ef8b31d35157e7d1e484ad2e3a641d71b06b64896349`
-
-A final authoritative rerun from the materialized source should report `No materialized source diff.` before this checkpoint is handed off.
+`sha256:f4dd7737ed0362208cef513220be42023807c3b3752c945a30794d41af9ce5df`
 
 ## Required live validation
 
@@ -230,12 +159,12 @@ Use:
 
 Highest priority:
 
-1. On Switch controller, focus a valid Farmer inventory item and press the physical Action Button once. Item must leave the bag and appear in the real NPC equipment slot.
-2. Repeat using right-stick pointer mode.
-3. Confirm no duplicate equip/unequip transaction or contradictory HUD pair.
-4. In Codex, verify A -> B -> C -> D with both D-pad and short left-stick inputs, never A -> C.
-5. Open Harvey or another profile with long passive/signature text. Right panel should be consistently large and readable at roughly 1.52x, with scrolling for overflow.
-6. Confirm equipment summary no longer displays hollow `☆` glyphs.
+1. Switch controller: focus a valid inventory weapon/boots/ring and press the physical Action Button once. The item must leave the bag and visibly occupy the NPC slot.
+2. Repeat in controller-pointer mode using right stick.
+3. No contradictory `equipped` then `unequipped` HUD pair may occur for one action.
+4. Codex D-pad and left-stick should traverse A -> B -> C -> D, one profile per input.
+5. Open Harvey or another long profile and verify all detailed right-panel text is balanced at roughly 1.52x and scrolls cleanly.
+6. Equipment summary must no longer show hollow `☆` glyphs.
 7. Re-test Tactics, Pelipper 2/2, Sudoku, MiMi, Surge and Party Vault.
 
 Do not call the Switch equipment behavior live-verified until the user confirms it in game.
