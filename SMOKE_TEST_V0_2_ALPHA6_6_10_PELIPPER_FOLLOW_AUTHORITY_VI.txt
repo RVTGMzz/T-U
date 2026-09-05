@@ -1,0 +1,50 @@
+TEAM UP v0.2.0-alpha.6.6.10 - PELIPPER FOLLOW AUTHORITY HOTFIX
+
+MUC TIEU CHINH
+- Pokemon Pelipper cua Farmer va NPC khong con bi Team Up dieu khien path/warp/Halt/controller.
+- Team Up chi quan ly quota + trang thai companion, Pelipper Town tu dieu khien actor Pokemon.
+- Khong lam hong fix lag 6.6.7, land-safe 6.6.8, health UI 6.6.9.
+
+TEST BAT BUOC
+1. FARMER POKEMON
+- Goi Pokemon cua Farmer ra.
+- Dung yen 30 giay.
+- Chay lien tuc 30 giay.
+- Di qua cua map/warp.
+- Mong doi: KHONG nhap nhay, KHONG bien mat/xuat hien theo chu ky.
+
+2. NPC-LINKED POKEMON
+- Recruit NPC co Pokemon Pelipper, vi du Alex neu save hien tai co partner.
+- Moi NPC + Pokemon di cung.
+- Dung yen/chay/warp 30 giay moi tinh huong.
+- Mong doi: Pokemon khong flicker va khong bi Team Up keo ve formation rieng.
+
+3. HAI POKEMON CUNG LUC
+- Farmer Pokemon + 1 NPC Pokemon cung hien.
+- Di quanh map, gan song/cau, vao combat.
+- Mong doi: ca hai on dinh, khong blink luan phien.
+
+4. QUOTA
+- Kiem tra 2 companion slot van duoc tinh dung.
+- Team Up co the ghi Active/Standby, nhung khong duoc lam Pokemon nhap nhay.
+
+5. NPC TEAM UP
+- NPC nguoi van follow binh thuong.
+- NPC nguoi khong xuong bare water.
+- Cau that van di duoc.
+- Khong tai xuat lag nang quanh song/cau.
+
+6. HEALTH UI 6.6.9
+- De NPC Team Up mat mau.
+- HUD HP va overhead HP giam dung.
+- Full HP ngoai combat: overhead bar an.
+
+7. SWITCH/CODEX
+- Equip va unequip lai bang controller.
+- Codex D-pad/analog chi di 1 profile moi input.
+
+NEU VAN FLICKER
+- Ghi ro Pokemon nao: Farmer hay NPC-linked.
+- Flicker khi dung yen hay chi khi di chuyen.
+- Co xay ra khi Team Up khong co NPC nao trong party hay khong.
+- Gui SMAPI log neu co the.
