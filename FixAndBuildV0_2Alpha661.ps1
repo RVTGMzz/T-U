@@ -31,6 +31,16 @@ if ($builderText.Contains($badGuard)) {
     $builderText = $builderText.Replace($badGuard, $goodGuard)
 }
 
+$badCompanionGuard = @'
+if (-not $followText.Contains("long recruiterId,`n        Farmer owner)")) {
+'@.Trim()
+$goodCompanionGuard = @'
+if (-not $followText.Contains("FindCompanionTile(owner.currentLocation, owner.Tile, playerPetIndex++)")) {
+'@.Trim()
+if ($builderText.Contains($badCompanionGuard)) {
+    $builderText = $builderText.Replace($badCompanionGuard, $goodCompanionGuard)
+}
+
 # PowerShell does not use backslash as its string escape. The builder originally emitted
 # backslashes into C# (\"text\"). Use PowerShell's backtick escape in the generator instead.
 $builderText = $builderText.Replace(
