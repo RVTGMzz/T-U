@@ -1,155 +1,136 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.7**
+Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.8**
 
-Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and no materialized source diff; water/bridge performance still requires real in-game validation.**
+Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and no materialized source diff. Alpha 6.6.7 water/bridge lag fix is user-confirmed; Alpha 6.6.8 now needs in-game confirmation that humanoid followers stay out of bare water without reintroducing lag.**
 
 Development branch:
 
-`v0.2-alpha6-6-7-water-combat-pathfinding-hotfix`
+`v0.2-alpha6-6-8-land-safe-follow-targets`
 
 Final handoff branch:
 
-`v0.2-alpha6-6-7-water-combat-pathfinding-hotfix-handoff`
+`v0.2-alpha6-6-8-land-safe-follow-targets-handoff`
 
 Read first:
 
-`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_7_2026-09-05.md`
+`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_8_2026-09-05.md`
 
-## Why Alpha 6.6.7 exists
+## Why Alpha 6.6.8 exists
 
-Live testing still showed severe lag at some river/bridge/narrow-path locations with a full Team Up party.
+Live testing confirmed Alpha 6.6.7 removed the severe river/bridge lag, but the simplified lightweight `isTileOnMap + isTilePassable` target test allowed humanoid party NPCs to accept some water tiles as formation/combat destinations. The user supplied a screenshot showing multiple recruited NPCs standing in the river after the performance fix.
 
-Inspection found a second expensive pathfinding path outside FollowService: `CombatService` was still scanning approach tiles with `isTileLocationTotallyClearAndPlaceable` and could rebuild unreachable paths repeatedly. Pelipper Town water/decorative actors represented as monsters could also be interpreted as combat targets even when they were source-owned/non-hostile.
+## Alpha 6.6.8 fix
 
-## Alpha 6.6.7 fixes
+New helper:
 
-### Pelipper combat target filter
+`src/TeamUp/Core/PartyTileSafety.cs`
 
-`PelipperTownCompatibilityService` now exposes:
+`PartyTileSafety.IsWalkableLandOrBridge(...)` keeps the cheap checks from 6.6.7, rejects bare water through `isWaterTile(x,y)`, and allows true bridge/walkway tiles when a Buildings-layer tile overlays the water coordinate.
 
-- `Ronvotri.TeamUp/CombatTarget`
-- `ShouldExcludeFromTeamUpCombat(NPC actor)`
+### Humanoid follow behavior
 
-Pelipper actors are excluded from Team Up combat by default. A provider can explicitly opt a specific actor into Team Up combat by setting `Ronvotri.TeamUp/CombatTarget=true`.
+- Main Party NPC formation uses land-safe targets only.
+- No fallback to a known-invalid preferred formation tile.
+- If no nearby land/bridge tile is valid, humanoid followers wait instead of following a mounted/traversing Farmer into water.
+- If a party NPC is already stranded on bare water from a previous runtime/save state, Team Up immediately warps that NPC to the resolved safe formation tile.
+- The rule is intentionally applied to humanoid party members, not globally to all external Pokemon/summons.
 
-This filter applies to the main target list and Team Up signature/AoE monster queries.
+### Combat behavior
 
-### Lightweight combat pathfinding
+`CombatService.IsLightweightCombatTile(...)` now delegates to the same land/bridge safety helper, so reachable land combat remains lightweight but approach targets cannot be bare water.
 
-`CombatService` no longer contains `isTileLocationTotallyClearAndPlaceable`.
+### Performance locks preserved
 
-Approach tiles use:
+- no `isTileLocationTotallyClearAndPlaceable` in FollowService or CombatService;
+- Pelipper source-owned water/decorative actors remain excluded from hostile Team Up targeting by default;
+- unreachable combat path retry cooldown remains 24 ticks;
+- combat movement path pulse remains every 3 ticks;
+- FollowService lightweight pathing from 6.6.7 remains.
 
-`location.isTileOnMap(tile) && location.isTilePassable(tile)`
+## Other regression locks preserved
 
-If no legal approach tile exists, movement fails closed and enters a retry cooldown instead of creating a path toward water/blocked terrain.
-
-### Path retry throttling
-
-- unreachable combat path retry cooldown: `24` ticks;
-- combat movement path creation pulse: every `3` ticks;
-- combat cooldowns, targeting and attacks continue normally between movement pulses.
-
-This targets CPU spikes without changing the five Party Strategy values, hard leash, target lock or facing hold.
-
-## Switch controller state retained
-
-Alpha 6.6.6 semantic controller bridge remains:
-
-- `IsActionButton()` -> equip/activate;
-- `IsUseToolButton()` -> unequip;
-- transactional equipment commit checks retained;
+- Switch semantic Action Button equip;
+- Switch semantic Use Tool unequip;
 - controller debounce 180 ms;
 - virtual mouse echo suppression 260 ms;
-- inventory mouse double-click 450 ms.
-
-Equip is already user-confirmed working. Unequip still needs user confirmation after installing a 6.6.6+ build.
-
-## UI regressions retained
-
-- Codex D-pad and left analog move exactly one profile per input;
-- Character Profile detail scale = `1.52f`;
-- ASCII-safe punctuation removes hollow-star fallback glyphs.
-
-## Product rules retained
-
+- inventory mouse double-click 450 ms;
+- Codex D-pad/left analog = exactly one profile per input;
+- profile content scale 1.52f;
+- ASCII-safe punctuation, no hollow-star fallback glyphs;
 - 6 total people across online Farmers + active NPCs;
-- shared external Pokemon/summon companion cap = 2;
-- Farmer and NPC companions share the same 2/2 pool;
-- vanilla pet and ChaCha are free;
-- Party Strategy: Balanced, Defensive, Aggressive, HoldPosition, BossFocus;
-- MiMi: `Ronvotri.Cardcha_MiMi`, `BROOMTAIL SIGIL`;
-- Sudoku: `ronvotri.HeyYoureCursed_Sudoku`, `NINEFOLD SEAL`;
-- Sudoku Team Up marker: `Ronvotri.TeamUp/PartyControlled = true`;
+- 2 shared external Pokemon/summon slots;
+- vanilla pet and ChaCha free;
+- five Party Strategy values unchanged;
+- MiMi `Ronvotri.Cardcha_MiMi` / `BROOMTAIL SIGIL`;
+- Sudoku `ronvotri.HeyYoureCursed_Sudoku` / `NINEFOLD SEAL`;
 - hard leash 12 tiles;
 - target lock 45 ticks;
 - facing hold 10 ticks;
-- Surge safe placement remains `isTileOnMap + isTilePassable + IsTileBlockedBy`;
-- never restore `isTileLocationTotallyClearAndPlaceable` to Surge/Follow/Combat;
-- Cardcha arena Surge exclusion retained;
-- 51 SVE/RSV profiles/icons/balance retained;
-- Party Vault drag/drop retained;
-- Origin story retained.
+- Surge safe-placement and Cardcha sandbox locks;
+- 51 SVE/RSV profiles/icons/balance;
+- Party Vault drag/drop;
+- Origin story.
 
 ## Authoritative checkpoint
 
-Materialized source commit:
+First materialized source commit:
 
-`d97b361`
+`b93fc29`
 
 Authoritative input commit:
 
-`a430575c20158624e3662679387f078722fafba8`
+`b4b97f6c7955b7872b86dc145e628789bcca1954`
 
 Authoritative CI run:
 
-`33964808233`
+`33971140085`
 
 Result:
 
-- `BuildV0_2Alpha667.ps1` success;
+- `BuildV0_2Alpha668.ps1` success;
 - 0 warnings;
 - 0 errors;
-- Pelipper combat target filter PASS;
-- lightweight combat approach scan PASS;
-- unreachable path retry cooldown PASS;
-- combat movement pulse PASS;
-- Switch equip/unequip regression PASS;
-- Codex/Profile/Surge regression PASS;
+- humanoid bare-water rejection PASS;
+- bridge overlay allowance PASS;
+- stranded NPC water rescue PASS;
+- combat land-safe approach PASS;
+- Alpha 6.6.7 performance regression PASS;
+- Switch/Codex/Surge regression PASS;
 - package verification PASS;
 - `No materialized source diff.`;
 - artifact upload PASS.
 
 Package:
 
-`TeamUp_v0.2.0-alpha.6.6.7_WATER_COMBAT_PATHFINDING_HOTFIX_TEST.zip`
+`TeamUp_v0.2.0-alpha.6.6.8_LAND_SAFE_FOLLOW_TARGETS_HOTFIX_TEST.zip`
 
 Package SHA256:
 
-`228ed7a54d077a3cbf944b856a334ab3f62dbe818bc71bc793b08597c77abde2`
+`923966725437a3bcc55c71ce9cf02b09d41b1b58c568891035bcf8ef3eb6ec43`
 
 Artifact ID:
 
-`9969080935`
+`9970958963`
 
 Artifact wrapper digest:
 
-`sha256:1ee65498ece6abd844a1ed56adc22823fecb7c9ffeda92a25f5a0e111c4bd03e`
+`sha256:b854f8456a69984cc4a5abb3c99e4aec455d89630aa2ef77246d865d6d787e43`
 
 ## Required live validation
 
 Use:
 
-`SMOKE_TEST_V0_2_ALPHA6_6_7_WATER_COMBAT_PATHFINDING_HOTFIX_VI.txt`
+`SMOKE_TEST_V0_2_ALPHA6_6_8_LAND_SAFE_FOLLOW_TARGETS_VI.txt`
 
 Highest priority:
 
-1. Revisit the exact river/bridge location that lagged badly with a 4-6 person party.
-2. Test while Pelipper water actors are visible and verify Team Up does not chase/attack them.
-3. Enter real land combat and verify NPCs still approach and attack reachable monsters.
-4. Verify unreachable targets no longer cause sustained frame-time spikes.
-5. Re-test Switch equip and Use Tool unequip.
-6. Re-test Codex one-row navigation, Tactics, Pelipper 2/2, MiMi, Sudoku, Surge and Vault.
+1. Return to the exact river screenshot location with a 4-6 person party.
+2. NPC people must remain on bank/real bridge and must not stand in the river.
+3. FPS must remain as smooth as user-confirmed Alpha 6.6.7.
+4. Test a true bridge to ensure the water guard does not block bridge traversal.
+5. If loading with NPCs already in water, verify they are rescued to land once and do not teleport-loop.
+6. Test real land combat near water.
+7. Re-test Switch equip/unequip and Codex one-row navigation.
 
-Do not call the water-performance fix live-verified until the user confirms it in game.
+Do not call Alpha 6.6.8 live-verified until the user confirms the land-safe behavior in game.
