@@ -3,9 +3,12 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $project = Join-Path $root 'src\TeamUp\TeamUp.csproj'
 $manifest = Join-Path $root 'src\TeamUp\manifest.json'
 $modEntry = Join-Path $root 'src\TeamUp\ModEntry.cs'
+$alpha661 = Join-Path $root 'src\TeamUp\ModEntry.Alpha661.cs'
 $alpha663 = Join-Path $root 'src\TeamUp\ModEntry.Alpha663.cs'
 $alpha669 = Join-Path $root 'src\TeamUp\ModEntry.Alpha669.cs'
+$deployment = Join-Path $root 'src\TeamUp\Core\PelipperDeploymentStateService.cs'
 $pelipper = Join-Path $root 'src\TeamUp\Core\PelipperTownCompatibilityService.cs'
+$healthOverlay = Join-Path $root 'src\TeamUp\UI\PartyHealthOverlayService.cs'
 $follow = Join-Path $root 'src\TeamUp\Following\FollowService.cs'
 $combat = Join-Path $root 'src\TeamUp\Combat\CombatService.cs'
 $tileSafety = Join-Path $root 'src\TeamUp\Core\PartyTileSafety.cs'
@@ -31,7 +34,7 @@ function Replace-Required([string]$text, [string]$old, [string]$new, [string]$la
 }
 
 try {
-    foreach ($required in @($project,$manifest,$modEntry,$alpha663,$alpha669,$pelipper,$follow,$combat,$tileSafety,$equipment,$codex)) {
+    foreach ($required in @($project,$manifest,$modEntry,$alpha661,$alpha663,$alpha669,$deployment,$pelipper,$healthOverlay,$follow,$combat,$tileSafety,$equipment,$codex)) {
         if (-not (Test-Path $required)) { throw "Missing Alpha 6.6.9 source: $required" }
     }
 
@@ -50,132 +53,53 @@ try {
     $modText = [regex]::Replace(
         $modText,
         'Team Up! v0\.2\.0-alpha\.6\.6\.\d+ [^\r\n"]+ loaded\.',
-        'Team Up! v0.2.0-alpha.6.6.9 Companion Flicker + NPC Health Bars Hotfix loaded.')
+        'Team Up! v0.2.0-alpha.6.6.9 Companion Flicker + Thin Health Bars Hotfix loaded.')
     Write-Utf8 $modEntry $modText
 
-    $pelipperText = Read-Lf $pelipper
-    if (-not $pelipperText.Contains('DeploymentStateKey = "Ronvotri.TeamUp/DeploymentState"')) {
-        $oldConstants = '    public const string CombatTargetOptInKey = "Ronvotri.TeamUp/CombatTarget";'
-        $newConstants = @'
-    public const string CombatTargetOptInKey = "Ronvotri.TeamUp/CombatTarget";
-    public const string DeploymentStateKey = "Ronvotri.TeamUp/DeploymentState";
-    public const string DeploymentOwnerKey = "Ronvotri.TeamUp/DeploymentOwner";
-'@
-        $pelipperText = Replace-Required $pelipperText $oldConstants $newConstants.TrimEnd() 'Pelipper soft deployment contract constants'
-    }
-
-    if (-not $pelipperText.Contains('private static void RestoreLegacySuppression')) {
-        $setPattern = '(?s)    public static void SetSuppressed\(NPC actor, string ownerName, bool suppressed\)\n    \{.*?\n    \}\n\n    public static void CleanupOrphanedSuppression'
-        $setReplacement = @'
-    public static void SetSuppressed(NPC actor, string ownerName, bool suppressed)
-    {
-        // Alpha 6.6.9: source-owned Pelipper actors keep render/movement authority.
-        // Team Up records desired deployment state only. Do not toggle IsInvisible, Halt,
-        // controller, or temporaryController here, since Pelipper may update those itself.
-        RestoreLegacySuppression(actor);
-        actor.modData[DeploymentStateKey] = suppressed ? "Standby" : "Active";
-        if (!string.IsNullOrWhiteSpace(ownerName))
-            actor.modData[DeploymentOwnerKey] = ownerName;
-        else
-            actor.modData.Remove(DeploymentOwnerKey);
-    }
-
-    private static void RestoreLegacySuppression(NPC actor)
-    {
-        bool hadLegacySuppression = actor.modData.TryGetValue(SuppressedKey, out string? rawSuppressed)
-            && rawSuppressed.Equals("true", StringComparison.OrdinalIgnoreCase);
-        if (hadLegacySuppression)
-        {
-            bool originalInvisible = actor.modData.TryGetValue(OriginalInvisibleKey, out string? rawOriginal)
-                && bool.TryParse(rawOriginal, out bool parsed)
-                && parsed;
-            TrySetInvisible(actor, originalInvisible);
-        }
-
-        actor.modData.Remove(SuppressedKey);
-        actor.modData.Remove(SuppressedOwnerKey);
-        actor.modData.Remove(OriginalInvisibleKey);
-    }
-
-    public static void CleanupOrphanedSuppression
-'@
-        $patched = [regex]::Replace($pelipperText, $setPattern, $setReplacement, 1)
-        if ($patched -eq $pelipperText) { throw 'Pelipper SetSuppressed patch anchor missing.' }
-        $pelipperText = $patched
-    }
-
-    if (-not $pelipperText.Contains('bool clearAllDeployment = active.Count == 0;')) {
-        $cleanupPattern = '(?s)    public static void CleanupOrphanedSuppression\(IReadOnlyCollection<string> activeTeamUpOwnerNames\)\n    \{.*?\n    \}\n\n    public static bool ShouldExcludeFromTeamUpCombat'
-        $cleanupReplacement = @'
-    public static void CleanupOrphanedSuppression(IReadOnlyCollection<string> activeTeamUpOwnerNames)
-    {
-        HashSet<string> active = activeTeamUpOwnerNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        bool clearAllDeployment = active.Count == 0;
-        foreach (GameLocation location in Game1.locations)
-        {
-            foreach (NPC actor in location.characters.OfType<NPC>())
-            {
-                if (!LooksLikePelipperActor(actor))
-                    continue;
-
-                // One-time repair for saves produced by pre-6.6.9 visibility suppression.
-                RestoreLegacySuppression(actor);
-
-                if (clearAllDeployment)
-                {
-                    actor.modData.Remove(DeploymentStateKey);
-                    actor.modData.Remove(DeploymentOwnerKey);
-                    continue;
-                }
-
-                if (!actor.modData.TryGetValue(DeploymentOwnerKey, out string? owner)
-                    || string.IsNullOrWhiteSpace(owner)
-                    || active.Contains(owner))
-                {
-                    continue;
-                }
-
-                actor.modData.Remove(DeploymentStateKey);
-                actor.modData.Remove(DeploymentOwnerKey);
-            }
-        }
-    }
-
-    public static bool ShouldExcludeFromTeamUpCombat
-'@
-        $patched = [regex]::Replace($pelipperText, $cleanupPattern, $cleanupReplacement, 1)
-        if ($patched -eq $pelipperText) { throw 'Pelipper cleanup patch anchor missing.' }
-        $pelipperText = $patched
-    }
-    Write-Utf8 $pelipper $pelipperText
+    $alpha661Text = Read-Lf $alpha661
+    $alpha661Text = Replace-Required $alpha661Text `
+        '                        PelipperTownCompatibilityService.SetSuppressed(replacementActor, replacement.OwnerCharacterName ?? string.Empty, true);' `
+        '                        PelipperDeploymentStateService.SetDesiredDeployment(replacementActor, replacement.OwnerCharacterName ?? string.Empty, false);' `
+        'replacement Pelipper soft-standby handoff'
+    Write-Utf8 $alpha661 $alpha661Text
 
     $modText = Read-Lf $modEntry
-    $alphaText = Read-Lf $alpha669
+    $alpha661Text = Read-Lf $alpha661
+    $alpha663Text = Read-Lf $alpha663
+    $alpha669Text = Read-Lf $alpha669
+    $deploymentText = Read-Lf $deployment
     $pelipperText = Read-Lf $pelipper
+    $healthText = Read-Lf $healthOverlay
     $followText = Read-Lf $follow
     $combatText = Read-Lf $combat
     $tileSafetyText = Read-Lf $tileSafety
-    $alpha663Text = Read-Lf $alpha663
     $equipmentText = Read-Lf $equipment
     $codexText = Read-Lf $codex
 
-    foreach ($token in @('RegisterAlpha669HotfixEvents();','build: v0.2.0-alpha.6.6.9','Companion Flicker + NPC Health Bars Hotfix loaded.')) {
+    foreach ($token in @('RegisterAlpha669HotfixEvents();','build: v0.2.0-alpha.6.6.9','Companion Flicker + Thin Health Bars Hotfix loaded.')) {
         if (-not $modText.Contains($token)) { throw "ModEntry 6.6.9 token missing: $token" }
     }
-    foreach ($token in @('RenderedWorld','PartyHealthBarWidthAlpha669 = 52','Progression.GetMaxHealth(member)','member.CurrentHealth','member.IsDowned','PartyHealthBarCombatRadiusAlpha669 = 10f','hpText = isDowned ? "DOWN"')) {
-        if (-not $alphaText.Contains($token)) { throw "Health bar token missing: $token" }
-    }
-    foreach ($token in @('DeploymentStateKey = "Ronvotri.TeamUp/DeploymentState"','DeploymentOwnerKey = "Ronvotri.TeamUp/DeploymentOwner"','RestoreLegacySuppression(actor)','actor.modData[DeploymentStateKey] = suppressed ? "Standby" : "Active"','bool clearAllDeployment = active.Count == 0;')) {
-        if (-not $pelipperText.Contains($token)) { throw "Pelipper soft deployment token missing: $token" }
-    }
 
-    $setStart = $pelipperText.IndexOf('    public static void SetSuppressed')
-    $setEnd = $pelipperText.IndexOf('    private static void RestoreLegacySuppression', $setStart)
-    if ($setStart -lt 0 -or $setEnd -lt 0) { throw 'Unable to inspect Pelipper SetSuppressed body.' }
-    $setBody = $pelipperText.Substring($setStart, $setEnd - $setStart)
-    foreach ($forbidden in @('TrySetInvisible','actor.Halt()','actor.controller','actor.temporaryController')) {
-        if ($setBody.Contains($forbidden)) { throw "Pelipper source-authority regression inside SetSuppressed: $forbidden" }
+    foreach ($token in @('DeploymentStateKey = "Ronvotri.TeamUp/PelipperDeployment"','StandbyValue = "Standby"','SetDesiredDeployment','CleanupLegacySuppressionOnAllPelipperActors','ClearDesiredDeploymentOnAllPelipperActors')) {
+        if (-not $deploymentText.Contains($token)) { throw "Pelipper deployment token missing: $token" }
     }
+    if (-not $deploymentText.Contains('PelipperTownCompatibilityService.SetSuppressed(actor, owner, false);')) { throw 'Legacy suppression cleanup must only restore false/original state.' }
+    if ($deploymentText.Contains('SetSuppressed(actor, owner, true)')) { throw 'Alpha 6.6.9 must never set Pelipper suppression=true.' }
+
+    foreach ($token in @('PelipperDeploymentStateService.SetDesiredDeployment','IsPelipperUnitDeployedAlpha669','Team Up does not own Pelipper visibility/movement in 6.6.9')) {
+        if (-not $alpha663Text.Contains($token)) { throw "Alpha663 soft deployment token missing: $token" }
+    }
+    if ($alpha663Text.Contains('PelipperTownCompatibilityService.SetSuppressed(')) { throw 'Alpha663 still mutates Pelipper visibility at runtime.' }
+    if ($alpha661Text.Contains('PelipperTownCompatibilityService.SetSuppressed(')) { throw 'Alpha661 replacement flow still mutates Pelipper visibility.' }
+    if (-not $alpha661Text.Contains('PelipperDeploymentStateService.SetDesiredDeployment(replacementActor')) { throw 'Alpha661 replacement flow is not soft deployment.' }
+
+    foreach ($token in @('RenderedWorld','RenderedHud','BuildHealthSnapshotSignatureAlpha669','BroadcastPartySnapshot()','PartyHealthCombatRadiusAlpha669 = 10f')) {
+        if (-not $alpha669Text.Contains($token)) { throw "Alpha669 health runtime token missing: $token" }
+    }
+    foreach ($token in @('HudBarHeight = 5','WorldBarHeight = 4','HudRowHeight = 17','ratio < 0.999f','DrawHud','DrawWorld')) {
+        if (-not $healthText.Contains($token)) { throw "Thin health overlay token missing: $token" }
+    }
+    if ($healthText.Contains('100/100') -or $healthText.Contains('hpText')) { throw 'Overhead health UI regressed to verbose numeric text.' }
 
     foreach ($token in @('FindLandOpenNear','PartyTileSafety.IsWalkableLandOrBridge(owner.currentLocation, npc.Tile)')) {
         if (-not $followText.Contains($token)) { throw "6.6.8 follow regression missing: $token" }
@@ -196,11 +120,12 @@ try {
     }
     if ($codexText.Contains('MoveVertical(2)') -or $codexText.Contains('MoveVertical(-2)')) { throw 'Codex one-row navigation regressed.' }
 
-    Log 'Building Alpha 6.6.9 Companion Flicker + NPC Health Bars Hotfix...'
-    Log 'FIX: Team Up no longer toggles Pelipper IsInvisible or movement controllers during deployment reconciliation.'
-    Log 'FIX: legacy Team Up Pelipper visibility suppression is restored once, then removed.'
-    Log 'FEATURE: NPC health bars render above active Team Up members while wounded/downed or near valid combat targets.'
-    Log 'REGRESSION: 6.6.7 performance and 6.6.8 land-safe follow/combat remain locked.'
+    Log 'Building Alpha 6.6.9 Companion Flicker + Thin Health Bars Hotfix...'
+    Log 'FIX: Pelipper Pokemon keep source render/movement authority; Team Up records soft Active/Standby only.'
+    Log 'FIX: pre-6.6.9 legacy visibility suppression is restored once, never re-applied.'
+    Log 'FEATURE: compact 5px party HUD health bars plus contextual 4px overhead bars.'
+    Log 'MULTIPLAYER: host broadcasts party snapshot only when health/downed/state signature changes.'
+    Log 'REGRESSION: 6.6.7 performance + 6.6.8 land-safe + Switch input + Codex one-row preserved.'
 
     & dotnet restore $project 2>&1 | Tee-Object -FilePath $log -Append
     if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
@@ -232,9 +157,11 @@ try {
     Log ''
     Log '========================================================='
     Log 'BUILD SUCCESS - ALPHA 6.6.9'
-    Log 'PELIPPER SOURCE RENDER AUTHORITY: ENABLED'
-    Log 'LEGACY VISIBILITY REPAIR: ENABLED'
-    Log 'NPC WORLD HEALTH BARS: ENABLED'
+    Log 'PELIPPER SOURCE RENDER/MOVEMENT AUTHORITY: ENABLED'
+    Log 'PELIPPER SOFT DEPLOYMENT MARKERS: ENABLED'
+    Log 'PARTY HUD HEALTH BAR HEIGHT: 5PX'
+    Log 'OVERHEAD HEALTH BAR HEIGHT: 4PX'
+    Log 'MULTIPLAYER HEALTH SNAPSHOT SYNC: ENABLED'
     Log '6.6.7 PERFORMANCE REGRESSION: PRESERVED'
     Log '6.6.8 LAND-SAFE REGRESSION: PRESERVED'
     Log "ZIP: $zip"
