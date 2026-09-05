@@ -16,20 +16,30 @@ foreach ($relative in $normalize) {
     [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
 }
 
-# Bootstrap-only repair: the original direct builder used a single-quoted string containing
-# a backtick-n sequence, so its idempotency check could never match a real newline. Patch the
-# builder itself once; materialization will persist the corrected direct builder.
+# Bootstrap-only repairs. Materialization persists these fixes into the direct builder,
+# then this temporary bootstrap file is removed before the authoritative run.
 $builder = Join-Path $root 'BuildV0_2Alpha661.ps1'
 $builderText = [System.IO.File]::ReadAllText($builder, [System.Text.Encoding]::UTF8).Replace("`r`n", "`n")
-$bad = @'
+
+$badGuard = @'
 if (-not $followText.Contains('long recruiterId,`n        Farmer owner')) {
 '@.Trim()
-$good = @'
+$goodGuard = @'
 if (-not $followText.Contains("UpdatePartyMembers(members, recruiterId, owner);")) {
 '@.Trim()
-if ($builderText.Contains($bad)) {
-    $builderText = $builderText.Replace($bad, $good)
+if ($builderText.Contains($badGuard)) {
+    $builderText = $builderText.Replace($badGuard, $goodGuard)
 }
+
+# PowerShell does not use backslash as its string escape. The builder originally emitted
+# backslashes into C# (\"text\"). Use PowerShell's backtick escape in the generator instead.
+$builderText = $builderText.Replace(
+    '= \"Ronvotri.TeamUp/PartyControlled\";',
+    '= `"Ronvotri.TeamUp/PartyControlled`";')
+$builderText = $builderText.Replace(
+    '= \"Ronvotri.TeamUp/PartyControllerOwner\";',
+    '= `"Ronvotri.TeamUp/PartyControllerOwner`";')
+
 [System.IO.File]::WriteAllText($builder, $builderText, $utf8NoBom)
 
 & (Join-Path $root 'BuildV0_2Alpha661.ps1')
