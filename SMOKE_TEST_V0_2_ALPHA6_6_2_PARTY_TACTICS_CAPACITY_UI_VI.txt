@@ -75,3 +75,6 @@ G. SURGE / CORE REGRESSION
 KẾT LUẬN
 - Nếu A-D pass và không có lỗi runtime mới: Alpha 6.6.2 có thể xem là UI/network smoke pass.
 - Nếu multiplayer strategy sync lỗi, KHÔNG mở rộng formation/per-member strategy; làm hotfix Alpha 6.6.3 tập trung sync/UI authority trước.
+
+CI NOTE
+- Commit kiểm định direct-builder sau materialization phải PASS và báo "No materialized source diff." trước khi đóng handoff Alpha 6.6.2.
