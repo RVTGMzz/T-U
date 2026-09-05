@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.6.3 - LIVE TEST HOTFIX
+echo   Team Up! v0.2.0-alpha.6.6.4 - CONTROLLER EQUIPMENT HOTFIX
 echo =========================================================
 echo.
 
@@ -16,7 +16,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha663.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha664.ps1"
 if errorlevel 1 (
   echo.
   echo BUILD FAILED. Gui file BUILD_LOG.txt cho ChatGPT de sua.
@@ -25,31 +25,30 @@ if errorlevel 1 (
 )
 
 echo.
-echo BUILD OK - ALPHA 6.6.3.
+echo BUILD OK - ALPHA 6.6.4.
 echo Mo thu muc release de lay ZIP cai vao Mods.
-echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.6.3
+echo SMAPI phai hien: Team Up DEBUG HARNESS READY ... 6.6.4
 echo.
-echo 4 LIVE HOTFIX:
-echo - Controller: A trang bi item dang focus hoac item duoi controller cursor.
-echo - Codex: right analog scroll dong bo selection; left analog di 2 hang, D-pad di 1 hang.
-echo - Pelipper Town Pokemon: NPC/Farmer Pokemon dung chung hard cap 2/2.
-echo - Water/bridge: giam pathfinding churn tren map nuoc, cau va duong hep.
+echo CONTROLLER EQUIPMENT HOTFIX:
+echo - Moi nut A/X/Y chi duoc xu ly mot lan moi thao tac.
+echo - Chan click chuot ao do gamepad A sinh ra.
+echo - Slot NPC khong con double-click de thao do, tranh ghost equip/unequip.
+echo - Chi bao "Da trang bi" sau khi ca metadata va equipment storage deu commit that.
+echo - Chi bao "Da thao" sau khi slot that su da trong.
+echo - Double-click item trong tui 450ms van duoc giu.
 echo.
-echo LUAT PARTY GIU NGUYEN:
-echo - Tong Farmer online + NPC active toi da 6 nguoi.
-echo - External Pokemon/summon combat dung chung toi da 2.
-echo - Vanilla pet va ChaCha khong chiem companion slot.
-echo.
-echo PELIPPER DEBUG:
-echo - teamup_pelipper status
-echo - teamup_pelipper reconcile
+echo REGRESSION GIU NGUYEN TU 6.6.3:
+echo - Codex analog scroll/selection sync.
+echo - Pelipper Town Pokemon dung chung hard cap 2/2.
+echo - Water/bridge follower performance hotfix.
+echo - Tactics 5 strategy, Sudoku, MiMi, Surge va Party Vault.
 echo.
 echo TEST NHANH:
-echo - Equipment: D-pad/left analog chon item, A mot lan phai equip.
-echo - Equipment: right analog dua cursor len item, A mot lan phai equip dung item do.
-echo - Codex: scroll sau bang right analog roi bam left analog, list khong duoc nhay nguoc.
-echo - Recruit 3 NPC co Pokemon: chi toi da 2 Pokemon deployed, con thu 3 phai replacement/Standby.
-echo - Di qua cau/bo song voi party dong de so sanh lag voi 6.6.2.
+echo - Chon vu khi trong tui bang controller, A mot lan phai equip va slot hien item that.
+echo - Khong duoc xuat hien cap thong bao "Da trang bi" roi "Da thao" cho cung mot lan A.
+echo - Thu giu/spam A ngan: khong duoc lap trang thai equip/unequip.
+echo - Right analog dua cursor len item, A mot lan phai equip dung item.
+echo - X van thao do binh thuong; nut Thao trang bi van hoat dong.
 echo.
 explorer "%~dp0release"
 pause
