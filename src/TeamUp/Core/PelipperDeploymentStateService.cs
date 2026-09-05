@@ -41,21 +41,31 @@ public static class PelipperDeploymentStateService
             ? storedOwner ?? string.Empty
             : string.Empty;
 
-        // This is a one-time migration cleanup for state Team Up itself created before 6.6.9.
-        // After this call, Alpha 6.6.9 must never set suppression=true again.
+        // One-time migration cleanup for visibility/controller state Team Up itself created
+        // before 6.6.9. After this returns, the new runtime never sets suppression=true again.
         PelipperTownCompatibilityService.SetSuppressed(actor, owner, false);
     }
 
     public static void CleanupLegacySuppressionOnAllPelipperActors()
     {
+        foreach (NPC actor in EnumeratePelipperActors())
+            ReleaseLegacySuppression(actor);
+    }
+
+    public static void ClearDesiredDeploymentOnAllPelipperActors()
+    {
+        foreach (NPC actor in EnumeratePelipperActors())
+            ClearDesiredDeployment(actor);
+    }
+
+    private static IEnumerable<NPC> EnumeratePelipperActors()
+    {
         foreach (GameLocation location in Game1.locations)
         {
             foreach (NPC actor in location.characters.OfType<NPC>())
             {
-                if (!PelipperTownCompatibilityService.LooksLikePelipperActor(actor))
-                    continue;
-
-                ReleaseLegacySuppression(actor);
+                if (PelipperTownCompatibilityService.LooksLikePelipperActor(actor))
+                    yield return actor;
             }
         }
     }
