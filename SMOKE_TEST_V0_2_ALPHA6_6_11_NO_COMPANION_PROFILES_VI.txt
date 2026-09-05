@@ -1,0 +1,36 @@
+TEAM UP v0.2.0-alpha.6.6.11 - NO COMPANION PROFILES HOTFIX
+
+MUC TIEU CHINH
+- Pokemon, summon, external creature va special companion KHONG duoc mo Ho So Nhan Vat rieng.
+- NPC nguoi binh thuong / NPC co profile / custom recruit van mo Ho So binh thuong.
+
+TEST 1 - POKEMON CUA FARMER
+1. Goi Pokemon cua Farmer ra (vi du Rowlet).
+2. Noi chuyen/tuong tac de mo dialogue neu provider cho phep.
+3. Khong duoc hien tag "Ho so" cua Team Up tren dialogue.
+4. Bam ProfileKey/Q/L controller: Team Up khong duoc mo Character Profile.
+5. Khong duoc thay trang placeholder "Special / Companion".
+
+TEST 2 - POKEMON CUA NPC
+1. Recruit mot NPC co Pokemon lien ket, vi du Alex + Pokemon.
+2. Tuong tac truc tiep Pokemon.
+3. Khong co hint Ho so.
+4. Khong mo profile Pokemon.
+5. Profile cua NPC chu van mo binh thuong.
+
+TEST 3 - PELIPPER RUNTIME PROXY
+1. Tuong tac actor co ten kieu PelipperTown.Villager.* hoac PelipperTown.Player.*.
+2. Neu actor khong co Team Up combat profile that, khong duoc mo placeholder profile.
+
+TEST 4 - GENERIC SUMMON / SPECIAL COMPANION
+1. Thu summon cua mod khac neu co.
+2. Actor da dang ky CompanionUnits hoac khai bao FarmerSummon/LinkedCompanion phai bi chan profile.
+
+REGRESSION
+- MiMi / Sudoku / NPC custom recruit that van co Ho so.
+- Codex van mo profile tu catalog binh thuong.
+- Pokemon Pelipper khong chop tat theo fix 6.6.10.
+- FPS song/cau van muot theo 6.6.7.
+- NPC nguoi khong roi xuong nuoc theo 6.6.8.
+- HP bar NPC van hien theo 6.6.9.
+- Switch equip/unequip va Codex 1 profile/input van hoat dong.
