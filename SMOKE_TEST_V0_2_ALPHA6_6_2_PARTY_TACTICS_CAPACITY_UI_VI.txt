@@ -1,0 +1,77 @@
+TEAM UP v0.2.0-alpha.6.6.2
+PARTY TACTICS + SHARED CAPACITY UI - SMOKE TEST VI
+
+MỤC TIÊU
+- Xác nhận Tactics UI hoạt động bằng chuột, bàn phím và controller.
+- Xác nhận 5 Party Strategy không đổi contract từ Alpha 6.6.0.
+- Xác nhận farmhand gửi strategy request cho host, host mới là authority.
+- Xác nhận capacity UI phản ánh đúng luật 6 người chung + 2 external companion chung.
+- Xác nhận Alpha 6.6.1 multiplayer/capacity và các regression lock cũ không bị phá.
+
+A. MỞ TACTICS UI
+[ ] 1. Mở Codex bằng PartyMenuKey hoặc Social tab entry.
+[ ] 2. Ở footer Codex có nút Tactics / Chiến thuật.
+[ ] 3. Click Tactics mở Party Tactics Menu.
+[ ] 4. Controller: từ danh sách Codex đi xuống footer -> focus Tactics; Left/Right đổi giữa Tactics và Close.
+[ ] 5. B / Back / Esc từ Tactics quay về Codex, không đóng nhầm toàn bộ flow.
+
+B. STRATEGY UI
+[ ] 6. Menu hiện đủ 5 strategy: Balanced / Defensive / Aggressive / Hold Position / Boss Focus.
+[ ] 7. Strategy hiện tại có highlight/check riêng.
+[ ] 8. Mouse click đổi strategy được.
+[ ] 9. Keyboard Up/Down + Enter/Space đổi strategy được.
+[ ] 10. Controller D-pad/Left Stick + A đổi strategy được.
+[ ] 11. Chọn lại đúng strategy hiện tại không gây lỗi hoặc tạo spam state.
+[ ] 12. Sau khi đổi strategy, combat target/facing runtime lock được clear và combat retarget sạch.
+
+C. CAPACITY UI
+[ ] 13. Single-player, 1 Farmer + 0 NPC -> People 1/6.
+[ ] 14. 1 Farmer + 5 active NPC -> People 6/6.
+[ ] 15. NPC Waiting vẫn được tính vào People used.
+[ ] 16. 2 Farmer online + 4 active NPC -> People 6/6.
+[ ] 17. Companion card hiển thị đúng 0/2, 1/2, 2/2 theo external combat companion đang Active/Waiting/ReturningHome.
+[ ] 18. Vanilla dog/cat không tăng companion used.
+[ ] 19. ChaCha không tăng companion used và không tăng people used.
+[ ] 20. Nếu config giảm MaxPartyMembers hoặc MaxActiveLinkedCompanions, UI dùng đúng max hiện hành nhưng không vượt hard cap 6/2.
+
+D. MULTIPLAYER STRATEGY AUTHORITY
+[ ] 21. Host đổi strategy -> farmhand nhận StrategyState và UI farmhand cập nhật cùng giá trị.
+[ ] 22. Farmhand đổi strategy trong Tactics -> hiện thông báo request gửi host.
+[ ] 23. Host nhận request, apply strategy, clear host + RemoteCombatServices runtime locks.
+[ ] 24. Farmhand nhận action result + StrategyState; không tự ghi một strategy khác host.
+[ ] 25. Farmhand mới join nhận strategy hiện hành từ host ở PeerConnected.
+[ ] 26. Console teamup_strategy trên farmhand trong multiplayer cũng đi qua host authority.
+[ ] 27. Console teamup_strategy ngoài world vẫn ghi config local bình thường.
+
+E. PARTY STRATEGY REGRESSION
+[ ] 28. Balanced: baseline combat.
+[ ] 29. Defensive: acquisition ngắn hơn, support/healer can thiệp sớm hơn, attack hơi chậm.
+[ ] 30. Aggressive: acquisition xa hơn, attack hơi nhanh; HardLeashTiles = 12 vẫn khóa chase.
+[ ] 31. Hold Position: không chase ngoài attack range; vẫn fight/heal/control mục tiêu gần.
+[ ] 32. Boss Focus: ưu tiên MaxHealth cao nhất chỉ trong candidate hợp lệ gần đó.
+
+F. ALPHA 6.6.1 REGRESSION
+[ ] 33. Shared people cap vẫn đúng 6 Farmer + NPC active.
+[ ] 34. Shared external companion cap vẫn đúng 2 toàn farm.
+[ ] 35. Same-NPC double ownership vẫn bị chặn.
+[ ] 36. NPC + linked companion top-level flow vẫn NPC only / NPC+companion / Cancel.
+[ ] 37. Full 2/2 replacement flow vẫn tôn trọng ownership, farmhand không evict companion của farmhand khác.
+[ ] 38. Host/farmhand split map: follower/combat vẫn route theo đúng RecruiterId/Farmer owner.
+[ ] 39. Farmer join overflow chỉ chuyển NPC về Inactive, không xóa roster/progression/equipment.
+[ ] 40. Disconnect/rejoin giữ RecruiterId và progression.
+[ ] 41. MiMi farmhand recruit dùng friendship của đúng Farmer gửi request.
+[ ] 42. Sudoku có Ronvotri.TeamUp/PartyControlled=true khi Team Up giữ movement và xóa marker khi release.
+
+G. SURGE / CORE REGRESSION
+[ ] 43. teamup_test surge status|reapply|clear|board vẫn hoạt động.
+[ ] 44. Cardcha_CardTestArena vẫn không có Surge.
+[ ] 45. Surge vẫn không dùng isTileLocationTotallyClearAndPlaceable / Activator.CreateInstance / MemberwiseClone.
+[ ] 46. BROOMTAIL SIGIL và NINEFOLD SEAL còn nguyên.
+[ ] 47. Equipment double-click 450 ms còn nguyên.
+[ ] 48. Party Vault drag/drop + releaseLeftClick còn nguyên.
+[ ] 49. Controller focus Codex/Profile/Equipment/Vault không regress.
+[ ] 50. 51 SVE/RSV profile/icon/balance còn nguyên.
+
+KẾT LUẬN
+- Nếu A-D pass và không có lỗi runtime mới: Alpha 6.6.2 có thể xem là UI/network smoke pass.
+- Nếu multiplayer strategy sync lỗi, KHÔNG mở rộng formation/per-member strategy; làm hotfix Alpha 6.6.3 tập trung sync/UI authority trước.
