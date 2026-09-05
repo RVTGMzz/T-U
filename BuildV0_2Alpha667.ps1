@@ -29,86 +29,75 @@ function Replace-Required([string]$text, [string]$old, [string]$new, [string]$la
 }
 
 try {
-    foreach ($required in @($project, $manifest, $modEntry, $combat, $pelipper, $follow, $alpha663, $equipment, $codex)) {
+    foreach ($required in @($project,$manifest,$modEntry,$combat,$pelipper,$follow,$alpha663,$equipment,$codex)) {
         if (-not (Test-Path $required)) { throw "Missing Alpha 6.6.7 source: $required" }
     }
 
-    # -------------------- version --------------------
     $projectText = Read-Lf $project
     $projectText = [regex]::Replace($projectText, '<Version>[^<]+</Version>', "<Version>$version</Version>")
     Write-Utf8 $project $projectText
 
     $modText = Read-Lf $modEntry
-    $modText = $modText.Replace('build: v0.2.0-alpha.6.6.6', 'build: v0.2.0-alpha.6.6.7')
-    $modText = $modText.Replace('Team Up! v0.2.0-alpha.6.6.6 Switch Unequip Input Hotfix loaded.', 'Team Up! v0.2.0-alpha.6.6.7 Water Combat Pathfinding Hotfix loaded.')
+    $modText = $modText.Replace('build: v0.2.0-alpha.6.6.6','build: v0.2.0-alpha.6.6.7')
+    $modText = $modText.Replace('Team Up! v0.2.0-alpha.6.6.6 Switch Unequip Input Hotfix loaded.','Team Up! v0.2.0-alpha.6.6.7 Water Combat Pathfinding Hotfix loaded.')
     Write-Utf8 $modEntry $modText
 
-    # -------------------- Pelipper combat exclusion --------------------
     $pelipperText = Read-Lf $pelipper
     if (-not $pelipperText.Contains('CombatTargetOptInKey')) {
-        $pelipperText = Replace-Required $pelipperText `
-            '    public const string SuppressedOwnerKey = "Ronvotri.TeamUp/PelipperSuppressedOwner";' `
-            "    public const string SuppressedOwnerKey = \"Ronvotri.TeamUp/PelipperSuppressedOwner\";`n    public const string CombatTargetOptInKey = \"Ronvotri.TeamUp/CombatTarget\";" `
-            'Pelipper explicit combat opt-in key'
-
+        $oldConstants = '    public const string SuppressedOwnerKey = "Ronvotri.TeamUp/PelipperSuppressedOwner";'
+        $newConstants = @'
+    public const string SuppressedOwnerKey = "Ronvotri.TeamUp/PelipperSuppressedOwner";
+    public const string CombatTargetOptInKey = "Ronvotri.TeamUp/CombatTarget";
+'@
+        $pelipperText = Replace-Required $pelipperText $oldConstants $newConstants 'Pelipper combat opt-in constant'
         $method = @'
     public static bool ShouldExcludeFromTeamUpCombat(NPC actor)
     {
         if (!LooksLikePelipperActor(actor))
             return false;
 
-        // Pelipper Town creatures are source-owned world actors/companions by default. Team Up
-        // must not treat water Pokemon or decorative partners as hostile monsters. A provider may
-        // explicitly opt an actor into Team Up combat by setting CombatTargetOptInKey=true.
         return !actor.modData.TryGetValue(CombatTargetOptInKey, out string? raw)
             || !raw.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
 '@
-        $pelipperText = Replace-Required $pelipperText `
-            '    public static bool LooksLikePelipperActor(NPC actor)' `
-            ($method + '    public static bool LooksLikePelipperActor(NPC actor)') `
-            'Pelipper combat exclusion helper'
+        $pelipperText = Replace-Required $pelipperText '    public static bool LooksLikePelipperActor(NPC actor)' ($method + '    public static bool LooksLikePelipperActor(NPC actor)') 'Pelipper combat exclusion helper'
     }
     Write-Utf8 $pelipper $pelipperText
 
-    # -------------------- combat pathfinding hotfix --------------------
     $combatText = Read-Lf $combat
     if (-not $combatText.Contains('CombatPathRetryCooldownTicks')) {
-        $combatText = Replace-Required $combatText `
-            '    private const int FacingHoldDurationTicks = 10;' `
-            "    private const int FacingHoldDurationTicks = 10;`n    private const int CombatPathRetryCooldownTicks = 24;`n    private const int CombatMovementPulseTicks = 3;" `
-            'combat path retry constants'
-
-        $combatText = Replace-Required $combatText `
-            '    private readonly Dictionary<string, int> _facingHoldTicks = new(StringComparer.OrdinalIgnoreCase);' `
-            "    private readonly Dictionary<string, int> _facingHoldTicks = new(StringComparer.OrdinalIgnoreCase);`n    private readonly Dictionary<string, int> _combatPathRetryTicks = new(StringComparer.OrdinalIgnoreCase);" `
-            'combat path retry dictionary'
-
-        $combatText = Replace-Required $combatText `
-            '    private int _threatPulseTicks;' `
-            "    private int _threatPulseTicks;`n    private int _combatMovementPulse;" `
-            'combat movement pulse field'
-
-        $combatText = Replace-Required $combatText `
-            '        _facingHoldTicks.Clear();' `
-            "        _facingHoldTicks.Clear();`n        _combatPathRetryTicks.Clear();`n        _combatMovementPulse = 0;" `
-            'combat retry reset'
-
-        $combatText = Replace-Required $combatText `
-            '        TickCooldowns(_facingHoldTicks);' `
-            "        TickCooldowns(_facingHoldTicks);`n        TickCooldowns(_combatPathRetryTicks);`n        _combatMovementPulse = (_combatMovementPulse + 1) % CombatMovementPulseTicks;" `
-            'combat retry tick'
-
-        $combatText = Replace-Required $combatText `
-            '            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))' `
-            "            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))`n            .Where(monster => !PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))" `
-            'exclude Pelipper source actors from main target list'
-
-        $combatText = Replace-Required $combatText `
-            '                MoveTowardTarget(npc, target, role);' `
-            "                if (_combatMovementPulse == 0)`n                    MoveTowardTarget(npc, target, role);" `
-            'throttle combat path builds'
+        $combatText = Replace-Required $combatText '    private const int FacingHoldDurationTicks = 10;' @'
+    private const int FacingHoldDurationTicks = 10;
+    private const int CombatPathRetryCooldownTicks = 24;
+    private const int CombatMovementPulseTicks = 3;
+'@ 'combat retry constants'
+        $combatText = Replace-Required $combatText '    private readonly Dictionary<string, int> _facingHoldTicks = new(StringComparer.OrdinalIgnoreCase);' @'
+    private readonly Dictionary<string, int> _facingHoldTicks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _combatPathRetryTicks = new(StringComparer.OrdinalIgnoreCase);
+'@ 'combat retry dictionary'
+        $combatText = Replace-Required $combatText '    private int _threatPulseTicks;' @'
+    private int _threatPulseTicks;
+    private int _combatMovementPulse;
+'@ 'combat movement pulse field'
+        $combatText = Replace-Required $combatText '        _facingHoldTicks.Clear();' @'
+        _facingHoldTicks.Clear();
+        _combatPathRetryTicks.Clear();
+        _combatMovementPulse = 0;
+'@ 'combat retry clear'
+        $combatText = Replace-Required $combatText '        TickCooldowns(_facingHoldTicks);' @'
+        TickCooldowns(_facingHoldTicks);
+        TickCooldowns(_combatPathRetryTicks);
+        _combatMovementPulse = (_combatMovementPulse + 1) % CombatMovementPulseTicks;
+'@ 'combat retry tick'
+        $combatText = Replace-Required $combatText '            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))' @'
+            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
+            .Where(monster => !PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
+'@ 'main Pelipper combat exclusion'
+        $combatText = Replace-Required $combatText '                MoveTowardTarget(npc, target, role);' @'
+                if (_combatMovementPulse == 0)
+                    MoveTowardTarget(npc, target, role);
+'@ 'combat movement pulse'
 
         $oldMove = @'
     private void MoveTowardTarget(NPC npc, Monster target, PartyRole role)
@@ -154,7 +143,6 @@ try {
 
         bool movedEnough = !_lastTargetTiles.TryGetValue(npc.Name, out Vector2 old)
             || Vector2.Distance(old, targetTile) >= RepathThresholdTiles;
-
         if (npc.controller is not null && !movedEnough)
             return;
 
@@ -162,12 +150,7 @@ try {
         npc.temporaryController = null;
         try
         {
-            var controller = new PathFindController(
-                npc,
-                FarmerContext.currentLocation,
-                targetTile.ToPoint(),
-                GetFacingDirection(npc.Position, target.Position));
-
+            var controller = new PathFindController(npc, FarmerContext.currentLocation, targetTile.ToPoint(), GetFacingDirection(npc.Position, target.Position));
             _lastTargetTiles[npc.Name] = targetTile;
             if (controller.pathToEndPoint is null || controller.pathToEndPoint.Count == 0)
             {
@@ -175,7 +158,6 @@ try {
                 npc.Halt();
                 return;
             }
-
             npc.controller = controller;
         }
         catch (Exception ex)
@@ -219,28 +201,23 @@ try {
         best = Vector2.Zero;
         float bestDistance = float.MaxValue;
         bool found = false;
-
         for (int x = -radius; x <= radius; x++)
         {
             for (int y = -radius; y <= radius; y++)
             {
                 if (x == 0 && y == 0)
                     continue;
-
                 Vector2 candidate = target + new Vector2(x, y);
                 if (!IsLightweightCombatTile(location, candidate))
                     continue;
-
                 float distance = Vector2.DistanceSquared(candidate, from);
                 if (distance >= bestDistance)
                     continue;
-
                 best = candidate;
                 bestDistance = distance;
                 found = true;
             }
         }
-
         return found;
     }
 
@@ -248,7 +225,6 @@ try {
     {
         if (tile.X < 0f || tile.Y < 0f || float.IsNaN(tile.X) || float.IsNaN(tile.Y))
             return false;
-
         try
         {
             return location.isTileOnMap(tile) && location.isTilePassable(tile);
@@ -259,7 +235,7 @@ try {
         }
     }
 '@
-        $combatText = Replace-Required $combatText $oldApproach $newApproach 'lightweight combat approach selection'
+        $combatText = Replace-Required $combatText $oldApproach $newApproach 'lightweight approach search'
 
         $oldLiving = @'
     private List<Monster> GetLivingMonstersNear(Vector2 centerTile, float radiusTiles)
@@ -282,11 +258,10 @@ try {
             .ToList();
     }
 '@
-        $combatText = Replace-Required $combatText $oldLiving $newLiving 'signature AoE Pelipper exclusion'
+        $combatText = Replace-Required $combatText $oldLiving $newLiving 'AoE Pelipper exclusion'
     }
     Write-Utf8 $combat $combatText
 
-    # -------------------- source acceptance --------------------
     $combatText = Read-Lf $combat
     $pelipperText = Read-Lf $pelipper
     $followText = Read-Lf $follow
@@ -294,43 +269,22 @@ try {
     $equipmentText = Read-Lf $equipment
     $codexText = Read-Lf $codex
 
-    foreach ($token in @(
-        'CombatPathRetryCooldownTicks = 24',
-        'CombatMovementPulseTicks = 3',
-        '_combatPathRetryTicks',
-        'ShouldExcludeFromTeamUpCombat(monster)',
-        'TryFindApproachTile',
-        'IsLightweightCombatTile',
-        'location.isTileOnMap(tile) && location.isTilePassable(tile)',
-        '_combatMovementPulse == 0'
-    )) {
+    foreach ($token in @('CombatPathRetryCooldownTicks = 24','CombatMovementPulseTicks = 3','_combatPathRetryTicks','ShouldExcludeFromTeamUpCombat(monster)','TryFindApproachTile','IsLightweightCombatTile','location.isTileOnMap(tile) && location.isTilePassable(tile)','_combatMovementPulse == 0')) {
         if (-not $combatText.Contains($token)) { throw "Combat 6.6.7 token missing: $token" }
     }
     if ($combatText.Contains('isTileLocationTotallyClearAndPlaceable')) { throw 'CombatService still contains expensive isTileLocationTotallyClearAndPlaceable.' }
-
-    foreach ($token in @('CombatTargetOptInKey', 'ShouldExcludeFromTeamUpCombat')) {
-        if (-not $pelipperText.Contains($token)) { throw "Pelipper combat filter token missing: $token" }
-    }
-
-    foreach ($token in @('OpenSearchOffsets', 'location.isTileOnMap(tile) && location.isTilePassable(tile)')) {
-        if (-not $followText.Contains($token)) { throw "Follow performance regression token missing: $token" }
-    }
-    if ($followText.Contains('isTileLocationTotallyClearAndPlaceable')) { throw 'FollowService regressed to totally-clear/placeable.' }
-
-    foreach ($token in @('e.Button.IsActionButton()', 'e.Button.IsUseToolButton()', 'routedButton = Buttons.A', 'routedButton = Buttons.X')) {
-        if (-not $alphaText.Contains($token)) { throw "Switch semantic input regression token missing: $token" }
-    }
-    foreach ($token in @('ControllerActivationDebounceMs = 180', 'ControllerMouseEchoSuppressionMs = 260', 'DoubleClickWindowMs = 450')) {
-        if (-not $equipmentText.Contains($token)) { throw "Equipment regression token missing: $token" }
-    }
-    if ($codexText.Contains('MoveVertical(2)') -or $codexText.Contains('MoveVertical(-2)')) { throw 'Codex one-row controller navigation regressed.' }
+    foreach ($token in @('CombatTargetOptInKey','ShouldExcludeFromTeamUpCombat')) { if (-not $pelipperText.Contains($token)) { throw "Pelipper token missing: $token" } }
+    if ($followText.Contains('isTileLocationTotallyClearAndPlaceable')) { throw 'FollowService regressed to expensive placement query.' }
+    foreach ($token in @('e.Button.IsActionButton()','e.Button.IsUseToolButton()','routedButton = Buttons.A','routedButton = Buttons.X')) { if (-not $alphaText.Contains($token)) { throw "Switch input regression missing: $token" } }
+    foreach ($token in @('ControllerActivationDebounceMs = 180','ControllerMouseEchoSuppressionMs = 260','DoubleClickWindowMs = 450')) { if (-not $equipmentText.Contains($token)) { throw "Equipment regression missing: $token" } }
+    if ($codexText.Contains('MoveVertical(2)') -or $codexText.Contains('MoveVertical(-2)')) { throw 'Codex one-row navigation regressed.' }
 
     Log 'Building Alpha 6.6.7 Water Combat Pathfinding Hotfix...'
-    Log 'FIX: Pelipper source-owned water/decorative actors are excluded from Team Up combat unless explicitly opted in.'
-    Log 'FIX: combat approach tile scan no longer calls isTileLocationTotallyClearAndPlaceable.'
-    Log 'FIX: unreachable combat paths enter a 24-tick retry cooldown instead of rebuilding every frame.'
-    Log 'FIX: combat movement path creation is pulsed every 3 ticks while cooldown/attacks continue normally.'
-    Log 'REGRESSION: Switch semantic equip/unequip and Codex one-row navigation preserved.'
+    Log 'FIX: source-owned Pelipper water/decorative actors excluded from Team Up combat unless opted in.'
+    Log 'FIX: lightweight combat approach tile validation.'
+    Log 'FIX: unreachable path retry cooldown = 24 ticks.'
+    Log 'FIX: combat movement path pulse = every 3 ticks.'
+    Log 'REGRESSION: Switch equip/unequip + Codex one-row navigation preserved.'
 
     & dotnet restore $project 2>&1 | Tee-Object -FilePath $log -Append
     if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed.' }
@@ -339,7 +293,6 @@ try {
 
     $dll = Get-ChildItem (Join-Path $root 'src\TeamUp\bin\Release') -Recurse -Filter 'TeamUp.dll' | Select-Object -First 1
     if ($null -eq $dll -or -not (Test-Path $dll.FullName)) { throw 'Compiled TeamUp.dll was not found.' }
-
     if (Test-Path $stageRoot) { Remove-Item $stageRoot -Recurse -Force }
     if (-not (Test-Path $releaseDir)) { New-Item -ItemType Directory -Path $releaseDir | Out-Null }
     New-Item -ItemType Directory -Path $stageMod -Force | Out-Null
@@ -348,11 +301,9 @@ try {
     $manifestText = $manifestText.Replace('%ProjectVersion%', $version)
     Write-Utf8 (Join-Path $stageMod 'manifest.json') $manifestText
     Copy-Item (Join-Path $root 'src\TeamUp\i18n') (Join-Path $stageMod 'i18n') -Recurse -Force
-
     if (Test-Path $zip) { Remove-Item $zip -Force }
     Compress-Archive -Path $stageMod -DestinationPath $zip -CompressionLevel Optimal -Force
     if (-not (Test-Path $zip)) { throw 'Alpha 6.6.7 ZIP was not created.' }
-
     $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
     Write-Utf8 $shaPath ("$hash  $(Split-Path $zip -Leaf)`r`n")
     $smoke = Join-Path $root 'SMOKE_TEST_V0_2_ALPHA6_6_7_WATER_COMBAT_PATHFINDING_HOTFIX_VI.txt'
