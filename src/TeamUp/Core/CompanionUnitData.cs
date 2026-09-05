@@ -27,4 +27,10 @@ public sealed class CompanionUnitData
     public bool IsPlayerMainPet { get; set; }
 
     public bool CountsTowardPartyLimit => false;
+
+    // Vanilla pets are free. External summons/Pokemon use the shared 2-slot pool unless
+    // they are explicitly classified as a free special companion such as ChaCha.
+    public bool CountsTowardCombatCompanionLimit
+        => Kind == CompanionUnitKind.ExternalCreature
+            && !CompanionClassificationService.IsSpecialName(CharacterName, null);
 }
