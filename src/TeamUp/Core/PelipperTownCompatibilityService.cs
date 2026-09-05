@@ -39,8 +39,10 @@ public static class PelipperTownCompatibilityService
 
         foreach (NPC candidate in owner.currentLocation.characters.OfType<NPC>())
         {
+            bool teamUpSuppressed = candidate.modData.TryGetValue(SuppressedKey, out string? rawSuppressed)
+                && rawSuppressed.Equals("true", StringComparison.OrdinalIgnoreCase);
             if (ReferenceEquals(candidate, owner)
-                || candidate.IsInvisible
+                || (candidate.IsInvisible && !teamUpSuppressed)
                 || !LooksLikePelipperActor(candidate)
                 || LooksWild(candidate))
             {
@@ -48,7 +50,9 @@ public static class PelipperTownCompatibilityService
             }
 
             float distance = Vector2Distance(candidate.Tile, owner.Tile);
-            bool explicitOwner = HasOwnerName(candidate, owner.Name);
+            bool explicitOwner = HasOwnerName(candidate, owner.Name)
+                || (candidate.modData.TryGetValue(SuppressedOwnerKey, out string? suppressedOwner)
+                    && suppressedOwner.Equals(owner.Name, StringComparison.OrdinalIgnoreCase));
             if (!explicitOwner && distance > 3.25f)
                 continue;
 
@@ -73,8 +77,12 @@ public static class PelipperTownCompatibilityService
         {
             foreach (NPC candidate in location.characters.OfType<NPC>())
             {
-                if (candidate.IsInvisible || !LooksLikePelipperActor(candidate) || LooksWild(candidate))
+                if ((candidate.IsInvisible && !candidate.modData.ContainsKey(SuppressedKey))
+                    || !LooksLikePelipperActor(candidate)
+                    || LooksWild(candidate))
+                {
                     continue;
+                }
 
                 if (!TryReadOwnerFarmerId(candidate, out long ownerId) || !online.Contains(ownerId))
                     continue;
@@ -103,6 +111,45 @@ public static class PelipperTownCompatibilityService
             owner.modData.Remove(CompanionOptOutKey);
     }
 
+    public static NPC? ResolveActor(LiveCompanionDescriptor descriptor)
+    {
+        foreach (GameLocation location in Game1.locations)
+        {
+            foreach (NPC actor in location.characters.OfType<NPC>())
+            {
+                if (!LooksLikePelipperActor(actor))
+                    continue;
+
+                string ownerIdentity = descriptor.OwnerKind == CompanionOwnerKind.PartyMember
+                    ? $"npc:{descriptor.OwnerCharacterName ?? "npc"}"
+                    : $"farmer:{descriptor.OwnerFarmerId?.ToString() ?? "farmer"}";
+                if (BuildUnitId(actor, ownerIdentity).Equals(descriptor.UnitId, StringComparison.OrdinalIgnoreCase))
+                    return actor;
+            }
+        }
+
+        return null;
+    }
+
+    public static NPC? ResolveActor(CompanionUnitData unit)
+    {
+        if (!IsSourceControlled(unit))
+            return null;
+
+        var descriptor = new LiveCompanionDescriptor
+        {
+            UnitId = unit.UnitId,
+            CharacterName = unit.CharacterName,
+            DisplayName = unit.DisplayName,
+            OwnerKind = unit.OwnerKind,
+            OwnerCharacterName = unit.OwnerCharacterName,
+            OwnerFarmerId = unit.OwnerKind == CompanionOwnerKind.Player ? unit.RecruiterId : null,
+            ProviderId = unit.ProviderId,
+            ProviderUnitId = unit.ProviderUnitId
+        };
+        return ResolveActor(descriptor);
+    }
+
     public static void SetSuppressed(NPC actor, string ownerName, bool suppressed)
     {
         if (suppressed)
@@ -113,6 +160,9 @@ public static class PelipperTownCompatibilityService
             actor.modData[SuppressedKey] = "true";
             actor.modData[SuppressedOwnerKey] = ownerName;
             TrySetInvisible(actor, true);
+            actor.Halt();
+            actor.controller = null;
+            actor.temporaryController = null;
             return;
         }
 
