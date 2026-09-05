@@ -284,6 +284,12 @@ public sealed class FollowService
 
         foreach (CompanionUnitData unit in activeUnits)
         {
+            // Alpha 6.6.10: Pelipper Town is the sole movement/render authority for its Pokemon.
+            // Skip before resolving the actor so Team Up cannot PrepareForParty, HoldPosition,
+            // FollowTarget, warp, Halt, or replace controllers for source-owned companions.
+            if (PelipperTownCompatibilityService.IsSourceControlled(unit))
+                continue;
+
             if (_releasedCharacters.Contains(unit.CharacterName))
                 continue;
             NPC? npc = ResolveCharacter(unit.CharacterName);

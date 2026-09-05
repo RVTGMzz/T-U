@@ -17,12 +17,24 @@ public static class PelipperDeploymentStateService
     public static void SetDesiredDeployment(NPC actor, string ownerName, bool deployed)
     {
         ReleaseLegacySuppression(actor);
-        actor.modData[DeploymentStateKey] = deployed ? ActiveValue : StandbyValue;
+
+        string desiredState = deployed ? ActiveValue : StandbyValue;
+        if (!actor.modData.TryGetValue(DeploymentStateKey, out string? currentState)
+            || !currentState.Equals(desiredState, StringComparison.OrdinalIgnoreCase))
+        {
+            actor.modData[DeploymentStateKey] = desiredState;
+        }
 
         if (string.IsNullOrWhiteSpace(ownerName))
-            actor.modData.Remove(DeploymentOwnerKey);
-        else
+        {
+            if (actor.modData.ContainsKey(DeploymentOwnerKey))
+                actor.modData.Remove(DeploymentOwnerKey);
+        }
+        else if (!actor.modData.TryGetValue(DeploymentOwnerKey, out string? currentOwner)
+            || !currentOwner.Equals(ownerName, StringComparison.Ordinal))
+        {
             actor.modData[DeploymentOwnerKey] = ownerName;
+        }
     }
 
     public static void ClearDesiredDeployment(NPC actor)
