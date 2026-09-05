@@ -19,7 +19,7 @@ if errorlevel 1 (
   exit /b 1
 )
 echo.
-echo BUILD OK - ALPHA 6.6.9.
+echo BUILD OK - ALPHA 6.6.9 DIRECT BUILDER.
 echo - Team Up khong con tranh IsInvisible/Halt/controller cua Pokemon Pelipper.
 echo - Pelipper chi nhan soft deployment marker Active/Standby tu Team Up.
 echo - Party HUD HP: bar mong 5px, ten NPC nho o mep trai giua man hinh.
