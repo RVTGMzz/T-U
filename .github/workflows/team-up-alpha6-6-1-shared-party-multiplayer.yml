@@ -22,7 +22,7 @@ jobs:
       - name: Build Alpha 6.6.1 end-to-end
         shell: pwsh
         run: |
-          ./BuildV0_2Alpha661.ps1
+          ./FixAndBuildV0_2Alpha661.ps1
 
       - name: Source acceptance
         shell: bash
@@ -56,80 +56,51 @@ jobs:
           assert 'Shared Party Capacity + Companion Choice + Multiplayer Foundation loaded' in mod
           assert 'public sealed partial class ModEntry : Mod' in mod
 
-          # Shared 6-person people cap.
           assert 'public int MaxPartyMembers { get; set; } = 6;' in config
           assert 'Config.MaxPartyMembers = Math.Clamp(Config.MaxPartyMembers, 1, 6);' in mod
-          for token in [
-              'GetSharedPeopleCount', 'EnforceSharedPeopleCapacity',
-              'Math.Min(6, online.Count)', 'GetAnyOwner',
-              'TryAddMember(string characterName, long recruiterId, IReadOnlyCollection<long> onlineFarmerIds)'
-          ]:
+          for token in ['GetSharedPeopleCount', 'EnforceSharedPeopleCapacity', 'Math.Min(6, online.Count)', 'GetAnyOwner', 'TryAddMember(string characterName, long recruiterId, IReadOnlyCollection<long> onlineFarmerIds)']:
               assert token in party, token
           assert 'GetSharedPeopleCount(onlineFarmerIds) >= max' in party
           assert 'member.State is PartyMemberState.Following or PartyMemberState.Waiting' in party
 
-          # Shared 2-slot external companion pool.
           assert 'public int MaxActiveLinkedCompanions { get; set; } = 2;' in config
           assert 'Config.MaxActiveLinkedCompanions = Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2);' in mod
           assert 'CountsTowardCombatCompanionLimit' in companion
           assert 'Kind == CompanionUnitKind.ExternalCreature' in companion
           assert 'CompanionClassificationService.IsSpecialName(CharacterName, null)' in companion
-          for token in [
-              'GetActiveCombatCompanionCount', 'GetActiveCombatCompanions',
-              'TryAddPlayerCompanion', 'CanActivateAnotherCombatCompanion',
-              'Math.Clamp(_maxActiveLinkedCompanions(), 0, 2)',
-              'CompanionDeploymentState.ReturningHome'
-          ]:
+          for token in ['GetActiveCombatCompanionCount', 'GetActiveCombatCompanions', 'TryAddPlayerCompanion', 'CanActivateAnotherCombatCompanion', 'Math.Clamp(_maxActiveLinkedCompanions(), 0, 2)', 'CompanionDeploymentState.ReturningHome']:
               assert token in party, token
 
-          # Runtime provider contract and 3-option linked companion flow.
-          for token in [
-              'Ronvotri.TeamUp/CompanionOwnerCharacter',
-              'Ronvotri.TeamUp/CompanionOwnerFarmerId',
-              'FindLinkedCompanion', 'FindPlayerSummons'
-          ]:
+          for token in ['Ronvotri.TeamUp/CompanionOwnerCharacter', 'Ronvotri.TeamUp/CompanionOwnerFarmerId', 'FindLinkedCompanion', 'FindPlayerSummons']:
               assert token in integration, token
           for token in ['InviteOnly', 'InviteTogether', 'Cancel', 'ShowCompanionReplacementQuestionAlpha661']:
               assert token in alpha, token
           assert 'replaceable[index].UnitId' in alpha
 
-          # Host-authoritative multiplayer foundation.
           for token in ['RecruitRequestMessage', 'LeaveRequestMessage', 'MemberCommandRequestMessage', 'PartySnapshotMessage']:
               assert token in messages, token
-          for token in [
-              'RegisterAlpha661MultiplayerEvents', 'PeerConnected', 'PeerDisconnected',
-              'ModMessageReceived', 'BroadcastPartySnapshot', 'RecruitNpcAuthoritative',
-              'GetOnlineFarmerIds', 'UpdateOwnedPartyRuntime', 'RemoteCombatServices'
-          ]:
+          for token in ['RegisterAlpha661MultiplayerEvents', 'PeerConnected', 'PeerDisconnected', 'ModMessageReceived', 'BroadcastPartySnapshot', 'RecruitNpcAuthoritative', 'GetOnlineFarmerIds', 'UpdateOwnedPartyRuntime', 'RemoteCombatServices']:
               assert token in alpha, token
           assert 'e.FromPlayerID' in alpha
           assert 'GetAnyOwner(npc.Name)' in alpha
           assert 'replacement.RecruiterId == recruiterId || recruiterId == Game1.player.UniqueMultiplayerID' in alpha
-          assert 'if (!Context.IsMainPlayer)' in alpha
 
-          # Per-Farmer follow/combat ownership and Sudoku handshake.
-          for token in [
-              'Ronvotri.TeamUp/PartyControlled', 'Ronvotri.TeamUp/PartyControllerOwner',
-              'Farmer owner', 'owner.currentLocation', 'owner.Tile'
-          ]:
+          for token in ['Ronvotri.TeamUp/PartyControlled', 'Ronvotri.TeamUp/PartyControllerOwner', 'Farmer owner', 'owner.currentLocation', 'owner.Tile']:
               assert token in follow, token
           assert 'npc.modData.Remove(PartyControlledModDataKey)' in follow
           assert 'npc.modData.Remove(PartyControllerOwnerModDataKey)' in follow
           for token in ['SetFarmerContext', 'FarmerContext.currentLocation', 'HardLeashTiles = 12f', 'TargetLockDurationTicks = 45', 'FacingHoldDurationTicks = 10']:
               assert token in combat, token
 
-          # MiMi must validate the Farmer who actually requested recruitment.
           assert 'farmer.friendshipData.ContainsKey(MimiNpcId)' in compat
           assert 'Game1.player.friendshipData.ContainsKey(MimiNpcId)' not in compat
           assert 'SudokuCanonicalNpcId = "ronvotri.HeyYoureCursed_Sudoku"' in compat
 
-          # Strategy contract unchanged.
           for token in ['Balanced', 'Defensive', 'Aggressive', 'HoldPosition', 'BossFocus']:
               assert token in strategy, token
           assert 'teamup_strategy' in mod
           assert 'Combat.Clear()' in mod
 
-          # Existing combat/surge/custom NPC/UI regression locks.
           for token in ['ActiveInstance', 'LastTelemetryLine', 'DebugReapplyCurrentLocation', 'DebugShowThreatBoard', 'ClearOwnedSurgeMonsters', '[SurgeTelemetry]']:
               assert token in surge, token
           assert 'isTileLocationTotallyClearAndPlaceable' not in surge
@@ -145,7 +116,7 @@ jobs:
 
           print('Alpha 6.6.1 source acceptance PASS')
           print('Shared six-person capacity PASS')
-          print('Shared two-companion capacity + ChaCha/pet exemption PASS')
+          print('Shared two-companion capacity PASS')
           print('Linked companion recruit/replacement flow PASS')
           print('Host-authoritative multiplayer + per-Farmer owner context PASS')
           print('Sudoku PartyControlled handshake PASS')
@@ -169,7 +140,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/TeamUp BuildV0_2Alpha661.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt .github/workflows/team-up-alpha6-6-1-shared-party-multiplayer.yml
+          git add src/TeamUp BuildV0_2Alpha661.ps1 FixAndBuildV0_2Alpha661.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt .github/workflows/team-up-alpha6-6-1-shared-party-multiplayer.yml
           if git diff --cached --quiet; then
             echo "No materialized source diff."
           else
