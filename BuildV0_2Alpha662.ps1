@@ -84,10 +84,8 @@ try {
         if (Context.IsWorldReady)
             Game1.showGlobalMessage(message);
 '@
-        $newStrategy = @'
-        RequestStrategyChangeAlpha662(next.Value);
-'@
-        $modText = Replace-Required $modText $oldStrategy $newStrategy.TrimEnd() 'multiplayer-safe strategy command'
+        $newStrategy = '        RequestStrategyChangeAlpha662(next.Value);'
+        $modText = Replace-Required $modText $oldStrategy $newStrategy 'multiplayer-safe strategy command'
     }
 
     $modText = $modText.Replace(
@@ -149,21 +147,25 @@ try {
     }
 
     if (-not $codexText.Contains('_tacticsButton = new ClickableComponent')) {
-        $codexText = Replace-Required $codexText `
-            '        _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 176, yPositionOnScreen + height - 64, 146, 44), "Close");' `
-            "        _tacticsButton = new ClickableComponent(new Rectangle(xPositionOnScreen + 30, yPositionOnScreen + height - 64, 176, 44), `"Tactics`\");`n        _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 176, yPositionOnScreen + height - 64, 146, 44), `"Close`\");" `
-            'Codex tactics button creation'
+        $oldButtons = @'
+        _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 176, yPositionOnScreen + height - 64, 146, 44), "Close");
+'@
+        $newButtons = @'
+        _tacticsButton = new ClickableComponent(new Rectangle(xPositionOnScreen + 30, yPositionOnScreen + height - 64, 176, 44), "Tactics");
+        _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 176, yPositionOnScreen + height - 64, 146, 44), "Close");
+'@
+        $codexText = Replace-Required $codexText $oldButtons $newButtons 'Codex tactics button creation'
     }
 
     if (-not $codexText.Contains('if (_tacticsButton.containsPoint(x, y))')) {
-        $anchor = @'
+        $oldClick = @'
         if (_closeButton.containsPoint(x, y))
         {
             Close();
             return;
         }
 '@
-        $replacement = @'
+        $newClick = @'
         if (_tacticsButton.containsPoint(x, y))
         {
             _focus = FocusArea.Tactics;
@@ -178,7 +180,7 @@ try {
             return;
         }
 '@
-        $codexText = Replace-Required $codexText $anchor $replacement 'Codex tactics mouse click'
+        $codexText = Replace-Required $codexText $oldClick $newClick 'Codex tactics mouse click'
     }
 
     if (-not $codexText.Contains('else if (_tacticsButton.containsPoint(x, y))')) {
@@ -219,7 +221,7 @@ try {
         $codexText = Replace-Required $codexText $oldFooter $newFooter 'Codex tactics footer'
     }
 
-    if (-not $codexText.Contains('_focus is FocusArea.Tactics or FocusArea.Close')) {
+    if (-not $codexText.Contains('if (_focus is FocusArea.Tactics or FocusArea.Close)')) {
         $oldHorizontal = @'
     private void MoveHorizontal(int direction)
     {
@@ -250,18 +252,138 @@ try {
         $codexText = Replace-Required $codexText $oldHorizontal $newHorizontal 'Codex tactics horizontal navigation'
     }
 
-    $codexText = $codexText.Replace(
-        '        if (_focus == FocusArea.Close)',
-        '        if (_focus is FocusArea.Tactics or FocusArea.Close)')
-    $codexText = $codexText.Replace(
-        '            _focus = FocusArea.Close;',
-        '            _focus = FocusArea.Tactics;')
+    if (-not $codexText.Contains('_focus = direction < 0 ? FocusArea.Role : FocusArea.Tactics;')) {
+        $oldVertical = @'
+    private void MoveVertical(int direction)
+    {
+        if (_focus is FocusArea.Role or FocusArea.Status or FocusArea.Source)
+        {
+            if (direction > 0)
+            {
+                _focus = FocusArea.List;
+                _selectedIndex = Math.Clamp(_selectedIndex, 0, Math.Max(0, GetFilteredProfiles().Count - 1));
+                Game1.playSound("shiny4");
+            }
+            return;
+        }
+
+        if (_focus == FocusArea.Close)
+        {
+            if (direction < 0)
+            {
+                _focus = FocusArea.List;
+                Game1.playSound("shiny4");
+            }
+            return;
+        }
+
+        List<NpcCombatProfile> filtered = GetFilteredProfiles();
+        if (filtered.Count == 0)
+        {
+            _focus = direction < 0 ? FocusArea.Role : FocusArea.Close;
+            return;
+        }
+
+        if (direction < 0 && _selectedIndex == 0)
+        {
+            _focus = FocusArea.Role;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        if (direction > 0 && _selectedIndex >= filtered.Count - 1)
+        {
+            _focus = FocusArea.Close;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        _selectedIndex = Math.Clamp(_selectedIndex + direction, 0, filtered.Count - 1);
+        if (_selectedIndex < _scrollOffset)
+            _scrollOffset = _selectedIndex;
+        if (_selectedIndex >= _scrollOffset + _visibleRows)
+            _scrollOffset = _selectedIndex - _visibleRows + 1;
+        Game1.playSound("shiny4");
+    }
+'@
+        $newVertical = @'
+    private void MoveVertical(int direction)
+    {
+        if (_focus is FocusArea.Role or FocusArea.Status or FocusArea.Source)
+        {
+            if (direction > 0)
+            {
+                _focus = FocusArea.List;
+                _selectedIndex = Math.Clamp(_selectedIndex, 0, Math.Max(0, GetFilteredProfiles().Count - 1));
+                Game1.playSound("shiny4");
+            }
+            return;
+        }
+
+        if (_focus is FocusArea.Tactics or FocusArea.Close)
+        {
+            if (direction < 0)
+            {
+                _focus = FocusArea.List;
+                Game1.playSound("shiny4");
+            }
+            return;
+        }
+
+        List<NpcCombatProfile> filtered = GetFilteredProfiles();
+        if (filtered.Count == 0)
+        {
+            _focus = direction < 0 ? FocusArea.Role : FocusArea.Tactics;
+            return;
+        }
+
+        if (direction < 0 && _selectedIndex == 0)
+        {
+            _focus = FocusArea.Role;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        if (direction > 0 && _selectedIndex >= filtered.Count - 1)
+        {
+            _focus = FocusArea.Tactics;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        _selectedIndex = Math.Clamp(_selectedIndex + direction, 0, filtered.Count - 1);
+        if (_selectedIndex < _scrollOffset)
+            _scrollOffset = _selectedIndex;
+        if (_selectedIndex >= _scrollOffset + _visibleRows)
+            _scrollOffset = _selectedIndex - _visibleRows + 1;
+        Game1.playSound("shiny4");
+    }
+'@
+        $codexText = Replace-Required $codexText $oldVertical $newVertical 'Codex tactics vertical navigation'
+    }
 
     if (-not $codexText.Contains('case FocusArea.Tactics:')) {
-        $codexText = Replace-Required $codexText `
-            "            case FocusArea.List:`n                OpenSelected(GetFilteredProfiles());`n                break;`n            case FocusArea.Close:" `
-            "            case FocusArea.List:`n                OpenSelected(GetFilteredProfiles());`n                break;`n            case FocusArea.Tactics:`n                Game1.playSound(`"smallSelect`\");`n                _openTactics(this);`n                break;`n            case FocusArea.Close:" `
-            'Codex tactics activation'
+        $oldActivate = @'
+            case FocusArea.List:
+                OpenSelected(GetFilteredProfiles());
+                break;
+            case FocusArea.Close:
+                Close();
+                break;
+'@
+        $newActivate = @'
+            case FocusArea.List:
+                OpenSelected(GetFilteredProfiles());
+                break;
+            case FocusArea.Tactics:
+                Game1.playSound("smallSelect");
+                _openTactics(this);
+                break;
+            case FocusArea.Close:
+                Close();
+                break;
+'@
+        $codexText = Replace-Required $codexText $oldActivate $newActivate 'Codex tactics activation'
     }
     Write-Utf8 $codex $codexText
 
