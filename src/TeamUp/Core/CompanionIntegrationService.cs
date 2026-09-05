@@ -37,11 +37,15 @@ public static class CompanionIntegrationService
             return Describe(candidate, CompanionOwnerKind.PartyMember, owner.Name, null);
         }
 
-        return null;
+        // Pelipper Town owns its own companion runtime and does not use Team Up's modData
+        // contract. Detect the live decorative villager partner through the optional adapter.
+        return PelipperTownCompatibilityService.FindVillagerPartner(owner);
     }
 
     public static IEnumerable<LiveCompanionDescriptor> FindPlayerSummons()
     {
+        HashSet<string> emitted = new(StringComparer.OrdinalIgnoreCase);
+
         foreach (NPC candidate in GetAllCharacters())
         {
             if (candidate.IsInvisible
@@ -54,7 +58,19 @@ public static class CompanionIntegrationService
                 continue;
             }
 
-            yield return Describe(candidate, CompanionOwnerKind.Player, null, farmerId);
+            LiveCompanionDescriptor descriptor = Describe(candidate, CompanionOwnerKind.Player, null, farmerId);
+            if (emitted.Add(descriptor.UnitId))
+                yield return descriptor;
+        }
+
+        long[] onlineFarmerIds = Game1.getOnlineFarmers()
+            .Select(farmer => farmer.UniqueMultiplayerID)
+            .Distinct()
+            .ToArray();
+        foreach (LiveCompanionDescriptor descriptor in PelipperTownCompatibilityService.FindPlayerCompanions(onlineFarmerIds))
+        {
+            if (emitted.Add(descriptor.UnitId))
+                yield return descriptor;
         }
     }
 
