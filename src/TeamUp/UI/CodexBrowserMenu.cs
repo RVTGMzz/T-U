@@ -28,6 +28,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         Status,
         Source,
         List,
+        Tactics,
         Close
     }
 
@@ -56,11 +57,13 @@ public sealed class CodexBrowserMenu : IClickableMenu
     private readonly Func<string, bool> _canRecruit;
     private readonly ITranslationHelper _i18n;
     private readonly Action<string, CodexBrowserMenu> _openProfile;
+    private readonly Action<CodexBrowserMenu> _openTactics;
     private readonly Action _onClose;
 
     private readonly ClickableComponent _roleButton;
     private readonly ClickableComponent _statusButton;
     private readonly ClickableComponent _sourceButton;
+    private readonly ClickableComponent _tacticsButton;
     private readonly ClickableComponent _closeButton;
     private readonly List<ClickableComponent> _rows = new();
     private readonly List<string> _sourceIds = new() { "all" };
@@ -90,6 +93,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         Func<string, bool> canRecruit,
         ITranslationHelper i18n,
         Action<string, CodexBrowserMenu> openProfile,
+        Action<CodexBrowserMenu> openTactics,
         Action onClose)
         : base(
             Math.Max(6, (Game1.uiViewport.Width - Math.Min(1512, Game1.uiViewport.Width - 12)) / 2),
@@ -105,6 +109,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         _canRecruit = canRecruit;
         _i18n = i18n;
         _openProfile = openProfile;
+        _openTactics = openTactics;
         _onClose = onClose;
 
         MouseState mouse = Mouse.GetState();
@@ -128,6 +133,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         _roleButton = new ClickableComponent(new Rectangle(filterX, filterY, filterWidth, 54), "Role");
         _statusButton = new ClickableComponent(new Rectangle(filterX + filterWidth + gap, filterY, filterWidth, 54), "Status");
         _sourceButton = new ClickableComponent(new Rectangle(filterX + (filterWidth + gap) * 2, filterY, filterWidth, 54), "Source");
+        _tacticsButton = new ClickableComponent(new Rectangle(xPositionOnScreen + 30, yPositionOnScreen + height - 64, 176, 44), "Tactics");
         _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 176, yPositionOnScreen + height - 64, 146, 44), "Close");
 
         _visibleRows = Math.Clamp((height - 272) / 67, 3, 9);
@@ -181,6 +187,14 @@ public sealed class CodexBrowserMenu : IClickableMenu
             return;
         }
 
+        if (_tacticsButton.containsPoint(x, y))
+        {
+            _focus = FocusArea.Tactics;
+            Game1.playSound("smallSelect");
+            _openTactics(this);
+            return;
+        }
+
         if (_closeButton.containsPoint(x, y))
         {
             Close();
@@ -220,6 +234,8 @@ public sealed class CodexBrowserMenu : IClickableMenu
             _focus = FocusArea.Status;
         else if (_sourceButton.containsPoint(x, y))
             _focus = FocusArea.Source;
+        else if (_tacticsButton.containsPoint(x, y))
+            _focus = FocusArea.Tactics;
         else if (_closeButton.containsPoint(x, y))
             _focus = FocusArea.Close;
         else
@@ -342,11 +358,16 @@ public sealed class CodexBrowserMenu : IClickableMenu
 
         DrawRows(b, GetFilteredProfiles());
 
+        DrawInset(b, _tacticsButton.bounds, _focus == FocusArea.Tactics);
+        DrawCentered(b, _tacticsButton.bounds, _i18n.Get("tactics.open"), 1.08f);
+
+        int hintX = _tacticsButton.bounds.Right + 16;
+        int hintWidth = Math.Max(120, _closeButton.bounds.X - hintX - 16);
         DrawFitString(
             b,
             _i18n.Get("codex.filter-hint"),
-            new Rectangle(xPositionOnScreen + 34, yPositionOnScreen + height - 60, width - _closeButton.bounds.Width - 96, 40),
-            1.04f,
+            new Rectangle(hintX, yPositionOnScreen + height - 60, hintWidth, 40),
+            1.00f,
             new Color(112, 73, 44));
 
         DrawInset(b, _closeButton.bounds, _focus == FocusArea.Close);
@@ -427,7 +448,14 @@ public sealed class CodexBrowserMenu : IClickableMenu
 
     private void MoveHorizontal(int direction)
     {
-        if (_focus == FocusArea.List || _focus == FocusArea.Close)
+        if (_focus is FocusArea.Tactics or FocusArea.Close)
+        {
+            _focus = direction < 0 ? FocusArea.Tactics : FocusArea.Close;
+            Game1.playSound("shiny4");
+            return;
+        }
+
+        if (_focus == FocusArea.List)
         {
             _focus = direction < 0 ? FocusArea.Role : FocusArea.Source;
             Game1.playSound("shiny4");
@@ -454,7 +482,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
             return;
         }
 
-        if (_focus == FocusArea.Close)
+        if (_focus is FocusArea.Tactics or FocusArea.Close)
         {
             if (direction < 0)
             {
@@ -467,7 +495,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         List<NpcCombatProfile> filtered = GetFilteredProfiles();
         if (filtered.Count == 0)
         {
-            _focus = direction < 0 ? FocusArea.Role : FocusArea.Close;
+            _focus = direction < 0 ? FocusArea.Role : FocusArea.Tactics;
             return;
         }
 
@@ -480,7 +508,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
 
         if (direction > 0 && _selectedIndex >= filtered.Count - 1)
         {
-            _focus = FocusArea.Close;
+            _focus = FocusArea.Tactics;
             Game1.playSound("shiny4");
             return;
         }
@@ -508,6 +536,10 @@ public sealed class CodexBrowserMenu : IClickableMenu
                 break;
             case FocusArea.List:
                 OpenSelected(GetFilteredProfiles());
+                break;
+            case FocusArea.Tactics:
+                Game1.playSound("smallSelect");
+                _openTactics(this);
                 break;
             case FocusArea.Close:
                 Close();
