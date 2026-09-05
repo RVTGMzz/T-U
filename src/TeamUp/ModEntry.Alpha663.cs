@@ -207,11 +207,18 @@ public sealed partial class ModEntry
     {
         PelipperTownCompatibilityService.SetOwnerOptOut(owner, false);
 
-        NPC? actor = linked is not null && PelipperTownCompatibilityService.IsSourceControlled(linked)
-            ? PelipperTownCompatibilityService.ResolveActor(linked)
-            : PelipperTownCompatibilityService.ResolveActor(
-                CompanionIntegrationService.FindLinkedCompanion(owner)
-                ?? new LiveCompanionDescriptor());
+        NPC? actor = null;
+        if (linked is not null && PelipperTownCompatibilityService.IsSourceControlled(linked))
+        {
+            actor = PelipperTownCompatibilityService.ResolveActor(linked);
+        }
+        else
+        {
+            LiveCompanionDescriptor? detected = CompanionIntegrationService.FindLinkedCompanion(owner);
+            if (PelipperTownCompatibilityService.IsPelipperDescriptor(detected))
+                actor = PelipperTownCompatibilityService.ResolveActor(detected!);
+        }
+
         if (actor is not null)
             PelipperTownCompatibilityService.SetSuppressed(actor, owner.Name, false);
     }
