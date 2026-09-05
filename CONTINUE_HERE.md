@@ -1,105 +1,139 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.4**
+Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.5**
 
-Status: **compile/package/direct-builder verified with 0 warnings and 0 errors; controller equipment fix requires in-game confirmation**.
+Status: **compile/package verified with 0 warnings and 0 errors; Switch equipment, Codex navigation and Character Profile visual changes require in-game confirmation**.
 
 Development branch:
 
-`v0.2-alpha6-6-4-controller-equipment-transaction-hotfix`
+`v0.2-alpha6-6-5-switch-input-codex-profile-polish`
 
-Final handoff branch:
+Final handoff branch after closure:
 
-`v0.2-alpha6-6-4-controller-equipment-transaction-hotfix-handoff`
+`v0.2-alpha6-6-5-switch-input-codex-profile-polish-handoff`
 
-Read this handoff first:
+Previous handoff:
 
 `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_4_2026-09-05.md`
 
-For the previous Pelipper/Codex/water hotfix details, see:
+## Why Alpha 6.6.5 exists
 
-`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_3_2026-09-05.md`
+Real Nintendo/Switch controller testing after Alpha 6.6.4 found three remaining UX/runtime problems:
 
-## Why Alpha 6.6.4 exists
+1. Equipment still could not reliably equip through the physical Switch action button.
+2. Codex vertical navigation could skip one profile, e.g. A -> C instead of A -> B -> C.
+3. Character Profile typography was visually unbalanced because passive/signature descriptions were rendered at 2.28x while surrounding content stayed near 1.1x.
 
-A real controller test on the Equipment screen showed contradictory HUD messages such as `Đã trang bị Liềm` followed by `Đã tháo Liềm về túi`, while the NPC slot still displayed `Chưa trang bị`.
+The same test also exposed hollow `☆` glyphs in equipment summaries. Those were font fallback for punctuation such as em dash, middle dot and arrow, not corrupted equipment data.
 
-The important runtime finding was that controller activation and mouse-style activation were not sufficiently isolated. Stardew can echo controller `A` through mouse/cursor behavior, while Team Up also had a slot-card double-click unequip path. One physical action could therefore cause multiple state transitions or misleading success feedback.
+## Alpha 6.6.5 locked fixes
 
-## Alpha 6.6.4 equipment locks
+### 1. Switch/Nintendo equipment input
 
 File:
 
-`src/TeamUp/UI/EquipmentMenu.cs`
+`src/TeamUp/ModEntry.Alpha663.cs`
 
-Behavior:
+Team Up now captures the platform-configured SMAPI Action Button while `EquipmentMenu` is open:
 
-- Controller `A`, `X`, and `Y` activation is debounced.
-- A controller activation suppresses its short-lived virtual left-click echo.
-- NPC equipment slot cards now only select the slot. They no longer support double-click unequip.
-- Unequip remains explicit through controller `X` or the `Tháo trang bị` button.
-- Mouse double-click on an eligible item in the Farmer inventory remains supported with the existing 450 ms window.
-- Equip success HUD is transactional: Team Up verifies both PartyMember equipment metadata and the actual FarmerTeam global equipment inventory slot before showing success.
-- Unequip success HUD is transactional: both metadata and the actual global equipment slot must be empty before success is shown.
-- If commit verification fails, an error is shown instead of a fake success toast.
+- checks `e.Button.IsActionButton()` instead of assuming a physical XInput `Buttons.A` mapping;
+- suppresses the original button through `Helper.Input.Suppress(e.Button)`;
+- routes exactly one activation into the existing EquipmentMenu transactional controller path;
+- keeps Alpha 6.6.4 debounce and virtual mouse echo suppression active.
 
-Important constants/tokens:
+Key tokens:
 
-- `DoubleClickWindowMs = 450`
-- `ControllerActivationDebounceMs = 180`
-- `ControllerMouseEchoSuppressionMs = 260`
-- `TryBeginControllerActivation()`
-- `_suppressMouseClickUntilMs`
-- `TryActivateControllerPointer()`
-- `GetActualEquippedItem(_selectedSlot)`
+- `OnAlpha665EquipmentButtonPressed`
+- `e.Button.IsActionButton()`
+- `Helper.Input.Suppress(e.Button)`
+- `menu.receiveGamePadButton(Buttons.A)`
 
-Do not restore slot-card double-click unequip. It is intentionally removed to keep one controller action equal to one state transition.
+Do not replace this with a hard-coded Nintendo/XInput button assumption.
 
-## Alpha 6.6.3 behavior retained
+### 2. Codex one-profile navigation
 
-### Codex navigation
+File:
 
-- right-stick scroll keeps selection inside the visible viewport;
-- right-stick scroll step 2 rows;
-- left-stick Up/Down moves 2 rows;
-- D-pad remains 1 row for precision.
+`src/TeamUp/UI/CodexBrowserMenu.cs`
 
-### Pelipper Town
+D-pad and left-stick Up/Down now both move exactly one profile per input.
 
-Provider compatibility ID:
+Locked behavior:
 
-`Griff.PelipperTown`
+- D-pad Up/Down: 1 row;
+- left-stick Up/Down: 1 row;
+- dropdown options: 1 option;
+- right-stick/mouse-wheel viewport scrolling remains separate and keeps logical selection inside the visible range.
 
-- optional adapter, no hard Pelipper DLL dependency;
-- no Pelipper private-save reading;
-- detected Farmer/NPC Pokemon enter the shared external companion pool;
-- shared hard max remains 2/2;
-- Pelipper remains movement authority for its own source actors;
-- diagnostics remain:
-  - `teamup_pelipper status`
-  - `teamup_pelipper reconcile`
+Do not restore `MoveVertical(2)` or `MoveVertical(-2)` in controller navigation.
 
-### Water / bridge performance
+### 3. Character Profile typography
 
-- Team Up Follow update cadence remains every 4 ticks;
-- bounded `OpenSearchOffsets` fallback remains;
-- Follow tile validation uses `isTileOnMap + isTilePassable`;
-- Pelipper source-controlled Pokemon are skipped by Team Up follower movement.
+File:
 
-## Product rules still locked
+`src/TeamUp/UI/CharacterProfileMenu.cs`
+
+The right-side scrollable profile panel now uses a common readable content scale:
+
+`ProfileContentScale = 1.52f`
+
+This is approximately two-thirds of the previous giant 2.28x description scale.
+
+The scale is used for:
+
+- section titles in the detailed right panel;
+- affinity labels and scores;
+- passive text;
+- signature text;
+- relationship text.
+
+Affinity row spacing was increased to fit the larger type. Long passive/signature/relationship content should scroll rather than being shrunk aggressively.
+
+### 4. Hollow-star font fallback
+
+Files:
+
+- `src/TeamUp/Core/ProgressionService.cs`
+- `src/TeamUp/UI/EquipmentMenu.cs`
+
+Stardew's UI font was rendering unsupported punctuation as hollow stars. Alpha 6.6.5 replaces UI punctuation with safe ASCII equivalents:
+
+- empty gear: `-`
+- separators: `|`
+- comparison arrow: `->`
+
+Examples now render as:
+
+`Lv.1 | HP 90/90 | Healer M0`
+
+`W: - | A: -`
+
+`T: -`
+
+The old hollow `☆` marks were a glyph fallback bug only. They did not represent a hidden equipment/stat mechanic.
+
+## Alpha 6.6.4 equipment safety retained
+
+- controller activation debounce remains 180 ms;
+- virtual mouse echo suppression remains 260 ms;
+- NPC slot cards do not double-click unequip;
+- unequip remains explicit through X or the Unequip button;
+- inventory mouse double-click equip remains 450 ms;
+- equip HUD success requires committed PartyMember metadata and actual global equipment storage;
+- unequip HUD success requires both stores to be empty.
+
+## Product rules retained
 
 ### People capacity
 
-- maximum 6 total people across online Farmers + `Following` / `Waiting` Team Up NPCs;
-- a Farmer consumes a people slot;
+- maximum 6 total people across online Farmers plus active `Following`/`Waiting` NPCs;
 - single player therefore allows up to 5 active NPCs;
-- overflow becomes Inactive without deleting roster/progression/equipment;
-- ownership remains `RecruiterId` based.
+- overflow becomes Inactive without deleting roster/progression/equipment.
 
 ### Combat companion capacity
 
-- hard shared max 2 deployed external Pokemon/summon/creature companions across the whole farm;
-- Farmer-owned and NPC-linked creatures share the pool;
+- hard shared max 2 deployed external Pokemon/summon/creature companions across the farm;
+- Farmer-owned and NPC-linked external creatures share the pool;
 - `Active`, `Waiting`, `ReturningHome` reserve slots;
 - `Standby`, `Inactive` do not;
 - vanilla pet is free;
@@ -107,7 +141,7 @@ Provider compatibility ID:
 
 ### Party Strategy
 
-Five values remain unchanged:
+Five values remain:
 
 - `Balanced`
 - `Defensive`
@@ -115,103 +149,93 @@ Five values remain unchanged:
 - `HoldPosition`
 - `BossFocus`
 
-Tactics UI and host-authoritative multiplayer strategy sync remain unchanged from Alpha 6.6.2.
+### Custom recruits
 
-## Custom recruit locks
+MiMi:
 
-### MiMi
-
-- Cardcha UniqueID `Ronvotri.Cardcha`
-- canonical NPC `Ronvotri.Cardcha_MiMi`
-- requesting Farmer live friendship gate in multiplayer
-- no Cardcha private save/service access
+- canonical `Ronvotri.Cardcha_MiMi`
+- source `Ronvotri.Cardcha`
 - signature `BROOMTAIL SIGIL`
 
-### Sudoku
+Sudoku:
 
-- canonical NPC `ronvotri.HeyYoureCursed_Sudoku`
+- canonical `ronvotri.HeyYoureCursed_Sudoku`
 - signature `NINEFOLD SEAL`
-- Team Up movement markers:
-  - `Ronvotri.TeamUp/PartyControlled = true`
-  - `Ronvotri.TeamUp/PartyControllerOwner = <Farmer ID>`
+- Team Up movement marker `Ronvotri.TeamUp/PartyControlled = true`
 - source mod remains story/trust/roommate authority.
 
 ## Core regression locks
 
-- hard leash 12 tiles
-- target lock 45 ticks
-- facing hold 10 ticks
-- anti-spin
-- Hold Position no chase outside attack range
-- Aggressive never disables hard leash
-- Boss Focus only picks highest MaxHealth among already-valid candidates
-- Surge safe GreenSlime overlay
-- Cardcha arena Surge exclusion
-- Surge safe placement uses `isTileOnMap`, `isTilePassable`, `IsTileBlockedBy`
-- never restore `isTileLocationTotallyClearAndPlaceable` to Surge
-- no arbitrary custom-monster cloning through `Activator.CreateInstance` / `MemberwiseClone`
-- 51 SVE/RSV profiles/icons/balance
-- Party Vault drag/drop / `releaseLeftClick`
-- Origin story
+- hard leash 12 tiles;
+- target lock 45 ticks;
+- facing hold 10 ticks;
+- anti-spin;
+- Hold Position no chase outside attack range;
+- Aggressive never disables hard leash;
+- Boss Focus only prioritizes highest MaxHealth among valid targets;
+- Pelipper Town shared 2/2 compatibility remains source-respecting;
+- Follow water/bridge bounded open-tile search remains;
+- Surge Cardcha arena exclusion and safe placement remain;
+- never restore `isTileLocationTotallyClearAndPlaceable` to Surge;
+- no arbitrary custom monster cloning;
+- 51 SVE/RSV profiles/icons/balance;
+- Party Vault drag/drop;
+- Origin story.
 
-## Authoritative Alpha 6.6.4 CI
+## Alpha 6.6.5 build checkpoint
 
-Authoritative run:
+Materialized source commit from the first successful build:
 
-`33958778850`
+`7046dd5`
 
-Authoritative input commit:
+Successful materializing CI run:
 
-`2aed2ca2a7854ad22f1290f25abeabfd57ac3e57`
-
-Warning-clean materialization commit before authoritative run:
-
-`dc0cd99`
+`33961399608`
 
 Result:
 
-- direct `BuildV0_2Alpha664.ps1`
-- build success
-- 0 warnings
-- 0 errors
-- controller input echo guard acceptance PASS
-- transactional equip/unequip HUD confirmation PASS
-- inventory double-click 450 ms regression PASS
-- Alpha 6.6.3 regression acceptance PASS
-- package verification PASS
-- `No materialized source diff.`
-- artifact upload PASS
+- direct `BuildV0_2Alpha665.ps1` success;
+- 0 warnings;
+- 0 errors;
+- Switch SMAPI Action Button bridge acceptance PASS;
+- Codex one-row controller navigation acceptance PASS;
+- Character Profile 1.52 uniform typography acceptance PASS;
+- Stardew-font-safe punctuation acceptance PASS;
+- Alpha 6.6.4 / 6.6.3 regression acceptance PASS;
+- package verification PASS.
 
 Package:
 
-`TeamUp_v0.2.0-alpha.6.6.4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_TEST.zip`
+`TeamUp_v0.2.0-alpha.6.6.5_SWITCH_CODEX_PROFILE_HOTFIX_TEST.zip`
 
 Package SHA256:
 
-`5459cad0a9c4fa72e00a55fa8ff71ef0876a18f22656e1cbb9ed4fed0fc35911`
+`67f797a5858fc9bcdbe688040cbb1dc8017b07dcd2adfe7418fda4f6e3bacb51`
 
-Artifact ID:
+Artifact ID from the materializing run:
 
-`9967245555`
+`9968051018`
 
 Artifact wrapper digest:
 
-`sha256:be4a75914af8d5d0277060b5b13c4790052fa4676112ca309e6bcf899cc690d9`
+`sha256:3ca2419de44eedce45e4ef8b31d35157e7d1e484ad2e3a641d71b06b64896349`
+
+A final authoritative rerun from the materialized source should report `No materialized source diff.` before this checkpoint is handed off.
 
 ## Required live validation
 
 Use:
 
-`SMOKE_TEST_V0_2_ALPHA6_6_4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_VI.txt`
+`SMOKE_TEST_V0_2_ALPHA6_6_5_SWITCH_CODEX_PROFILE_POLISH_VI.txt`
 
 Highest priority:
 
-1. Select an eligible weapon with D-pad/left stick and press `A` once. Exactly one equip transition should occur and the NPC slot must visibly contain the item.
-2. Use right stick to place controller cursor over an eligible item, press `A` once, and verify the correct item is committed.
-3. Hold or quickly repeat `A`. It must not create a rapid equip/unequip pair.
-4. Confirm the old paired HUD messages `Đã trang bị` then `Đã tháo` no longer appear for one controller action.
-5. Controller `X` and the explicit Unequip button must still work.
-6. Mouse double-click on Farmer inventory items must still equip within 450 ms.
-7. Re-test Codex analog, Pelipper 2/2, water/bridge performance, Tactics, Sudoku, MiMi, Surge, and Vault.
+1. On Switch controller, focus a valid Farmer inventory item and press the physical Action Button once. Item must leave the bag and appear in the real NPC equipment slot.
+2. Repeat using right-stick pointer mode.
+3. Confirm no duplicate equip/unequip transaction or contradictory HUD pair.
+4. In Codex, verify A -> B -> C -> D with both D-pad and short left-stick inputs, never A -> C.
+5. Open Harvey or another profile with long passive/signature text. Right panel should be consistently large and readable at roughly 1.52x, with scrolling for overflow.
+6. Confirm equipment summary no longer displays hollow `☆` glyphs.
+7. Re-test Tactics, Pelipper 2/2, Sudoku, MiMi, Surge and Party Vault.
 
-Do **not** call the controller equipment bug live-verified until the user confirms these in game.
+Do not call the Switch equipment behavior live-verified until the user confirms it in game.
