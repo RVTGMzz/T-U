@@ -203,7 +203,7 @@ try {
 
             _progression.NormalizeMember(_member);
             _saveNow();
-            ShowHud(_translation.Get("equipment.equipped-name", new { item = committedData.DisplayName }));
+            ShowHud(_translation.Get("equipment.equipped-name", new { item = committedData!.DisplayName }));
             Game1.playSound("coin");
             _hoveredItem = null;
             ClampInventoryCursor();
@@ -217,7 +217,9 @@ try {
             Game1.playSound("cancel");
         }
 '@
-    $equipmentText = Replace-Required $equipmentText $oldEquip $newEquip 'transactional equip confirmation'
+    if (-not $equipmentText.Contains('committedData!.DisplayName')) {
+        $equipmentText = Replace-Required $equipmentText $oldEquip $newEquip 'transactional equip confirmation'
+    }
 
     $oldUnequip = @'
         string itemName = current.DisplayName;
@@ -280,6 +282,7 @@ try {
         'Slot cards only select',
         'string requestedQualifiedId = item.QualifiedItemId',
         'bool committed = committedData is not null',
+        'committedData!.DisplayName',
         'GetActualEquippedItem(_selectedSlot) is null',
         'DoubleClickWindowMs = 450'
     )) {
