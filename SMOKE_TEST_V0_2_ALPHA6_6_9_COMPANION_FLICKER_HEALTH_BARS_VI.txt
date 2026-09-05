@@ -1,0 +1,67 @@
+TEAM UP v0.2.0-alpha.6.6.9
+COMPANION FLICKER + NPC HEALTH BARS HOTFIX - SMOKE TEST VI
+
+MỤC TIÊU
+1. Pokémon của Farmer và Pokémon đi kèm NPC Pelipper Town không còn nhấp nháy do Team Up tranh quyền visibility/controller.
+2. NPC Team Up có thanh HP thật trên đầu để theo dõi khi combat hoặc mất máu.
+3. Giữ nguyên fix hết lag 6.6.7 và land-safe 6.6.8.
+
+A. PELIPPER FLICKER
+[ ] 1. Gọi Pokémon của Farmer, đứng yên 20-30 giây -> Pokémon không chớp tắt.
+[ ] 2. Chạy qua nhiều map -> Pokémon của Farmer không blink/snap do Team Up.
+[ ] 3. Recruit Alex hoặc NPC có Pokémon đi kèm -> Pokémon của NPC không nhấp nháy.
+[ ] 4. Farmer + NPC đều có Pokémon cùng lúc -> cả hai vẫn render ổn định.
+[ ] 5. Đi sát nước/cầu -> không thấy Pokémon chớp theo chu kỳ khoảng nửa giây.
+[ ] 6. Team Up không Halt hoặc giành controller của Pokémon Pelipper.
+[ ] 7. Save cũ từng dùng 6.6.3-6.6.8 -> load vào, marker visibility cũ được phục hồi một lần; Pokémon không bị ẩn vĩnh viễn.
+[ ] 8. Leave NPC -> Pokémon nguồn tiếp tục do Pelipper quản lý bình thường.
+
+B. COMPANION QUOTA / SOFT DEPLOYMENT
+[ ] 9. Tactics vẫn báo shared companion 0/2, 1/2, 2/2 đúng theo Team Up state.
+[ ] 10. Team Up ghi DeploymentState Active/Standby nhưng không tự bật/tắt IsInvisible của Pokémon nguồn.
+[ ] 11. Không cài Pelipper Town -> Team Up vẫn chạy bình thường.
+
+LƯU Ý: Alpha 6.6.9 ưu tiên dừng flicker và trả render/movement authority cho mod nguồn. Nếu Pelipper Town chưa đọc marker DeploymentState, một actor Standby có thể vẫn được mod nguồn vẽ. Khi đó cần làm handshake ở phía Pelipper, KHÔNG quay lại hack IsInvisible trong Team Up.
+
+C. NPC HEALTH BAR
+[ ] 12. Ngoài combat, NPC full HP -> không hiện thanh để giảm rối màn hình.
+[ ] 13. Có quái hợp lệ trong khoảng gần NPC -> thanh HP hiện trên đầu NPC dù đang full HP.
+[ ] 14. NPC bị mất máu -> thanh HP tiếp tục hiện sau khi quái đi xa.
+[ ] 15. Thanh hiển thị đúng CurrentHealth/MaxHealth thật của Team Up.
+[ ] 16. HP cao -> thanh xanh.
+[ ] 17. HP trung bình -> thanh vàng/cam.
+[ ] 18. HP <= 25% -> thanh đỏ.
+[ ] 19. NPC Downed -> hiện DOWN và thanh cạn/đỏ.
+[ ] 20. Healer hồi máu -> thanh tăng đúng theo HP thật.
+[ ] 21. Hồi full và hết combat -> thanh tự ẩn.
+[ ] 22. Mở menu -> health bar world không vẽ đè lên menu.
+
+D. PERFORMANCE + LAND SAFE REGRESSION
+[ ] 23. Đi lại đúng đoạn cầu/nước từng lag ở 6.6.6 -> vẫn mượt như 6.6.7.
+[ ] 24. NPC người không lao xuống sông.
+[ ] 25. Cầu thật trên nước vẫn đi được.
+[ ] 26. NPC bị kẹt dưới nước từ save/runtime cũ vẫn được rescue về đất/cầu.
+[ ] 27. Combat target sát mép nước không kéo NPC người xuống nước.
+[ ] 28. Không thấy Team Up spam pathfinding/visibility khi Pokémon ở gần nước.
+
+E. INPUT / CODEX REGRESSION
+[ ] 29. Switch Action equip vẫn trang bị được bằng controller.
+[ ] 30. Switch Use Tool unequip vẫn tháo được bằng controller.
+[ ] 31. Codex D-pad/analog đi đúng 1 hồ sơ mỗi input, không skip A -> C.
+[ ] 32. Profile UI scale và glyph-safe summary từ 6.6.5 còn nguyên.
+
+F. CORE REGRESSION
+[ ] 33. People cap tổng 6 còn đúng.
+[ ] 34. External companion pool hard state 2/2 còn đúng.
+[ ] 35. ChaCha và vanilla pet vẫn miễn companion slot.
+[ ] 36. 5 Party Strategy còn đủ.
+[ ] 37. MiMi gate còn đúng requesting Farmer.
+[ ] 38. Sudoku PartyControlled handshake còn nguyên.
+[ ] 39. Surge/Cardcha sandbox còn nguyên.
+[ ] 40. Hard leash 12 / target lock 45 / facing hold 10 / anti-spin còn nguyên.
+
+KẾT LUẬN
+- A pass: flicker do Team Up visibility/controller conflict đã được loại bỏ.
+- C pass: NPC HP UI đã usable trong combat.
+- D pass: 6.6.9 không làm lag/nước regress.
+- Nếu Pokémon vẫn flicker dù A6 không còn Team Up visibility/controller writes, gửi SMAPI-latest.txt và video ngắn; lúc đó nguồn flicker nằm ở provider/runtime khác, không nên thêm hack render mới vào Team Up.
