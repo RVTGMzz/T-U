@@ -42,14 +42,16 @@ public sealed partial class ModEntry
         Helper.Input.Suppress(e.Button);
         menu.receiveGamePadButton(routedButton.Value);
     }
+
     private void OnAlpha663SaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
         if (!Context.IsMainPlayer || !Context.IsWorldReady)
             return;
 
-        // Base SaveLoaded intentionally deactivates the roster. Restore any visual suppression
-        // left by a previous session before live Team Up members are activated again.
-        PelipperTownCompatibilityService.CleanupOrphanedSuppression(Array.Empty<string>());
+        // Alpha 6.6.9 migration: restore any visibility state created by old Team Up builds,
+        // then clear soft deployment markers because the base SaveLoaded path deactivates roster entries.
+        PelipperDeploymentStateService.CleanupLegacySuppressionOnAllPelipperActors();
+        PelipperDeploymentStateService.ClearDesiredDeploymentOnAllPelipperActors();
     }
 
     private void OnAlpha663DayEnding(object? sender, DayEndingEventArgs e)
@@ -57,7 +59,8 @@ public sealed partial class ModEntry
         if (!Context.IsMainPlayer || !Context.IsWorldReady)
             return;
 
-        PelipperTownCompatibilityService.CleanupOrphanedSuppression(Array.Empty<string>());
+        PelipperDeploymentStateService.CleanupLegacySuppressionOnAllPelipperActors();
+        PelipperDeploymentStateService.ClearDesiredDeploymentOnAllPelipperActors();
     }
 
     private void OnAlpha663UpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -80,14 +83,6 @@ public sealed partial class ModEntry
             : 0;
         bool changed = false;
 
-        List<PartyMemberData> activeMembers = Party.Members
-            .Where(member => onlineFarmerIds.Contains(member.RecruiterId))
-            .Where(member => member.State is PartyMemberState.Following or PartyMemberState.Waiting)
-            .ToList();
-        HashSet<string> activeOwnerNames = activeMembers
-            .Select(member => member.CharacterName)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         foreach (PartyMemberData member in Party.Members)
         {
             NPC? owner = Game1.getCharacterFromName(member.CharacterName);
@@ -107,13 +102,19 @@ public sealed partial class ModEntry
                         or CompanionDeploymentState.Waiting
                         or CompanionDeploymentState.ReturningHome)
                     {
-                        changed |= Party.SetCompanionState(linked.UnitId, linked.RecruiterId, CompanionDeploymentState.Standby);
+                        changed |= Party.SetCompanionState(
+                            linked.UnitId,
+                            linked.RecruiterId,
+                            CompanionDeploymentState.Standby);
                     }
                 }
                 else if (linked.State == CompanionDeploymentState.Standby
                     && Party.GetActiveCombatCompanionCount() < maxCompanions)
                 {
-                    changed |= Party.SetCompanionState(linked.UnitId, linked.RecruiterId, CompanionDeploymentState.Active);
+                    changed |= Party.SetCompanionState(
+                        linked.UnitId,
+                        linked.RecruiterId,
+                        CompanionDeploymentState.Active);
                 }
 
                 NPC? linkedActor = PelipperTownCompatibilityService.ResolveActor(linked);
@@ -121,10 +122,8 @@ public sealed partial class ModEntry
                 {
                     bool deployed = ownerActive
                         && !optedOut
-                        && linked.State is CompanionDeploymentState.Active
-                            or CompanionDeploymentState.Waiting
-                            or CompanionDeploymentState.ReturningHome;
-                    PelipperTownCompatibilityService.SetSuppressed(linkedActor, owner.Name, !deployed);
+                        && IsPelipperUnitDeployedAlpha669(linked);
+                    PelipperDeploymentStateService.SetDesiredDeployment(linkedActor, owner.Name, deployed);
                 }
                 continue;
             }
@@ -140,7 +139,7 @@ public sealed partial class ModEntry
             if (optedOut || maxCompanions <= 0)
             {
                 if (actor is not null)
-                    PelipperTownCompatibilityService.SetSuppressed(actor, owner.Name, true);
+                    PelipperDeploymentStateService.SetDesiredDeployment(actor, owner.Name, false);
                 continue;
             }
 
@@ -165,14 +164,12 @@ public sealed partial class ModEntry
             linked = Party.GetLinkedCompanion(member.CharacterName, member.RecruiterId);
             if (actor is not null && linked is not null)
             {
-                bool deployed = linked.State is CompanionDeploymentState.Active
-                    or CompanionDeploymentState.Waiting
-                    or CompanionDeploymentState.ReturningHome;
-                PelipperTownCompatibilityService.SetSuppressed(actor, owner.Name, !deployed);
+                PelipperDeploymentStateService.SetDesiredDeployment(
+                    actor,
+                    owner.Name,
+                    IsPelipperUnitDeployedAlpha669(linked));
             }
         }
-
-        PelipperTownCompatibilityService.CleanupOrphanedSuppression(activeOwnerNames);
 
         if (!changed)
             return;
@@ -180,7 +177,7 @@ public sealed partial class ModEntry
         SavePartyNow();
         BroadcastPartySnapshot();
         Monitor.Log(
-            $"Alpha 6.6.3 reconciled Pelipper Town companions. Shared combat companion usage: {Party.GetActiveCombatCompanionCount()}/{maxCompanions}.",
+            $"Alpha 6.6.9 reconciled Pelipper Town companion states without taking source visibility/movement authority. Shared combat companion usage: {Party.GetActiveCombatCompanionCount()}/{maxCompanions}.",
             LogLevel.Debug);
     }
 
@@ -195,7 +192,7 @@ public sealed partial class ModEntry
         PelipperTownCompatibilityService.SetOwnerOptOut(owner, !includeCompanion);
         NPC? actor = PelipperTownCompatibilityService.ResolveActor(detectedCompanion!);
         if (actor is not null)
-            PelipperTownCompatibilityService.SetSuppressed(actor, owner.Name, !includeCompanion);
+            PelipperDeploymentStateService.SetDesiredDeployment(actor, owner.Name, includeCompanion);
     }
 
     private void ApplyPelipperLinkedDeploymentAlpha663(
@@ -219,10 +216,10 @@ public sealed partial class ModEntry
         if (actor is null)
             return;
 
-        bool deployed = linked.State is CompanionDeploymentState.Active
-            or CompanionDeploymentState.Waiting
-            or CompanionDeploymentState.ReturningHome;
-        PelipperTownCompatibilityService.SetSuppressed(actor, linked.OwnerCharacterName ?? string.Empty, !deployed);
+        PelipperDeploymentStateService.SetDesiredDeployment(
+            actor,
+            linked.OwnerCharacterName ?? string.Empty,
+            IsPelipperUnitDeployedAlpha669(linked));
     }
 
     private void ReleasePelipperOwnerAlpha663(NPC owner, CompanionUnitData? linked)
@@ -242,8 +239,13 @@ public sealed partial class ModEntry
         }
 
         if (actor is not null)
-            PelipperTownCompatibilityService.SetSuppressed(actor, owner.Name, false);
+            PelipperDeploymentStateService.ClearDesiredDeployment(actor);
     }
+
+    private static bool IsPelipperUnitDeployedAlpha669(CompanionUnitData unit)
+        => unit.State is CompanionDeploymentState.Active
+            or CompanionDeploymentState.Waiting
+            or CompanionDeploymentState.ReturningHome;
 
     private void OnAlpha663PelipperCommand(string command, string[] args)
     {
@@ -267,10 +269,24 @@ public sealed partial class ModEntry
         int registered = Party.CompanionUnits.Count(PelipperTownCompatibilityService.IsSourceControlled);
         int active = Party.CompanionUnits.Count(unit =>
             PelipperTownCompatibilityService.IsSourceControlled(unit)
-            && unit.State is CompanionDeploymentState.Active
-                or CompanionDeploymentState.Waiting
-                or CompanionDeploymentState.ReturningHome);
+            && IsPelipperUnitDeployedAlpha669(unit));
         int detected = 0;
+        int softStandby = 0;
+        foreach (GameLocation location in Game1.locations)
+        {
+            foreach (NPC actor in location.characters.OfType<NPC>())
+            {
+                if (!PelipperTownCompatibilityService.LooksLikePelipperActor(actor))
+                    continue;
+
+                if (actor.modData.TryGetValue(PelipperDeploymentStateService.DeploymentStateKey, out string? state)
+                    && state.Equals(PelipperDeploymentStateService.StandbyValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    softStandby++;
+                }
+            }
+        }
+
         foreach (PartyMemberData member in Party.Members)
         {
             NPC? owner = Game1.getCharacterFromName(member.CharacterName);
@@ -282,7 +298,7 @@ public sealed partial class ModEntry
         }
 
         Monitor.Log(
-            $"Pelipper compatibility: detectedPartners={detected}, registered={registered}, activeSlots={active}/2, totalCombatCompanions={Party.GetActiveCombatCompanionCount()}/2.",
+            $"Pelipper compatibility: detectedPartners={detected}, registered={registered}, activeSlots={active}/2, softStandby={softStandby}, totalCombatCompanions={Party.GetActiveCombatCompanionCount()}/2. Team Up does not own Pelipper visibility/movement in 6.6.9.",
             LogLevel.Info);
     }
 }
