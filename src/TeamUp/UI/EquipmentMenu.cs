@@ -182,7 +182,7 @@ public sealed class EquipmentMenu : IClickableMenu
             _selectedSlot = (EquipmentSlot)i;
             _loadoutFocusIndex = i;
             _focusInventory = false;
-            // Slot cards only select. Unequip is explicit through X / the Unequip button.
+            // Slot cards only select. Unequip is explicit through the semantic Use Tool input / the Unequip button.
             // This prevents a controller A -> virtual-click echo from becoming a ghost double-click unequip.
             _lastMouseClickId = -1;
             _lastMouseClickAtMs = 0;

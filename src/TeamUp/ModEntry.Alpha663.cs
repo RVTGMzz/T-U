@@ -28,11 +28,19 @@ public sealed partial class ModEntry
         if (!Context.IsWorldReady || Game1.activeClickableMenu is not EquipmentMenu menu)
             return;
 
-        if (!e.Button.IsActionButton())
+        // Route semantic Stardew inputs rather than assuming Xbox face-button labels.
+        // Action activates/equips; Use Tool explicitly unequips the selected NPC slot.
+        Buttons? routedButton = null;
+        if (e.Button.IsActionButton())
+            routedButton = Buttons.A;
+        else if (e.Button.IsUseToolButton())
+            routedButton = Buttons.X;
+
+        if (!routedButton.HasValue)
             return;
 
         Helper.Input.Suppress(e.Button);
-        menu.receiveGamePadButton(Buttons.A);
+        menu.receiveGamePadButton(routedButton.Value);
     }
     private void OnAlpha663SaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
