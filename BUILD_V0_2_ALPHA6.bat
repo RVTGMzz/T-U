@@ -12,7 +12,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha6618.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha6618Final.ps1"
 if errorlevel 1 (
   echo BUILD FAILED. Gui BUILD_LOG.txt cho ChatGPT.
   pause
