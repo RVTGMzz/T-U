@@ -1,0 +1,112 @@
+name: Team Up v0.2.0-alpha.6.6.13 Single Target Pelipper Quota Farewell
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-13-single-target-pelipper-quota-hotfix ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.13 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha6613.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          a12 = (root/'ModEntry.Alpha6612.cs').read_text(encoding='utf-8')
+          a13 = (root/'ModEntry.Alpha6613.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert '<Version>0.2.0-alpha.6.6.13</Version>' in project
+          assert 'build: v0.2.0-alpha.6.6.13' in mod
+          assert 'Single Target + Pelipper Hard Quota + Farewell loaded.' in mod
+
+          for token in [
+              'RegisterAlpha6613Events();',
+              'ShowCurfewFarewellAlpha6613',
+              'GetCurfewFarewellAlpha6613',
+              'Muộn rồi. Tớ về đây, mai phiêu lưu tiếp nhé!',
+              'Tôi về ngủ. Thế thôi. Mai gặp.'
+          ]:
+              assert token in a12, token
+
+          for token in [
+              'RefreshPelipperCombatTargetsAlpha6613',
+              'CombatTargetOptInKey',
+              'PelipperRenderSuppressedAlpha6613',
+              'EnforcePelipperHardQuotaAlpha6613',
+              'TrySetPelipperSourceDeploymentAlpha6613',
+              'Helper.Events.Display.RenderingWorld',
+              'Helper.Events.Display.RenderedWorld',
+              'CompanionDeploymentState.Standby'
+          ]:
+              assert token in a13, token
+
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+
+          print('Alpha 6.6.13 source acceptance PASS')
+          print('Single Pelipper combat proxy opt-in PASS')
+          print('Shared 2/2 Pelipper deployment/render gate PASS')
+          print('Personality curfew farewell PASS')
+          print('6.6.7-6.6.12 performance/input/UI regressions PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.13_SINGLE_TARGET_PELIPPER_QUOTA_FAREWELL_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.13_SINGLE_TARGET_PELIPPER_QUOTA_FAREWELL_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.13' BUILD_LOG.txt
+          grep -q 'SINGLE PELIPPER TARGET COMBAT: ENABLED' BUILD_LOG.txt
+          grep -q 'SHARED 2/2 PELIPPER QUOTA GATE: ENABLED' BUILD_LOG.txt
+          grep -q 'PERSONALITY CURFEW FAREWELL: ENABLED' BUILD_LOG.txt
+          echo 'Alpha 6.6.13 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha6613.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_13_SINGLE_TARGET_PELIPPER_QUOTA_FAREWELL_VI.txt .github/workflows/team-up-alpha6-6-13-single-target-pelipper-quota-farewell.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.13 source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-13-single-target-pelipper-quota-hotfix
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-13-single-target-pelipper-quota-farewell
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.13_SINGLE_TARGET_PELIPPER_QUOTA_FAREWELL_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.13_SINGLE_TARGET_PELIPPER_QUOTA_FAREWELL_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_13_SINGLE_TARGET_PELIPPER_QUOTA_FAREWELL_VI.txt
+          if-no-files-found: error
