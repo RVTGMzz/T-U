@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.6.15 - COMPANION INTENT + RECALL
+echo   Team Up! v0.2.0-alpha.6.6.16 - CONTROLLER COMPANION FIX
 echo =========================================================
 echo.
 where dotnet >nul 2>nul
@@ -12,25 +12,27 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha6615.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha6616.ps1"
 if errorlevel 1 (
   echo BUILD FAILED. Gui BUILD_LOG.txt cho ChatGPT.
   pause
   exit /b 1
 )
 echo.
-echo BUILD OK - ALPHA 6.6.15 DIRECT BUILDER.
-echo - NPC-only la lua chon ben vung, reconcile khong duoc tu them Pokemon linked.
-echo - Pokemon Standby co Call/Return va replacement flow khi pool 2/2 day.
-echo - Player re-summon Pokemon Standby khong bi Team Up nuot nguoc im lang.
-echo - Capture floor clamp Monster.takeDamage de Pokemon phe minh khong ket lieu wild Pokemon duoi nguong.
-echo - Heal/buff/revive/guard van hoat dong khi target dang capture-protected.
+echo BUILD OK - ALPHA 6.6.16 DIRECT BUILDER.
+echo - Keyboard P / controller L+R mo menu Pokemon cua NPC Team Up.
+echo - L+R duoc uu tien truoc L=Profile va R=Leave, khong the kick NPC.
+echo - NPC-only dang ky partner vao Standby ngay neu actor da co.
+echo - Partner Pelipper dang an van duoc detect neu co owner metadata ro rang.
+echo - Call/Return va Replace/Cancel giu pool 2/2.
+echo - Capture floor nhan wild Pelipper truc tiep, khong cho CombatTarget marker.
 echo.
 echo TEST UU TIEN:
-echo - Recruit NPC + chon NPC only khi dang co Pokemon cua Farmer.
-echo - Noi chuyen NPC, dung Party Menu key de Call/Return Pokemon linked.
-echo - 2/2 roi summon Pokemon thu 3: phai hoi Replace/Cancel.
-echo - Bat 10%% capture mode, cho ca NPC va Pokemon companion cung danh wild Pokemon.
+echo - Dialogue NPC member: L+R phai mo Pokemon, khong mo Leave.
+echo - L rieng = Profile; R rieng = Leave sau delay rat ngan.
+echo - NPC only: Pokemon linked khong tu chiem slot.
+echo - Standby partner: P/L+R Call; 2/2 phai hoi Replace/Cancel.
+echo - Pelipper 10%%: wild Pokemon khong bi Team Up danh xuyen nguong.
 echo.
 explorer "%~dp0release"
 pause
