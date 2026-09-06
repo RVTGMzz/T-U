@@ -75,6 +75,10 @@ public sealed partial class ModEntry
     /// </summary>
     private void UpdateDialogueCompanionInputAlpha6616()
     {
+        // Alpha 6.6.17 hooks are registered lazily here so their update/render handlers run after
+        // the older Pelipper compatibility handlers and can repair ghost-slot/render state.
+        EnsureAlpha6617EventsRegistered();
+
         if (!PendingDialogueShoulderAlpha6616.HasValue)
             return;
 
