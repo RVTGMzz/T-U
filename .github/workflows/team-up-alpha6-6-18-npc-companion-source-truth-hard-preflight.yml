@@ -23,7 +23,7 @@ jobs:
       - name: Build Alpha 6.6.18 end-to-end
         shell: pwsh
         run: |
-          ./BuildV0_2Alpha6618.ps1
+          ./BuildV0_2Alpha6618Final.ps1
 
       - name: Source acceptance
         shell: bash
@@ -68,10 +68,10 @@ jobs:
           assert 'GetEffectiveReplaceableCompanionsAlpha6618' in a661
           assert 'ReconcilePelipperPlayerSlotTruthAlpha6617' in a17
 
-          assert 'IsInvisible' not in bridge
-          assert '.Halt(' not in bridge
-          assert '.controller' not in bridge
-          assert 'TrySetActorInvisibleAlpha6613' not in a18
+          forbidden = ['TrySetActorInvisibleAlpha6613(', 'PelipperTownCompatibilityService.SetSuppressed(', '.Halt();', '.controller =', '.temporaryController =']
+          for token in forbidden:
+              assert token not in bridge, token
+              assert token not in a18, token
           assert 'isTileLocationTotallyClearAndPlaceable' not in follow
           assert 'isTileLocationTotallyClearAndPlaceable' not in combat
 
@@ -105,7 +105,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/TeamUp BuildV0_2Alpha6618.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_18_NPC_COMPANION_SOURCE_TRUTH_HARD_PREFLIGHT_VI.txt .github/workflows/team-up-alpha6-6-18-npc-companion-source-truth-hard-preflight.yml
+          git add src/TeamUp BuildV0_2Alpha6618.ps1 BuildV0_2Alpha6618Final.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_18_NPC_COMPANION_SOURCE_TRUTH_HARD_PREFLIGHT_VI.txt .github/workflows/team-up-alpha6-6-18-npc-companion-source-truth-hard-preflight.yml
           if git diff --cached --quiet; then
             echo "No materialized source diff."
           else
