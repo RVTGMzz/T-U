@@ -1,0 +1,58 @@
+TEAM UP v0.2.0-alpha.6.6.19
+PELIPPER RECALL VERIFICATION + SLOT DIAGNOSTICS - SMOKE TEST VI
+
+MUC TIEU
+1. Return/Standby Pokemon cua NPC phai goi duoc live Pelipper API/config va Pokemon phai ngung bam theo owner that su.
+2. Team Up khong duoc coi mot source write la thanh cong neu Pelipper van con bao Pokemon source-live.
+3. teamup_slots phai phan biet reserved state va effective runtime, dong thoi bao sourceLive dung cho Pokemon cua NPC.
+4. Hard cap 2/2 6.6.18 duoc giu nguyen: neu Pokemon cu chua recall that, Pokemon thu ba van bi chan.
+
+A. NPC + POKEMON RETURN - BAT BUOC TEST DAU TIEN
+[ ] 1. Moi 1 NPC co Pokemon kem, chon NPC + Pokemon.
+[ ] 2. Xac nhan Pokemon di theo NPC binh thuong.
+[ ] 3. Noi chuyen NPC, bam P hoac L+R, chon Return/Standby Pokemon.
+[ ] 4. Pokemon phai ngung bam theo NPC that su, khong tiep tuc task/combat ngam.
+[ ] 5. Cho 1-2 giay neu Pelipper refresh bat dong bo; Pokemon khong duoc tu xuat hien lai.
+[ ] 6. Go teamup_slots.
+[ ] 7. Pokemon vua Return phai state=Standby, sourceLive=False, effectiveSlot=False.
+[ ] 8. effective phai giam dung 1 slot.
+
+B. GOI LAI
+[ ] 9. P/L+R tren cung NPC, Call Pokemon lai.
+[ ] 10. Pokemon xuat hien lai va bam theo source Pelipper binh thuong.
+[ ] 11. teamup_slots: sourceLive=True, effectiveSlot=True va effective tang dung 1.
+
+C. CASE LOI 6.6.18
+[ ] 12. Tao 2 companion dang effective-live.
+[ ] 13. Return 1 Pokemon cua NPC.
+[ ] 14. Xac nhan no da bien mat that, effective 2/2 -> 1/2.
+[ ] 15. Moi NPC + Pokemon moi.
+[ ] 16. Khong con popup "still deployed by its source mod" neu Pokemon cu da recall that.
+[ ] 17. Neu source recall that su chua thanh cong, popup van PHAI chan Pokemon thu ba. Day la bao ve dung.
+
+D. NPC ONLY
+[ ] 18. Moi NPC co Pokemon, chon NPC only.
+[ ] 19. Pokemon cua NPC phai duoc source-recall trong luc NPC o Team Up.
+[ ] 20. teamup_slots: Pokemon do khong effectiveSlot.
+[ ] 21. P/L+R van co the Call lai neu con slot.
+
+E. CHAN DOAN teamup_slots 6.6.19
+Dong dau phai co dang:
+Team Up slot truth: reserved=X/2, effective=Y/2, livePelipperPlayer=Z, apiRoot=...
+
+Moi Pokemon phai co:
+state=...
+sourceLive=True/False
+effectiveSlot=True/False
+
+Neu Return van fail, gui NGUYEN cac dong Team Up sau thao tac, dac biet mot trong hai mau:
+- "bound Pelipper runtime API root: ..."
+- "route ... accepted the recall request ..., but Pelipper source is still live=True"
+- "Could not locate Pelipper's live villager companion enable/recall contract ... API root=..."
+
+F. REGRESSION
+[ ] 22. Pokemon khong flicker.
+[ ] 23. Khong Team Up IsInvisible/Halt/controller Pelipper.
+[ ] 24. Water/pathfinding khong lag lai.
+[ ] 25. P / L+R, L Profile, R Leave van dung.
+[ ] 26. Health bars, capture safety, curfew/farewell, combat van hoat dong.
