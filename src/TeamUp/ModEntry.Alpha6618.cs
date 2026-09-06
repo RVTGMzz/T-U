@@ -326,34 +326,7 @@ public sealed partial class ModEntry
     }
 
     private bool TrySetPelipperNpcSourceEnabledAlpha6618(NPC owner, bool enabled, string reason)
-    {
-        if (PelipperNpcNativeControlWarningsAlpha6618.Contains(owner.Name))
-            return false;
-
-        if (PelipperVillagerCompanionRuntimeBridge.TrySetEnabled(owner.Name, owner, enabled, out string route))
-        {
-            PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
-            Monitor.Log(
-                $"Alpha 6.6.18 Pelipper villager source {(enabled ? "deploy" : "recall")} {owner.Name} via {route} ({reason}).",
-                LogLevel.Debug);
-            return true;
-        }
-
-        if (PelipperNpcNativeControlWarningsAlpha6618.Add(owner.Name))
-        {
-            Monitor.Log(
-                $"Could not locate Pelipper's native villager companion enable/recall contract for {owner.Name}. Team Up will not hide or Halt the actor; a source-live partner continues to consume a real slot.",
-                LogLevel.Warn);
-        }
-        return false;
-    }
+        => TrySetPelipperNpcSourceEnabledAlpha6619(owner, enabled, reason);
 
     private void RestorePelipperNpcSourceAlpha6618(NPC owner)
-    {
-        if (PelipperVillagerCompanionRuntimeBridge.Restore(owner.Name, owner, out string route))
-        {
-            Monitor.Log($"Alpha 6.6.18 restored Pelipper villager companion source setting for {owner.Name} via {route}.", LogLevel.Debug);
-        }
-        PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
-    }
-}
+        => RestorePelipperNpcSourceAlpha6619(owner);}

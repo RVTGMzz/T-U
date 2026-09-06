@@ -200,26 +200,39 @@ public sealed partial class ModEntry
             return;
         }
 
-        List<LiveCompanionDescriptor> live = CompanionIntegrationService.FindPlayerSummons()
+        RefreshCompanionSlotTruthForDecisionAlpha6618();
+        List<LiveCompanionDescriptor> livePlayers = CompanionIntegrationService.FindPlayerSummons()
             .Where(PelipperTownCompatibilityService.IsPelipperDescriptor)
             .ToList();
-
-        int max = Config.AllowLinkedCompanions
-            ? Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2)
-            : 0;
+        List<CompanionUnitData> effective = GetEffectiveCombatCompanionsAlpha6618();
+        int max = GetCompanionCapAlpha6618();
 
         Monitor.Log(
-            $"Team Up slot truth: reserved={Party.GetActiveCombatCompanionCount()}/{max}, livePelipperPlayer={live.Count}.",
+            $"Team Up slot truth: reserved={Party.GetActiveCombatCompanionCount()}/{max}, effective={effective.Count}/{max}, livePelipperPlayer={livePlayers.Count}, apiRoot={PelipperApiRuntimeRootBridge.ApiTypeName}.",
             LogLevel.Info);
 
         foreach (CompanionUnitData unit in Party.CompanionUnits.Where(unit => unit.CountsTowardCombatCompanionLimit))
         {
-            bool sourceLive = unit.OwnerKind == CompanionOwnerKind.Player
-                && live.Any(descriptor => descriptor.OwnerFarmerId == unit.RecruiterId
+            bool sourceLive;
+            if (unit.OwnerKind == CompanionOwnerKind.Player)
+            {
+                sourceLive = livePlayers.Any(descriptor => descriptor.OwnerFarmerId == unit.RecruiterId
                     && descriptor.UnitId.Equals(unit.UnitId, StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                NPC? owner = string.IsNullOrWhiteSpace(unit.OwnerCharacterName)
+                    ? null
+                    : Game1.getCharacterFromName(unit.OwnerCharacterName);
+                LiveCompanionDescriptor? linkedLive = owner is null ? null : CompanionIntegrationService.FindLinkedCompanion(owner);
+                sourceLive = PelipperTownCompatibilityService.IsPelipperDescriptor(linkedLive)
+                    && linkedLive!.UnitId.Equals(unit.UnitId, StringComparison.OrdinalIgnoreCase);
+            }
 
+            bool effectiveSlot = effective.Any(item => item.UnitId.Equals(unit.UnitId, StringComparison.OrdinalIgnoreCase)
+                && item.RecruiterId == unit.RecruiterId);
             Monitor.Log(
-                $"slot unit={unit.DisplayName} owner={unit.OwnerKind}:{unit.OwnerCharacterName ?? unit.RecruiterId.ToString()} state={unit.State} provider={unit.ProviderId} sourceLive={sourceLive}",
+                $"slot unit={unit.DisplayName} owner={unit.OwnerKind}:{unit.OwnerCharacterName ?? unit.RecruiterId.ToString()} state={unit.State} provider={unit.ProviderId} sourceLive={sourceLive} effectiveSlot={effectiveSlot}",
                 LogLevel.Info);
         }
     }

@@ -79,6 +79,7 @@ public sealed partial class ModEntry
         // the older Pelipper compatibility handlers and can repair ghost-slot/render state.
         EnsureAlpha6617EventsRegistered();
         EnsureAlpha6618EventsRegistered();
+        EnsureAlpha6619EventsRegistered();
 
         if (!PendingDialogueShoulderAlpha6616.HasValue)
             return;
