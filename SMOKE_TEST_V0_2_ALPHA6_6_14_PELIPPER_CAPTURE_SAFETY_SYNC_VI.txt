@@ -1,0 +1,47 @@
+TEAM UP v0.2.0-alpha.6.6.14 - PELIPPER CAPTURE SAFETY SYNC
+
+MUC TIEU CHINH
+1. Khi Pelipper Town dung che do dung tan cong o nguong bat Pokemon (~10% HP), TOAN BO NPC Team Up ngung moi hanh dong gay damage vao Pokemon do.
+2. Heal / revive / guard / support cho dong doi van tiep tuc trong combat context.
+3. Neu con enemy khac, Team Up chuyen sang enemy khac thay vi dung ca tran.
+4. Damage cua Team Up khong duoc vuot qua nguong capture trong mot hit lon.
+
+TEST A - 1 POKEMON HOANG
+- Dua Pokemon tu full HP xuong gan 10% bang Team Up.
+- Quan sat khi cham nguong: Tank/DPS/Control/Support/Healer khong duoc danh tiep Pokemon do.
+- Khong duoc co hit tre trong cung frame sau khi mot NPC vua dua HP xuong nguong.
+- Pokemon phai con song va san sang cho flow capture cua Pelipper.
+
+TEST B - DAMAGE CEILING
+- Dung NPC damage cao vao Pokemon con khoang 11-15% HP.
+- Hit cuoi cua Team Up phai bi clamp de khong day Pokemon xuong duoi nguong capture/KO.
+- Khong crit vuot nguong tren target dang duoc capture-safety bao ve.
+
+TEST C - HEAL / SUPPORT VAN CHAY
+- Lam Farmer hoac 1 NPC mat mau.
+- De Pokemon hoang o nguong capture la enemy duy nhat.
+- Healer phai van heal / revive khi can.
+- Tank guard va support cho phe minh duoc tiep tuc.
+- Khong co offensive skill, AoE, stun/debuff cua Team Up cham vao Pokemon da protected.
+
+TEST D - CO ENEMY KHAC
+- De 1 Pokemon Pelipper o nguong capture + 1 monster khac con khoe.
+- Team Up bo Pokemon protected va chuyen sang monster con lai.
+- Sau khi monster kia het, team quay ve follow/support, khong quay lai danh Pokemon protected.
+
+TEST E - SIGNATURE / AOE
+- Abigail/Alex va cac NPC SVE/RSV co skill AoE.
+- Pokemon Pelipper o sat enemy khac tai nguong capture khong duoc an damage AoE.
+- Pokemon Pelipper tren nguong capture van co the bi danh, nhung damage phai bi clamp de khong vuot qua nguong.
+
+TEST F - REGRESSION
+- Single Pelipper target tren nguong capture van bi Tank/DPS/Control engage binh thuong.
+- Shared companion quota van 2/2.
+- Pokemon active khong flicker.
+- NPC khong roi xuong nuoc; cau/song van muot.
+- Curfew bye theo tinh cach van hoat dong.
+- HP bar duoi chan / Switch equipment / Codex van binh thuong.
+
+NEU CO LOI
+- Gui SMAPI-latest.txt ngay sau tinh huong loi.
+- Ghi HP Pokemon truoc/sau hit va ten NPC/skill vua danh.
