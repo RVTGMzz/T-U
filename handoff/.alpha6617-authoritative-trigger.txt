@@ -1,0 +1,2 @@
+Authoritative rebuild trigger for Team Up v0.2.0-alpha.6.6.17.
+Base materialized source: 45cab66d538d36618ed9ca414b68ed9e930d5b06
