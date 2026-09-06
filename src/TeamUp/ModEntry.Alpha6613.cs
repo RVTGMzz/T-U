@@ -1,5 +1,6 @@
 using System.Reflection;
 using Ronvotri.TeamUp.Core;
+using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Monsters;
@@ -52,10 +53,6 @@ public sealed partial class ModEntry
                 continue;
             }
 
-            // Pelipper uses Monster-derived combat proxies for wild/battle Pokémon. Previous
-            // blanket exclusion treated those proxies like owned companions, so a lone wild
-            // Pokémon produced an empty Team Up target list. Any Pelipper Monster which isn't
-            // one of our registered owned companions is a valid combat proxy.
             monster.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
         }
     }
@@ -66,7 +63,6 @@ public sealed partial class ModEntry
             ? Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2)
             : 0;
 
-        // The PartyManager is authoritative. Repair any legacy/runtime overflow first.
         List<CompanionUnitData> slotUsers = Party.CompanionUnits
             .Where(unit => unit.CountsTowardCombatCompanionLimit)
             .Where(unit => unit.State is CompanionDeploymentState.Active
@@ -106,8 +102,6 @@ public sealed partial class ModEntry
                 unit.OwnerCharacterName ?? string.Empty,
                 deployed);
 
-            // Prefer a source-native boolean/method when Pelipper exposes one. We only probe
-            // strongly named deployment members; no generic Enabled/Visible fields are touched.
             TrySetPelipperSourceDeploymentAlpha6613(actor, deployed);
 
             if (!deployed)
@@ -190,7 +184,6 @@ public sealed partial class ModEntry
             }
             catch
             {
-                // Optional provider hook. Fall through to the next strongly named member.
             }
         }
 
@@ -218,7 +211,6 @@ public sealed partial class ModEntry
             }
             catch
             {
-                // Reflection compatibility must never break gameplay.
             }
         }
     }
@@ -254,7 +246,6 @@ public sealed partial class ModEntry
         }
         catch
         {
-            // Render-only quota gate is best-effort and must never crash a provider actor.
         }
     }
 }
