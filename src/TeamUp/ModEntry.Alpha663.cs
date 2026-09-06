@@ -248,6 +248,7 @@ public sealed partial class ModEntry
 
     private void ReleasePelipperOwnerAlpha663(NPC owner, CompanionUnitData? linked)
     {
+        RestorePelipperNpcSourceAlpha6618(owner);
         PelipperTownCompatibilityService.SetOwnerOptOut(owner, false);
 
         NPC? actor = null;

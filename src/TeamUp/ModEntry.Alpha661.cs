@@ -295,33 +295,18 @@ public sealed partial class ModEntry
         LiveCompanionDescriptor? detectedCompanion = CompanionIntegrationService.FindLinkedCompanion(npc);
         LiveCompanionDescriptor? liveCompanion = includeCompanion ? detectedCompanion : null;
 
-        if (includeCompanion && liveCompanion is not null && !string.IsNullOrWhiteSpace(replacementCompanionUnitId))
+        // Alpha 6.6.18: UI checks are not authoritative. Reconcile source-live slot truth at the
+        // exact commit point. A together-recruit at real 2/2 must replace a slot successfully or
+        // fail before the NPC is added; it can never silently create a third live companion.
+        if (includeCompanion && liveCompanion is not null
+            && !PrepareNpcCompanionRecruitCapacityAlpha6618(
+                liveCompanion,
+                recruiterId,
+                replacementCompanionUnitId,
+                out string capacityFailure))
         {
-            CompanionUnitData? replacement = Party.GetCompanionByUnitIdAnyOwner(replacementCompanionUnitId);
-            bool requesterMayReplace = replacement is not null
-                && (replacement.RecruiterId == recruiterId || recruiterId == Game1.player.UniqueMultiplayerID);
-            if (!requesterMayReplace)
-            {
-                SendActionResult(responsePlayerId, false, "That companion slot can no longer be replaced by this player.");
-                return;
-            }
-
-            if (replacement is not null)
-            {
-                Party.SetCompanionState(replacement.UnitId, replacement.RecruiterId, CompanionDeploymentState.Standby);
-                if (PelipperTownCompatibilityService.IsSourceControlled(replacement))
-                {
-                    NPC? replacementActor = PelipperTownCompatibilityService.ResolveActor(replacement);
-                    if (replacementActor is not null)
-                        PelipperDeploymentStateService.SetDesiredDeployment(replacementActor, replacement.OwnerCharacterName ?? string.Empty, false);
-                }
-                else
-                {
-                    NPC? replacementNpc = Game1.getCharacterFromName(replacement.CharacterName);
-                    if (replacementNpc is not null)
-                        Follow.ReleaseToVanilla(replacementNpc);
-                }
-            }
+            SendActionResult(responsePlayerId, false, capacityFailure);
+            return;
         }
 
         PartyAddResult result = Party.TryAddMember(npc.Name, recruiterId, GetOnlineFarmerIds());
@@ -434,7 +419,7 @@ public sealed partial class ModEntry
                 if (answer != "InviteTogether")
                     return;
 
-                if (Party.GetActiveCombatCompanionCount() < Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2))
+                if (HasFreeEffectiveCompanionSlotAlpha6618())
                 {
                     RequestOrRecruitAlpha661(npc, includeCompanion: true, replacementCompanionUnitId: null);
                     return;
@@ -448,10 +433,9 @@ public sealed partial class ModEntry
     {
         long recruiterId = Game1.player.UniqueMultiplayerID;
         bool requesterIsHost = Context.IsMainPlayer;
-        List<CompanionUnitData> replaceable = Party.GetActiveCombatCompanions()
-            .Where(unit => requesterIsHost || unit.RecruiterId == recruiterId)
-            .Take(2)
-            .ToList();
+        List<CompanionUnitData> replaceable = GetEffectiveReplaceableCompanionsAlpha6618(
+            recruiterId,
+            requesterIsHost).ToList();
 
         if (replaceable.Count == 0)
         {

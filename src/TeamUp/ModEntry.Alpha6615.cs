@@ -368,6 +368,27 @@ public sealed partial class ModEntry
             return;
         }
 
+        if (unit.OwnerKind == CompanionOwnerKind.PartyMember
+            && !string.IsNullOrWhiteSpace(unit.OwnerCharacterName))
+        {
+            NPC? owner = Game1.getCharacterFromName(unit.OwnerCharacterName);
+            if (owner is not null && TrySetPelipperNpcSourceEnabledAlpha6618(
+                owner,
+                deployed,
+                deployed ? "explicit Call" : "explicit Return/Standby"))
+            {
+                NPC? sourceActor = PelipperTownCompatibilityService.ResolveActor(unit);
+                if (sourceActor is not null)
+                {
+                    PelipperDeploymentStateService.SetDesiredDeployment(
+                        sourceActor,
+                        unit.OwnerCharacterName,
+                        deployed);
+                }
+                return;
+            }
+        }
+
         NPC? actor = PelipperTownCompatibilityService.ResolveActor(unit);
         if (actor is null)
             return;

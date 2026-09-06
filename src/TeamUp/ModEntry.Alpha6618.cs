@@ -327,6 +327,9 @@ public sealed partial class ModEntry
 
     private bool TrySetPelipperNpcSourceEnabledAlpha6618(NPC owner, bool enabled, string reason)
     {
+        if (PelipperNpcNativeControlWarningsAlpha6618.Contains(owner.Name))
+            return false;
+
         if (PelipperVillagerCompanionRuntimeBridge.TrySetEnabled(owner.Name, owner, enabled, out string route))
         {
             PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
