@@ -45,7 +45,7 @@ jobs:
           assert 'build: v0.2.0-alpha.6.6.20' in mod
           assert 'Pelipper Runtime Root + Verified Recall Hotfix loaded.' in mod
           assert 'GetApi<object>' not in a19
-          for token in ['Helper.ModRegistry.Get(', 'PelipperModRuntimeRootLocator.TryLocate', 'PelipperApiRuntimeRootBridge.Reset', 'no GetApi<object> retry will be attempted']:
+          for token in ['Helper.ModRegistry.Get(', 'PelipperModRuntimeRootLocator.TryLocate', 'PelipperApiRuntimeRootBridge.Reset', 'no invalid generic API retry will be attempted']:
               assert token in a19, token
           for token in ['IsPelipperRuntimeObject', 'value is Mod', 'ReferenceEqualityComparer.Instance']:
               assert token in locator, token
