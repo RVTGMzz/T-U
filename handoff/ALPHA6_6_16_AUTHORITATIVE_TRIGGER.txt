@@ -1,0 +1,3 @@
+Authoritative rebuild trigger after Alpha 6.6.16 source materialization.
+Base materialized source: 4f1065cfe607501f92594974e95ac52ac6b11c5f
+Expected builder result: No materialized source diff.
