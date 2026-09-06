@@ -1,0 +1,38 @@
+TEAM UP! v0.2.0-alpha.6.6.15 - COMPANION INTENT + RECALL + CAPTURE FLOOR
+
+1) NPC-ONLY PERSISTENCE
+- Có sẵn 1-2 Pokemon của Farmer đang Active.
+- Recruit NPC có Pokemon Pelipper nhưng chọn "NPC only".
+- Chờ ít nhất 2 giây / đổi vị trí / mở đóng menu.
+- PASS: Pokemon của NPC KHÔNG tự vào Active và KHÔNG đá Pokemon của Farmer ra.
+- Nói chuyện với NPC: phải có hint quản lý Pokemon bằng Party Menu key.
+
+2) LINKED COMPANION CALL / RETURN
+- Với NPC-only ở trên, dùng hint Pokemon khi đang nói chuyện với NPC.
+- Nếu còn slot: chọn Call -> Pokemon của NPC vào Active.
+- Chọn lại quản lý -> Return -> Pokemon về Standby và KHÔNG tự bật lại sau 30 tick.
+- Nếu 2/2: Call phải hỏi thay Pokemon nào, không tự đá slot.
+
+3) PLAYER POKEMON RECALL
+- Đưa một Pokemon của Farmer về Standby do quota.
+- Giải phóng 1 slot rồi gọi lại Pokemon đó bằng Pelipper.
+- PASS: Team Up promote Standby -> Active, không thu ngược vô hạn.
+- Khi đang 2/2, thử gọi Pokemon thứ 3.
+- PASS: xuất hiện hộp hỏi thay companion; Cancel giữ 2 slot cũ; chọn Replace thì đúng victim về Standby và Pokemon mới Active.
+
+4) CAPTURE 10% HARD FLOOR
+- Bật chế độ Pelipper dừng đánh ở 10%.
+- Cho cả NPC Team Up + Pokemon companion cùng đánh 1 Pokemon hoang.
+- PASS: HP không được tụt qua floor capture do bất kỳ hit Monster.takeDamage nào của phe mình.
+- Ở <=10%, NPC Team Up ngưng offensive damage; heal/buff/revive/guard vẫn hoạt động.
+
+5) REGRESSION
+- 1 wild Pokemon: DPS/Tank/Control vẫn engage trên 10%.
+- Cầu/nước: không lag và NPC người không rơi xuống nước.
+- Pokemon active không flicker do Team Up follow authority.
+- HP bar NPC dưới chân vẫn hoạt động theo 3s/context.
+- Switch equip/unequip vẫn hoạt động.
+- Codex không skip profile và Pokemon/summon không có profile.
+- Curfew + farewell vẫn hoạt động.
+
+Nếu lỗi recall/quota: chạy `teamup_pelipper status` ngay sau lỗi và gửi SMAPI-latest.txt.
