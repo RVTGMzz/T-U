@@ -20,7 +20,16 @@ internal static class PelipperCaptureSafetyService
     private static float _threshold = FallbackThreshold;
 
     public static bool IsProtected(Monster monster)
+        => TryGetDamageBudget(monster, out int budget) && budget <= 0;
+
+    /// <summary>
+    /// Returns true when capture-safety applies to this Pelipper combat proxy. The budget is the
+    /// most damage Team Up may deal without crossing below the configured capture threshold.
+    /// int.MaxValue means the target isn't capture-limited.
+    /// </summary>
+    public static bool TryGetDamageBudget(Monster monster, out int budget)
     {
+        budget = int.MaxValue;
         if (monster.Health <= 0 || monster.MaxHealth <= 0)
             return false;
         if (!PelipperTownCompatibilityService.LooksLikePelipperActor(monster))
@@ -36,7 +45,17 @@ internal static class PelipperCaptureSafetyService
             return false;
 
         int stopAtHealth = Math.Max(1, (int)Math.Ceiling(monster.MaxHealth * _threshold));
-        return monster.Health <= stopAtHealth;
+        budget = Math.Max(0, monster.Health - stopAtHealth);
+        return true;
+    }
+
+    public static int ClampDamage(Monster monster, int requestedDamage)
+    {
+        if (requestedDamage <= 0)
+            return 0;
+        return TryGetDamageBudget(monster, out int budget)
+            ? Math.Min(requestedDamage, budget)
+            : requestedDamage;
     }
 
     public static float CurrentThreshold => _threshold;
