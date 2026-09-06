@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo =========================================================
-echo   Team Up! v0.2.0-alpha.6.6.13 - SINGLE TARGET + QUOTA + BYE
+echo   Team Up! v0.2.0-alpha.6.6.14 - PELIPPER CAPTURE SAFETY
 echo =========================================================
 echo.
 where dotnet >nul 2>nul
@@ -12,24 +12,25 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha6613.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0BuildV0_2Alpha6614.ps1"
 if errorlevel 1 (
   echo BUILD FAILED. Gui BUILD_LOG.txt cho ChatGPT.
   pause
   exit /b 1
 )
 echo.
-echo BUILD OK - ALPHA 6.6.13 DIRECT BUILDER.
-echo - Single Pelipper wild/battle target duoc Team Up acquire dung.
-echo - Shared combat companion cap giu hard 2/2; Pelipper Standby bi chan deploy/render.
-echo - NPC den curfew noi 1 cau bye theo tinh cach roi moi ve schedule goc.
-echo - Water/bridge performance, land-safe, HP bar, Switch input va Codex duoc giu regression.
+echo BUILD OK - ALPHA 6.6.14 DIRECT BUILDER.
+echo - Team-wide stop offensive actions khi Pelipper Pokemon cham nguong capture.
+echo - Damage ceiling chan hit lon / crit vuot qua nguong capture.
+echo - Heal, revive, guard va support cho phe minh van hoat dong.
+echo - Neu con enemy khac, Team Up chuyen target thay vi dung ca tran.
+echo - 6.6.13 single-target combat, quota 2/2, bye, water/bridge performance duoc giu regression.
 echo.
 echo TEST UU TIEN:
-echo - Chi 1 Pokemon hoang: Tank/DPS/Control phai vao combat.
-echo - Goi hon 2 Pokemon: chi 2 companion duoc xem la dang deploy.
-echo - NPC den gio ve: noi 1 cau bye, khong spam, roi ve nha.
-echo - Test lai cau/song: khong lag, NPC khong roi xuong nuoc, Pokemon active khong flicker.
+echo - 1 Pokemon hoang tren 10%%: team van danh binh thuong.
+echo - Cham ~10%%: ca team ngung gay damage vao no.
+echo - Lam dong doi mat mau trong luc Pokemon dang protected: healer van heal.
+echo - Dat enemy khac gan Pokemon protected: AoE khong duoc lam Pokemon protected mat them mau.
 echo.
 explorer "%~dp0release"
 pause
