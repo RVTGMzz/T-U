@@ -1,0 +1,131 @@
+name: Team Up v0.2.0-alpha.6.6.17 Pelipper Slot Truth No-Ghosts
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-17-pelipper-slot-truth-no-ghosts ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.17 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha6617.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          a13 = (root/'ModEntry.Alpha6613.cs').read_text(encoding='utf-8')
+          a15 = (root/'ModEntry.Alpha6615.cs').read_text(encoding='utf-8')
+          a16 = (root/'ModEntry.Alpha6616.cs').read_text(encoding='utf-8')
+          a17 = (root/'ModEntry.Alpha6617.cs').read_text(encoding='utf-8')
+          party = (root/'Core/PartyManager.cs').read_text(encoding='utf-8')
+          integration = (root/'Core/CompanionIntegrationService.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert '<Version>0.2.0-alpha.6.6.17</Version>' in project
+          assert 'build: v0.2.0-alpha.6.6.17' in mod
+          assert 'Pelipper Slot Truth No-Ghosts Hotfix loaded.' in mod
+          assert 'EnsureAlpha6617EventsRegistered();' in a16
+
+          for token in [
+              'ReconcilePelipperPlayerSlotTruthAlpha6617',
+              'FindPlayerSummons()',
+              'OwnerKind == CompanionOwnerKind.Player',
+              'CompanionDeploymentState.Standby',
+              'Party.GetActiveCombatCompanionCount() < max',
+              'PelipperRenderRestoreAlpha6613',
+              'TrySetActorInvisibleAlpha6613(actor, false)',
+              'PelipperRenderSuppressedAlpha6613.Clear()',
+              'PelipperSourceDeploymentAlpha6613[actor]',
+              'teamup_slots',
+              'sourceLive='
+          ]:
+              assert token in a17, token
+
+          # Reservation semantics are intentionally NOT changed. The fix repairs stale source state.
+          for token in ['CompanionDeploymentState.Active','CompanionDeploymentState.Waiting','CompanionDeploymentState.ReturningHome']:
+              assert token in party, token
+          assert 'PelipperTownCompatibilityService.FindPlayerCompanions' in integration
+
+          # 6.6.17 must neutralize the old render-only fallback rather than reintroducing persistent suppression.
+          assert 'PelipperRenderSuppressedAlpha6613.Add(actor)' in a13
+          assert 'TrySetActorInvisibleAlpha6613(actor, false)' in a17
+          assert 'SetSuppressed(actor' not in a17
+
+          # 6.6.16 controller path stays intact.
+          for token in ['P / L+R Pokémon','ShowLinkedCompanionControlAlpha6615']:
+              assert token in a15, token
+          for token in ['Buttons.LeftShoulder','Buttons.RightShoulder','ShowLeaveQuestion']:
+              assert token in a16, token
+
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+
+          print('Alpha 6.6.17 source acceptance PASS')
+          print('Pelipper player live-source slot truth PASS')
+          print('Stale player ghost-slot release PASS')
+          print('Recall promotion without guessed reflection gate PASS')
+          print('Render-only invisibility fallback neutralization PASS')
+          print('Active/Waiting/ReturningHome reservation policy preserved PASS')
+          print('6.6.16 P/L+R controller regression PASS')
+          print('Water/bridge performance regression guard PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.17_PELIPPER_SLOT_TRUTH_NO_GHOSTS_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.17_PELIPPER_SLOT_TRUTH_NO_GHOSTS_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.17' BUILD_LOG.txt
+          grep -q 'PELIPPER SOURCE-TRUTH SLOT RECONCILIATION: ENABLED' BUILD_LOG.txt
+          grep -q 'STALE PLAYER COMPANION GHOST-SLOT RELEASE: ENABLED' BUILD_LOG.txt
+          grep -q 'PLAYER RECALL WITHOUT REFLECTION GATE: ENABLED' BUILD_LOG.txt
+          grep -q 'RENDER-ONLY INVISIBILITY FALLBACK: DISABLED' BUILD_LOG.txt
+          grep -q 'ACTIVE/WAITING/RETURNINGHOME RESERVATION POLICY: PRESERVED' BUILD_LOG.txt
+          echo 'Alpha 6.6.17 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha6617.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_17_PELIPPER_SLOT_TRUTH_NO_GHOSTS_VI.txt .github/workflows/team-up-alpha6-6-17-pelipper-slot-truth-no-ghosts.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.17 source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-17-pelipper-slot-truth-no-ghosts
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-17-pelipper-slot-truth-no-ghosts
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.17_PELIPPER_SLOT_TRUTH_NO_GHOSTS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.17_PELIPPER_SLOT_TRUTH_NO_GHOSTS_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_17_PELIPPER_SLOT_TRUTH_NO_GHOSTS_VI.txt
+          if-no-files-found: error
