@@ -21,6 +21,7 @@ public sealed partial class ModEntry
             "teamup_pelipper",
             "Team Up Pelipper compatibility diagnostics: status|reconcile.",
             OnAlpha663PelipperCommand);
+        RegisterAlpha6615Events();
     }
 
     private void OnAlpha665EquipmentButtonPressed(object? sender, ButtonPressedEventArgs e)
@@ -111,6 +112,8 @@ public sealed partial class ModEntry
                 else if (linked.State == CompanionDeploymentState.Standby
                     && Party.GetActiveCombatCompanionCount() < maxCompanions)
                 {
+                    // Alpha 6.6.15: only auto-promote when the owner is explicitly NOT opted out.
+                    // Manual Return/NPC-only recruitment sets the durable owner opt-out marker.
                     changed |= Party.SetCompanionState(
                         linked.UnitId,
                         linked.RecruiterId,
@@ -136,13 +139,11 @@ public sealed partial class ModEntry
                 continue;
 
             NPC? actor = PelipperTownCompatibilityService.ResolveActor(descriptor!);
-            if (optedOut || maxCompanions <= 0)
-            {
-                if (actor is not null)
-                    PelipperDeploymentStateService.SetDesiredDeployment(actor, owner.Name, false);
-                continue;
-            }
 
+            // Alpha 6.6.15: even an NPC-only choice gets a durable Standby link once Pelipper
+            // exposes the actor. This preserves the user's choice while still enabling a later
+            // explicit Call command from that NPC's dialogue.
+            bool requestActive = !optedOut && maxCompanions > 0;
             CompanionAddResult result = Party.TryLinkCompanion(
                 descriptor!.UnitId,
                 descriptor.CharacterName,
@@ -152,7 +153,7 @@ public sealed partial class ModEntry
                 CompanionUnitKind.ExternalCreature,
                 descriptor.ProviderId,
                 descriptor.ProviderUnitId,
-                requestActive: true);
+                requestActive);
 
             if (result is CompanionAddResult.AddedActive
                 or CompanionAddResult.AddedStandby
@@ -164,10 +165,8 @@ public sealed partial class ModEntry
             linked = Party.GetLinkedCompanion(member.CharacterName, member.RecruiterId);
             if (actor is not null && linked is not null)
             {
-                PelipperDeploymentStateService.SetDesiredDeployment(
-                    actor,
-                    owner.Name,
-                    IsPelipperUnitDeployedAlpha669(linked));
+                bool deployed = !optedOut && IsPelipperUnitDeployedAlpha669(linked);
+                PelipperDeploymentStateService.SetDesiredDeployment(actor, owner.Name, deployed);
             }
         }
 
@@ -177,7 +176,7 @@ public sealed partial class ModEntry
         SavePartyNow();
         BroadcastPartySnapshot();
         Monitor.Log(
-            $"Alpha 6.6.9 reconciled Pelipper Town companion states without taking source visibility/movement authority. Shared combat companion usage: {Party.GetActiveCombatCompanionCount()}/{maxCompanions}.",
+            $"Alpha 6.6.15 reconciled Pelipper companion state while preserving explicit NPC-only/Call intent. Shared combat companion usage: {Party.GetActiveCombatCompanionCount()}/{maxCompanions}.",
             LogLevel.Debug);
     }
 
@@ -186,10 +185,14 @@ public sealed partial class ModEntry
         LiveCompanionDescriptor? detectedCompanion,
         bool includeCompanion)
     {
+        // Alpha 6.6.15: persist the user's choice even when Pelipper hasn't spawned/detected the
+        // companion actor yet. Previously a null descriptor meant NPC-only was forgotten, then
+        // reconcile could auto-add the Pokemon a few ticks later and displace another slot.
+        PelipperTownCompatibilityService.SetOwnerOptOut(owner, !includeCompanion);
+
         if (!PelipperTownCompatibilityService.IsPelipperDescriptor(detectedCompanion))
             return;
 
-        PelipperTownCompatibilityService.SetOwnerOptOut(owner, !includeCompanion);
         NPC? actor = PelipperTownCompatibilityService.ResolveActor(detectedCompanion!);
         if (actor is not null)
             PelipperDeploymentStateService.SetDesiredDeployment(actor, owner.Name, includeCompanion);
@@ -298,7 +301,7 @@ public sealed partial class ModEntry
         }
 
         Monitor.Log(
-            $"Pelipper compatibility: detectedPartners={detected}, registered={registered}, activeSlots={active}/2, softStandby={softStandby}, totalCombatCompanions={Party.GetActiveCombatCompanionCount()}/2. Team Up does not own Pelipper visibility/movement in 6.6.9.",
+            $"Pelipper compatibility: detectedPartners={detected}, registered={registered}, activeSlots={active}/2, softStandby={softStandby}, totalCombatCompanions={Party.GetActiveCombatCompanionCount()}/2, captureSafety={PelipperCaptureSafetyService.CurrentEnabled}@{PelipperCaptureSafetyService.CurrentThreshold:P0}.",
             LogLevel.Info);
     }
 }
