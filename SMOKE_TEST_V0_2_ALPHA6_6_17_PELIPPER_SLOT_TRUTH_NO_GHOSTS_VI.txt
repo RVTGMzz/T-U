@@ -1,0 +1,66 @@
+TEAM UP v0.2.0-alpha.6.6.17
+PELIPPER SLOT TRUTH + NO GHOST SLOTS - SMOKE TEST VI
+
+MUC TIEU
+1. Pokemon cua Farmer da recall/swap khong duoc tiep tuc chiem slot ao.
+2. Chi moi 1 NPC thi Pokemon cua Farmer van goi ra duoc neu shared pool chua that su 2/2.
+3. Pokemon Standby khong bi Team Up an render trong khi Pelipper AI van chay.
+4. P / L+R quan ly Pokemon NPC van giu dung, khong kick NPC.
+5. Luat slot khong doi: Active/Waiting/ReturningHome giu slot; Standby/Inactive khong giu slot.
+
+A. CASE LOI CHINH - 1 NPC, POKEMON FARMER BI KET
+[ ] 1. Load save da tung bi ket Pokemon o 6.6.16.
+[ ] 2. Moi dung 1 NPC vao Team Up.
+[ ] 3. Neu chon NPC only, Pokemon linked cua NPC phai la Standby, khong chiem slot.
+[ ] 4. Dung Pelipper send out Pokemon cua Farmer.
+[ ] 5. Pokemon cua Farmer phai xuat hien va Team Up phai mirror no thanh Active neu pool con slot.
+[ ] 6. Khong duoc bi an/thu lai chi vi Team Up con record cu.
+
+B. GHOST SLOT MIGRATION
+[ ] 1. Goi Pokemon Farmer A.
+[ ] 2. Recall A bang Pelipper.
+[ ] 3. Goi Pokemon Farmer B.
+[ ] 4. Team Up phai demote record A ve Standby truoc khi tinh quota.
+[ ] 5. B phai Active neu pool con slot.
+[ ] 6. Lap lai voi C/D. Cac Pokemon cu khong duoc tich thanh 2/2 ao.
+
+C. PELIPPER SWAP CUNG FARMER
+[ ] 1. Dang co 1 Pokemon NPC active + Pokemon Farmer A active = 2/2.
+[ ] 2. Dung Pelipper swap A -> B.
+[ ] 3. A phai ve Standby va B chiem dung slot cua A.
+[ ] 4. Khong duoc hoi replace Pokemon NPC chi vi A cu con ghost state.
+
+D. TRUE FULL 2/2
+[ ] 1. Tao pool that su 2/2 bang hai companion khac owner/lane.
+[ ] 2. Thu goi Pokemon moi vao mot slot thu ba.
+[ ] 3. Team Up chi luc nay moi mo Replace/Cancel.
+[ ] 4. Khong auto kick companion cu.
+
+E. NPC ONLY / RETURN
+[ ] 1. Recruit NPC va chon NPC only.
+[ ] 2. Pokemon NPC khong chiem slot Team Up.
+[ ] 3. Team Up khong dung render-only invisibility de an Pokemon source.
+[ ] 4. Neu Pelipper van hien partner canh NPC, no la source actor cua Pelipper, khong phai Team Up slot.
+[ ] 5. P / L+R van mo menu Pokemon cua NPC.
+[ ] 6. L+R tuyet doi khong mo Leave/Kick NPC.
+
+F. DIAGNOSTIC
+[ ] 1. Mo SMAPI console va chay: teamup_slots
+[ ] 2. Dong dau phai bao reserved=X/2 va livePelipperPlayer=Y.
+[ ] 3. Moi unit phai co state va sourceLive=True/False de truy ghost slot.
+[ ] 4. Sau recall Pokemon Farmer, record cu phai Standby va khong con tinh vao reserved.
+
+G. REGRESSION
+[ ] 1. River/bridge follow van muot nhu 6.6.7.
+[ ] 2. NPC van o tren dat/cau nhu 6.6.8.
+[ ] 3. Pokemon Pelipper khong bi Team Up tranh movement authority.
+[ ] 4. Health bars van hien dung.
+[ ] 5. Curfew/farewell van hoat dong.
+[ ] 6. Capture safety 10% van can live-test rieng.
+[ ] 7. Controller P/L+R, L profile, R leave van dung.
+
+KY VONG QUAN TRONG
+- Ngoai game 0/2 thi state khong duoc am tham 2/2.
+- Pelipper recall/swap la source truth cho Pokemon Farmer.
+- Pokemon cu khong con live = Standby = nhả slot.
+- Team Up khong dung IsInvisible lam quota fallback nua.
