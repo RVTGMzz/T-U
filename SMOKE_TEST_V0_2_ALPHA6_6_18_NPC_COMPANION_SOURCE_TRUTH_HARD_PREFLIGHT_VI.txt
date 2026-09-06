@@ -1,0 +1,41 @@
+TEAM UP v0.2.0-alpha.6.6.18
+NPC COMPANION SOURCE TRUTH + HARD PREFLIGHT - SMOKE TEST VI
+
+MUC TIEU
+1. Return/kick Pokemon cua NPC Team Up phai thu Pokemon that su o Pelipper source, khong con actor vo hinh/visible bam theo owner.
+2. Shared combat companion cap la 2/2 theo runtime that, khong chi Team Up saved state.
+3. Dang 2/2 thi Invite NPC + Pokemon bat buoc Replace/Cancel; authoritative path khong duoc chen Pokemon thu 3.
+4. Invite NPC only van duoc neu people cap con cho, va Pokemon cua NPC phai bi source recall trong luc NPC o Team Up.
+
+A. NPC LINKED POKEMON RETURN
+[ ] 1. Moi 1 NPC co Pokemon kem, chon NPC + Pokemon khi con slot.
+[ ] 2. Noi chuyen NPC, bam P hoac L+R, chon cho Pokemon nghi/Standby.
+[ ] 3. Pokemon phai ngung bam theo NPC that su; khong invisible-follow, khong tiep tuc task/combat ngam.
+[ ] 4. teamup_slots khong tinh Pokemon do la slot sau khi Pelipper source recall thanh cong.
+[ ] 5. P/L+R goi lai Pokemon: source cho no xuat hien va Team Up tinh lai 1 slot.
+
+B. NPC ONLY INTENT
+[ ] 6. Moi NPC co Pokemon, chon chi NPC.
+[ ] 7. Pokemon khong duoc tu vao Team Up sau 10/30/60 tick.
+[ ] 8. Pokemon khong tiep tuc bam theo NPC trong luc NPC dang Team Up neu source bridge tim duoc native contract.
+[ ] 9. P/L+R van co duong Call lai Pokemon cua NPC.
+
+C. HARD 2/2 PREFLIGHT
+[ ] 10. Tao dung 2 combat companion dang live.
+[ ] 11. Moi NPC thu ba co Pokemon, chon NPC + Pokemon.
+[ ] 12. Phai hien chon Replace/Cancel, khong duoc add thang Pokemon thu 3.
+[ ] 13. Cancel: NPC/Pokemon moi khong duoc chen vao team.
+[ ] 14. Chon Replace: Pokemon cu phai source recall that su truoc khi NPC+Pokemon moi duoc commit.
+[ ] 15. Neu source mod khong recall duoc Pokemon cu, authoritative recruit phai tu choi thay vi cho 3/2.
+[ ] 16. Chon NPC only o cung tinh huong 2/2: NPC van co the vao neu people cap con slot, Pokemon khong chen vao.
+
+D. SLOT TRUTH / REGRESSION
+[ ] 17. Recall Pokemon Farmer bang Pelipper: ghost slot 6.6.17 van tu nha slot.
+[ ] 18. P / L+R menu Pokemon van hoat dong; L rieng Profile, R rieng Leave.
+[ ] 19. Khong co IsInvisible/Halt/controller fallback moi cho Pelipper.
+[ ] 20. Khong tai xuat lag song/cau; khong reintroduce isTileLocationTotallyClearAndPlaceable.
+[ ] 21. Single-target combat, capture safety, curfew/farewell, health bars van hoat dong.
+
+CHAN DOAN
+- teamup_slots: xem reserved/effective slot va source live.
+- Neu log canh bao 'Could not locate Pelipper native villager companion enable/recall contract', gui SMAPI log ngay sau thao tac Return de tiep tuc map dung contract cua Pelipper.
