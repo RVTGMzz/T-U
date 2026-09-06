@@ -9,6 +9,7 @@ public sealed partial class ModEntry
 {
     private bool Alpha6619EventsRegistered;
     private bool PelipperApiBridgeConfiguredAlpha6619;
+    private bool PelipperRuntimeRootLookupLoggedAlpha6620;
     private readonly HashSet<string> PelipperNonConvergedRoutesAlpha6619 = new(StringComparer.OrdinalIgnoreCase);
 
     private void EnsureAlpha6619EventsRegistered()
@@ -28,19 +29,28 @@ public sealed partial class ModEntry
         if (PelipperApiBridgeConfiguredAlpha6619)
             return;
 
-        try
-        {
-            object? api = Helper.ModRegistry.GetApi<object>(PelipperTownCompatibilityService.ProviderId);
-            if (api is null)
-                return;
+        object? modInfo = Helper.ModRegistry.Get(PelipperTownCompatibilityService.ProviderId);
+        if (modInfo is null)
+            return;
 
-            PelipperApiRuntimeRootBridge.Configure(api);
-            PelipperApiBridgeConfiguredAlpha6619 = true;
-            Monitor.Log($"Alpha 6.6.19 bound Pelipper runtime API root: {PelipperApiRuntimeRootBridge.ApiTypeName}.", LogLevel.Debug);
-        }
-        catch (Exception ex)
+        if (PelipperModRuntimeRootLocator.TryLocate(modInfo, out object? runtimeRoot, out string locatorRoute)
+            && runtimeRoot is not null)
         {
-            Monitor.Log($"Alpha 6.6.19 could not bind Pelipper raw API root yet: {ex.Message}", LogLevel.Trace);
+            PelipperApiRuntimeRootBridge.Configure(runtimeRoot);
+            PelipperApiBridgeConfiguredAlpha6619 = true;
+            PelipperRuntimeRootLookupLoggedAlpha6620 = false;
+            Monitor.Log(
+                $"Alpha 6.6.20 bound Pelipper live runtime root {PelipperApiRuntimeRootBridge.ApiTypeName} via {locatorRoute}.",
+                LogLevel.Debug);
+            return;
+        }
+
+        if (!PelipperRuntimeRootLookupLoggedAlpha6620)
+        {
+            PelipperRuntimeRootLookupLoggedAlpha6620 = true;
+            Monitor.Log(
+                $"Alpha 6.6.20 could not resolve Pelipper live ModEntry from SMAPI metadata type {modInfo.GetType().FullName}. Falling back to the legacy assembly bridge; no invalid generic API retry will be attempted.",
+                LogLevel.Warn);
         }
     }
 
@@ -65,7 +75,9 @@ public sealed partial class ModEntry
     {
         PelipperApiRuntimeRootBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperNonConvergedRoutesAlpha6619.Clear();
+        PelipperApiRuntimeRootBridge.Reset();
         PelipperApiBridgeConfiguredAlpha6619 = false;
+        PelipperRuntimeRootLookupLoggedAlpha6620 = false;
     }
 
     private bool IsNpcPelipperSourceLiveAlpha6619(NPC owner)
@@ -93,7 +105,7 @@ public sealed partial class ModEntry
                 PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
                 PelipperNonConvergedRoutesAlpha6619.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));
                 Monitor.Log(
-                    $"Alpha 6.6.19 verified Pelipper villager source {(enabled ? "deploy" : "recall")} {owner.Name} via {route} ({reason}).",
+                    $"Alpha 6.6.20 verified Pelipper villager source {(enabled ? "deploy" : "recall")} {owner.Name} via {route} ({reason}).",
                     LogLevel.Debug);
                 return true;
             }
@@ -102,7 +114,7 @@ public sealed partial class ModEntry
             if (PelipperNonConvergedRoutesAlpha6619.Add(convergenceKey))
             {
                 Monitor.Log(
-                    $"Alpha 6.6.19 route {route} accepted the {(enabled ? "deploy" : "recall")} request for {owner.Name}, but Pelipper source is still live={sourceLive}. Team Up keeps the real slot occupied and will retry.",
+                    $"Alpha 6.6.20 route {route} accepted the {(enabled ? "deploy" : "recall")} request for {owner.Name}, but Pelipper source is still live={sourceLive}. Team Up keeps the real slot occupied and will retry.",
                     LogLevel.Warn);
             }
             return false;
@@ -125,7 +137,7 @@ public sealed partial class ModEntry
             restored = PelipperVillagerCompanionRuntimeBridge.Restore(owner.Name, owner, out route);
 
         if (restored)
-            Monitor.Log($"Alpha 6.6.19 restored Pelipper villager companion source setting for {owner.Name} via {route}.", LogLevel.Debug);
+            Monitor.Log($"Alpha 6.6.20 restored Pelipper villager companion source setting for {owner.Name} via {route}.", LogLevel.Debug);
 
         PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
         PelipperNonConvergedRoutesAlpha6619.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));

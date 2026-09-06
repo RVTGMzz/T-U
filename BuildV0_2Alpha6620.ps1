@@ -197,12 +197,13 @@ $configureReplacement = @'
         {
             PelipperRuntimeRootLookupLoggedAlpha6620 = true;
             Monitor.Log(
-                $"Alpha 6.6.20 could not resolve Pelipper live ModEntry from SMAPI metadata type {modInfo.GetType().FullName}. Falling back to the legacy assembly bridge; no GetApi<object> retry will be attempted.",
+                $"Alpha 6.6.20 could not resolve Pelipper live ModEntry from SMAPI metadata type {modInfo.GetType().FullName}. Falling back to the legacy assembly bridge; no invalid generic API retry will be attempted.",
                 LogLevel.Warn);
         }
     }
 
-    private void OnAlpha6619UpdateTicked'@
+    private void OnAlpha6619UpdateTicked
+'@
 $a19Patched = [regex]::Replace($a19, $configurePattern, $configureReplacement, 1)
 if ($a19Patched -eq $a19 -and $a19.Contains('GetApi<object>')) { throw 'Failed to replace invalid GetApi<object> bridge.' }
 $a19 = $a19Patched
@@ -257,7 +258,7 @@ if (-not $projectText.Contains('<Version>0.2.0-alpha.6.6.20</Version>')) { throw
 if (-not $modText.Contains('build: v0.2.0-alpha.6.6.20')) { throw '6.6.20 build string missing.' }
 if (-not $modText.Contains('Pelipper Runtime Root + Verified Recall Hotfix loaded.')) { throw '6.6.20 loaded string missing.' }
 if ($a19.Contains('GetApi<object>')) { throw 'Invalid SMAPI GetApi<object> call still exists.' }
-foreach ($token in @('Helper.ModRegistry.Get(', 'PelipperModRuntimeRootLocator.TryLocate', 'no GetApi<object> retry will be attempted', 'PelipperApiRuntimeRootBridge.Reset')) {
+foreach ($token in @('Helper.ModRegistry.Get(', 'PelipperModRuntimeRootLocator.TryLocate', 'no invalid generic API retry will be attempted', 'PelipperApiRuntimeRootBridge.Reset')) {
     if (-not $a19.Contains($token)) { throw "Alpha 6.6.20 token missing: $token" }
 }
 foreach ($token in @('IsPelipperRuntimeObject', 'value is Mod', 'ShouldTraverse', 'ReferenceEqualityComparer.Instance')) {

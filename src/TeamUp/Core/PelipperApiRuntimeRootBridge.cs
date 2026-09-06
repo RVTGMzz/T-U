@@ -5,7 +5,7 @@ using StardewValley;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Alpha 6.6.19 bridge rooted at Pelipper Town's real SMAPI API object. The 6.6.18 bridge could
+/// Alpha 6.6.20 graph bridge rooted at Pelipper Town's live ModEntry/config object. The 6.6.18 bridge could
 /// only discover static roots, while Pelipper's per-villager "Companion enabled" setting lives
 /// behind the live mod/API instance. This bridge walks only semantically relevant API/config
 /// members, changes the in-memory per-villager enable flag, and asks Pelipper to refresh itself.
@@ -28,8 +28,13 @@ internal static class PelipperApiRuntimeRootBridge
 
     public static void Configure(object? apiRoot)
     {
-        if (apiRoot is not null)
-            ApiRoot = apiRoot;
+        ApiRoot = apiRoot;
+    }
+
+    public static void Reset()
+    {
+        ApiRoot = null;
+        Overrides.Clear();
     }
 
     public static bool TrySetEnabled(string ownerName, NPC? owner, bool enabled, out string route)

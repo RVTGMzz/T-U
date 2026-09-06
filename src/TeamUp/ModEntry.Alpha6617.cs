@@ -208,7 +208,7 @@ public sealed partial class ModEntry
         int max = GetCompanionCapAlpha6618();
 
         Monitor.Log(
-            $"Team Up slot truth: reserved={Party.GetActiveCombatCompanionCount()}/{max}, effective={effective.Count}/{max}, livePelipperPlayer={livePlayers.Count}, apiRoot={PelipperApiRuntimeRootBridge.ApiTypeName}.",
+            $"Team Up slot truth: reserved={Party.GetActiveCombatCompanionCount()}/{max}, effective={effective.Count}/{max}, livePelipperPlayer={livePlayers.Count}, runtimeRoot={PelipperApiRuntimeRootBridge.ApiTypeName}.",
             LogLevel.Info);
 
         foreach (CompanionUnitData unit in Party.CompanionUnits.Where(unit => unit.CountsTowardCombatCompanionLimit))
