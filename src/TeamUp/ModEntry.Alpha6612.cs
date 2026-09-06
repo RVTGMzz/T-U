@@ -13,6 +13,7 @@ public sealed partial class ModEntry
     private void RegisterAlpha6612Events()
     {
         Helper.Events.GameLoop.UpdateTicked += OnAlpha6612UpdateTicked;
+        RegisterAlpha6613Events();
     }
 
     private void OnAlpha6612UpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -200,10 +201,6 @@ public sealed partial class ModEntry
 
     private static int GetCurfewTimeAlpha6612(int hearts, bool spouse)
     {
-        // Relationship-gated late-night companionship.
-        // 10 hearts/spouse is allowed up to 03:00 for installs which extend the Stardew day;
-        // vanilla Stardew will naturally force the Farmer to sleep earlier, so Team Up never
-        // modifies the game's own hard sleep clock.
         if (spouse || hearts >= 10)
             return 2900;
         if (hearts >= 8)
