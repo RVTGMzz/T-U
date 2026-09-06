@@ -193,6 +193,27 @@ public sealed partial class ModEntry
         if (!PelipperTownCompatibilityService.IsPelipperDescriptor(detectedCompanion))
             return;
 
+        // If the player explicitly chose NPC-only while the partner is visible, register the
+        // partner immediately as Standby. This makes P / L+R recall deterministic instead of
+        // waiting for a later 30-tick discovery pass which may miss a source-hidden actor.
+        if (!includeCompanion)
+        {
+            PartyMemberData? member = Party.GetAnyOwner(owner.Name);
+            if (member is not null && Party.GetLinkedCompanion(owner.Name, member.RecruiterId) is null)
+            {
+                Party.TryLinkCompanion(
+                    detectedCompanion!.UnitId,
+                    detectedCompanion.CharacterName,
+                    detectedCompanion.DisplayName,
+                    member.RecruiterId,
+                    owner.Name,
+                    CompanionUnitKind.ExternalCreature,
+                    detectedCompanion.ProviderId,
+                    detectedCompanion.ProviderUnitId,
+                    requestActive: false);
+            }
+        }
+
         NPC? actor = PelipperTownCompatibilityService.ResolveActor(detectedCompanion!);
         if (actor is not null)
             PelipperDeploymentStateService.SetDesiredDeployment(actor, owner.Name, includeCompanion);

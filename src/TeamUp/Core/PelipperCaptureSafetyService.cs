@@ -32,12 +32,10 @@ internal static class PelipperCaptureSafetyService
         budget = int.MaxValue;
         if (monster.Health <= 0 || monster.MaxHealth <= 0)
             return false;
-        if (!PelipperTownCompatibilityService.LooksLikePelipperActor(monster))
-            return false;
-
-        // Owned companions are already excluded from Team Up combat entirely. Capture safety is
-        // only for unowned/wild battle proxies which Alpha 6.6.13 explicitly opted into combat.
-        if (PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
+        // Alpha 6.6.16: capture-floor identity is the Pelipper wild/battle proxy itself, not
+        // Team Up's transient CombatTarget opt-in marker. This closes the window where a source
+        // Pokemon could land a lethal hit before Team Up's combat probe marked the target.
+        if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
             return false;
 
         RefreshPolicyIfNeeded();

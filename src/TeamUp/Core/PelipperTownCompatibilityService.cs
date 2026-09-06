@@ -43,17 +43,23 @@ public static class PelipperTownCompatibilityService
             bool teamUpSuppressed = candidate.modData.TryGetValue(SuppressedKey, out string? rawSuppressed)
                 && rawSuppressed.Equals("true", StringComparison.OrdinalIgnoreCase);
             if (ReferenceEquals(candidate, owner)
-                || (candidate.IsInvisible && !teamUpSuppressed)
                 || !LooksLikePelipperActor(candidate)
                 || LooksWild(candidate))
             {
                 continue;
             }
 
-            float distance = Vector2Distance(candidate.Tile, owner.Tile);
             bool explicitOwner = HasOwnerName(candidate, owner.Name)
                 || (candidate.modData.TryGetValue(SuppressedOwnerKey, out string? suppressedOwner)
                     && suppressedOwner.Equals(owner.Name, StringComparison.OrdinalIgnoreCase));
+
+            // Source-hidden partners are safe to discover only with explicit ownership metadata.
+            // This restores a recall path for Standby Pokemon without proximity-matching random
+            // invisible Pelipper actors.
+            if (candidate.IsInvisible && !teamUpSuppressed && !explicitOwner)
+                continue;
+
+            float distance = Vector2Distance(candidate.Tile, owner.Tile);
             if (!explicitOwner && distance > 3.25f)
                 continue;
 
@@ -211,6 +217,12 @@ public static class PelipperTownCompatibilityService
         return !actor.modData.TryGetValue(CombatTargetOptInKey, out string? raw)
             || !raw.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
+
+    // Capture safety must not depend on Team Up's 5-tick combat opt-in marker. Pelipper's own
+    // Pokemon can damage a wild proxy before that marker exists, so expose direct wild identity.
+    public static bool IsWildCombatActor(NPC actor)
+        => LooksLikePelipperActor(actor) && LooksWild(actor);
+
     public static bool LooksLikePelipperActor(NPC actor)
     {
         string typeName = actor.GetType().FullName ?? string.Empty;

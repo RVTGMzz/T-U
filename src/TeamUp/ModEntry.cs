@@ -80,7 +80,7 @@ public sealed partial class ModEntry : Mod
             "teamup_strategy",
             "Set Team Up party strategy: status|balanced|defensive|aggressive|hold|boss.",
             OnStrategyCommand);
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.15", LogLevel.Info);
+        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.16", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -97,7 +97,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha669HotfixEvents();
         RegisterAlpha6612Events();
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.6.15 Companion Intent + Recall + Capture Floor loaded.", LogLevel.Info);
+        Monitor.Log("Team Up! v0.2.0-alpha.6.6.16 Controller Companion Slot Runtime Fix loaded.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
@@ -237,6 +237,7 @@ public sealed partial class ModEntry : Mod
         if (!Context.IsWorldReady || !Context.IsMainPlayer)
             return;
 
+        UpdateDialogueCompanionInputAlpha6616();
         RunPendingUiAction();
         DebugTools.Update();
         Origin.Update();
@@ -280,6 +281,12 @@ public sealed partial class ModEntry : Mod
         {
             NPC? speaker = ResolveDialogueSpeaker();
             if (speaker is null || PartyActionConfirmationOpen)
+                return;
+
+            // Alpha 6.6.16: recruited-member controller shoulders are routed through a short
+            // chord window so L+R opens Pokemon management before L=Profile or R=Leave can fire.
+            // Keyboard P opens the same linked-companion menu.
+            if (HandleDialogueCompanionInputAlpha6616(e, speaker))
                 return;
 
             if (Config.ProfileKey.JustPressed())

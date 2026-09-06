@@ -113,10 +113,11 @@ public sealed partial class ModEntry
         if (member is null || !CanManageLinkedCompanionAlpha6615(speaker, member))
             return;
 
-        string keyLabel = Config.PartyMenuKey.ToString();
+        // Alpha 6.6.16: make the actual keyboard/controller chord explicit. L+R is handled
+        // before the legacy L=Profile / R=Leave actions, so it can never kick the NPC.
         string text = IsVietnameseAlpha6615()
-            ? $"{keyLabel} Pokémon"
-            : $"{keyLabel} Companion";
+            ? "P / L+R Pokémon"
+            : "P / L+R Pokemon";
 
         const int tagHeight = 44;
         int dialogueLeft = Math.Max(8, (Game1.uiViewport.Width - dialogueBox.width) / 2);
@@ -131,6 +132,11 @@ public sealed partial class ModEntry
     {
         CompanionUnitData? linked = Party.GetLinkedCompanion(member.CharacterName, member.RecruiterId);
         if (linked is not null && PelipperTownCompatibilityService.IsSourceControlled(linked))
+            return true;
+
+        // NPC-only is a durable intent marker even if Pelipper has already hidden the actor.
+        // Keep the Pokemon shortcut visible so the player always has a path to Call it later.
+        if (PelipperTownCompatibilityService.IsOwnerOptedOut(owner))
             return true;
 
         LiveCompanionDescriptor? detected = CompanionIntegrationService.FindLinkedCompanion(owner);
