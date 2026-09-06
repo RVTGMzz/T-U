@@ -116,11 +116,17 @@ public sealed class CombatService
         TickCooldowns(_combatPathRetryTicks);
         _combatMovementPulse = (_combatMovementPulse + 1) % CombatMovementPulseTicks;
 
-        List<Monster> monsters = FarmerContext.currentLocation.characters
+        List<Monster> combatMonsters = FarmerContext.currentLocation.characters
             .OfType<Monster>()
             .Where(monster => monster.Health > 0)
             .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
             .Where(monster => !PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
+            .ToList();
+
+        // Capture-protected Pelipper targets stay in combat context for incoming damage,
+        // guard/heal/support logic, but are removed from every offensive target list.
+        List<Monster> monsters = combatMonsters
+            .Where(monster => !PelipperCaptureSafetyService.IsProtected(monster))
             .ToList();
 
         List<PartyMemberData> activeMembers = members
@@ -132,10 +138,10 @@ public sealed class CombatService
             .Select(member => member.CharacterName)
             .ToList();
 
-        _threat.BeginFrame(monsters, validThreatActors);
+        _threat.BeginFrame(combatMonsters, validThreatActors);
         PulseAmbientThreat(activeMembers, monsters);
-        ApplyTankGuardToFarmerDamage(activeMembers, monsters, validThreatActors);
-        UpdateSurvivalStates(activeMembers, monsters, validThreatActors);
+        ApplyTankGuardToFarmerDamage(activeMembers, combatMonsters, validThreatActors);
+        UpdateSurvivalStates(activeMembers, combatMonsters, validThreatActors);
         _expansionSkills.Update(activeMembers, monsters);
 
         var assignedCounts = new Dictionary<Monster, int>();
@@ -172,7 +178,7 @@ public sealed class CombatService
             NpcCombatProfile? profile = NpcProfileCatalog.Get(member.CharacterName);
             int affinity = Math.Max(2, profile?.GetAffinity(role) ?? 2);
 
-            if (TryPerformRecovery(npc, member, role, affinity, activeMembers, monsters, validThreatActors))
+            if (TryPerformRecovery(npc, member, role, affinity, activeMembers, combatMonsters, validThreatActors))
                 stillEngaged.Add(member.CharacterName);
 
             if (ShouldRetreat(member))
@@ -237,6 +243,14 @@ public sealed class CombatService
 
             if (!attackReady)
                 continue;
+
+            // Another teammate may have pushed this target onto the capture threshold earlier in
+            // the same frame. Re-check immediately before the weapon swing.
+            if (PelipperCaptureSafetyService.IsProtected(target))
+            {
+                Disengage(member.CharacterName, npc);
+                continue;
+            }
 
             PerformAttack(npc, target, member, role, affinity);
             int cooldown = GetAttackCooldown(role, member.Engagement, affinity);
@@ -794,17 +808,28 @@ public sealed class CombatService
         damage = (int)Math.Round(damage * (0.85f + affinity * 0.05f));
         damage = Math.Max(1, (int)Math.Round(damage * _progression.GetDamageMultiplier(member, role)));
 
+        bool captureLimited = PelipperCaptureSafetyService.TryGetDamageBudget(target, out int captureBudget);
+        if (captureLimited)
+        {
+            if (captureBudget <= 0)
+                return;
+            damage = Math.Min(damage, captureBudget);
+        }
+
         int healthBefore = target.Health;
         FarmerContext.currentLocation.damageMonster(
-            target.GetBoundingBox(), damage, damage + 2, isBomb: false, knockback,
-            100, 0.02f, 1.5f, triggerMonsterInvincibleTimer: false, FarmerContext);
+            target.GetBoundingBox(), damage, captureLimited ? damage : damage + 2, isBomb: false, knockback,
+            100, captureLimited ? 0f : 0.02f, captureLimited ? 1f : 1.5f,
+            triggerMonsterInvincibleTimer: false, FarmerContext);
 
         int dealt = Math.Max(0, healthBefore - Math.Max(0, target.Health));
         if (dealt > 0)
             _threat.AddThreat(target, member.CharacterName, GetAttackThreat(member, role, dealt));
 
-        ApplyRoleCombatEffect(npc, target, member, role, affinity, dealt);
-        if (target.Health > 0)
+        bool protectedAfterHit = PelipperCaptureSafetyService.IsProtected(target);
+        if (!protectedAfterHit)
+            ApplyRoleCombatEffect(npc, target, member, role, affinity, dealt);
+        if (target.Health > 0 && !protectedAfterHit)
             TryTriggerAttackSignature(npc, target, member, role, affinity);
 
         if (dealt > 0)
@@ -962,9 +987,14 @@ public sealed class CombatService
             int bonusDamage = Math.Max(1, (int)Math.Round((4 + affinity) * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
             foreach (Monster monster in GetLivingMonstersNear(target.Tile, 2.25f))
             {
-                FarmerContext.currentLocation.damageMonster(monster.GetBoundingBox(), bonusDamage, bonusDamage + 2,
-                    isBomb: false, 1.0f, 100, 0.02f, 1.5f, triggerMonsterInvincibleTimer: false, FarmerContext);
-                _threat.AddThreat(monster, member.CharacterName, bonusDamage * 1.15f);
+                int appliedDamage = PelipperCaptureSafetyService.ClampDamage(monster, bonusDamage);
+                if (appliedDamage <= 0)
+                    continue;
+                bool captureLimited = PelipperCaptureSafetyService.TryGetDamageBudget(monster, out _);
+                FarmerContext.currentLocation.damageMonster(monster.GetBoundingBox(), appliedDamage, captureLimited ? appliedDamage : appliedDamage + 2,
+                    isBomb: false, 1.0f, 100, captureLimited ? 0f : 0.02f, captureLimited ? 1f : 1.5f,
+                    triggerMonsterInvincibleTimer: false, FarmerContext);
+                _threat.AddThreat(monster, member.CharacterName, appliedDamage * 1.15f);
                 SpawnBurst(FarmerContext.currentLocation, monster.Position, purple, 5, 28f);
             }
             npc.showTextAboveHead("SPIRIT SLASH", purple, 2, 1300, 0);
@@ -981,9 +1011,14 @@ public sealed class CombatService
             int guardDamage = Math.Max(1, (int)Math.Round((2 + affinity) * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
             foreach (Monster monster in GetLivingMonstersNear(FarmerContext.Tile, 2.75f))
             {
-                FarmerContext.currentLocation.damageMonster(monster.GetBoundingBox(), guardDamage, guardDamage + 1,
-                    isBomb: false, 2.4f, 100, 0f, 1.25f, triggerMonsterInvincibleTimer: false, FarmerContext);
-                _threat.AddThreat(monster, member.CharacterName, 55f + guardDamage * 3f);
+                int appliedDamage = PelipperCaptureSafetyService.ClampDamage(monster, guardDamage);
+                if (appliedDamage <= 0)
+                    continue;
+                bool captureLimited = PelipperCaptureSafetyService.TryGetDamageBudget(monster, out _);
+                FarmerContext.currentLocation.damageMonster(monster.GetBoundingBox(), appliedDamage, captureLimited ? appliedDamage : appliedDamage + 1,
+                    isBomb: false, 2.4f, 100, 0f, captureLimited ? 1f : 1.25f,
+                    triggerMonsterInvincibleTimer: false, FarmerContext);
+                _threat.AddThreat(monster, member.CharacterName, 55f + appliedDamage * 3f);
                 SpawnBurst(FarmerContext.currentLocation, monster.Position, orange, 4, 30f);
             }
             SpawnBurst(FarmerContext.currentLocation, FarmerContext.Position, orange, 8, 42f);
@@ -1016,6 +1051,7 @@ public sealed class CombatService
             .OfType<Monster>()
             .Where(monster => monster.Health > 0)
             .Where(monster => !PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
+            .Where(monster => !PelipperCaptureSafetyService.IsProtected(monster))
             .Where(monster => Vector2.Distance(monster.Tile, centerTile) <= radiusTiles)
             .ToList();
     }

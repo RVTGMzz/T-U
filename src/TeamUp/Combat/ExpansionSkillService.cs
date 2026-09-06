@@ -358,10 +358,17 @@ internal sealed partial class ExpansionSkillService
     private int DamageTargets(PartyMemberData member, IEnumerable<Monster> targets, int damage, float knockback, Color color, int stunMs)
     {
         int total = 0;
-        foreach (Monster monster in targets.Where(monster => monster.Health > 0).ToList())
+        foreach (Monster monster in targets.Where(monster => monster.Health > 0 && !PelipperCaptureSafetyService.IsProtected(monster)).ToList())
         {
+            int appliedDamage = PelipperCaptureSafetyService.ClampDamage(monster, damage);
+            if (appliedDamage <= 0)
+                continue;
+            bool captureLimited = PelipperCaptureSafetyService.TryGetDamageBudget(monster, out _);
             int before = monster.Health;
-            Game1.currentLocation.damageMonster(monster.GetBoundingBox(), damage, damage + 2, isBomb: false, knockback * GetIdentityUtilityScale(member.CharacterName), 100, 0.02f, 1.25f, triggerMonsterInvincibleTimer: false, Game1.player);
+            Game1.currentLocation.damageMonster(monster.GetBoundingBox(), appliedDamage, captureLimited ? appliedDamage : appliedDamage + 2,
+                isBomb: false, knockback * GetIdentityUtilityScale(member.CharacterName), 100,
+                captureLimited ? 0f : 0.02f, captureLimited ? 1f : 1.25f,
+                triggerMonsterInvincibleTimer: false, Game1.player);
             int dealt = Math.Max(0, before - Math.Max(0, monster.Health));
             total += dealt;
             if (stunMs > 0 && monster.Health > 0)
@@ -407,7 +414,8 @@ internal sealed partial class ExpansionSkillService
         => Math.Max(0.8f, spec.Radius + GetIdentityRadiusBonus(characterName));
     private static List<Monster> LivingNear(Vector2 centerTile, float radius, IReadOnlyList<Monster> monsters)
     {
-        return monsters.Where(monster => monster.Health > 0).Where(monster => ReferenceEquals(monster.currentLocation, Game1.currentLocation))
+        return monsters.Where(monster => monster.Health > 0 && !PelipperCaptureSafetyService.IsProtected(monster))
+            .Where(monster => ReferenceEquals(monster.currentLocation, Game1.currentLocation))
             .Where(monster => Vector2.Distance(monster.Tile, centerTile) <= radius).ToList();
     }
 
