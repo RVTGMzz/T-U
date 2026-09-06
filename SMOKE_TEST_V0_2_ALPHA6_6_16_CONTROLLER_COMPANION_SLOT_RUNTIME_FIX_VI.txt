@@ -1,0 +1,60 @@
+TEAM UP! v0.2.0-alpha.6.6.16 - CONTROLLER COMPANION SLOT RUNTIME FIX
+
+MUC TIEU CHINH
+1. P tren keyboard va L+R tren controller phai mo quan ly Pokemon cua NPC dang noi chuyen.
+2. L+R TUYET DOI khong duoc roi xuong R=Leave/Kick NPC.
+3. Bam L rieng van mo Ho so sau cua so chord ngan; bam R rieng van mo hoi roi Team Up.
+4. Chon NPC only phai giu Pokemon linked o Standby, khong duoc tu chen vao pool 2/2 hay da Pokemon cua Farmer ra.
+5. Pokemon NPC da Standby phai co duong Call lai bang P / L+R. Neu pool day 2/2 phai hoi Replace/Cancel.
+6. Pelipper wild Pokemon o capture mode 10% phai duoc Team Up nhan dien truc tiep la wild capture target, khong cho mot khoang trong truoc CombatTarget marker.
+
+TEST 1 - CONTROLLER L+R KHONG KICK NPC
+- Recruit 1 NPC co Pokemon linked.
+- Mo dialogue voi NPC.
+- Nhan L+R gan dong thoi.
+- PASS: hien menu Pokemon/Companion cua NPC.
+- FAIL: hien Leave Team Up, kick NPC, hoac mo Ho so thay vi menu Pokemon.
+
+TEST 2 - SINGLE SHOULDER VAN GIU CHUC NANG CU
+- Trong dialogue voi member, bam L rieng.
+- PASS: sau mot do tre rat ngan mo Ho so.
+- Bam R rieng.
+- PASS: sau mot do tre rat ngan mo cau hoi roi Team Up.
+
+TEST 3 - KEYBOARD P
+- Trong dialogue voi member co Pokemon linked, bam P.
+- PASS: mo cung menu Pokemon nhu L+R.
+- Hint phai hien: P / L+R Pokemon (ban vi hien Pokemon co dau sac neu font ho tro).
+
+TEST 4 - NPC ONLY KHONG CHIEM SLOT
+- Dang co 1-2 Pokemon cua Farmer active.
+- Recruit NPC co partner va chon NPC only.
+- Doi it nhat 5-10 giay va warp map.
+- PASS: partner NPC khong tu Active, khong da Pokemon cua Farmer ra, khong thay quota bi doi ngoai y muon.
+
+TEST 5 - CALL / RETURN NPC POKEMON
+- Noi chuyen NPC, P hoac L+R.
+- Neu partner Standby va pool con slot: Call -> partner Active.
+- Neu pool 2/2: phai hien Replace Pokemon A / Replace Pokemon B / Cancel.
+- Cancel: giu nguyen 2 Pokemon cu.
+- Chon Replace: chi Pokemon duoc chon ve Standby, partner NPC vao slot do.
+- Return partner: NPC van o Team Up, chi Pokemon ve Standby.
+
+TEST 6 - SOURCE-HIDDEN PARTNER
+- Cho partner NPC ve Standby roi thu P / L+R khi sprite partner dang an/khong dung sat NPC.
+- PASS mong doi: neu Pelipper van giu actor voi owner metadata, Team Up van tim thay va cho Call lai.
+- Neu bao khong tim thay Pokemon linked: gui SMAPI log ngay sau thao tac de soi source lifecycle.
+
+TEST 7 - CAPTURE 10%
+- Bat mode 10%/mercy/capture safety trong Pelipper.
+- Cho Team Up + Pokemon companion danh 1 wild Pokemon.
+- PASS mong doi: Team Up khong phu thuoc vao CombatTarget marker nua; target wild duoc bao ve theo capture floor ngay khi duoc nhan dien.
+- Neu van bi kill: gui SMAPI log co cac dong 'used ... on Wild ... for ... damage' ngay truoc khi target chet. Khi do damage cua Pelipper dang di duong rieng khong qua Monster.takeDamage va can hook source-specific o ban tiep theo.
+
+REGRESSION
+- Single-target combat 6.6.13 van hoat dong.
+- Heal/buff/revive/guard van hoat dong khi target capture-protected.
+- Pelipper source movement authority 6.6.10 khong bi Team Up giat lai.
+- Follow song/cau khong lag, NPC nguoi khong xuong nuoc.
+- Health bar duoi chan va curfew/farewell van hoat dong.
+- Pokemon/summon khong co Ho so rieng.
