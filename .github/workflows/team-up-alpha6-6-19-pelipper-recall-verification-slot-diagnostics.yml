@@ -1,0 +1,139 @@
+name: Team Up v0.2.0-alpha.6.6.19 Pelipper Recall Verification Slot Diagnostics
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-19-pelipper-recall-verification-slot-diagnostics ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Normalize Alpha 6.6.19 materializer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('BuildV0_2Alpha6619.ps1')
+          s = p.read_text(encoding='utf-8')
+          bad = "    private static bool IsSlotReservedAlpha6617'@\n"
+          good = "    private static bool IsSlotReservedAlpha6617\n'@\n"
+          if bad in s:
+              s = s.replace(bad, good)
+              p.write_text(s, encoding='utf-8', newline='\n')
+          print('Alpha 6.6.19 materializer syntax normalized')
+          PY
+
+      - name: Build Alpha 6.6.19 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha6619.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          a16 = (root/'ModEntry.Alpha6616.cs').read_text(encoding='utf-8')
+          a17 = (root/'ModEntry.Alpha6617.cs').read_text(encoding='utf-8')
+          a18 = (root/'ModEntry.Alpha6618.cs').read_text(encoding='utf-8')
+          a19 = (root/'ModEntry.Alpha6619.cs').read_text(encoding='utf-8')
+          bridge = (root/'Core/PelipperApiRuntimeRootBridge.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert '<Version>0.2.0-alpha.6.6.19</Version>' in project
+          assert 'build: v0.2.0-alpha.6.6.19' in mod
+          assert 'Pelipper Recall Verification + Slot Diagnostics Hotfix loaded.' in mod
+          assert 'EnsureAlpha6619EventsRegistered();' in a16
+          assert '=> TrySetPelipperNpcSourceEnabledAlpha6619(owner, enabled, reason);' in a18
+          assert '=> RestorePelipperNpcSourceAlpha6619(owner);' in a18
+
+          for token in [
+              'GetApi<object>',
+              'TrySetPelipperNpcSourceEnabledAlpha6619',
+              'IsNpcPelipperSourceLiveAlpha6619',
+              'keeps the real slot occupied and will retry',
+              'PelipperApiRuntimeRootBridge.RestoreAll']:
+              assert token in a19, token
+
+          for token in [
+              'TrySetEnabledGraph', 'TryReadEnabledGraph', 'TryInvokeActionGraph',
+              'TryRefreshGraph', 'CompanionEnabled', 'PartnerEnabled', 'ShowCompanion']:
+              assert token in bridge, token
+
+          assert 'effective={effective.Count}/{max}' in a17
+          assert 'sourceLive={sourceLive}' in a17
+          assert 'effectiveSlot={effectiveSlot}' in a17
+          assert 'apiRoot={PelipperApiRuntimeRootBridge.ApiTypeName}' in a17
+
+          forbidden = ['TrySetActorInvisibleAlpha6613(', 'PelipperTownCompatibilityService.SetSuppressed(', '.Halt();', '.controller =', '.temporaryController =']
+          for token in forbidden:
+              assert token not in bridge, token
+              assert token not in a19, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+
+          print('Alpha 6.6.19 source acceptance PASS')
+          print('Pelipper raw API root bridge PASS')
+          print('NPC source-live recall verification PASS')
+          print('Non-converged retry instead of permanent blacklist PASS')
+          print('reserved/effective/sourceLive diagnostics PASS')
+          print('Hard 2/2 source-live preflight preserved PASS')
+          print('No render/movement suppression fallback PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.19_PELIPPER_RECALL_VERIFICATION_SLOT_DIAGNOSTICS_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.19_PELIPPER_RECALL_VERIFICATION_SLOT_DIAGNOSTICS_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.19' BUILD_LOG.txt
+          grep -q 'PELIPPER RAW API ROOT BRIDGE: ENABLED' BUILD_LOG.txt
+          grep -q 'NPC RECALL SOURCE-LIVE VERIFICATION: ENABLED' BUILD_LOG.txt
+          grep -q 'NON-CONVERGED RECALL RETRY: ENABLED' BUILD_LOG.txt
+          grep -q 'RESERVED/EFFECTIVE SLOT DIAGNOSTICS: ENABLED' BUILD_LOG.txt
+          grep -q 'HARD 2/2 SOURCE-LIVE PREFLIGHT: PRESERVED' BUILD_LOG.txt
+          grep -q 'RENDER/MOVEMENT SUPPRESSION FALLBACK: DISABLED' BUILD_LOG.txt
+          echo 'Alpha 6.6.19 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha6619.ps1 SMOKE_TEST_V0_2_ALPHA6_6_19_PELIPPER_RECALL_VERIFICATION_SLOT_DIAGNOSTICS_VI.txt .github/workflows/team-up-alpha6-6-19-pelipper-recall-verification-slot-diagnostics.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.19 source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-19-pelipper-recall-verification-slot-diagnostics
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-19-pelipper-recall-verification-slot-diagnostics
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.19_PELIPPER_RECALL_VERIFICATION_SLOT_DIAGNOSTICS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.19_PELIPPER_RECALL_VERIFICATION_SLOT_DIAGNOSTICS_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_19_PELIPPER_RECALL_VERIFICATION_SLOT_DIAGNOSTICS_VI.txt
+          if-no-files-found: error
