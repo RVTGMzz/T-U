@@ -17,3 +17,6 @@ The 6.6.23 forced-agro table is real and the Farmer damage redirect path is wire
 3. Preserve source-live slot truth and the 2/2 hard cap.
 4. Keep Hard Taunt forced aggro + Farmer damage redirect, but strengthen guard-owner selection.
 5. Compile clean and verify packaged DLL no longer contains the legacy visibility suppression symbols.
+
+## Post-materialization verification
+Run 5 passed build, deep source acceptance, and binary/package acceptance, then materialized the audited 6.6.24 source into the branch. This commit intentionally triggers one more CI pass against that already-materialized source. The final test is accepted only if no source rewrite is required and the same source/DLL gates pass again.
