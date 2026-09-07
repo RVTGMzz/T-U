@@ -27,6 +27,7 @@ if (Test-Path $releaseDir) { New-Item -ItemType Directory -Force -Path $releaseD
 $projectText = ReadText $project
 $native = ReadText (Join-Path $sourceDir 'Core\PelipperTown119NativeBridge.cs')
 $quota = ReadText (Join-Path $sourceDir 'Core\PelipperTown119DeployQuotaPatch.cs')
+$a13 = ReadText (Join-Path $sourceDir 'ModEntry.Alpha6613.cs')
 $a21 = ReadText (Join-Path $sourceDir 'ModEntry.Alpha6621.cs')
 $a25 = ReadText (Join-Path $sourceDir 'ModEntry.Alpha6625.cs')
 $a18 = ReadText (Join-Path $sourceDir 'ModEntry.Alpha6618.cs')
@@ -45,9 +46,14 @@ Require ($quota.Contains('PelipperTown.CompanionRuntime')) 'Native player runtim
 Require ($quota.Contains('DeployBeside')) 'Native final deploy boundary missing.'
 Require ($quota.Contains('BeforeDeployBeside')) 'Native deploy prefix missing.'
 Require ($a21.IndexOf('PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled') -ge 0) 'Alpha 6.6.21 does not use exact native bridge.'
-Require ($a21.IndexOf('PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled') -lt $a21.IndexOf('PelipperVillagerLifecycleBridge.TrySetEnabled')) 'Exact native bridge is not first priority.'
+Require ($a21.IndexOf('PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled') -lt $a21.IndexOf('PelipperVillagerLifecycleBridge.TrySetEnabled')) 'Exact native NPC bridge is not first priority.'
+Require ($a13.Contains('PelipperTown119NativeBridge.TrySetPlayerDeployment')) 'Player Call/Return does not use native 1.1.9 lifecycle.'
+Require ($a13.IndexOf('PelipperTown119NativeBridge.TrySetPlayerDeployment') -lt $a13.IndexOf('SetCompanionEnabled')) 'Native player lifecycle is not ahead of actor fallback.'
 Require ($a25.Contains('GetEffectiveCombatCompanionCountAlpha6618')) 'Native quota gate is not using effective source-live truth.'
+Require ($a25.Contains('ownerAlreadyUsesPlayerSlot')) 'Same-owner A -> B Pelipper swap safety missing.'
+Require ($a25.Contains('occupiedByOthers')) 'Native quota gate does not subtract the replacing owner slot.'
 Require ($a18.Contains('physically deployed and must block a third companion')) 'Source-live hard cap regression.'
+Require ($a18.Contains('RestorePelipperNpcSourceAlpha6618(owner)')) 'NPC leave path is not restoring through native source lifecycle.'
 Require ($allSource.IndexOf('PelipperRenderSuppressedAlpha6613') -lt 0) 'Legacy render suppression returned.'
 Require ($allSource.IndexOf('PelipperRenderRestoreAlpha6613') -lt 0) 'Legacy render restore returned.'
 Require ($allSource.IndexOf('TrySetActorInvisibleAlpha6613') -lt 0) 'Legacy IsInvisible writer returned.'
@@ -58,7 +64,9 @@ Require ($profile.Contains('Math.Min(1518, Game1.uiViewport.Width - 16)')) 'Prof
 
 Log 'Building Alpha 6.6.25 Pelipper Town 1.1.9 Native Bridge...'
 Log 'NATIVE NPC RECALL: exact VillagerCompanionManager lifecycle wired.'
+Log 'NATIVE PLAYER CALL/RETURN: ModEntry.DeployBesideOwner/RecallToBall wired.'
 Log 'NATIVE PLAYER QUOTA: CompanionRuntime.DeployBeside(Farmer,bool) pre-spawn gate wired.'
+Log 'NATIVE PLAYER SWAP: same-owner active slot is replaced, not double-counted.'
 Log 'SOURCE-LIVE 2/2 HARD CAP: preserved.'
 Log 'PELIPPER SOURCE AUTHORITY: render/movement/controller ownership untouched.'
 
@@ -77,9 +85,12 @@ $dllStrings = $dllAscii + "`n" + $dllUtf16
 Require ($dllStrings.Contains('PelipperTown119NativeBridge')) 'Native bridge absent from DLL.'
 Require ($dllStrings.Contains('SetConfiguredCompanionEnabled')) 'Native villager method absent from DLL.'
 Require ($dllStrings.Contains('ApplyConfiguredAssignments')) 'Native apply method absent from DLL.'
+Require ($dllStrings.Contains('RecallToBall')) 'Native player RecallToBall absent from DLL.'
+Require ($dllStrings.Contains('DeployBesideOwner')) 'Native player DeployBesideOwner absent from DLL.'
 Require ($dllStrings.Contains('PelipperTown119DeployQuotaPatch')) 'Native deploy quota patch absent from DLL.'
 Require ($dllStrings.Contains('DeployBeside')) 'Native deploy boundary absent from DLL.'
 Require ($dllStrings.Contains('GetEffectiveCombatCompanionCountAlpha6618')) 'Effective slot truth absent from DLL.'
+Require ($dllStrings.Contains('TrySetPlayerDeployment')) 'Compiled player native lifecycle call absent from DLL.'
 Require (-not $dllStrings.Contains('PelipperRenderSuppressedAlpha6613')) 'Legacy render suppression symbol remains in DLL.'
 Require (-not $dllStrings.Contains('TrySetActorInvisibleAlpha6613')) 'Legacy visibility writer remains in DLL.'
 
@@ -96,7 +107,9 @@ $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 
 Log 'NATIVE 1.1.9 SURFACE: PRESENT IN DLL'
 Log 'NPC RETURN: SetConfiguredCompanionEnabled + ApplyConfiguredAssignments PRESENT'
+Log 'PLAYER CALL/RETURN: DeployBesideOwner + RecallToBall PRESENT'
 Log 'PLAYER THIRD-SPAWN GATE: DeployBeside PREFIX PRESENT'
+Log 'PLAYER SAME-OWNER SWAP: SLOT REPLACEMENT GATE PRESENT'
 Log 'SOURCE AUTHORITY LEGACY RENDER SYMBOLS: ABSENT IN DLL'
 Log 'BUILD SUCCESS - ALPHA 6.6.25'
 Log "ZIP: $zipName"
