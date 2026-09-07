@@ -1,0 +1,33 @@
+name: Team Up v0.2.0-alpha.6.6.25 Pelipper Native 1.1.9 Bridge
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-6-25-pelipper-native-119-bridge
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+      - name: Build and audit Alpha 6.6.25
+        shell: pwsh
+        run: ./BuildV0_2Alpha6625.ps1
+      - name: Upload Alpha 6.6.25 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-25-pelipper-native-119-bridge
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.25_PELIPPER_NATIVE_119_BRIDGE_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.25_PELIPPER_NATIVE_119_BRIDGE_TEST.sha256.txt
+            BUILD_LOG_ALPHA6625.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_25_PELIPPER_NATIVE_119_BRIDGE_VI.txt
+            PELIPPER_119_NATIVE_SURFACE_AUDIT.md
+          if-no-files-found: error
