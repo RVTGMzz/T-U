@@ -831,6 +831,21 @@ public sealed class CombatService
             damage = Math.Min(damage, captureBudget);
         }
 
+        // Alpha 6.7.1: support/healer Gus used to deal invisible generic damage while standing
+        // perfectly still at range. Give Hot Plate a lightweight animated combat tell without
+        // changing his damage budget or stealing sprite/controller authority.
+        if (npc.Name.Equals("Gus", StringComparison.OrdinalIgnoreCase))
+        {
+            Color hotPlateColor = new(255, 190, 90);
+            SpawnBurst(FarmerContext.currentLocation, npc.Position + new Vector2(16f, -8f), hotPlateColor, 5, 22f);
+            if (GetCooldown(_signatureCooldowns, npc.Name) <= 0)
+            {
+                npc.showTextAboveHead("HOT PLATE", hotPlateColor, 2, 700, 0);
+                FarmerContext.currentLocation.playSound("yoba");
+                _signatureCooldowns[npc.Name] = 180;
+            }
+        }
+
         int healthBefore = target.Health;
         FarmerContext.currentLocation.damageMonster(
             target.GetBoundingBox(), damage, captureLimited ? damage : damage + 2, isBomb: false, knockback,

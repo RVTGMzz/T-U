@@ -190,6 +190,11 @@ public sealed partial class ModEntry
         // reconcile could auto-add the Pokemon a few ticks later and displace another slot.
         PelipperTownCompatibilityService.SetOwnerOptOut(owner, !includeCompanion);
 
+        // Alpha 6.7.1: recruitment controls Pelipper at the source even while the configured
+        // partner actor is asleep/dormant. NPC-only therefore cannot auto-spawn later.
+        if (PelipperTown119NativeBridge.HasVillagerLifecycle)
+            PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled(owner.Name, includeCompanion, out _);
+
         if (!PelipperTownCompatibilityService.IsPelipperDescriptor(detectedCompanion))
             return;
 

@@ -241,6 +241,74 @@ internal static class PelipperTown119NativeBridge
         return true;
     }
 
+    /// <summary>
+    /// Alpha 6.7.1: asks Pelipper 1.1.9 for the configured villager partner even when its runtime
+    /// actor is dormant. Verified DLL signature:
+    /// TryGetConfiguredCompanion(string, out SpeciesDefinition, out bool) -> bool.
+    /// This descriptor is recruitment intent only and must never be treated as source-live truth.
+    /// </summary>
+    public static bool TryGetConfiguredVillagerCompanionDescriptor(string npcName, out LiveCompanionDescriptor? descriptor)
+    {
+        descriptor = null;
+        object? manager = VillagerManager ?? (RuntimeRoot is null ? null : ResolveVillagerManager(RuntimeRoot));
+        if (manager?.GetType().FullName != "PelipperTown.VillagerCompanionManager"
+            || string.IsNullOrWhiteSpace(npcName))
+        {
+            return false;
+        }
+
+        if (TryIsVillagerCompanionConfiguredEnabled(npcName, out bool enabled) && !enabled)
+            return true;
+
+        MethodInfo? method = manager.GetType().GetMethods(InstanceFlags)
+            .FirstOrDefault(candidate =>
+            {
+                if (!candidate.Name.Equals("TryGetConfiguredCompanion", StringComparison.Ordinal))
+                    return false;
+                ParameterInfo[] parameters = candidate.GetParameters();
+                return candidate.ReturnType == typeof(bool)
+                    && parameters.Length == 3
+                    && parameters[0].ParameterType == typeof(string)
+                    && parameters[1].ParameterType.IsByRef
+                    && parameters[2].ParameterType == typeof(bool).MakeByRefType();
+            });
+        if (method is null)
+            return false;
+
+        try
+        {
+            object?[] args = { npcName, null, false };
+            if (method.Invoke(manager, args) is not bool found || !found || args[1] is null)
+                return true;
+
+            object species = args[1]!;
+            Type speciesType = species.GetType();
+            string speciesId = SafeGet(() => speciesType.GetProperty("Id", InstanceFlags)?.GetValue(species)?.ToString()) ?? string.Empty;
+            string displayName = SafeGet(() => speciesType.GetProperty("DisplayName", InstanceFlags)?.GetValue(species)?.ToString()) ?? speciesId;
+            if (string.IsNullOrWhiteSpace(speciesId))
+                return false;
+            if (string.IsNullOrWhiteSpace(displayName))
+                displayName = speciesId;
+
+            string providerUnitId = $"configured:npc:{npcName}:{speciesId}";
+            descriptor = new LiveCompanionDescriptor
+            {
+                UnitId = $"{PelipperTownCompatibilityService.ProviderId}:{providerUnitId}",
+                CharacterName = speciesId,
+                DisplayName = displayName,
+                OwnerKind = CompanionOwnerKind.PartyMember,
+                OwnerCharacterName = npcName,
+                ProviderId = PelipperTownCompatibilityService.ProviderId,
+                ProviderUnitId = providerUnitId
+            };
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     public static bool TryIsVillagerCompanionConfiguredEnabled(string npcName, out bool enabled)
     {
         enabled = false;

@@ -583,7 +583,7 @@ internal sealed class PartyBanterService
             NPC? speaker = Game1.getCharacterFromName(line.SpeakerName);
             if (speaker is null || speaker.IsInvisible || speaker.currentLocation != Game1.currentLocation)
                 continue;
-            speaker.showTextAboveHead(line.Text, new Color(245, 235, 205), 2, line.DurationMs, 0);
+            speaker.showTextAboveHead(line.Text, new Color(72, 42, 28), 2, line.DurationMs, 0);
         }
     }
 

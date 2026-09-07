@@ -55,6 +55,7 @@ public static class NpcProfileCatalog
             ["Evelyn"] = P("Evelyn", PartyRole.Healer, PartyRole.Support, EngagementStyle.Cautious, 1, 1, 4, 5, 2),
             ["George"] = P("George", PartyRole.Tank, PartyRole.Control, EngagementStyle.Cautious, 4, 2, 2, 1, 4),
             ["Gus"] = P("Gus", PartyRole.Support, PartyRole.Healer, EngagementStyle.Balanced, 3, 2, 5, 4, 2),
+            ["Gunther"] = P("Gunther", PartyRole.Control, PartyRole.Support, EngagementStyle.Cautious, 2, 2, 4, 1, 5),
             ["Haley"] = P("Haley", PartyRole.Damage, PartyRole.Support, EngagementStyle.Aggressive, 2, 4, 3, 1, 2),
             ["Harvey"] = P("Harvey", PartyRole.Healer, PartyRole.Support, EngagementStyle.Cautious, 1, 1, 4, 5, 1),
             ["Jodi"] = P("Jodi", PartyRole.Support, PartyRole.Healer, EngagementStyle.Cautious, 2, 2, 5, 4, 2),

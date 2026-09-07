@@ -93,6 +93,11 @@ public static class CharacterSkillIdentityCatalog
                 damage: 2, heal: 6, radius: 6.0f, maxTargets: 4, knockback: 0.8f, triggerHp: 0.76f,
                 buffTicks: 360, healBuff: 0.06f, cdrBuff: 3, partyWide: true),
 
+            // Control / Support. Museum knowledge becomes a safe crowd-control seal.
+            ["Gunther"] = I("Gunther", "RELIC SEAL", CharacterSignatureArchetype.Control, 720, 630,
+                damage: 4, radius: 5.5f, maxTargets: 4, stun2: 620, stun3: 960, knockback: 0.8f,
+                buffTicks: 300, controlBuff: 0.08f, cdrBuff: 3, partyWide: true),
+
             // Damage / Support. Fast single-target pressure with a small self tempo buff.
             ["Haley"] = I("Haley", "FLASH SHOT", CharacterSignatureArchetype.Burst, 600, 510,
                 damage: 11, radius: 8.0f, maxTargets: 1, stun3: 180, knockback: 1.2f,

@@ -292,7 +292,7 @@ public sealed partial class ModEntry
             return;
         }
 
-        LiveCompanionDescriptor? detectedCompanion = CompanionIntegrationService.FindLinkedCompanion(npc);
+        LiveCompanionDescriptor? detectedCompanion = FindRecruitCandidateCompanionAlpha671(npc);
         LiveCompanionDescriptor? liveCompanion = includeCompanion ? detectedCompanion : null;
 
         // Alpha 6.6.18: UI checks are not authoritative. Reconcile source-live slot truth at the
@@ -312,7 +312,7 @@ public sealed partial class ModEntry
         PartyAddResult result = Party.TryAddMember(npc.Name, recruiterId, GetOnlineFarmerIds());
         if (result == PartyAddResult.PartyFull)
         {
-            SendActionResult(responsePlayerId, false, "TEAM UP PARTY FULL • 6/6 people");
+            SendActionResult(responsePlayerId, false, Helper.Translation.Get("party.full-hud", new { max = Config.MaxPartyMembers }));
             return;
         }
         if (result != PartyAddResult.Added)
@@ -378,7 +378,7 @@ public sealed partial class ModEntry
     {
         RecruitHintNpcName = npc.Name;
         PartyActionConfirmationOpen = true;
-        LiveCompanionDescriptor? companion = CompanionIntegrationService.FindLinkedCompanion(npc);
+        LiveCompanionDescriptor? companion = FindRecruitCandidateCompanionAlpha671(npc);
 
         if (companion is null || CompanionClassificationService.IsSpecialName(companion.CharacterName, Config.SpecialCompanionNpcNames))
         {
@@ -399,13 +399,13 @@ public sealed partial class ModEntry
 
         Response[] responses =
         {
-            new("InviteOnly", $"{npc.displayName} only"),
-            new("InviteTogether", $"{npc.displayName} + {companion.DisplayName}"),
+            new("InviteOnly", Helper.Translation.Get("recruit.invite-only", new { name = npc.displayName })),
+            new("InviteTogether", Helper.Translation.Get("recruit.invite-together", new { name = npc.displayName, companion = companion.DisplayName })),
             new("Cancel", Helper.Translation.Get("common.cancel"))
         };
 
         Game1.currentLocation.createQuestionDialogue(
-            $"Invite {npc.displayName} to Team Up?",
+            Helper.Translation.Get("recruit.question", new { name = npc.displayName }),
             responses,
             delegate(Farmer _, string answer)
             {
@@ -627,7 +627,7 @@ public sealed partial class ModEntry
                 && member.State == PartyMemberState.Inactive
                 && Party.GetSharedPeopleCount(GetOnlineFarmerIds()) >= Math.Clamp(Config.MaxPartyMembers, 1, 6))
             {
-                SendActionResult(responsePlayerId, false, "TEAM UP PARTY FULL • 6/6 people");
+                SendActionResult(responsePlayerId, false, Helper.Translation.Get("party.full-hud", new { max = Config.MaxPartyMembers }));
                 return false;
             }
 
