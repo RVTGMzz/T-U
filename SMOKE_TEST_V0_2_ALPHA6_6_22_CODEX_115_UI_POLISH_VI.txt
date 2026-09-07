@@ -1,0 +1,29 @@
+TEAM UP v0.2.0-alpha.6.6.22 - CODEX 115% UI POLISH
+
+Mục tiêu build này:
+- Phóng lớn Codex Browser tối đa thêm 15% trên màn hình đủ rộng/cao.
+- Phóng lớn Character Profile tối đa thêm 15% để chuyển qua lại không bị hụt kích thước.
+- Trên viewport nhỏ vẫn clamp sát màn hình như trước, không ép menu vượt khung.
+- Không thay đổi combat/follow/Pelipper logic của 6.6.21.
+
+SMOKE TEST NHANH
+1. Mở Social -> Codex hoặc dùng phím/controller mở Team Up Codex.
+2. Trên màn hình 1080p hoặc lớn hơn: xác nhận khung Codex lớn hơn rõ rệt so với 6.6.21.
+3. Danh sách dài: Codex cao lớn có thể hiện tối đa 11 dòng, không để khoảng trống lớn phía dưới.
+4. Test Role / Status / Source dropdown bằng chuột và controller.
+5. Mở profile một NPC: profile cũng lớn hơn, cột thông tin bên trái rộng hơn và portrait lớn hơn khi màn hình đủ chỗ.
+6. Scroll phần Passive / Signature / Relationship trong profile bằng wheel, D-pad/analog như cũ.
+7. Test nút All Characters và Back.
+8. Nếu dùng Steam Deck / viewport nhỏ: xác nhận menu vẫn nằm gọn trong màn hình, không mất nút footer.
+
+REGRESSION KHÔNG ĐƯỢC XẢY RA
+- Không thay đổi hard cap companion 2/2.
+- Không thay đổi Pelipper runtime/lifecycle/probe 6.6.21.
+- Không quay lại IsInvisible/Halt/controller ownership.
+- Không thay đổi water/pathfinding hotfix.
+- Không thay đổi controller equip/unequip và Codex input đã ổn định.
+
+NẾU CÓ LỖI UI
+- Chụp toàn màn hình Codex/Profile.
+- Ghi resolution + UI Scale/Zoom đang dùng.
+- Nói rõ dùng mouse hay controller.
