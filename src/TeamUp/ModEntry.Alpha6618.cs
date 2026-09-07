@@ -82,7 +82,10 @@ public sealed partial class ModEntry
                         CompanionDeploymentState.Standby);
                 }
 
-                PelipperVillagerCompanionRuntimeBridge.Restore(owner.Name, owner, out _);
+                // Alpha 6.6.25: release the exact native 1.1.9 override when the NPC leaves Team
+                // Up. This restores Pelipper's original companion setting and lets Pelipper own the
+                // NPC+Pokemon relationship again outside the party.
+                RestorePelipperNpcSourceAlpha6618(owner);
                 continue;
             }
 
