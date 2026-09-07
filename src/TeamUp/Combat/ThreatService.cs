@@ -12,11 +12,19 @@ internal sealed class ThreatService
     private const float FarmerBaselineThreat = 12f;
     private const float ThreatDecay = 0.9925f;
 
+    private sealed class ForcedAggroState
+    {
+        public string ActorId { get; init; } = string.Empty;
+        public int Ticks { get; set; }
+    }
+
     private readonly Dictionary<Monster, Dictionary<string, float>> _tables = new();
+    private readonly Dictionary<Monster, ForcedAggroState> _forcedAggro = new();
 
     public void Clear()
     {
         _tables.Clear();
+        _forcedAggro.Clear();
     }
 
     public void BeginFrame(IReadOnlyList<Monster> monsters, IReadOnlyCollection<string> validPartyActors)
@@ -24,9 +32,22 @@ internal sealed class ThreatService
         HashSet<Monster> live = monsters.Where(monster => monster.Health > 0).ToHashSet();
         foreach (Monster stale in _tables.Keys.Where(monster => !live.Contains(monster)).ToList())
             _tables.Remove(stale);
+        foreach (Monster stale in _forcedAggro.Keys.Where(monster => !live.Contains(monster)).ToList())
+            _forcedAggro.Remove(stale);
 
         foreach (Monster monster in live)
         {
+            if (_forcedAggro.TryGetValue(monster, out ForcedAggroState? forced))
+            {
+                forced.Ticks--;
+                if (forced.Ticks <= 0
+                    || forced.ActorId == FarmerActorId
+                    || !validPartyActors.Contains(forced.ActorId))
+                {
+                    _forcedAggro.Remove(monster);
+                }
+            }
+
             Dictionary<string, float> table = GetTable(monster);
             foreach (string actor in table.Keys.ToList())
             {
@@ -60,6 +81,23 @@ internal sealed class ThreatService
             AddThreat(monster, actorId, amount);
     }
 
+    public void ForceAggro(Monster monster, string actorId, int ticks)
+    {
+        if (monster.Health <= 0 || string.IsNullOrWhiteSpace(actorId) || actorId == FarmerActorId || ticks <= 0)
+            return;
+
+        _forcedAggro[monster] = new ForcedAggroState
+        {
+            ActorId = actorId,
+            Ticks = ticks
+        };
+    }
+
+    public bool IsForcedAggro(Monster monster, string actorId)
+        => _forcedAggro.TryGetValue(monster, out ForcedAggroState? forced)
+            && forced.Ticks > 0
+            && forced.ActorId.Equals(actorId, StringComparison.OrdinalIgnoreCase);
+
     public void ScaleActor(string actorId, float multiplier)
     {
         multiplier = Math.Max(0f, multiplier);
@@ -80,6 +118,13 @@ internal sealed class ThreatService
 
     public string GetAggroActor(Monster monster, IReadOnlyCollection<string> validPartyActors)
     {
+        if (_forcedAggro.TryGetValue(monster, out ForcedAggroState? forced)
+            && forced.Ticks > 0
+            && validPartyActors.Contains(forced.ActorId))
+        {
+            return forced.ActorId;
+        }
+
         Dictionary<string, float> table = GetTable(monster);
         string bestActor = FarmerActorId;
         float bestThreat = Math.Max(FarmerBaselineThreat, GetThreat(monster, FarmerActorId));

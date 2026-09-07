@@ -336,7 +336,8 @@ public sealed class CombatService
         if (guard is null)
             return;
 
-        bool ownsPressure = nearbyThreats.Any(monster =>
+        bool hardTauntOwnsPressure = nearbyThreats.Any(monster => _threat.IsForcedAggro(monster, guard.CharacterName));
+        bool ownsPressure = hardTauntOwnsPressure || nearbyThreats.Any(monster =>
             _threat.GetAggroActor(monster, validThreatActors).Equals(guard.CharacterName, StringComparison.OrdinalIgnoreCase)
             || _threat.GetThreat(monster, guard.CharacterName) >= _threat.GetThreat(monster, ThreatService.FarmerActorId) * 0.85f);
         if (!ownsPressure)
@@ -347,13 +348,15 @@ public sealed class CombatService
             return;
 
         int mastery = _progression.GetMasteryLevel(guard, PartyRole.Tank);
-        float guardRatio = Math.Min(0.55f, 0.35f + mastery * 0.02f);
+        float guardRatio = hardTauntOwnsPressure ? 1f : Math.Min(0.55f, 0.35f + mastery * 0.02f);
         int absorbed = Math.Clamp((int)Math.Round(lost * guardRatio), 1, lost);
         FarmerContext.health = Math.Min(FarmerContext.maxHealth, FarmerContext.health + absorbed);
 
         int redirected = Math.Max(1, absorbed - _progression.GetDefense(guard) / 3);
         guard.CurrentHealth = Math.Max(0, guard.CurrentHealth - redirected);
-        guardNpc.showTextAboveHead($"GUARD -{redirected}", new Color(255, 165, 80), 2, 900, 0);
+        if (hardTauntOwnsPressure)
+            _incomingDamageCooldowns[guard.CharacterName] = Math.Max(GetCooldown(_incomingDamageCooldowns, guard.CharacterName), 18);
+        guardNpc.showTextAboveHead(hardTauntOwnsPressure ? $"TAUNT -{redirected}" : $"GUARD -{redirected}", new Color(255, 165, 80), 2, 900, 0);
         SpawnBurst(FarmerContext.currentLocation, guardNpc.Position, new Color(255, 165, 80), 5, 24f);
         foreach (Monster monster in nearbyThreats)
             _threat.AddThreat(monster, guard.CharacterName, 18f + absorbed * 3f);
@@ -533,11 +536,15 @@ public sealed class CombatService
             return;
 
         int mastery = _progression.GetMasteryLevel(member, PartyRole.Tank);
-        float amount = (34f + mastery * 5f) * GetEngagementThreatMultiplier(member.Engagement);
+        float amount = (48f + mastery * 7f) * GetEngagementThreatMultiplier(member.Engagement);
+        int hardTauntTicks = Math.Clamp(150 + mastery * 12, 150, 240);
         foreach (Monster monster in candidates)
+        {
             _threat.AddThreat(monster, member.CharacterName, amount);
+            _threat.ForceAggro(monster, member.CharacterName, hardTauntTicks);
+        }
 
-        npc.showTextAboveHead("TAUNT", new Color(255, 165, 80), 2, 900, 0);
+        npc.showTextAboveHead("HARD TAUNT", new Color(255, 165, 80), 2, 1050, 0);
         SpawnBurst(FarmerContext.currentLocation, npc.Position, new Color(255, 165, 80), 6, 32f);
         _tauntCooldowns[member.CharacterName] = Math.Max(150,
             (int)Math.Round(270 * _progression.GetCooldownMultiplier(member, PartyRole.Tank)));
