@@ -12,15 +12,13 @@ public sealed partial class ModEntry
     private const int PelipperCombatProbePulseAlpha6613 = 5;
     private const int PelipperQuotaPulseAlpha6613 = 15;
 
-    private readonly HashSet<NPC> PelipperRenderSuppressedAlpha6613 = new(ReferenceEqualityComparer.Instance);
-    private readonly Dictionary<NPC, bool> PelipperRenderRestoreAlpha6613 = new(ReferenceEqualityComparer.Instance);
+    // Kept only for the older player-owned actor handshake. NPC-owned Pelipper actors never use
+    // this as a render/controller authority path in Alpha 6.6.24.
     private readonly Dictionary<NPC, bool> PelipperSourceDeploymentAlpha6613 = new(ReferenceEqualityComparer.Instance);
 
     private void RegisterAlpha6613Events()
     {
         Helper.Events.GameLoop.UpdateTicked += OnAlpha6613UpdateTicked;
-        Helper.Events.Display.RenderingWorld += OnAlpha6613RenderingWorld;
-        Helper.Events.Display.RenderedWorld += OnAlpha6613RenderedWorld;
         Helper.Events.GameLoop.ReturnedToTitle += OnAlpha6613ReturnedToTitle;
     }
 
@@ -80,7 +78,6 @@ public sealed partial class ModEntry
                 CompanionDeploymentState.Standby);
         }
 
-        PelipperRenderSuppressedAlpha6613.Clear();
         HashSet<string> deployedIds = Party.CompanionUnits
             .Where(PelipperTownCompatibilityService.IsSourceControlled)
             .Where(unit => unit.State is CompanionDeploymentState.Active
@@ -97,15 +94,13 @@ public sealed partial class ModEntry
                 continue;
 
             bool deployed = deployedIds.Contains(unit.UnitId);
+
+            // Alpha 6.6.24 source authority: quota enforcement records intent only.
+            // It never toggles source-owned render/controller/runtime state.
             PelipperDeploymentStateService.SetDesiredDeployment(
                 actor,
                 unit.OwnerCharacterName ?? string.Empty,
                 deployed);
-
-            TrySetPelipperSourceDeploymentAlpha6613(actor, deployed);
-
-            if (!deployed)
-                PelipperRenderSuppressedAlpha6613.Add(actor);
         }
 
         if (changed)
@@ -127,35 +122,8 @@ public sealed partial class ModEntry
         return actors;
     }
 
-    private void OnAlpha6613RenderingWorld(object? sender, RenderingWorldEventArgs e)
-    {
-        PelipperRenderRestoreAlpha6613.Clear();
-        foreach (NPC actor in PelipperRenderSuppressedAlpha6613.ToList())
-        {
-            if (actor.currentLocation is null)
-                continue;
-
-            bool wasInvisible = actor.IsInvisible;
-            PelipperRenderRestoreAlpha6613[actor] = wasInvisible;
-            if (!wasInvisible)
-                TrySetActorInvisibleAlpha6613(actor, true);
-        }
-    }
-
-    private void OnAlpha6613RenderedWorld(object? sender, RenderedWorldEventArgs e)
-    {
-        foreach ((NPC actor, bool wasInvisible) in PelipperRenderRestoreAlpha6613.ToList())
-        {
-            if (!wasInvisible)
-                TrySetActorInvisibleAlpha6613(actor, false);
-        }
-        PelipperRenderRestoreAlpha6613.Clear();
-    }
-
     private void OnAlpha6613ReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
-        PelipperRenderSuppressedAlpha6613.Clear();
-        PelipperRenderRestoreAlpha6613.Clear();
         PelipperSourceDeploymentAlpha6613.Clear();
     }
 
@@ -212,40 +180,6 @@ public sealed partial class ModEntry
             catch
             {
             }
-        }
-    }
-
-    private static void TrySetActorInvisibleAlpha6613(NPC actor, bool invisible)
-    {
-        try
-        {
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
-            PropertyInfo? property = actor.GetType().GetProperty("IsInvisible", flags)
-                ?? typeof(NPC).GetProperty("IsInvisible", flags);
-            if (property?.CanWrite == true)
-            {
-                property.SetValue(actor, invisible);
-                return;
-            }
-
-            FieldInfo? field = actor.GetType().GetField("isInvisible", flags)
-                ?? typeof(NPC).GetField("isInvisible", flags);
-            if (field is null)
-                return;
-
-            if (field.FieldType == typeof(bool))
-            {
-                field.SetValue(actor, invisible);
-                return;
-            }
-
-            object? netBool = field.GetValue(actor);
-            PropertyInfo? valueProperty = netBool?.GetType().GetProperty("Value", flags);
-            if (valueProperty?.CanWrite == true)
-                valueProperty.SetValue(netBool, invisible);
-        }
-        catch
-        {
         }
     }
 }
