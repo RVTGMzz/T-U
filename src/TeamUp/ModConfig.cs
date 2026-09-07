@@ -23,17 +23,23 @@ public sealed class ModConfig
     // Global keyboard shortcut. The Social tab also exposes a visible Codex entry.
     public KeybindList PartyMenuKey { get; set; } = new(SButton.P);
 
-    // Alpha 6.6.1: shared people cap. Every online Farmer consumes one of these six slots;
-    // only the remaining slots may be occupied by active NPC Party Members.
-    public int MaxPartyMembers { get; set; } = 6;
+    // Alpha 6.7.0: five-person formation cap INCLUDING Farmers.
+    // In normal single-player this means Farmer + up to four active NPC Party Members.
+    public int MaxPartyMembers { get; set; } = 5;
 
     public bool AllowPets { get; set; } = true;
 
     public bool AllowLinkedCompanions { get; set; } = true;
 
-    // Shared combat-companion pool across the whole multiplayer farm. Alpha 6.6.1 hard-caps
-    // this at two active external creature/summon slots. Vanilla pets and ChaCha are free.
+    // Shared combat-companion pool across the whole multiplayer farm. Hard-capped at two
+    // active external creatures/summons/Pokemon. Vanilla pets and ChaCha remain free.
     public int MaxActiveLinkedCompanions { get; set; } = 2;
+
+    // Alpha 6.7.0: non-blocking party chatter driven by personality + current gameplay context.
+    public bool EnablePartyBanter { get; set; } = true;
+
+    // MiMi's special Shipper trait. Purely playful party banter; never changes romance/friendship.
+    public bool EnableMimiShippingBanter { get; set; } = true;
 
     // Alpha 6.5.0: lightweight Team Up origin story. Existing saves remain usable;
     // this only adds narrative progression and never deletes party state.
