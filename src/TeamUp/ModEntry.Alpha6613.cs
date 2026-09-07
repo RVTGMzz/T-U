@@ -144,12 +144,30 @@ public sealed partial class ModEntry
         if (playerUnit is not null)
         {
             ConfigurePelipperApiBridgeAlpha6619();
-            if (PelipperTown119NativeBridge.TrySetPlayerDeployment(playerUnit.RecruiterId, deployed, out string nativeRoute))
+            bool nativeAvailable = PelipperTown119NativeBridge.HasPlayerLifecycle;
+            bool nativeSucceeded = PelipperTown119NativeBridge.TrySetPlayerDeployment(
+                playerUnit.RecruiterId,
+                deployed,
+                out string nativeRoute);
+
+            if (nativeSucceeded)
             {
                 PelipperSourceDeploymentAlpha6613[actor] = deployed;
                 Monitor.Log(
                     $"Alpha 6.6.25 routed player Pelipper {(deployed ? "Call" : "Return")} owner={playerUnit.RecruiterId} via {nativeRoute}.",
                     LogLevel.Debug);
+                return;
+            }
+
+            // Critical boundary: once the exact 1.1.9 surface is bound, a false native result is
+            // authoritative. It may be Team Up's 2/2 Harmony gate rejecting DeployBeside. Falling
+            // through to guessed actor fields here would bypass that gate and recreate a third
+            // companion. Only unsupported Pelipper builds are allowed to use the legacy fallback.
+            if (nativeAvailable)
+            {
+                Monitor.Log(
+                    $"Alpha 6.6.25 native player Pelipper {(deployed ? "Call" : "Return")} returned false for owner={playerUnit.RecruiterId}; actor fallback suppressed.",
+                    LogLevel.Trace);
                 return;
             }
         }
