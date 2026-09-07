@@ -40,6 +40,7 @@ Require ($config.Contains('public int MaxActiveLinkedCompanions { get; set; } = 
 Require ($config.Contains('EnablePartyBanter')) 'Party Banter config toggle missing.'
 Require ($config.Contains('EnableMimiShippingBanter')) 'MiMi shipping toggle missing.'
 Require ($banterEntry.Contains('Config.MaxPartyMembers = 5;')) 'Runtime five-person hard cap missing.'
+Require ($banterEntry.Contains('EnforceSharedPeopleCapacity')) 'Existing-save five-person capacity repair missing.'
 Require ($banterEntry.Contains('P / L+R Companion')) 'Provider-neutral Companion shortcut missing.'
 Require ($banterEntry.Contains('teamup_banter')) 'Banter debug command missing.'
 Require ($playerGate.Contains('EnsureAlpha67BanterRegistered')) 'Banter registration is not chained into runtime.'
@@ -52,6 +53,7 @@ Require ($banter.Contains('BanterTrait.Shipper')) 'MiMi Shipper trait missing.'
 Require ($banter.Contains('males.Count < 2')) 'MiMi 2+ male NPC gate missing.'
 Require ($banter.Contains('TryMimiShippingExchange')) 'MiMi shipping exchange missing.'
 Require ($banter.Contains('showTextAboveHead')) 'Non-blocking overhead speech presentation missing.'
+Require ($banter.Contains('NextMimiShipTick = tick + 900')) 'Initial MiMi banter delay missing.'
 Require ($banter.IndexOf('friendshipData', [StringComparison]::OrdinalIgnoreCase) -lt 0) 'Banter must never mutate friendship data.'
 Require ($banter.IndexOf('spouse', [StringComparison]::OrdinalIgnoreCase) -lt 0) 'Banter must never mutate romance/spouse state.'
 Require ($banter.IndexOf('dating', [StringComparison]::OrdinalIgnoreCase) -lt 0) 'Banter must never mutate dating state.'
@@ -73,7 +75,7 @@ Log 'MIMI: Shipper trait activates only with 2+ positively identified male party
 Log 'CANON SAFETY: banter never mutates friendship/romance state.'
 Log 'PELIPPER: 6.6.27 native bridge + single companion authority preserved.'
 
-dotnet build $project -c Release --nologo
+dotnet build $project -c Release --nologo -warnaserror
 if ($LASTEXITCODE -ne 0) { throw 'dotnet build failed' }
 
 $dll = Join-Path $sourceDir 'bin/Release/net6.0/TeamUp.dll'
