@@ -24,6 +24,11 @@ public sealed partial class ModEntry
         }
 
         PelipperTown119DeployQuotaPatch.Apply(Monitor, ModManifest.UniqueID);
+
+        // Alpha 6.6.26 installs one periodic companion authority only after the exact Pelipper
+        // bridge/quota hooks have had a chance to bind. The authority unsubscribes all legacy
+        // autonomous Pelipper state loops and becomes the sole periodic writer.
+        EnsureAlpha6626Registered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)
@@ -64,14 +69,14 @@ public sealed partial class ModEntry
             ShowHud(message, error: true);
 
         Monitor.Log(
-            $"Alpha 6.6.25 blocked Pelipper native player deploy for owner={ownerId}: effective={GetEffectiveCombatCompanionCountAlpha6618()}/{GetCompanionCapAlpha6618()}.",
+            $"Alpha 6.6.26 blocked Pelipper native player deploy for owner={ownerId}: effective={GetEffectiveCombatCompanionCountAlpha6618()}/{GetCompanionCapAlpha6618()}.",
             LogLevel.Debug);
     }
 
     private void OnPelipperNativeStatusAlpha6625(string command, string[] args)
     {
         Monitor.Log(
-            $"Pelipper native 1.1.9 bridge: {PelipperTown119NativeBridge.Status}; deployQuotaPatch={PelipperTown119DeployQuotaPatch.IsApplied}; effective={GetEffectiveCombatCompanionCountAlpha6618()}/{GetCompanionCapAlpha6618()}.",
+            $"Pelipper native 1.1.9 bridge: {PelipperTown119NativeBridge.Status}; deployQuotaPatch={PelipperTown119DeployQuotaPatch.IsApplied}; singleAuthority={Alpha6626Registered}; effective={GetEffectiveCombatCompanionCountAlpha6618()}/{GetCompanionCapAlpha6618()}.",
             LogLevel.Info);
     }
 }
