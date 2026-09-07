@@ -13,9 +13,9 @@ public sealed partial class ModEntry
     private bool Alpha6617SlotCommandRegistered;
 
     /// <summary>
-    /// Alpha 6.6.17 is registered lazily from the base UpdateTicked path so its handlers are
-    /// appended after the older Pelipper quota/render handlers. This lets the new source-truth
-    /// reconciliation repair legacy state and neutralize the old render-only Standby fallback.
+    /// Alpha 6.6.17 reconciles Pelipper live source state into Team Up slot truth.
+    /// Alpha 6.6.24 removes the old render-cleanup callback entirely because Team Up no longer
+    /// performs render suppression on Pelipper-owned actors in the first place.
     /// </summary>
     private void EnsureAlpha6617EventsRegistered()
     {
@@ -24,8 +24,6 @@ public sealed partial class ModEntry
 
         Alpha6617EventsRegistered = true;
         Helper.Events.GameLoop.UpdateTicked += OnAlpha6617UpdateTicked;
-        Helper.Events.Display.RenderingWorld += OnAlpha6617RenderingWorld;
-        Helper.Events.GameLoop.ReturnedToTitle += OnAlpha6617ReturnedToTitle;
 
         if (!Alpha6617SlotCommandRegistered)
         {
@@ -47,30 +45,6 @@ public sealed partial class ModEntry
         }
 
         ReconcilePelipperPlayerSlotTruthAlpha6617();
-    }
-
-    /// <summary>
-    /// Alpha 6.6.13 used a render-only fallback when Pelipper didn't expose a deployment setter.
-    /// That made Standby Pokemon invisible while their Pelipper AI continued following the owner.
-    /// Undo that temporary render mutation before the world is actually drawn. Team Up no longer
-    /// uses invisibility as a quota mechanism.
-    /// </summary>
-    private void OnAlpha6617RenderingWorld(object? sender, RenderingWorldEventArgs e)
-    {
-        foreach ((NPC actor, bool wasInvisible) in PelipperRenderRestoreAlpha6613.ToList())
-        {
-            if (!wasInvisible)
-                TrySetActorInvisibleAlpha6613(actor, false);
-        }
-
-        PelipperRenderRestoreAlpha6613.Clear();
-        PelipperRenderSuppressedAlpha6613.Clear();
-    }
-
-    private void OnAlpha6617ReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
-    {
-        PelipperRenderRestoreAlpha6613.Clear();
-        PelipperRenderSuppressedAlpha6613.Clear();
     }
 
     /// <summary>
@@ -170,9 +144,8 @@ public sealed partial class ModEntry
             }
         }
 
-        // Pre-seed the legacy source-deployment cache with the Team Up state. This prevents the
-        // old best-effort reflection writer from repeatedly poking Pelipper actors on later quota
-        // pulses. Pelipper remains movement/render/deployment authority.
+        // Keep the older actor-handshake cache aligned for the player-owned compatibility path.
+        // This is only a cache write; it does not mutate Pelipper render/controller state.
         foreach (CompanionUnitData unit in Party.CompanionUnits.Where(PelipperTownCompatibilityService.IsSourceControlled))
         {
             NPC? actor = PelipperTownCompatibilityService.ResolveActor(unit);
