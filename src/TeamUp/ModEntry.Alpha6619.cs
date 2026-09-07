@@ -72,7 +72,10 @@ public sealed partial class ModEntry
         if (!Context.IsMainPlayer || !Context.IsWorldReady)
             return;
 
-        PelipperTown119NativeBridge.RestoreAll();
+        // Exact 1.1.9 SetConfiguredCompanionEnabled only mutates Pelipper's in-memory config.
+        // Keep Team Up's NPC-only/Standby intent across the overnight transition so Pelipper does
+        // not briefly respawn that Pokemon the next morning. Native overrides are restored when the
+        // NPC actually leaves Team Up or when returning to title.
         PelipperVillagerLifecycleBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperApiRuntimeRootBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperNonConvergedRoutesAlpha6619.Clear();
