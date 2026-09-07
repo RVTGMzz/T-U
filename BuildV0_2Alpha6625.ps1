@@ -68,7 +68,12 @@ if ($LASTEXITCODE -ne 0) { throw 'dotnet build failed' }
 $dll = Join-Path $sourceDir 'bin\Release\net6.0\TeamUp.dll'
 Require (Test-Path $dll) 'TeamUp.dll missing after build.'
 
-$dllStrings = (& strings $dll) -join "`n"
+# .NET reflection lookup names live in the #US heap as UTF-16 while type/method metadata names
+# are visible to normal strings. Audit both representations so the gate checks the compiled DLL,
+# not just source text.
+$dllAscii = (& strings $dll) -join "`n"
+$dllUtf16 = (& strings -el $dll) -join "`n"
+$dllStrings = $dllAscii + "`n" + $dllUtf16
 Require ($dllStrings.Contains('PelipperTown119NativeBridge')) 'Native bridge absent from DLL.'
 Require ($dllStrings.Contains('SetConfiguredCompanionEnabled')) 'Native villager method absent from DLL.'
 Require ($dllStrings.Contains('ApplyConfiguredAssignments')) 'Native apply method absent from DLL.'
