@@ -175,8 +175,9 @@ public sealed partial class ModEntry
             if (actor is not null)
             {
                 bool deployed = !optedOut && IsPelipperUnitDeployedAlpha669(linked);
+                // Source authority: registering a linked record records Team Up intent only.
+                // Pelipper Town remains the actor/render/controller authority.
                 PelipperDeploymentStateService.SetDesiredDeployment(actor, owner.Name, deployed);
-                TrySetPelipperSourceDeploymentAlpha6613(actor, deployed);
             }
 
             SavePartyNow();
@@ -371,24 +372,32 @@ public sealed partial class ModEntry
         if (unit.OwnerKind == CompanionOwnerKind.PartyMember
             && !string.IsNullOrWhiteSpace(unit.OwnerCharacterName))
         {
-            NPC? owner = Game1.getCharacterFromName(unit.OwnerCharacterName);
-            if (owner is not null && TrySetPelipperNpcSourceEnabledAlpha6618(
-                owner,
-                deployed,
-                deployed ? "explicit Call" : "explicit Return/Standby"))
+            NPC? sourceActor = PelipperTownCompatibilityService.ResolveActor(unit);
+            if (sourceActor is not null)
             {
-                NPC? sourceActor = PelipperTownCompatibilityService.ResolveActor(unit);
-                if (sourceActor is not null)
-                {
-                    PelipperDeploymentStateService.SetDesiredDeployment(
-                        sourceActor,
-                        unit.OwnerCharacterName,
-                        deployed);
-                }
-                return;
+                PelipperDeploymentStateService.SetDesiredDeployment(
+                    sourceActor,
+                    unit.OwnerCharacterName,
+                    deployed);
             }
+
+            NPC? owner = Game1.getCharacterFromName(unit.OwnerCharacterName);
+            if (owner is not null)
+            {
+                // One source-native request per intent. Alpha 6.6.23 latches non-convergence;
+                // Alpha 6.6.24 never falls through to actor-level render/runtime manipulation.
+                TrySetPelipperNpcSourceEnabledAlpha6618(
+                    owner,
+                    deployed,
+                    deployed ? "explicit Call" : "explicit Return/Standby");
+            }
+
+            // Critical source-authority boundary: NPC-owned units always terminate here.
+            return;
         }
 
+        // Player-owned / non-NPC-linked Pelipper units keep the existing actor handshake for now.
+        // This path does not participate in the NPC-only flicker bug.
         NPC? actor = PelipperTownCompatibilityService.ResolveActor(unit);
         if (actor is null)
             return;
