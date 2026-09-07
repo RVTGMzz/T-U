@@ -1,0 +1,55 @@
+TEAM UP! v0.2.0-alpha.6.6.23 - SMOKE TEST
+ANTI-FLICKER + HARD TAUNT HOTFIX
+
+MỤC TIÊU
+- Dập hiện tượng Pokemon của NPC chớp liên tục khi mời NPC-only.
+- Không gian lận slot: Pokemon Pelipper còn sourceLive vẫn phải chiếm effective slot.
+- Làm Taunt của Tank, đặc biệt Alex, bảo vệ Farmer thật sự trong cửa sổ Taunt.
+- Giữ nguyên Codex 115%, hard cap 2/2, water pathfinding, controller regressions.
+
+A. NPC-ONLY PELIPPER ANTI-FLICKER
+1. Chọn một NPC đang có Pokemon companion của Pelipper Town.
+2. Mời NPC nhưng chọn KHÔNG mang Pokemon vào Team Up.
+3. Quan sát ít nhất 10 giây.
+PASS:
+- Pokemon không còn chớp/tắt-bật liên tục theo nhịp Team Up.
+- Nếu Pelipper chưa recall thật, Pokemon có thể vẫn hiện và đi theo, nhưng Team Up KHÔNG spam lifecycle để làm nó flicker.
+- `teamup_slots` vẫn báo sourceLive=True/effectiveSlot=True nếu Pokemon thực tế còn deploy.
+- Không được tự nhả slot giả để tạo đội 3/2.
+4. Gõ `teamup_pelipper_probe <NPC>` nếu Pokemon vẫn còn đi theo. Gửi các dòng `Pelipper probe:` để map native recall thật ở build sau.
+
+B. GỌI POKEMON TRỞ LẠI
+1. Sau case NPC-only ở trên, mở quản lý companion của NPC và gọi Pokemon vào Team Up nếu UI cho phép.
+PASS:
+- Không tạo bản sao.
+- Không chớp liên tục.
+- Party slot vẫn nhất quán.
+
+C. ALEX HARD TAUNT
+1. Cho Alex vào party với role Tank.
+2. Đưa Alex và Farmer tới gần 2-4 quái.
+3. Chờ Alex kích hoạt Taunt.
+PASS:
+- Text `HARD TAUNT` xuất hiện.
+- Trong khoảng 2.5-4 giây tùy Tank mastery, Team Up coi các quái bị taunt là đang aggro Alex.
+- Nếu AI vanilla vẫn cho sprite quái lao/chạm Farmer, HP mất do áp lực quái gần đó phải được hoàn lại và chuyển thành sát thương lên Alex.
+- Alex không bị tính thêm một cú virtual damage ngay cùng nhịp redirect.
+- Sau khi Hard Taunt hết hạn, guard trở về tỷ lệ hấp thụ Tank thông thường.
+
+LƯU Ý VỀ HÌNH ẢNH TAUNT
+- 6.6.23 KHÔNG chiếm controller lâu dài của Monster. Một số Monster vanilla vẫn có thể vẽ/chạy hướng Farmer vì AI gốc của Stardew nhắm Farmer trực tiếp.
+- Tiêu chí chính của build này là gameplay aggro + damage redirect đúng vai Tank. Visual retarget toàn bộ Monster subclass sẽ tách thành lớp riêng nếu cần.
+
+D. REGRESSION
+- Companion effective cap vẫn 2/2.
+- Party people cap vẫn 6.
+- Không IsInvisible/Halt/controller fallback cho Pokemon Pelipper.
+- Codex Browser max 1739x1049 và Character Profile max 1518x897 vẫn còn.
+- Switch equip bằng Action Button và unequip bằng Use Tool vẫn hoạt động.
+- NPC không path lên bare water; bridge hợp lệ vẫn đi được.
+- Combat retry cooldown 24 ticks; movement pulse 3 ticks; follow cadence 4 ticks không đổi.
+
+DEBUG HỮU ÍCH
+- `teamup_slots`
+- `teamup_pelipper_probe <NPC>`
+- Khi test Alex: ghi lại HP Farmer trước/sau HARD TAUNT và HP Alex nếu thấy hành vi lạ.
