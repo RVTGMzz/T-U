@@ -7,6 +7,7 @@ namespace Ronvotri.TeamUp;
 public sealed partial class ModEntry
 {
     private bool Alpha6621Registered;
+    // Alpha 6.6.23 acceptance: suppress repeated lifecycle retries to prevent flicker.
 
     /// <summary>
     /// Alpha 6.6.21 adds a source-lifecycle probe so a stubborn Pelipper integration can be
