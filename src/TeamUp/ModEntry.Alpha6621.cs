@@ -42,12 +42,17 @@ public sealed partial class ModEntry
         // Alpha 6.6.25: exact Pelipper Town 1.1.9 route verified from the user's DLL.
         // This path calls VillagerCompanionManager.ApplyConfiguredAssignments(), whose IL directly
         // invokes VillagerCompanionRuntime.Despawn() for disabled NPC partners.
+        bool nativeAvailable = PelipperTown119NativeBridge.HasVillagerLifecycle;
         bool routed = PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled(owner.Name, enabled, out string route);
-        if (!routed)
+
+        // Only unsupported Pelipper builds may fall back to the older discovery bridges. If the
+        // exact 1.1.9 surface is bound, its false result is authoritative and must not be bypassed
+        // by guessed config/actor paths.
+        if (!routed && !nativeAvailable)
             routed = PelipperVillagerLifecycleBridge.TrySetEnabled(owner.Name, owner, enabled, out route);
-        if (!routed)
+        if (!routed && !nativeAvailable)
             routed = PelipperApiRuntimeRootBridge.TrySetEnabled(owner.Name, owner, enabled, out route);
-        if (!routed)
+        if (!routed && !nativeAvailable)
             routed = PelipperVillagerCompanionRuntimeBridge.TrySetEnabled(owner.Name, owner, enabled, out route);
 
         if (routed)
@@ -79,8 +84,11 @@ public sealed partial class ModEntry
         PelipperNonConvergedSourceRequestsAlpha6623.Add(requestKey);
         if (PelipperNpcNativeControlWarningsAlpha6618.Add(owner.Name))
         {
+            string detail = nativeAvailable
+                ? "the exact 1.1.9 native lifecycle returned false; compatibility fallback was intentionally suppressed"
+                : "no Pelipper villager lifecycle route was available";
             Monitor.Log(
-                $"Alpha 6.6.25 found no Pelipper villager lifecycle route for {owner.Name}. native119={PelipperTown119NativeBridge.Status}. The source-live Pokemon stays counted.",
+                $"Alpha 6.6.25 {detail} for {owner.Name}. native119={PelipperTown119NativeBridge.Status}. The source-live Pokemon stays counted.",
                 LogLevel.Warn);
         }
         return false;
@@ -91,12 +99,16 @@ public sealed partial class ModEntry
         ConfigurePelipperApiBridgeAlpha6619();
         PelipperNonConvergedSourceRequestsAlpha6623.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));
 
+        bool nativeAvailable = PelipperTown119NativeBridge.HasVillagerLifecycle;
         bool restored = PelipperTown119NativeBridge.RestoreVillager(owner.Name, out string route);
-        if (!restored)
+
+        // Exact 1.1.9 availability is authoritative. If no native override was recorded there is
+        // nothing to restore, and guessed legacy bridges must not invent a different source state.
+        if (!restored && !nativeAvailable)
             restored = PelipperVillagerLifecycleBridge.Restore(owner.Name, owner, out route);
-        if (!restored)
+        if (!restored && !nativeAvailable)
             restored = PelipperApiRuntimeRootBridge.Restore(owner.Name, owner, out route);
-        if (!restored)
+        if (!restored && !nativeAvailable)
             restored = PelipperVillagerCompanionRuntimeBridge.Restore(owner.Name, owner, out route);
 
         if (restored)
