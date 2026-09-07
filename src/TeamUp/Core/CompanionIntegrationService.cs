@@ -4,8 +4,7 @@ namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
 /// Lightweight runtime contract for creature/summon providers. External mods can expose a live
-/// NPC/monster as a Team Up companion by setting modData on that actor. Team Up never requires
-/// the provider DLL and never reads provider-private save data.
+/// NPC/monster as a Team Up companion by setting modData on that actor.
 /// </summary>
 public static class CompanionIntegrationService
 {
@@ -37,8 +36,14 @@ public static class CompanionIntegrationService
             return Describe(candidate, CompanionOwnerKind.PartyMember, owner.Name, null);
         }
 
-        // Pelipper Town owns its own companion runtime and does not use Team Up's modData
-        // contract. Detect the live decorative villager partner through the optional adapter.
+        // Alpha 6.6.26: Pelipper Town 1.1.9 exposes an exact VillagerName -> runtime -> entity map.
+        // When that map is available its answer is authoritative, including a null result after
+        // native Despawn. This prevents a different nearby Pokemon from being proximity-matched to
+        // the NPC that was just recalled.
+        if (PelipperTown119NativeBridge.TryGetVillagerCompanionDescriptor(owner.Name, out LiveCompanionDescriptor? nativePelipper))
+            return nativePelipper;
+
+        // Older/unsupported Pelipper builds keep the conservative compatibility adapter.
         return PelipperTownCompatibilityService.FindVillagerPartner(owner);
     }
 
