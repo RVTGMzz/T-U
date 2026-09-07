@@ -1,4 +1,5 @@
 using System.Reflection;
+using StardewModdingAPI;
 using StardewValley;
 
 namespace Ronvotri.TeamUp.Core;
@@ -157,14 +158,11 @@ internal static class PelipperTown119NativeBridge
         if (!string.Equals(rootType.FullName, "PelipperTown.ModEntry", StringComparison.Ordinal))
             return null;
 
-        // Exact 1.1.9 field verified from metadata.
         FieldInfo? exact = rootType.GetField("_villagerCompanions", InstanceFlags);
         object? value = SafeGet(() => exact?.GetValue(root));
         if (value?.GetType().FullName == "PelipperTown.VillagerCompanionManager")
             return value;
 
-        // Narrow structural fallback for a future 1.1.x field rename; never traverses arbitrary
-        // graphs or mutates unknown objects.
         foreach (FieldInfo field in rootType.GetFields(InstanceFlags))
         {
             if (field.FieldType.FullName != "PelipperTown.VillagerCompanionManager")
