@@ -35,11 +35,18 @@ public sealed partial class ModEntry
         if (max <= 0)
             return false;
 
-        // Source-live truth is intentionally checked at Pelipper's final native spawn boundary.
-        // A recalled player Pokemon is absent here, so swapping one Pokemon for another remains
-        // legal while a genuine third companion is rejected before it can appear on the map.
+        // Pelipper 1.1.9 guarantees one active player partner per Farmer. If this Farmer already
+        // owns the live Pelipper slot, DeployBeside can be a normal A -> B switch or a same-runtime
+        // reposition after warp. That operation replaces the owner's existing slot instead of
+        // consuming a new one. Only companions owned by everyone else count against the incoming
+        // player's prospective slot.
         int effective = GetEffectiveCombatCompanionCountAlpha6618();
-        return effective < max;
+        bool ownerAlreadyUsesPlayerSlot = CompanionIntegrationService.FindPlayerSummons()
+            .Where(PelipperTownCompatibilityService.IsPelipperDescriptor)
+            .Any(descriptor => descriptor.OwnerFarmerId == ownerId);
+
+        int occupiedByOthers = Math.Max(0, effective - (ownerAlreadyUsesPlayerSlot ? 1 : 0));
+        return occupiedByOthers < max;
     }
 
     private void OnPelipperPlayerDeployBlockedAlpha6625(long ownerId)
