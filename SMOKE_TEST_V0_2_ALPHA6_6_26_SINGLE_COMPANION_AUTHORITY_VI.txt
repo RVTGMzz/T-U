@@ -1,0 +1,66 @@
+TEAM UP v0.2.0-alpha.6.6.26 - SINGLE COMPANION AUTHORITY
+
+MUC TIEU
+- Khong con nhieu reconciler Pelipper tu sua cung mot slot.
+- Pokemon cua NPC phai hien dung trong Team Up khi source-live.
+- Hard cap companion vat ly = 2/2, khong 3/2 hay 4/2.
+- Pelipper 1.1.9 dung exact owner map, khong ghep Pokemon theo khoang cach khi runtime map da bind.
+
+TEST A - NPC + NPC+POKEMON
+1. Moi 1 NPC khong Pokemon.
+2. Moi NPC khac + Pokemon.
+PASS:
+- Pokemon cua NPC thu hai xuat hien trong Team Up.
+- Khong bi mat khoi roster sau vai giay.
+- Console khong spam xen ke Alpha 6.6.15 / Alpha 6.6.18.
+- teamup_authority bao reserved va effective on dinh, khong vuot 2/2.
+
+TEST B - NHIEU NPC+POKEMON DUNG GAN NHAU
+1. Team nhieu NPC co Pokemon de cac Pokemon dung gan nhau.
+2. Return Pokemon cua mot NPC cu the.
+PASS:
+- Dung Pokemon cua NPC do bien mat/ngung theo.
+- Pokemon cua NPC khac khong bi nhan nham.
+- teamup_slots cua companion vua Return -> sourceLive=False sau khi Pelipper despawn.
+
+TEST C - HARD CAP
+1. Co 2 companion source-live.
+2. Thu goi Pokemon nguoi choi thu 3 bang Pelipper.
+3. Thu Call Pokemon cua NPC khac bang Team Up.
+PASS:
+- Ca hai duong deu khong tao companion vat ly thu 3.
+- effective khong tang len 3/2.
+
+TEST D - SAVE CU DANG 3/2 HOAC 4/2
+1. Mo save da bi overflow tu 6.6.25.
+2. Cho game chay 1-2 giay.
+PASS:
+- Alpha 6.6.26 yeu cau native Return cho overflow.
+- effective tu hoi ve <= 2/2.
+- Khong dung IsInvisible, Halt, controller de ep Pokemon bien mat.
+
+LENH CHAN DOAN
+teamup_authority
+teamup_slots
+teamup_pelipper_native
+teamup_pelipper_probe <NPC>
+
+KY VONG teamup_pelipper_native
+root=PelipperTown.ModEntry
+manager=PelipperTown.VillagerCompanionManager
+npcNative=True
+playerNative=True
+exactOwnerMap=True
+deployQuotaPatch=True
+singleAuthority=True
+
+REGRESSION PHAI GIU
+- companion cap 2/2
+- people cap 6
+- Codex/Profile 115%
+- Alex Hard Taunt
+- combat retry 24 ticks
+- combat movement pulse 3 ticks
+- follow cadence 4 ticks
+- water/bridge path safety
+- khong Pelipper render suppression / IsInvisible / controller ownership
