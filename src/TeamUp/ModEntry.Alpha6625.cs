@@ -29,6 +29,10 @@ public sealed partial class ModEntry
         // bridge/quota hooks have had a chance to bind. The authority unsubscribes all legacy
         // autonomous Pelipper state loops and becomes the sole periodic writer.
         EnsureAlpha6626Registered();
+
+        // Alpha 6.7.0 adds provider-neutral companion terminology plus non-blocking party banter.
+        // Registration is idempotent and remains independent from whether Pelipper is installed.
+        EnsureAlpha67BanterRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)
