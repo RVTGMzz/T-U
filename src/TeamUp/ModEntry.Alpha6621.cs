@@ -36,18 +36,45 @@ public sealed partial class ModEntry
             return true;
         }
 
+        // Alpha 6.6.26: the native villager Call path gets the same hard shared-pool preflight as
+        // player DeployBeside. Some legacy UI paths set the target Team Up record Active before
+        // asking Pelipper to deploy it, so subtract that target reservation and judge only slots
+        // occupied by everyone else. This closes the NPC route that could produce physical 3/2.
+        if (enabled && !sourceLiveBefore)
+        {
+            int max = GetCompanionCapAlpha6618();
+            List<CompanionUnitData> effectiveUnits = GetEffectiveCombatCompanionsAlpha6618();
+            CompanionUnitData? target = Party.Members
+                .Where(member => member.CharacterName.Equals(owner.Name, StringComparison.OrdinalIgnoreCase))
+                .Select(member => Party.GetLinkedCompanion(member.CharacterName, member.RecruiterId))
+                .FirstOrDefault(unit => unit is not null && PelipperTownCompatibilityService.IsSourceControlled(unit));
+
+            bool targetAlreadyReserved = target is not null
+                && effectiveUnits.Any(unit =>
+                    unit.RecruiterId == target.RecruiterId
+                    && unit.UnitId.Equals(target.UnitId, StringComparison.OrdinalIgnoreCase));
+            int occupiedByOthers = Math.Max(0, effectiveUnits.Count - (targetAlreadyReserved ? 1 : 0));
+
+            if (max <= 0 || occupiedByOthers >= max)
+            {
+                Monitor.Log(
+                    $"Alpha 6.6.26 blocked Pelipper NPC deploy for {owner.Name}: occupiedByOthers={occupiedByOthers}, effective={effectiveUnits.Count}/{max} ({reason}).",
+                    LogLevel.Debug);
+                return false;
+            }
+        }
+
         if (PelipperNonConvergedSourceRequestsAlpha6623.Contains(requestKey))
             return false;
 
-        // Alpha 6.6.25: exact Pelipper Town 1.1.9 route verified from the user's DLL.
-        // This path calls VillagerCompanionManager.ApplyConfiguredAssignments(), whose IL directly
-        // invokes VillagerCompanionRuntime.Despawn() for disabled NPC partners.
+        // Exact Pelipper Town 1.1.9 route verified from the user's DLL. This calls
+        // VillagerCompanionManager.ApplyConfiguredAssignments(), whose IL directly invokes
+        // VillagerCompanionRuntime.Despawn() for disabled NPC partners.
         bool nativeAvailable = PelipperTown119NativeBridge.HasVillagerLifecycle;
         bool routed = PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled(owner.Name, enabled, out string route);
 
-        // Only unsupported Pelipper builds may fall back to the older discovery bridges. If the
-        // exact 1.1.9 surface is bound, its false result is authoritative and must not be bypassed
-        // by guessed config/actor paths.
+        // Only unsupported Pelipper builds may fall back to older discovery bridges. If the exact
+        // 1.1.9 surface is bound, its false result is authoritative and must never be bypassed.
         if (!routed && !nativeAvailable)
             routed = PelipperVillagerLifecycleBridge.TrySetEnabled(owner.Name, owner, enabled, out route);
         if (!routed && !nativeAvailable)
@@ -65,7 +92,7 @@ public sealed partial class ModEntry
                 PelipperNonConvergedRoutesAlpha6619.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));
                 PelipperNonConvergedSourceRequestsAlpha6623.Remove(requestKey);
                 Monitor.Log(
-                    $"Alpha 6.6.25 verified Pelipper villager source {(enabled ? "deploy" : "recall")} {owner.Name} via {route} ({reason}).",
+                    $"Alpha 6.6.26 verified Pelipper villager source {(enabled ? "deploy" : "recall")} {owner.Name} via {route} ({reason}).",
                     LogLevel.Debug);
                 return true;
             }
@@ -75,7 +102,7 @@ public sealed partial class ModEntry
             if (PelipperNonConvergedRoutesAlpha6619.Add(convergenceKey))
             {
                 Monitor.Log(
-                    $"Alpha 6.6.25 routed {(enabled ? "deploy" : "recall")} for {owner.Name} via {route}, but Pelipper source is still live={sourceLive}. The real slot remains occupied and retries stay latched to avoid flicker.",
+                    $"Alpha 6.6.26 routed {(enabled ? "deploy" : "recall")} for {owner.Name} via {route}, but Pelipper source is still live={sourceLive}. The real slot remains occupied and retries stay latched to avoid flicker.",
                     LogLevel.Warn);
             }
             return false;
@@ -88,7 +115,7 @@ public sealed partial class ModEntry
                 ? "the exact 1.1.9 native lifecycle returned false; compatibility fallback was intentionally suppressed"
                 : "no Pelipper villager lifecycle route was available";
             Monitor.Log(
-                $"Alpha 6.6.25 {detail} for {owner.Name}. native119={PelipperTown119NativeBridge.Status}. The source-live Pokemon stays counted.",
+                $"Alpha 6.6.26 {detail} for {owner.Name}. native119={PelipperTown119NativeBridge.Status}. The source-live Pokemon stays counted.",
                 LogLevel.Warn);
         }
         return false;
@@ -102,8 +129,6 @@ public sealed partial class ModEntry
         bool nativeAvailable = PelipperTown119NativeBridge.HasVillagerLifecycle;
         bool restored = PelipperTown119NativeBridge.RestoreVillager(owner.Name, out string route);
 
-        // Exact 1.1.9 availability is authoritative. If no native override was recorded there is
-        // nothing to restore, and guessed legacy bridges must not invent a different source state.
         if (!restored && !nativeAvailable)
             restored = PelipperVillagerLifecycleBridge.Restore(owner.Name, owner, out route);
         if (!restored && !nativeAvailable)
@@ -112,7 +137,7 @@ public sealed partial class ModEntry
             restored = PelipperVillagerCompanionRuntimeBridge.Restore(owner.Name, owner, out route);
 
         if (restored)
-            Monitor.Log($"Alpha 6.6.25 restored Pelipper villager companion source setting for {owner.Name} via {route}.", LogLevel.Debug);
+            Monitor.Log($"Alpha 6.6.26 restored Pelipper villager companion source setting for {owner.Name} via {route}.", LogLevel.Debug);
 
         PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
         PelipperNonConvergedRoutesAlpha6619.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));
