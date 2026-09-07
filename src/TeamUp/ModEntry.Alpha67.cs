@@ -17,14 +17,7 @@ public sealed partial class ModEntry
             return;
 
         Alpha67BanterRegistered = true;
-
-        // Alpha 6.7.0 final formation rule: five people total. Farmers consume people slots,
-        // so solo play is Farmer + at most four NPCs. Companion capacity remains a separate 2/2.
-        if (Config.MaxPartyMembers != 5)
-        {
-            Config.MaxPartyMembers = 5;
-            Helper.WriteConfig(Config);
-        }
+        EnforceAlpha67PeopleCap();
 
         PartyBanterAlpha67 = new PartyBanterService(
             Monitor,
@@ -52,10 +45,42 @@ public sealed partial class ModEntry
             LogLevel.Info);
     }
 
+    private void EnforceAlpha67PeopleCap()
+    {
+        // Final formation rule: five people TOTAL. Farmers consume people slots, therefore normal
+        // single-player is exactly Farmer + at most four active NPC Party Members.
+        if (Config.MaxPartyMembers != 5)
+        {
+            Config.MaxPartyMembers = 5;
+            Helper.WriteConfig(Config);
+        }
+
+        if (!Context.IsWorldReady || !Context.IsMainPlayer)
+            return;
+
+        IReadOnlyList<PartyMemberData> deactivated = Party.EnforceSharedPeopleCapacity(GetOnlineFarmerIds().ToArray());
+        if (deactivated.Count == 0)
+            return;
+
+        foreach (PartyMemberData member in deactivated)
+        {
+            NPC? npc = Game1.getCharacterFromName(member.CharacterName);
+            if (npc is not null)
+                Follow.ReleaseToVanillaAndResumeSchedule(npc);
+        }
+
+        SavePartyNow();
+        BroadcastPartySnapshot();
+        Monitor.Log($"Alpha 6.7.0 enforced five-person formation; deactivated={deactivated.Count} excess/offline NPC member(s).", LogLevel.Debug);
+    }
+
     private void OnAlpha67BanterUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
         if (!Context.IsWorldReady || !Context.IsMainPlayer || !e.IsMultipleOf(30))
             return;
+
+        if (e.IsMultipleOf(60))
+            EnforceAlpha67PeopleCap();
 
         PartyBanterAlpha67?.Update();
     }
@@ -78,7 +103,8 @@ public sealed partial class ModEntry
         switch (action)
         {
             case "status":
-                Monitor.Log($"Team Up Party Banter: {PartyBanterAlpha67.DescribeStatus()}; peopleCap={Config.MaxPartyMembers}/5, companionCap={Config.MaxActiveLinkedCompanions}/2.", LogLevel.Info);
+                int people = Context.IsWorldReady ? Party.GetSharedPeopleCount(GetOnlineFarmerIds().ToArray()) : 0;
+                Monitor.Log($"Team Up Party Banter: {PartyBanterAlpha67.DescribeStatus()}; people={people}/5, companionCap={Config.MaxActiveLinkedCompanions}/2.", LogLevel.Info);
                 break;
 
             case "now":
