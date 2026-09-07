@@ -30,7 +30,67 @@ internal static class PelipperTown119NativeBridge
     public static string Status
         => RuntimeRoot is null
             ? "root=<none>"
-            : $"root={RuntimeRoot.GetType().FullName}, manager={VillagerManager?.GetType().FullName ?? "<none>"}";
+            : $"root={RuntimeRoot.GetType().FullName}, manager={VillagerManager?.GetType().FullName ?? "<none>"}, npcNative={HasVillagerLifecycle}, playerNative={HasPlayerLifecycle}";
+
+    /// <summary>
+    /// True only when the exact Pelipper 1.1.9 villager lifecycle surface is bound. Callers use
+    /// this to distinguish "native action failed" from "native surface unavailable". When true,
+    /// failure must NOT fall through to guessed actor/config reflection because that could undo a
+    /// native quota/recall decision.
+    /// </summary>
+    public static bool HasVillagerLifecycle
+    {
+        get
+        {
+            object? manager = VillagerManager ?? (RuntimeRoot is null ? null : ResolveVillagerManager(RuntimeRoot));
+            if (manager?.GetType().FullName != "PelipperTown.VillagerCompanionManager")
+                return false;
+
+            Type type = manager.GetType();
+            return type.GetMethod(
+                    "SetConfiguredCompanionEnabled",
+                    InstanceFlags,
+                    binder: null,
+                    types: new[] { typeof(string), typeof(bool) },
+                    modifiers: null) is not null
+                && type.GetMethod(
+                    "ApplyConfiguredAssignments",
+                    InstanceFlags,
+                    binder: null,
+                    types: Type.EmptyTypes,
+                    modifiers: null) is not null;
+        }
+    }
+
+    /// <summary>
+    /// True only when the exact player Call/Return surface verified from Pelipper 1.1.9 is bound.
+    /// A false result means compatibility fallback may be attempted; a true result means the
+    /// native result is authoritative, including a deliberate false caused by Team Up's 2/2 gate.
+    /// </summary>
+    public static bool HasPlayerLifecycle
+    {
+        get
+        {
+            object? root = RuntimeRoot;
+            if (root?.GetType().FullName != "PelipperTown.ModEntry")
+                return false;
+
+            Type type = root.GetType();
+            MethodInfo? recall = type.GetMethod(
+                "RecallToBall",
+                InstanceFlags,
+                binder: null,
+                types: new[] { typeof(long), typeof(bool) },
+                modifiers: null);
+            MethodInfo? deploy = type.GetMethod(
+                "DeployBesideOwner",
+                InstanceFlags,
+                binder: null,
+                types: new[] { typeof(long), typeof(bool) },
+                modifiers: null);
+            return recall?.ReturnType == typeof(bool) && deploy?.ReturnType == typeof(bool);
+        }
+    }
 
     public static void Configure(object runtimeRoot)
     {
