@@ -1,0 +1,108 @@
+name: Team Up v0.2.0-alpha.6.6.22 Codex 115 UI Polish
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-22-codex-115-ui-polish ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.22 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha6622.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          profile = (root/'UI/CharacterProfileMenu.cs').read_text(encoding='utf-8')
+          a18 = (root/'ModEntry.Alpha6618.cs').read_text(encoding='utf-8')
+          a19 = (root/'ModEntry.Alpha6619.cs').read_text(encoding='utf-8')
+          a21 = (root/'ModEntry.Alpha6621.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert '<Version>0.2.0-alpha.6.6.22</Version>' in project
+          assert 'build: v0.2.0-alpha.6.6.22' in mod
+          assert 'Codex 115% UI Polish loaded.' in mod
+          assert 'Math.Min(1739, Game1.uiViewport.Width - 12)' in codex
+          assert 'Math.Min(1049, Game1.uiViewport.Height - 12)' in codex
+          assert 'height >= 1000 ? 11 : 9' in codex
+          assert 'Math.Min(1518, Game1.uiViewport.Width - 16)' in profile
+          assert 'Math.Min(897, Game1.uiViewport.Height - 16)' in profile
+          assert 'width >= 1450 ? 391 : 340' in profile
+          assert 'width >= 1450 ? 212 : 184' in profile
+          assert 'GetEffectiveCombatCompanionCountAlpha6618' in a18
+          assert 'PrepareNpcCompanionRecruitCapacityAlpha6618' in a18
+          assert 'PelipperVillagerLifecycleBridge.Configure(runtimeRoot);' in a19
+          assert 'teamup_pelipper_probe' in a21
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+          print('Alpha 6.6.22 source acceptance PASS')
+          print('Codex 115% browser canvas PASS')
+          print('Codex large-screen row expansion PASS')
+          print('Character Profile 115% canvas PASS')
+          print('Small viewport clamps preserved PASS')
+          print('Pelipper 6.6.21 path preserved PASS')
+          print('Hard source-live 2/2 guard preserved PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.22_CODEX_115_UI_POLISH_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.22_CODEX_115_UI_POLISH_TEST.sha256.txt
+          grep -q 'CODEX 115% MAX CANVAS: ENABLED' BUILD_LOG.txt
+          grep -q 'CODEX LARGE-SCREEN 11 ROWS: ENABLED' BUILD_LOG.txt
+          grep -q 'PROFILE 115% MAX CANVAS: ENABLED' BUILD_LOG.txt
+          grep -q 'PROFILE LARGE-SCREEN PORTRAIT EXPANSION: ENABLED' BUILD_LOG.txt
+          grep -q 'SMALL VIEWPORT CLAMP: PRESERVED' BUILD_LOG.txt
+          grep -q 'PELIPPER 6.6.21 LIFECYCLE PATH: PRESERVED' BUILD_LOG.txt
+          grep -q 'SOURCE-LIVE 2/2 HARD CAP: PRESERVED' BUILD_LOG.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.22' BUILD_LOG.txt
+          echo 'Alpha 6.6.22 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha6622.ps1 SMOKE_TEST_V0_2_ALPHA6_6_22_CODEX_115_UI_POLISH_VI.txt .github/workflows/team-up-alpha6-6-22-codex-115-ui-polish.yml
+          if git diff --cached --quiet; then
+            echo 'No materialized source diff.'
+          else
+            git commit -m 'chore: materialize Team Up v0.2.0-alpha.6.6.22 source [skip ci]'
+            git push origin HEAD:v0.2-alpha6-6-22-codex-115-ui-polish
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-22-codex-115-ui-polish
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.22_CODEX_115_UI_POLISH_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.22_CODEX_115_UI_POLISH_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_22_CODEX_115_UI_POLISH_VI.txt
+          if-no-files-found: error
