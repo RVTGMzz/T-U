@@ -67,7 +67,7 @@ jobs:
               'ReconcilePelipperNpcSlotTruthAlpha6618',
               'GetEffectiveCombatCompanionCountAlpha6618',
               'PrepareNpcCompanionRecruitCapacityAlpha6618',
-              'source-live partner continues to consume a real slot'
+              'physically deployed and must block a third companion'
           ]:
               assert token in a18, token
 
