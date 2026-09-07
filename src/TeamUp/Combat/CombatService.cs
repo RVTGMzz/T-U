@@ -16,6 +16,8 @@ namespace Ronvotri.TeamUp.Combat;
 public sealed class CombatService
 {
     private const float HardLeashTiles = 12f;
+    private const float NormalGuardRangeTiles = 4f;
+    private const float HardTauntGuardRangeTiles = 7f;
     private const float RepathThresholdTiles = 1.35f;
     private const int AutoReviveTicks = 720;
     private const int ReviveGraceTicks = 600;
@@ -324,11 +326,17 @@ public sealed class CombatService
             .Where(member =>
             {
                 NPC? npc = Game1.getCharacterFromName(member.CharacterName);
-                return npc is not null
-                    && ReferenceEquals(npc.currentLocation, FarmerContext.currentLocation)
-                    && Vector2.Distance(npc.Tile, FarmerContext.Tile) <= 4f;
+                if (npc is null || !ReferenceEquals(npc.currentLocation, FarmerContext.currentLocation))
+                    return false;
+
+                bool ownsHardTaunt = nearbyThreats.Any(monster =>
+                    _threat.IsForcedAggro(monster, member.CharacterName));
+                float guardRange = ownsHardTaunt ? HardTauntGuardRangeTiles : NormalGuardRangeTiles;
+                return Vector2.Distance(npc.Tile, FarmerContext.Tile) <= guardRange;
             })
             .OrderByDescending(member => nearbyThreats.Count(monster =>
+                _threat.IsForcedAggro(monster, member.CharacterName)))
+            .ThenByDescending(member => nearbyThreats.Count(monster =>
                 _threat.GetAggroActor(monster, validThreatActors).Equals(member.CharacterName, StringComparison.OrdinalIgnoreCase)))
             .ThenByDescending(member => _threat.GetTotalThreat(member.CharacterName, nearbyThreats))
             .FirstOrDefault();
