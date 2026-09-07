@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewValley;
 
@@ -20,12 +21,29 @@ namespace Ronvotri.TeamUp.Core;
 /// - VillagerCompanionManager._runtimes = Dictionary&lt;string, VillagerCompanionRuntime&gt;
 /// - VillagerCompanionRuntime._npcName
 /// - VillagerCompanionRuntime._entity
-/// This gives Team Up an exact owner -> live actor lookup and removes the need for proximity-based
-/// Pelipper ownership guesses when the 1.1.9 runtime is bound.
+///
+/// Alpha 6.6.27 hardens custom-NPC detection. A runtime's _entity can be a wrapper rather than the
+/// visible NPC itself, so Team Up unwraps known actor/entity members before declaring the companion
+/// absent. If Pelipper says a custom villager companion is enabled but the exact runtime map has not
+/// materialized that owner yet, a fallback is allowed only for one unique, nearby, unclaimed,
+/// non-wild Pelipper actor. Ambiguous clusters fail closed instead of assigning the wrong Pokemon.
 /// </summary>
 internal static class PelipperTown119NativeBridge
 {
     private const BindingFlags InstanceFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    private const float SafeCustomNpcFallbackRadius = 2.75f;
+
+    private static readonly string[] ActorMemberHints =
+    {
+        "_entity", "Entity", "entity", "_actor", "Actor", "actor", "_npc", "Npc", "NPC",
+        "_character", "Character", "character", "_visibleEntity", "VisibleEntity"
+    };
+
+    private static readonly string[] PlayerOwnerMemberHints =
+    {
+        "OwnerId", "OwnerID", "OwnerFarmerId", "OwnerFarmerID", "FarmerId", "FarmerID",
+        "TrainerId", "TrainerID"
+    };
 
     private static object? RuntimeRoot;
     private static object? VillagerManager;
@@ -34,7 +52,7 @@ internal static class PelipperTown119NativeBridge
     public static string Status
         => RuntimeRoot is null
             ? "root=<none>"
-            : $"root={RuntimeRoot.GetType().FullName}, manager={VillagerManager?.GetType().FullName ?? "<none>"}, npcNative={HasVillagerLifecycle}, playerNative={HasPlayerLifecycle}, exactOwnerMap={HasExactVillagerRuntimeMap}";
+            : $"root={RuntimeRoot.GetType().FullName}, manager={VillagerManager?.GetType().FullName ?? "<none>"}, npcNative={HasVillagerLifecycle}, playerNative={HasPlayerLifecycle}, exactOwnerMap={HasExactVillagerRuntimeMap}, customNpcSafeFallback=True";
 
     public static bool HasVillagerLifecycle
     {
@@ -69,7 +87,7 @@ internal static class PelipperTown119NativeBridge
                 return false;
 
             FieldInfo? field = manager.GetType().GetField("_runtimes", InstanceFlags);
-            return field?.GetValue(manager) is IDictionary;
+            return SafeGet(() => field?.GetValue(manager)) is IDictionary;
         }
     }
 
@@ -112,9 +130,9 @@ internal static class PelipperTown119NativeBridge
     }
 
     /// <summary>
-    /// Returns true when the exact 1.1.9 runtime map was queried successfully. A null descriptor
-    /// then means the NPC has no live Pelipper companion. Returning false means callers may use
-    /// older compatibility detection because the exact map isn't available.
+    /// Returns true when the exact 1.1.9 owner lookup was authoritative. A null descriptor then
+    /// means Pelipper says the NPC currently has no live companion. False means the runtime map was
+    /// unavailable or incomplete for an enabled custom NPC, so the safe custom fallback may run.
     /// </summary>
     public static bool TryGetVillagerCompanionDescriptor(string npcName, out LiveCompanionDescriptor? descriptor)
     {
@@ -124,65 +142,136 @@ internal static class PelipperTown119NativeBridge
         if (actor is null)
             return true;
 
-        string? stableId = TryGetStablePelipperUnitId(actor);
-        string unitId = !string.IsNullOrWhiteSpace(stableId)
-            ? $"{PelipperTownCompatibilityService.ProviderId}:{stableId}"
-            : $"{PelipperTownCompatibilityService.ProviderId}:npc:{npcName}:{actor.Name}";
-
-        descriptor = new LiveCompanionDescriptor
-        {
-            UnitId = unitId,
-            CharacterName = actor.Name,
-            DisplayName = string.IsNullOrWhiteSpace(actor.displayName) ? actor.Name : actor.displayName,
-            OwnerKind = CompanionOwnerKind.PartyMember,
-            OwnerCharacterName = npcName,
-            ProviderId = PelipperTownCompatibilityService.ProviderId,
-            ProviderUnitId = stableId
-        };
+        descriptor = BuildVillagerDescriptor(actor, npcName);
         return true;
     }
 
     public static bool TryGetVillagerCompanionActor(string npcName, out NPC? actor)
     {
         actor = null;
-        object? manager = VillagerManager ?? (RuntimeRoot is null ? null : ResolveVillagerManager(RuntimeRoot));
-        if (manager?.GetType().FullName != "PelipperTown.VillagerCompanionManager")
+        if (!TryGetRuntimeMap(out IDictionary? runtimes) || runtimes is null)
             return false;
 
-        FieldInfo? runtimesField = manager.GetType().GetField("_runtimes", InstanceFlags);
-        if (runtimesField?.GetValue(manager) is not IDictionary runtimes)
-            return false;
-
-        // Exact key lookup first, then _npcName comparison for aliases/normalization.
-        object? runtime = null;
-        foreach (DictionaryEntry entry in runtimes)
+        object? runtime = FindVillagerRuntime(runtimes, npcName);
+        if (runtime is null)
         {
-            if (entry.Key is string key && key.Equals(npcName, StringComparison.OrdinalIgnoreCase))
-            {
-                runtime = entry.Value;
-                break;
-            }
-
-            object? candidate = entry.Value;
-            if (candidate is null)
-                continue;
-            FieldInfo? npcNameField = candidate.GetType().GetField("_npcName", InstanceFlags);
-            if (npcNameField?.GetValue(candidate) is string runtimeNpcName
-                && runtimeNpcName.Equals(npcName, StringComparison.OrdinalIgnoreCase))
-            {
-                runtime = candidate;
-                break;
-            }
+            // A disabled NPC with no runtime is a precise negative. An enabled custom NPC can have
+            // a visible partner while its runtime entry is temporarily absent, so let the unique
+            // unclaimed-actor fallback decide that case instead of returning a false negative.
+            if (TryIsVillagerCompanionConfiguredEnabled(npcName, out bool configuredEnabled))
+                return !configuredEnabled;
+            return true;
         }
 
-        if (runtime is null)
-            return true;
-        if (runtime.GetType().FullName != "PelipperTown.VillagerCompanionRuntime")
+        if (!string.Equals(runtime.GetType().FullName, "PelipperTown.VillagerCompanionRuntime", StringComparison.Ordinal))
             return false;
 
         FieldInfo? entityField = runtime.GetType().GetField("_entity", InstanceFlags);
-        actor = entityField?.GetValue(runtime) as NPC;
+        if (entityField is null)
+            return false;
+
+        object? entity = SafeGet(() => entityField.GetValue(runtime));
+        if (entity is null)
+            return true;
+
+        if (TryUnwrapNpc(entity, out actor))
+            return true;
+
+        // Some Pelipper builds keep the visible actor one level beside the wrapper field. Inspect
+        // only actor-like members on this exact owner's runtime; never scan unrelated world actors.
+        if (TryUnwrapNpc(runtime, out actor))
+            return true;
+
+        // Runtime exists and claims this owner, but Team Up couldn't understand its entity shape.
+        // Let the safe unique fallback inspect the world rather than reporting "no Pokemon".
+        actor = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Safe fallback for enabled custom villagers whose exact Pelipper runtime actor couldn't be
+    /// materialized. It never picks "the nearest" from a crowd. Exactly one eligible unclaimed
+    /// actor must exist within a tight radius or the lookup returns null.
+    /// </summary>
+    public static bool TryGetSafeCustomVillagerCompanionDescriptor(NPC owner, out LiveCompanionDescriptor? descriptor)
+    {
+        descriptor = null;
+        if (!HasExactVillagerRuntimeMap || owner.currentLocation is null)
+            return false;
+
+        if (!TryIsVillagerCompanionConfiguredEnabled(owner.Name, out bool configuredEnabled))
+            return false;
+        if (!configuredEnabled)
+            return true;
+
+        HashSet<NPC> claimedActors = GetClaimedVillagerActors();
+        float maxDistanceSquared = SafeCustomNpcFallbackRadius * SafeCustomNpcFallbackRadius;
+        List<NPC> candidates = new();
+
+        foreach (NPC candidate in owner.currentLocation.characters.OfType<NPC>())
+        {
+            if (ReferenceEquals(candidate, owner)
+                || candidate.IsInvisible
+                || !PelipperTownCompatibilityService.LooksLikePelipperActor(candidate)
+                || PelipperTownCompatibilityService.IsWildCombatActor(candidate)
+                || claimedActors.Contains(candidate)
+                || LooksPlayerOwned(candidate))
+            {
+                continue;
+            }
+
+            if (candidate.modData.TryGetValue(PelipperDeploymentStateService.DeploymentOwnerKey, out string? desiredOwner)
+                && !string.IsNullOrWhiteSpace(desiredOwner)
+                && !desiredOwner.Equals(owner.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            Vector2 delta = candidate.Tile - owner.Tile;
+            if (delta.LengthSquared() > maxDistanceSquared)
+                continue;
+
+            candidates.Add(candidate);
+            if (candidates.Count > 1)
+                return true;
+        }
+
+        if (candidates.Count == 1)
+            descriptor = BuildVillagerDescriptor(candidates[0], owner.Name);
         return true;
+    }
+
+    public static bool TryIsVillagerCompanionConfiguredEnabled(string npcName, out bool enabled)
+    {
+        enabled = false;
+        object? manager = VillagerManager ?? (RuntimeRoot is null ? null : ResolveVillagerManager(RuntimeRoot));
+        if (manager?.GetType().FullName != "PelipperTown.VillagerCompanionManager"
+            || string.IsNullOrWhiteSpace(npcName))
+        {
+            return false;
+        }
+
+        MethodInfo? getEnabled = manager.GetType().GetMethod(
+            "GetConfiguredCompanionEnabled",
+            InstanceFlags,
+            binder: null,
+            types: new[] { typeof(string) },
+            modifiers: null);
+        if (getEnabled is null)
+            return false;
+
+        try
+        {
+            object? value = getEnabled.Invoke(manager, new object?[] { npcName });
+            if (value is not bool result)
+                return false;
+            enabled = result;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public static bool TrySetVillagerCompanionEnabled(string npcName, bool enabled, out string route)
@@ -285,6 +374,161 @@ internal static class PelipperTown119NativeBridge
         {
             return false;
         }
+    }
+
+    private static bool TryGetRuntimeMap(out IDictionary? runtimes)
+    {
+        runtimes = null;
+        object? manager = VillagerManager ?? (RuntimeRoot is null ? null : ResolveVillagerManager(RuntimeRoot));
+        if (manager?.GetType().FullName != "PelipperTown.VillagerCompanionManager")
+            return false;
+
+        FieldInfo? field = manager.GetType().GetField("_runtimes", InstanceFlags);
+        runtimes = SafeGet(() => field?.GetValue(manager)) as IDictionary;
+        return runtimes is not null;
+    }
+
+    private static object? FindVillagerRuntime(IDictionary runtimes, string npcName)
+    {
+        foreach (DictionaryEntry entry in runtimes)
+        {
+            if (entry.Key is string key && key.Equals(npcName, StringComparison.OrdinalIgnoreCase))
+                return entry.Value;
+
+            object? candidate = entry.Value;
+            if (candidate is null)
+                continue;
+
+            FieldInfo? npcNameField = candidate.GetType().GetField("_npcName", InstanceFlags);
+            if (SafeGet(() => npcNameField?.GetValue(candidate)) is string runtimeNpcName
+                && runtimeNpcName.Equals(npcName, StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static HashSet<NPC> GetClaimedVillagerActors()
+    {
+        var result = new HashSet<NPC>();
+        if (!TryGetRuntimeMap(out IDictionary? runtimes) || runtimes is null)
+            return result;
+
+        foreach (DictionaryEntry entry in runtimes)
+        {
+            object? runtime = entry.Value;
+            if (runtime is null)
+                continue;
+
+            FieldInfo? entityField = runtime.GetType().GetField("_entity", InstanceFlags);
+            object? entity = SafeGet(() => entityField?.GetValue(runtime));
+            if (entity is not null && TryUnwrapNpc(entity, out NPC? actor) && actor is not null)
+                result.Add(actor);
+        }
+
+        return result;
+    }
+
+    private static bool TryUnwrapNpc(object value, out NPC? actor)
+    {
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        return TryUnwrapNpc(value, 0, visited, out actor);
+    }
+
+    private static bool TryUnwrapNpc(object? value, int depth, HashSet<object> visited, out NPC? actor)
+    {
+        actor = value as NPC;
+        if (actor is not null)
+            return true;
+        if (value is null || depth >= 3 || !visited.Add(value))
+            return false;
+
+        Type type = value.GetType();
+        foreach (string name in ActorMemberHints)
+        {
+            FieldInfo? field = type.GetField(name, InstanceFlags | BindingFlags.IgnoreCase);
+            object? fieldValue = SafeGet(() => field?.GetValue(value));
+            if (fieldValue is not null && TryUnwrapNpc(fieldValue, depth + 1, visited, out actor))
+                return true;
+
+            PropertyInfo? property = type.GetProperty(name, InstanceFlags | BindingFlags.IgnoreCase);
+            if (property is null || property.GetIndexParameters().Length != 0)
+                continue;
+            object? propertyValue = SafeGet(() => property.GetValue(value));
+            if (propertyValue is not null && TryUnwrapNpc(propertyValue, depth + 1, visited, out actor))
+                return true;
+        }
+
+        foreach (FieldInfo field in type.GetFields(InstanceFlags))
+        {
+            if (!typeof(NPC).IsAssignableFrom(field.FieldType))
+                continue;
+            actor = SafeGet(() => field.GetValue(value)) as NPC;
+            if (actor is not null)
+                return true;
+        }
+
+        actor = null;
+        return false;
+    }
+
+    private static bool LooksPlayerOwned(NPC actor)
+    {
+        foreach (var pair in actor.modData.Pairs)
+        {
+            bool ownerish = pair.Key.Contains("owner", StringComparison.OrdinalIgnoreCase)
+                || pair.Key.Contains("farmer", StringComparison.OrdinalIgnoreCase)
+                || pair.Key.Contains("trainer", StringComparison.OrdinalIgnoreCase);
+            if (ownerish && long.TryParse(pair.Value, out long id) && id != 0)
+                return true;
+        }
+
+        foreach (string memberName in PlayerOwnerMemberHints)
+        {
+            FieldInfo? field = actor.GetType().GetField(memberName, InstanceFlags | BindingFlags.IgnoreCase);
+            object? value = SafeGet(() => field?.GetValue(actor));
+            if (TryReadNonZeroId(value))
+                return true;
+
+            PropertyInfo? property = actor.GetType().GetProperty(memberName, InstanceFlags | BindingFlags.IgnoreCase);
+            if (property is null || property.GetIndexParameters().Length != 0)
+                continue;
+            value = SafeGet(() => property.GetValue(actor));
+            if (TryReadNonZeroId(value))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryReadNonZeroId(object? value)
+    {
+        if (value is long direct)
+            return direct != 0;
+        if (value is int integer)
+            return integer != 0;
+        return value is not null && long.TryParse(value.ToString(), out long parsed) && parsed != 0;
+    }
+
+    private static LiveCompanionDescriptor BuildVillagerDescriptor(NPC actor, string npcName)
+    {
+        string? stableId = TryGetStablePelipperUnitId(actor);
+        string unitId = !string.IsNullOrWhiteSpace(stableId)
+            ? $"{PelipperTownCompatibilityService.ProviderId}:{stableId}"
+            : $"{PelipperTownCompatibilityService.ProviderId}:npc:{npcName}:{actor.Name}";
+
+        return new LiveCompanionDescriptor
+        {
+            UnitId = unitId,
+            CharacterName = actor.Name,
+            DisplayName = string.IsNullOrWhiteSpace(actor.displayName) ? actor.Name : actor.displayName,
+            OwnerKind = CompanionOwnerKind.PartyMember,
+            OwnerCharacterName = npcName,
+            ProviderId = PelipperTownCompatibilityService.ProviderId,
+            ProviderUnitId = stableId
+        };
     }
 
     private static object? ResolveVillagerManager(object root)
