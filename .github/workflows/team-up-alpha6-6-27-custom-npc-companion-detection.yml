@@ -1,0 +1,32 @@
+name: Team Up v0.2.0-alpha.6.6.27 Custom NPC Companion Detection
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-6-27-custom-npc-companion-detection
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+      - name: Build and audit Alpha 6.6.27
+        shell: pwsh
+        run: ./BuildV0_2Alpha6627.ps1
+      - name: Upload Alpha 6.6.27 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-27-custom-npc-companion-detection
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.27_CUSTOM_NPC_COMPANION_DETECTION_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.27_CUSTOM_NPC_COMPANION_DETECTION_TEST.sha256.txt
+            BUILD_LOG_ALPHA6627.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_27_CUSTOM_NPC_COMPANION_DETECTION_VI.txt
+          if-no-files-found: error
