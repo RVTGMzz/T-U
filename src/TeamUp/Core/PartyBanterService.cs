@@ -28,9 +28,9 @@ internal enum BanterTrait
 
 internal sealed class PartyBanterService
 {
-    private sealed record ActivePartyNpc(PartyMemberData Member, NPC Actor, BanterTrait Traits);
+    private sealed record ActiveNpc(PartyMemberData Member, NPC Actor, BanterTrait Traits);
     private sealed record QueuedLine(string SpeakerName, string Text, long DueTick, int DurationMs);
-    private sealed record Exchange(string Id, ActivePartyNpc First, string FirstLine, ActivePartyNpc Second, string SecondLine, string? ThirdSpeakerName = null, string? ThirdLine = null);
+    private sealed record Exchange(string Id, ActiveNpc First, string FirstLine, ActiveNpc Second, string SecondLine, string? ThirdSpeaker = null, string? ThirdLine = null);
 
     private readonly IMonitor Monitor;
     private readonly PartyManager Party;
@@ -40,13 +40,14 @@ internal sealed class PartyBanterService
     private readonly Func<bool> IsMimiShippingEnabled;
     private readonly Dictionary<string, long> PairCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, long> LowHpCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Queue<QueuedLine> Queue = new();
+    private readonly Queue<QueuedLine> PendingLines = new();
 
     private long NextAmbientTick;
     private long NextCombatTick;
     private long NextMimiShipTick;
     private long CombatEndedCandidateTick;
     private bool WasInCombat;
+    private bool Primed;
     private string LastExchangeId = string.Empty;
 
     private static readonly HashSet<string> KnownMaleNames = new(StringComparer.OrdinalIgnoreCase)
@@ -110,21 +111,20 @@ internal sealed class PartyBanterService
     {
         PairCooldownUntil.Clear();
         LowHpCooldownUntil.Clear();
-        Queue.Clear();
+        PendingLines.Clear();
         NextAmbientTick = 0;
         NextCombatTick = 0;
         NextMimiShipTick = 0;
         CombatEndedCandidateTick = 0;
         WasInCombat = false;
+        Primed = false;
         LastExchangeId = string.Empty;
     }
 
     public string DescribeStatus()
     {
-        List<ActivePartyNpc> active = GetActivePartyNpcs();
-        int males = active.Count(npc => IsMale(npc.Actor));
-        bool mimi = active.Any(IsMimi);
-        return $"banter={(IsEnabled() ? "on" : "off")}, activeNPCs={active.Count}, queued={Queue.Count}, mimi={mimi}, maleNPCs={males}, shipping={(IsMimiShippingEnabled() ? "on" : "off")}";
+        List<ActiveNpc> active = GetActivePartyNpcs();
+        return $"banter={(IsEnabled() ? "on" : "off")}, activeNPCs={active.Count}, queued={PendingLines.Count}, mimi={active.Any(IsMimi)}, maleNPCs={active.Count(npc => IsMale(npc.Actor))}, shipping={(IsMimiShippingEnabled() ? "on" : "off")}";
     }
 
     public void Update()
@@ -135,15 +135,19 @@ internal sealed class PartyBanterService
         long tick = Game1.ticks;
         FlushQueuedLines(tick);
 
-        if (!IsEnabled()
-            || Game1.eventUp
-            || Game1.dialogueUp
-            || Game1.activeClickableMenu is not null)
+        if (!IsEnabled() || Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null)
+            return;
+
+        if (!Primed)
         {
+            Primed = true;
+            NextAmbientTick = tick + 600;
+            NextCombatTick = tick + 240;
+            NextMimiShipTick = tick + 900;
             return;
         }
 
-        List<ActivePartyNpc> active = GetActivePartyNpcs();
+        List<ActiveNpc> active = GetActivePartyNpcs();
         if (active.Count < 2)
         {
             WasInCombat = false;
@@ -155,16 +159,10 @@ internal sealed class PartyBanterService
         {
             WasInCombat = true;
             CombatEndedCandidateTick = 0;
-
             if (TryLowHealthEncouragement(active, tick))
                 return;
-
-            if (tick >= NextCombatTick && Queue.Count == 0 && TryCombatExchange(active))
-            {
+            if (tick >= NextCombatTick && PendingLines.Count == 0 && TryCombatExchange(active))
                 NextCombatTick = tick + Game1.random.Next(600, 901);
-                return;
-            }
-
             return;
         }
 
@@ -172,8 +170,7 @@ internal sealed class PartyBanterService
         {
             if (CombatEndedCandidateTick == 0)
                 CombatEndedCandidateTick = tick + 90;
-
-            if (tick >= CombatEndedCandidateTick && Queue.Count == 0)
+            if (tick >= CombatEndedCandidateTick && PendingLines.Count == 0)
             {
                 WasInCombat = false;
                 CombatEndedCandidateTick = 0;
@@ -188,58 +185,44 @@ internal sealed class PartyBanterService
         if (TryLowHealthEncouragement(active, tick))
             return;
 
-        if (tick >= NextMimiShipTick
-            && Queue.Count == 0
-            && TryMimiShippingExchange(active))
+        if (tick >= NextMimiShipTick && PendingLines.Count == 0)
         {
-            NextMimiShipTick = tick + Game1.random.Next(2100, 3001);
-            NextAmbientTick = Math.Max(NextAmbientTick, tick + 900);
-            return;
+            if (TryMimiShippingExchange(active))
+            {
+                NextMimiShipTick = tick + Game1.random.Next(2100, 3001);
+                NextAmbientTick = Math.Max(NextAmbientTick, tick + 900);
+                return;
+            }
+            NextMimiShipTick = tick + 300;
         }
 
-        if (tick >= NextAmbientTick && Queue.Count == 0 && TryAmbientExchange(active))
+        if (tick >= NextAmbientTick && PendingLines.Count == 0 && TryAmbientExchange(active))
             NextAmbientTick = tick + Game1.random.Next(1050, 1651);
     }
 
     public bool ForceAmbient()
-    {
-        if (!Context.IsWorldReady || !Context.IsMainPlayer)
-            return false;
-        return TryAmbientExchange(GetActivePartyNpcs(), ignoreCooldown: true);
-    }
+        => Context.IsWorldReady && Context.IsMainPlayer && TryAmbientExchange(GetActivePartyNpcs(), ignoreCooldown: true);
 
     public bool ForceMimiShipping()
-    {
-        if (!Context.IsWorldReady || !Context.IsMainPlayer)
-            return false;
-        return TryMimiShippingExchange(GetActivePartyNpcs(), ignoreCooldown: true);
-    }
+        => Context.IsWorldReady && Context.IsMainPlayer && TryMimiShippingExchange(GetActivePartyNpcs(), ignoreCooldown: true);
 
-    private List<ActivePartyNpc> GetActivePartyNpcs()
+    private List<ActiveNpc> GetActivePartyNpcs()
     {
         GameLocation? location = Game1.currentLocation;
         if (location is null)
-            return new List<ActivePartyNpc>();
+            return new List<ActiveNpc>();
 
-        var result = new List<ActivePartyNpc>();
+        var result = new List<ActiveNpc>();
         foreach (PartyMemberData member in Party.Members)
         {
-            if (member.State is not (PartyMemberState.Following or PartyMemberState.Waiting)
-                || member.IsDowned
-                || member.IsWithdrawn)
-            {
+            if (member.State is not (PartyMemberState.Following or PartyMemberState.Waiting) || member.IsDowned || member.IsWithdrawn)
                 continue;
-            }
 
             NPC? actor = Game1.getCharacterFromName(member.CharacterName);
-            if (actor is null
-                || actor.IsInvisible
-                || actor.currentLocation != location)
-            {
+            if (actor is null || actor.IsInvisible || actor.currentLocation != location)
                 continue;
-            }
 
-            result.Add(new ActivePartyNpc(member, actor, ResolveTraits(member)));
+            result.Add(new ActiveNpc(member, actor, ResolveTraits(member)));
         }
         return result;
     }
@@ -250,12 +233,10 @@ internal sealed class PartyBanterService
             return explicitTraits;
 
         NpcCombatProfile? profile = NpcProfileCatalog.Get(member.CharacterName);
-        PartyRole role = member.Role != PartyRole.Unassigned
-            ? member.Role
-            : profile?.PrimaryRole ?? PartyRole.Damage;
-        EngagementStyle engagement = member.Engagement;
-        if (engagement == EngagementStyle.Balanced && profile is not null)
-            engagement = profile.RecommendedEngagement;
+        PartyRole role = member.Role != PartyRole.Unassigned ? member.Role : profile?.PrimaryRole ?? PartyRole.Damage;
+        EngagementStyle engagement = member.Engagement == EngagementStyle.Balanced && profile is not null
+            ? profile.RecommendedEngagement
+            : member.Engagement;
 
         BanterTrait traits = role switch
         {
@@ -266,17 +247,15 @@ internal sealed class PartyBanterService
             PartyRole.Control => BanterTrait.Analytical,
             _ => BanterTrait.Calm
         };
-
-        traits |= engagement switch
+        return traits | (engagement switch
         {
             EngagementStyle.Aggressive or EngagementStyle.Reckless => BanterTrait.Bold,
             EngagementStyle.Cautious or EngagementStyle.Passive => BanterTrait.Reserved,
             _ => BanterTrait.Calm
-        };
-        return traits;
+        });
     }
 
-    private bool IsPartyInCombat(IReadOnlyList<ActivePartyNpc> active)
+    private bool IsPartyInCombat(IReadOnlyList<ActiveNpc> active)
     {
         GameLocation? location = Game1.currentLocation;
         if (location is null)
@@ -286,25 +265,25 @@ internal sealed class PartyBanterService
         {
             if (monster.IsInvisible)
                 continue;
-
-            if (Vector2.Distance(monster.Tile, Game1.player.Tile) <= 9f)
-                return true;
-            if (active.Any(npc => Vector2.Distance(monster.Tile, npc.Actor.Tile) <= 8f))
+            if (Vector2.Distance(monster.Tile, Game1.player.Tile) <= 9f || active.Any(npc => Vector2.Distance(monster.Tile, npc.Actor.Tile) <= 8f))
                 return true;
         }
         return false;
     }
 
-    private bool TryLowHealthEncouragement(List<ActivePartyNpc> active, long tick)
+    private bool TryLowHealthEncouragement(List<ActiveNpc> active, long tick)
     {
-        ActivePartyNpc? target = active
+        if (PendingLines.Count != 0)
+            return false;
+
+        ActiveNpc? target = active
             .Where(npc => Progression.GetHealthRatio(npc.Member) <= 0.38f)
             .OrderBy(npc => Progression.GetHealthRatio(npc.Member))
             .FirstOrDefault(npc => !LowHpCooldownUntil.TryGetValue(npc.Member.CharacterName, out long until) || tick >= until);
-        if (target is null || Queue.Count != 0)
+        if (target is null)
             return false;
 
-        ActivePartyNpc? speaker = active
+        ActiveNpc? speaker = active
             .Where(npc => !ReferenceEquals(npc, target))
             .OrderByDescending(npc => ScoreEncourager(npc.Traits))
             .ThenBy(_ => Game1.random.Next())
@@ -313,51 +292,42 @@ internal sealed class PartyBanterService
             return false;
 
         bool vi = IsVietnamese();
-        string first = BuildEncouragementLine(speaker, target, vi);
-        string reply = BuildTiredReply(target, speaker, vi);
-        var exchange = new Exchange(
+        LowHpCooldownUntil[target.Member.CharacterName] = tick + 1200;
+        EnqueueExchange(new Exchange(
             $"lowhp:{speaker.Member.CharacterName}:{target.Member.CharacterName}",
             speaker,
-            first,
+            BuildEncouragementLine(speaker, target, vi),
             target,
-            reply);
-
-        LowHpCooldownUntil[target.Member.CharacterName] = tick + 1200;
-        EnqueueExchange(exchange, tick);
+            BuildTiredReply(target, vi)), tick);
         return true;
     }
 
     private static int ScoreEncourager(BanterTrait traits)
-    {
-        int score = 0;
-        if (traits.HasFlag(BanterTrait.Caring)) score += 6;
-        if (traits.HasFlag(BanterTrait.Protective)) score += 5;
-        if (traits.HasFlag(BanterTrait.Cheerful)) score += 3;
-        if (traits.HasFlag(BanterTrait.Practical)) score += 2;
-        if (traits.HasFlag(BanterTrait.Dry)) score -= 1;
-        return score;
-    }
+        => (traits.HasFlag(BanterTrait.Caring) ? 6 : 0)
+            + (traits.HasFlag(BanterTrait.Protective) ? 5 : 0)
+            + (traits.HasFlag(BanterTrait.Cheerful) ? 3 : 0)
+            + (traits.HasFlag(BanterTrait.Practical) ? 2 : 0)
+            - (traits.HasFlag(BanterTrait.Dry) ? 1 : 0);
 
-    private bool TryCombatExchange(List<ActivePartyNpc> active)
+    private bool TryCombatExchange(List<ActiveNpc> active)
     {
-        if (!TryChoosePair(active, out ActivePartyNpc? first, out ActivePartyNpc? second))
+        if (!TryChoosePair(active, out ActiveNpc? firstRaw, out ActiveNpc? secondRaw))
             return false;
-
+        ActiveNpc first = firstRaw!;
+        ActiveNpc second = secondRaw!;
         bool vi = IsVietnamese();
         string firstLine;
         string secondLine;
 
-        if (first!.Traits.HasFlag(BanterTrait.Protective))
+        if (first.Traits.HasFlag(BanterTrait.Protective))
         {
             firstLine = vi ? "Cứ ở sau tôi, đừng tách đội hình!" : "Stay behind me, don't break formation!";
-            secondLine = BuildCombatReply(second!, vi);
+            secondLine = BuildCombatReply(second, vi);
         }
         else if (first.Traits.HasFlag(BanterTrait.Competitive) || first.Traits.HasFlag(BanterTrait.Bold))
         {
-            firstLine = vi ? $"{second!.Actor.displayName}, đừng để tôi hạ hết trước nhé!" : $"{second!.Actor.displayName}, don't let me finish them all first!";
-            secondLine = second.Traits.HasFlag(BanterTrait.Dry)
-                ? (vi ? "Cứ mơ tiếp đi." : "Keep dreaming.")
-                : (vi ? "Lo phần của cậu đi!" : "Just handle your side!");
+            firstLine = vi ? $"{second.Actor.displayName}, đừng để tôi hạ hết trước nhé!" : $"{second.Actor.displayName}, don't let me finish them all first!";
+            secondLine = second.Traits.HasFlag(BanterTrait.Dry) ? (vi ? "Cứ mơ tiếp đi." : "Keep dreaming.") : (vi ? "Lo phần của cậu đi!" : "Just handle your side!");
         }
         else if (first.Traits.HasFlag(BanterTrait.Analytical))
         {
@@ -370,22 +340,24 @@ internal sealed class PartyBanterService
             secondLine = vi ? "Tôi thấy rồi!" : "I see it!";
         }
 
-        EnqueueExchange(new Exchange($"combat:{first.Member.CharacterName}:{second.Member.CharacterName}", first, firstLine, second!, secondLine), Game1.ticks);
+        EnqueueExchange(new Exchange($"combat:{first.Member.CharacterName}:{second.Member.CharacterName}", first, firstLine, second, secondLine), Game1.ticks);
         return true;
     }
 
-    private bool TryVictoryExchange(List<ActivePartyNpc> active)
+    private bool TryVictoryExchange(List<ActiveNpc> active)
     {
-        if (!TryChoosePair(active, out ActivePartyNpc? first, out ActivePartyNpc? second, ignorePairCooldown: true))
+        if (!TryChoosePair(active, out ActiveNpc? firstRaw, out ActiveNpc? secondRaw, ignorePairCooldown: true))
             return false;
-
+        ActiveNpc first = firstRaw!;
+        ActiveNpc second = secondRaw!;
         bool vi = IsVietnamese();
-        string firstLine = first!.Traits.HasFlag(BanterTrait.Dry)
+
+        string firstLine = first.Traits.HasFlag(BanterTrait.Dry)
             ? (vi ? "Xong rồi à? Tốt." : "That's it? Good.")
             : first.Traits.HasFlag(BanterTrait.Competitive)
                 ? (vi ? "Ổn đấy. Lần sau xem ai hạ nhiều hơn nhé." : "Not bad. Next time, let's compare scores.")
                 : (vi ? "Ổn rồi! Mọi người vẫn nguyên vẹn chứ?" : "We're clear! Everyone still in one piece?");
-        string secondLine = second!.Traits.HasFlag(BanterTrait.Teasing)
+        string secondLine = second.Traits.HasFlag(BanterTrait.Teasing)
             ? (vi ? "Tạm thời thì có." : "For now.")
             : second.Traits.HasFlag(BanterTrait.Caring)
                 ? (vi ? "Ừ, nhưng nghỉ một chút đi." : "Yeah, but let's breathe for a moment.")
@@ -395,16 +367,18 @@ internal sealed class PartyBanterService
         return true;
     }
 
-    private bool TryAmbientExchange(List<ActivePartyNpc> active, bool ignoreCooldown = false)
+    private bool TryAmbientExchange(List<ActiveNpc> active, bool ignoreCooldown = false)
     {
-        if (active.Count < 2 || !TryChoosePair(active, out ActivePartyNpc? first, out ActivePartyNpc? second, ignoreCooldown))
+        if (!TryChoosePair(active, out ActiveNpc? firstRaw, out ActiveNpc? secondRaw, ignoreCooldown))
             return false;
+        ActiveNpc first = firstRaw!;
+        ActiveNpc second = secondRaw!;
+        Exchange exchange = BuildAmbientExchange(first, second, IsVietnamese());
 
-        Exchange exchange = BuildAmbientExchange(first!, second!, IsVietnamese());
         if (exchange.Id == LastExchangeId && active.Count > 2)
         {
-            List<ActivePartyNpc> alternate = active.Where(npc => !ReferenceEquals(npc, second)).ToList();
-            if (TryChoosePair(alternate, out ActivePartyNpc? altFirst, out ActivePartyNpc? altSecond, ignoreCooldown))
+            List<ActiveNpc> alternatives = active.Where(npc => !ReferenceEquals(npc, second)).ToList();
+            if (TryChoosePair(alternatives, out ActiveNpc? altFirst, out ActiveNpc? altSecond, ignoreCooldown))
                 exchange = BuildAmbientExchange(altFirst!, altSecond!, IsVietnamese());
         }
 
@@ -412,243 +386,156 @@ internal sealed class PartyBanterService
         return true;
     }
 
-    private Exchange BuildAmbientExchange(ActivePartyNpc first, ActivePartyNpc second, bool vi)
+    private Exchange BuildAmbientExchange(ActiveNpc first, ActiveNpc second, bool vi)
     {
-        string pairKey = BuildPairKey(first.Member.CharacterName, second.Member.CharacterName);
-        string a = first.Actor.displayName;
-        string b = second.Actor.displayName;
+        string pair = BuildPairKey(first.Member.CharacterName, second.Member.CharacterName);
+        if (pair == BuildPairKey("Alex", "Sebastian"))
+            return OrderedPair(first, second, "Alex", "pair:alex-sebastian", vi ? "Cậu lúc nào cũng trông như vừa thức cả đêm vậy." : "You always look like you were up all night.", vi ? "Ít nhất tôi không dậy lúc sáu giờ để nâng một cục sắt." : "At least I don't wake up at six to lift a chunk of iron.");
+        if (pair == BuildPairKey("Abigail", "Sebastian"))
+            return OrderedPair(first, second, "Abigail", "pair:abigail-sebastian", vi ? "Nếu thấy thứ gì phát sáng, để tớ chạm vào trước nhé." : "If we find something glowing, I get to touch it first.", vi ? "Đó chính xác là điều cậu không nên làm." : "That's exactly what you shouldn't do.");
+        if (pair == BuildPairKey("Sam", "Sebastian"))
+            return OrderedPair(first, second, "Sam", "pair:sam-sebastian", vi ? "Sau vụ này làm một bài nhạc mới nhé?" : "New song after this?", vi ? "Nếu cậu không bắt tôi đặt tên bài." : "Only if you don't make me name it.");
+        if (pair == BuildPairKey("Harvey", "Maru"))
+            return OrderedPair(first, second, "Harvey", "pair:harvey-maru", vi ? "Maru, nhớ để ý nhịp nghỉ của cả đội nhé." : "Maru, keep an eye on everyone's rest intervals.", vi ? "Em đang theo dõi rồi. Bác sĩ cũng nhớ nghỉ đấy." : "Already tracking it. That includes you, doctor.");
+        if (pair == BuildPairKey("Leah", "Elliott"))
+            return OrderedPair(first, second, "Leah", "pair:leah-elliott", vi ? "Đừng biến chuyến đi này thành một chương tiểu thuyết nhé." : "Don't turn this trip into another novel chapter.", vi ? "Quá muộn rồi. Tôi đã có câu mở đầu." : "Too late. I already have the opening line.");
+        if (pair == BuildPairKey("Shane", "Harvey"))
+            return OrderedPair(first, second, "Shane", "pair:shane-harvey", vi ? "Đừng có nhìn tôi kiểu bác sĩ đó." : "Don't give me that doctor look.", vi ? "Tôi còn chưa nói gì mà." : "I haven't said anything yet.");
 
-        if (pairKey == BuildPairKey("Alex", "Sebastian"))
-        {
-            ActivePartyNpc alex = first.Member.CharacterName.Equals("Alex", StringComparison.OrdinalIgnoreCase) ? first : second;
-            ActivePartyNpc seb = ReferenceEquals(alex, first) ? second : first;
-            return new Exchange("pair:alex-sebastian", alex,
-                vi ? "Cậu lúc nào cũng trông như vừa thức cả đêm vậy." : "You always look like you were up all night.",
-                seb,
-                vi ? "Ít nhất tôi không dậy lúc sáu giờ để nâng một cục sắt." : "At least I don't wake up at six to lift a chunk of iron.");
-        }
-
-        if (pairKey == BuildPairKey("Abigail", "Sebastian"))
-        {
-            ActivePartyNpc abi = first.Member.CharacterName.Equals("Abigail", StringComparison.OrdinalIgnoreCase) ? first : second;
-            ActivePartyNpc seb = ReferenceEquals(abi, first) ? second : first;
-            return new Exchange("pair:abigail-sebastian", abi,
-                vi ? "Nếu thấy thứ gì phát sáng, để tớ chạm vào trước nhé." : "If we find something glowing, I get to touch it first.",
-                seb,
-                vi ? "Đó chính xác là điều cậu không nên làm." : "That's exactly what you shouldn't do.");
-        }
-
-        if (pairKey == BuildPairKey("Sam", "Sebastian"))
-        {
-            ActivePartyNpc sam = first.Member.CharacterName.Equals("Sam", StringComparison.OrdinalIgnoreCase) ? first : second;
-            ActivePartyNpc seb = ReferenceEquals(sam, first) ? second : first;
-            return new Exchange("pair:sam-sebastian", sam,
-                vi ? "Sau vụ này làm một bài nhạc mới nhé?" : "New song after this?",
-                seb,
-                vi ? "Nếu cậu không bắt tôi đặt tên bài." : "Only if you don't make me name it.");
-        }
-
-        if (pairKey == BuildPairKey("Harvey", "Maru"))
-        {
-            ActivePartyNpc harvey = first.Member.CharacterName.Equals("Harvey", StringComparison.OrdinalIgnoreCase) ? first : second;
-            ActivePartyNpc maru = ReferenceEquals(harvey, first) ? second : first;
-            return new Exchange("pair:harvey-maru", harvey,
-                vi ? "Maru, nhớ để ý nhịp nghỉ của cả đội nhé." : "Maru, keep an eye on everyone's rest intervals.",
-                maru,
-                vi ? "Em đang theo dõi rồi. Bác sĩ cũng nhớ nghỉ đấy." : "Already tracking it. That includes you, doctor.");
-        }
-
-        if (pairKey == BuildPairKey("Leah", "Elliott"))
-        {
-            ActivePartyNpc leah = first.Member.CharacterName.Equals("Leah", StringComparison.OrdinalIgnoreCase) ? first : second;
-            ActivePartyNpc elliott = ReferenceEquals(leah, first) ? second : first;
-            return new Exchange("pair:leah-elliott", leah,
-                vi ? "Đừng biến chuyến đi này thành một chương tiểu thuyết nhé." : "Don't turn this trip into another novel chapter.",
-                elliott,
-                vi ? "Quá muộn rồi. Tôi đã có câu mở đầu." : "Too late. I already have the opening line.");
-        }
-
-        if (pairKey == BuildPairKey("Shane", "Harvey"))
-        {
-            ActivePartyNpc shane = first.Member.CharacterName.Equals("Shane", StringComparison.OrdinalIgnoreCase) ? first : second;
-            ActivePartyNpc harvey = ReferenceEquals(shane, first) ? second : first;
-            return new Exchange("pair:shane-harvey", shane,
-                vi ? "Đừng có nhìn tôi kiểu bác sĩ đó." : "Don't give me that doctor look.",
-                harvey,
-                vi ? "Tôi còn chưa nói gì mà." : "I haven't said anything yet.");
-        }
-
-        return BuildGenericAmbientExchange(first, second, vi, a, b);
+        return BuildGenericAmbientExchange(first, second, vi);
     }
 
-    private Exchange BuildGenericAmbientExchange(ActivePartyNpc first, ActivePartyNpc second, bool vi, string a, string b)
+    private static Exchange OrderedPair(ActiveNpc first, ActiveNpc second, string leadName, string id, string leadLine, string replyLine)
     {
+        ActiveNpc lead = first.Member.CharacterName.Equals(leadName, StringComparison.OrdinalIgnoreCase) ? first : second;
+        ActiveNpc reply = ReferenceEquals(lead, first) ? second : first;
+        return new Exchange(id, lead, leadLine, reply, replyLine);
+    }
+
+    private Exchange BuildGenericAmbientExchange(ActiveNpc first, ActiveNpc second, bool vi)
+    {
+        string target = second.Actor.displayName;
         string firstLine;
         string secondLine;
 
         if (first.Traits.HasFlag(BanterTrait.Teasing))
         {
-            firstLine = vi ? $"{b}, cậu nghiêm túc thế từ nãy giờ à?" : $"{b}, have you been this serious the whole time?";
-            secondLine = second.Traits.HasFlag(BanterTrait.Dry)
-                ? (vi ? "Có người phải nghiêm túc chứ." : "Someone has to be.")
-                : (vi ? "Có người nói nhiều quá nên vậy đó." : "Someone's been talking too much.");
+            firstLine = vi ? $"{target}, cậu nghiêm túc thế từ nãy giờ à?" : $"{target}, have you been this serious the whole time?";
+            secondLine = second.Traits.HasFlag(BanterTrait.Dry) ? (vi ? "Có người phải nghiêm túc chứ." : "Someone has to be.") : (vi ? "Có người nói nhiều quá nên vậy đó." : "Someone's been talking too much.");
         }
         else if (first.Traits.HasFlag(BanterTrait.Caring))
         {
-            firstLine = vi ? $"{b}, vẫn ổn chứ? Đừng cố quá nhé." : $"{b}, doing okay? Don't push too hard.";
+            firstLine = vi ? $"{target}, vẫn ổn chứ? Đừng cố quá nhé." : $"{target}, doing okay? Don't push too hard.";
             secondLine = vi ? "Ổn mà. Cảm ơn nhé." : "I'm good. Thanks.";
         }
         else if (first.Traits.HasFlag(BanterTrait.Competitive))
         {
-            firstLine = vi ? $"{b}, thử theo kịp tôi xem nào." : $"{b}, try to keep up with me.";
-            secondLine = second.Traits.HasFlag(BanterTrait.Competitive)
-                ? (vi ? "Cậu mới là người phải theo kịp." : "You're the one who needs to keep up.")
-                : (vi ? "Cứ tự tin đi." : "Keep telling yourself that.");
+            firstLine = vi ? $"{target}, thử theo kịp tôi xem nào." : $"{target}, try to keep up with me.";
+            secondLine = second.Traits.HasFlag(BanterTrait.Competitive) ? (vi ? "Cậu mới là người phải theo kịp." : "You're the one who needs to keep up.") : (vi ? "Cứ tự tin đi." : "Keep telling yourself that.");
         }
         else if (first.Traits.HasFlag(BanterTrait.Analytical))
         {
             firstLine = vi ? "Đội hình hôm nay vận hành khá ổn." : "The formation is running pretty efficiently today.";
-            secondLine = second.Traits.HasFlag(BanterTrait.Dry)
-                ? (vi ? "Đừng phân tích cả lúc đi bộ." : "You don't have to analyze walking.")
-                : (vi ? "Nghe như một lời khen nhỉ?" : "I'll take that as a compliment.");
+            secondLine = second.Traits.HasFlag(BanterTrait.Dry) ? (vi ? "Đừng phân tích cả lúc đi bộ." : "You don't have to analyze walking.") : (vi ? "Nghe như một lời khen nhỉ?" : "I'll take that as a compliment.");
         }
         else if (first.Traits.HasFlag(BanterTrait.Mysterious))
         {
             firstLine = vi ? "Không khí hôm nay có gì đó hơi lạ." : "There's something odd in the air today.";
-            secondLine = second.Traits.HasFlag(BanterTrait.Dry)
-                ? (vi ? "Hy vọng chỉ là thời tiết." : "Let's hope it's just the weather.")
-                : (vi ? "Cậu nói vậy làm tôi để ý rồi đó." : "Now you've got me noticing it too.");
+            secondLine = second.Traits.HasFlag(BanterTrait.Dry) ? (vi ? "Hy vọng chỉ là thời tiết." : "Let's hope it's just the weather.") : (vi ? "Cậu nói vậy làm tôi để ý rồi đó." : "Now you've got me noticing it too.");
         }
         else
         {
-            firstLine = vi ? $"Đi cùng nhau thế này cũng không tệ nhỉ, {b}?" : $"Traveling as a group isn't bad, right, {b}?";
+            firstLine = vi ? $"Đi cùng nhau thế này cũng không tệ nhỉ, {target}?" : $"Traveling as a group isn't bad, right, {target}?";
             secondLine = vi ? "Ừ. Ít nhất đường dài bớt chán." : "Yeah. Makes the long walk less boring.";
         }
 
         return new Exchange($"ambient:{first.Member.CharacterName}:{second.Member.CharacterName}:{(int)first.Traits}", first, firstLine, second, secondLine);
     }
 
-    private bool TryMimiShippingExchange(List<ActivePartyNpc> active, bool ignoreCooldown = false)
+    private bool TryMimiShippingExchange(List<ActiveNpc> active, bool ignoreCooldown = false)
     {
         if (!IsMimiShippingEnabled() || active.Count < 3)
             return false;
 
-        ActivePartyNpc? mimi = active.FirstOrDefault(IsMimi);
+        ActiveNpc? mimi = active.FirstOrDefault(IsMimi);
         if (mimi is null)
             return false;
 
-        List<ActivePartyNpc> males = active
-            .Where(npc => !IsMimi(npc) && IsMale(npc.Actor))
-            .OrderBy(_ => Game1.random.Next())
-            .ToList();
+        List<ActiveNpc> males = active.Where(npc => !IsMimi(npc) && IsMale(npc.Actor)).OrderBy(_ => Game1.random.Next()).ToList();
         if (males.Count < 2)
             return false;
 
         long tick = Game1.ticks;
-        ActivePartyNpc? firstMale = null;
-        ActivePartyNpc? secondMale = null;
+        ActiveNpc? firstMale = null;
+        ActiveNpc? secondMale = null;
         for (int i = 0; i < males.Count && firstMale is null; i++)
         {
             for (int j = i + 1; j < males.Count; j++)
             {
                 string key = "mimi-ship|" + BuildPairKey(males[i].Member.CharacterName, males[j].Member.CharacterName);
-                if (ignoreCooldown || !PairCooldownUntil.TryGetValue(key, out long until) || tick >= until)
-                {
-                    firstMale = males[i];
-                    secondMale = males[j];
-                    PairCooldownUntil[key] = tick + 3600;
-                    break;
-                }
+                if (!ignoreCooldown && PairCooldownUntil.TryGetValue(key, out long until) && tick < until)
+                    continue;
+                firstMale = males[i];
+                secondMale = males[j];
+                PairCooldownUntil[key] = tick + 3600;
+                break;
             }
         }
-
         if (firstMale is null || secondMale is null)
             return false;
 
+        bool vi = IsVietnamese();
         string a = firstMale.Actor.displayName;
         string b = secondMale.Actor.displayName;
-        bool vi = IsVietnamese();
         string[] openers = vi
-            ? new[]
-            {
-                $"{a} với {b}... ừm, tôi thấy có tiềm năng nha~",
-                $"Hai người cứ đi cạnh nhau thế này là tôi bắt đầu có ý tưởng rồi đó~",
-                $"{a}, {b}, đứng gần nhau thêm chút đi. Tôi cần tư liệu!"
-            }
-            : new[]
-            {
-                $"{a} and {b}... hmm. I see potential~",
-                "The way you two keep walking together is giving me ideas~",
-                $"{a}, {b}, stand a little closer. I need material!"
-            };
-        string opener = openers[Game1.random.Next(openers.Length)];
-        string response = BuildMimiShipResponse(firstMale, vi);
-        string closer = vi
-            ? "Tôi chỉ đang quan sát độ hợp nhau thôi mà~"
-            : "I'm only observing the chemistry~";
+            ? new[] { $"{a} với {b}... ừm, tôi thấy có tiềm năng nha~", "Hai người cứ đi cạnh nhau thế này là tôi bắt đầu có ý tưởng rồi đó~", $"{a}, {b}, đứng gần nhau thêm chút đi. Tôi cần tư liệu!" }
+            : new[] { $"{a} and {b}... hmm. I see potential~", "The way you two keep walking together is giving me ideas~", $"{a}, {b}, stand a little closer. I need material!" };
 
-        var exchange = new Exchange(
+        EnqueueExchange(new Exchange(
             $"mimi-ship:{firstMale.Member.CharacterName}:{secondMale.Member.CharacterName}",
             mimi,
-            opener,
+            openers[Game1.random.Next(openers.Length)],
             firstMale,
-            response,
+            BuildMimiShipResponse(firstMale, vi),
             mimi.Member.CharacterName,
-            closer);
-        EnqueueExchange(exchange, tick);
+            vi ? "Tôi chỉ đang quan sát độ hợp nhau thôi mà~" : "I'm only observing the chemistry~"), tick);
         return true;
     }
 
-    private static string BuildMimiShipResponse(ActivePartyNpc male, bool vi)
+    private static string BuildMimiShipResponse(ActiveNpc male, bool vi)
     {
-        if (male.Traits.HasFlag(BanterTrait.Dry))
-            return vi ? "Không." : "No.";
-        if (male.Traits.HasFlag(BanterTrait.Reserved))
-            return vi ? "MiMi... làm ơn đừng bắt đầu nữa." : "MiMi... please don't start again.";
-        if (male.Traits.HasFlag(BanterTrait.Bold))
-            return vi ? "Khoan, cô đang tưởng tượng cái gì vậy?" : "Wait, what exactly are you imagining?";
-        if (male.Traits.HasFlag(BanterTrait.Teasing) || male.Traits.HasFlag(BanterTrait.Cheerful))
-            return vi ? "Lại ship nữa hả, MiMi?" : "Shipping people again, MiMi?";
+        if (male.Traits.HasFlag(BanterTrait.Dry)) return vi ? "Không." : "No.";
+        if (male.Traits.HasFlag(BanterTrait.Reserved)) return vi ? "MiMi... làm ơn đừng bắt đầu nữa." : "MiMi... please don't start again.";
+        if (male.Traits.HasFlag(BanterTrait.Bold)) return vi ? "Khoan, cô đang tưởng tượng cái gì vậy?" : "Wait, what exactly are you imagining?";
+        if (male.Traits.HasFlag(BanterTrait.Teasing) || male.Traits.HasFlag(BanterTrait.Cheerful)) return vi ? "Lại ship nữa hả, MiMi?" : "Shipping people again, MiMi?";
         return vi ? "MiMi, cô nghĩ hơi xa rồi đó." : "MiMi, you're reading way too much into this.";
     }
 
-    private static string BuildEncouragementLine(ActivePartyNpc speaker, ActivePartyNpc target, bool vi)
+    private static string BuildEncouragementLine(ActiveNpc speaker, ActiveNpc target, bool vi)
     {
         string name = target.Actor.displayName;
-        if (speaker.Traits.HasFlag(BanterTrait.Protective))
-            return vi ? $"{name}, lùi lại một chút. Để tôi che cho!" : $"{name}, fall back a little. I've got you!";
-        if (speaker.Traits.HasFlag(BanterTrait.Caring))
-            return vi ? $"{name}, đừng cố nữa. Thở một chút đi!" : $"{name}, don't push it. Catch your breath!";
-        if (speaker.Traits.HasFlag(BanterTrait.Cheerful))
-            return vi ? $"{name}, cố lên! Sắp ổn rồi!" : $"{name}, hang in there! We've got this!";
+        if (speaker.Traits.HasFlag(BanterTrait.Protective)) return vi ? $"{name}, lùi lại một chút. Để tôi che cho!" : $"{name}, fall back a little. I've got you!";
+        if (speaker.Traits.HasFlag(BanterTrait.Caring)) return vi ? $"{name}, đừng cố nữa. Thở một chút đi!" : $"{name}, don't push it. Catch your breath!";
+        if (speaker.Traits.HasFlag(BanterTrait.Cheerful)) return vi ? $"{name}, cố lên! Sắp ổn rồi!" : $"{name}, hang in there! We've got this!";
         return vi ? $"{name}, cẩn thận. Cậu xuống sức rồi." : $"{name}, careful. You're running low.";
     }
 
-    private static string BuildTiredReply(ActivePartyNpc target, ActivePartyNpc speaker, bool vi)
+    private static string BuildTiredReply(ActiveNpc target, bool vi)
     {
-        if (target.Traits.HasFlag(BanterTrait.Dry))
-            return vi ? "Tôi biết. Tôi vẫn đứng được." : "I know. I'm still standing.";
-        if (target.Traits.HasFlag(BanterTrait.Competitive))
-            return vi ? "Chưa đến lúc tôi chịu thua đâu." : "I'm not done yet.";
-        if (target.Traits.HasFlag(BanterTrait.Reserved))
-            return vi ? "Ừ... tôi sẽ cẩn thận." : "Yeah... I'll be careful.";
+        if (target.Traits.HasFlag(BanterTrait.Dry)) return vi ? "Tôi biết. Tôi vẫn đứng được." : "I know. I'm still standing.";
+        if (target.Traits.HasFlag(BanterTrait.Competitive)) return vi ? "Chưa đến lúc tôi chịu thua đâu." : "I'm not done yet.";
+        if (target.Traits.HasFlag(BanterTrait.Reserved)) return vi ? "Ừ... tôi sẽ cẩn thận." : "Yeah... I'll be careful.";
         return vi ? "Cảm ơn. Tôi sẽ chậm lại một chút." : "Thanks. I'll slow down a little.";
     }
 
-    private static string BuildCombatReply(ActivePartyNpc second, bool vi)
+    private static string BuildCombatReply(ActiveNpc second, bool vi)
     {
-        if (second.Traits.HasFlag(BanterTrait.Competitive))
-            return vi ? "Tôi tự lo được. Cậu đừng chậm chân!" : "I can handle myself. You keep moving!";
-        if (second.Traits.HasFlag(BanterTrait.Dry))
-            return vi ? "Tôi có định chạy lên đâu." : "Wasn't planning to charge in.";
+        if (second.Traits.HasFlag(BanterTrait.Competitive)) return vi ? "Tôi tự lo được. Cậu đừng chậm chân!" : "I can handle myself. You keep moving!";
+        if (second.Traits.HasFlag(BanterTrait.Dry)) return vi ? "Tôi có định chạy lên đâu." : "Wasn't planning to charge in.";
         return vi ? "Rõ! Tôi theo sau." : "Got it. I'm with you.";
     }
 
-    private bool TryChoosePair(
-        List<ActivePartyNpc> active,
-        out ActivePartyNpc? first,
-        out ActivePartyNpc? second,
-        bool ignorePairCooldown = false)
+    private bool TryChoosePair(List<ActiveNpc> active, out ActiveNpc? first, out ActiveNpc? second, bool ignorePairCooldown = false)
     {
         first = null;
         second = null;
@@ -656,21 +543,18 @@ internal sealed class PartyBanterService
             return false;
 
         long tick = Game1.ticks;
-        List<ActivePartyNpc> shuffled = active.OrderBy(_ => Game1.random.Next()).ToList();
+        List<ActiveNpc> shuffled = active.OrderBy(_ => Game1.random.Next()).ToList();
         for (int i = 0; i < shuffled.Count; i++)
         {
             for (int j = i + 1; j < shuffled.Count; j++)
             {
                 string key = BuildPairKey(shuffled[i].Member.CharacterName, shuffled[j].Member.CharacterName);
-                if (!ignorePairCooldown
-                    && PairCooldownUntil.TryGetValue(key, out long until)
-                    && tick < until)
-                {
+                if (!ignorePairCooldown && PairCooldownUntil.TryGetValue(key, out long until) && tick < until)
                     continue;
-                }
 
-                first = Game1.random.NextDouble() < 0.5 ? shuffled[i] : shuffled[j];
-                second = ReferenceEquals(first, shuffled[i]) ? shuffled[j] : shuffled[i];
+                bool normalOrder = Game1.random.NextDouble() < 0.5;
+                first = normalOrder ? shuffled[i] : shuffled[j];
+                second = normalOrder ? shuffled[j] : shuffled[i];
                 PairCooldownUntil[key] = tick + 1500;
                 return true;
             }
@@ -680,68 +564,50 @@ internal sealed class PartyBanterService
 
     private void EnqueueExchange(Exchange exchange, long tick)
     {
-        if (Queue.Count > 0)
+        if (PendingLines.Count > 0)
             return;
-
         LastExchangeId = exchange.Id;
-        Queue.Enqueue(new QueuedLine(exchange.First.Member.CharacterName, exchange.FirstLine, tick, 1650));
-        Queue.Enqueue(new QueuedLine(exchange.Second.Member.CharacterName, exchange.SecondLine, tick + 110, 1650));
-        if (!string.IsNullOrWhiteSpace(exchange.ThirdSpeakerName) && !string.IsNullOrWhiteSpace(exchange.ThirdLine))
-            Queue.Enqueue(new QueuedLine(exchange.ThirdSpeakerName!, exchange.ThirdLine!, tick + 220, 1650));
-
+        PendingLines.Enqueue(new QueuedLine(exchange.First.Member.CharacterName, exchange.FirstLine, tick, 1650));
+        PendingLines.Enqueue(new QueuedLine(exchange.Second.Member.CharacterName, exchange.SecondLine, tick + 110, 1650));
+        if (!string.IsNullOrWhiteSpace(exchange.ThirdSpeaker) && !string.IsNullOrWhiteSpace(exchange.ThirdLine))
+            PendingLines.Enqueue(new QueuedLine(exchange.ThirdSpeaker!, exchange.ThirdLine!, tick + 220, 1650));
         FlushQueuedLines(tick);
         Monitor.Log($"Party banter: {exchange.Id}", LogLevel.Trace);
     }
 
     private void FlushQueuedLines(long tick)
     {
-        while (Queue.Count > 0 && Queue.Peek().DueTick <= tick)
+        while (PendingLines.Count > 0 && PendingLines.Peek().DueTick <= tick)
         {
-            QueuedLine line = Queue.Dequeue();
+            QueuedLine line = PendingLines.Dequeue();
             NPC? speaker = Game1.getCharacterFromName(line.SpeakerName);
-            if (speaker is null
-                || speaker.IsInvisible
-                || speaker.currentLocation != Game1.currentLocation)
-            {
+            if (speaker is null || speaker.IsInvisible || speaker.currentLocation != Game1.currentLocation)
                 continue;
-            }
-
             speaker.showTextAboveHead(line.Text, new Color(245, 235, 205), 2, line.DurationMs, 0);
         }
     }
 
-    private static bool IsMimi(ActivePartyNpc npc)
+    private static bool IsMimi(ActiveNpc npc)
         => npc.Member.CharacterName.Equals(CustomNpcCompatibilityService.MimiNpcId, StringComparison.OrdinalIgnoreCase)
             || npc.Actor.displayName.Equals("MiMi", StringComparison.OrdinalIgnoreCase);
 
     private static string BuildPairKey(string a, string b)
-        => string.Compare(a, b, StringComparison.OrdinalIgnoreCase) <= 0
-            ? $"{a}|{b}"
-            : $"{b}|{a}";
+        => string.Compare(a, b, StringComparison.OrdinalIgnoreCase) <= 0 ? $"{a}|{b}" : $"{b}|{a}";
 
     private static bool IsMale(NPC npc)
     {
         if (KnownMaleNames.Contains(npc.Name))
             return true;
 
-        object? raw = ReadMember(npc, "Gender") ?? ReadMember(npc, "gender");
-        raw = UnwrapValue(raw);
+        object? raw = UnwrapValue(ReadMember(npc, "Gender") ?? ReadMember(npc, "gender"));
         if (raw is null)
             return false;
-
         string text = raw.ToString() ?? string.Empty;
-        if (text.Equals("Male", StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (text.Equals("Female", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Undefined", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (raw is int integer)
-            return integer == 0;
-        if (raw is byte tiny)
-            return tiny == 0;
-        if (raw.GetType().IsEnum)
-            return Convert.ToInt32(raw) == 0;
+        if (text.Equals("Male", StringComparison.OrdinalIgnoreCase)) return true;
+        if (text.Equals("Female", StringComparison.OrdinalIgnoreCase) || text.Equals("Undefined", StringComparison.OrdinalIgnoreCase)) return false;
+        if (raw is int integer) return integer == 0;
+        if (raw is byte tiny) return tiny == 0;
+        if (raw.GetType().IsEnum) return Convert.ToInt32(raw) == 0;
         return false;
     }
 
@@ -755,25 +621,18 @@ internal sealed class PartyBanterService
                 return property.GetValue(target);
             return target.GetType().GetField(name, flags)?.GetValue(target);
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
 
     private static object? UnwrapValue(object? value)
     {
         if (value is null || value is string || value.GetType().IsPrimitive || value.GetType().IsEnum)
             return value;
-
         try
         {
             PropertyInfo? property = value.GetType().GetProperty("Value", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             return property?.GetIndexParameters().Length == 0 ? property.GetValue(value) ?? value : value;
         }
-        catch
-        {
-            return value;
-        }
+        catch { return value; }
     }
 }
