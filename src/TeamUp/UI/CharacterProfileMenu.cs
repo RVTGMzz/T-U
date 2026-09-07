@@ -67,10 +67,10 @@ public sealed class CharacterProfileMenu : IClickableMenu
         Action onBack,
         Action onOpenAll)
         : base(
-            Math.Max(8, (Game1.uiViewport.Width - Math.Min(1320, Game1.uiViewport.Width - 16)) / 2),
-            Math.Max(8, (Game1.uiViewport.Height - Math.Min(780, Game1.uiViewport.Height - 16)) / 2),
-            Math.Min(1320, Game1.uiViewport.Width - 16),
-            Math.Min(780, Game1.uiViewport.Height - 16),
+            Math.Max(8, (Game1.uiViewport.Width - Math.Min(1518, Game1.uiViewport.Width - 16)) / 2),
+            Math.Max(8, (Game1.uiViewport.Height - Math.Min(897, Game1.uiViewport.Height - 16)) / 2),
+            Math.Min(1518, Game1.uiViewport.Width - 16),
+            Math.Min(897, Game1.uiViewport.Height - 16),
             false)
     {
         _characterName = characterName;
@@ -252,7 +252,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
 
         int bodyY = yPositionOnScreen + 100;
         int leftX = xPositionOnScreen + OuterPadding;
-        int leftWidth = Math.Min(340, Math.Max(260, width / 3));
+        int leftWidth = Math.Min(width >= 1450 ? 391 : 340, Math.Max(260, width / 3));
         int rightX = leftX + leftWidth + 24;
         int rightWidth = xPositionOnScreen + width - OuterPadding - rightX;
         int bodyBottom = yPositionOnScreen + height - 78;
@@ -271,7 +271,7 @@ public sealed class CharacterProfileMenu : IClickableMenu
     private void DrawPortraitAndIdentity(SpriteBatch b, int x, int y, int panelWidth)
     {
         int cursorY = y + SectionPadding;
-        int portraitSize = Math.Min(184, Math.Max(126, panelWidth - 96));
+        int portraitSize = Math.Min(width >= 1450 ? 212 : 184, Math.Max(126, panelWidth - 96));
         int portraitX = x + (panelWidth - portraitSize) / 2;
 
         DrawInset(b, new Rectangle(portraitX - 10, cursorY - 10, portraitSize + 20, portraitSize + 20), false);

@@ -96,10 +96,10 @@ public sealed class CodexBrowserMenu : IClickableMenu
         Action<CodexBrowserMenu> openTactics,
         Action onClose)
         : base(
-            Math.Max(6, (Game1.uiViewport.Width - Math.Min(1512, Game1.uiViewport.Width - 12)) / 2),
-            Math.Max(6, (Game1.uiViewport.Height - Math.Min(912, Game1.uiViewport.Height - 12)) / 2),
-            Math.Min(1512, Game1.uiViewport.Width - 12),
-            Math.Min(912, Game1.uiViewport.Height - 12),
+            Math.Max(6, (Game1.uiViewport.Width - Math.Min(1739, Game1.uiViewport.Width - 12)) / 2),
+            Math.Max(6, (Game1.uiViewport.Height - Math.Min(1049, Game1.uiViewport.Height - 12)) / 2),
+            Math.Min(1739, Game1.uiViewport.Width - 12),
+            Math.Min(1049, Game1.uiViewport.Height - 12),
             false)
     {
         _profiles = profiles;
@@ -136,7 +136,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
         _tacticsButton = new ClickableComponent(new Rectangle(xPositionOnScreen + 30, yPositionOnScreen + height - 64, 176, 44), "Tactics");
         _closeButton = new ClickableComponent(new Rectangle(xPositionOnScreen + width - 176, yPositionOnScreen + height - 64, 146, 44), "Close");
 
-        _visibleRows = Math.Clamp((height - 272) / 67, 3, 9);
+        _visibleRows = Math.Clamp((height - 272) / 67, 3, height >= 1000 ? 11 : 9);
         RebuildRows();
     }
 
