@@ -33,8 +33,6 @@ function Log([string]$text) {
     $text | Tee-Object -FilePath $log -Append
 }
 
-# Materialize the version/build labels. All lifecycle logic is already committed as normal C#
-# source, so this script does not generate or rewrite implementation bodies.
 $projectText = Read-Lf $project
 $projectText = $projectText.Replace('<Version>0.2.0-alpha.6.6.20</Version>', '<Version>0.2.0-alpha.6.6.21</Version>')
 Write-Utf8 $project $projectText
@@ -95,7 +93,7 @@ foreach ($token in @(
     'ReconcilePelipperNpcSlotTruthAlpha6618',
     'GetEffectiveCombatCompanionCountAlpha6618',
     'PrepareNpcCompanionRecruitCapacityAlpha6618',
-    'source-live partner continues to consume a real slot'
+    'physically deployed and must block a third companion'
 )) {
     if (-not $a18.Contains($token)) { throw "6.6.18 hard-cap regression token missing: $token" }
 }
