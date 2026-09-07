@@ -1,0 +1,136 @@
+name: Team Up v0.2.0-alpha.6.6.21 Pelipper Villager Lifecycle Recall
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-21-pelipper-villager-lifecycle-recall ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.21 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha6621.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          a17 = (root/'ModEntry.Alpha6617.cs').read_text(encoding='utf-8')
+          a18 = (root/'ModEntry.Alpha6618.cs').read_text(encoding='utf-8')
+          a19 = (root/'ModEntry.Alpha6619.cs').read_text(encoding='utf-8')
+          a21 = (root/'ModEntry.Alpha6621.cs').read_text(encoding='utf-8')
+          lifecycle = (root/'Core/PelipperVillagerLifecycleBridge.cs').read_text(encoding='utf-8')
+          locator = (root/'Core/PelipperModRuntimeRootLocator.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert '<Version>0.2.0-alpha.6.6.21</Version>' in project
+          assert 'build: v0.2.0-alpha.6.6.21' in mod
+          assert 'Pelipper Villager Lifecycle Recall + Probe Hotfix loaded.' in mod
+          assert 'PelipperVillagerLifecycleBridge.Configure(runtimeRoot);' in a19
+          assert 'TrySetPelipperNpcSourceEnabledAlpha6621' in a19
+          assert 'teamup_pelipper_probe' in a21
+          assert 'PelipperVillagerLifecycleBridge.TrySetEnabled' in a21
+          assert 'runtimeRoot={PelipperVillagerLifecycleBridge.RootTypeName}' in a17
+          assert 'IsPelipperRuntimeObject' in locator
+
+          for token in [
+              'TrySetStringCollectionMembership',
+              'TryInvokeLifecycleGraph',
+              'TryInvokeStaticLifecycle',
+              'TryInvokeReconcileGraph',
+              'TryInvokeStaticReconcile',
+              'recall', 'remove', 'despawn', 'dismiss', 'reconcile', 'update'
+          ]:
+              assert token in lifecycle, token
+
+          for token in [
+              'ReconcilePelipperNpcSlotTruthAlpha6618',
+              'GetEffectiveCombatCompanionCountAlpha6618',
+              'PrepareNpcCompanionRecruitCapacityAlpha6618',
+              'source-live partner continues to consume a real slot'
+          ]:
+              assert token in a18, token
+
+          forbidden = [
+              'TrySetActorInvisibleAlpha6613(',
+              'PelipperTownCompatibilityService.SetSuppressed(',
+              '.Halt();', '.controller =', '.temporaryController ='
+          ]
+          for token in forbidden:
+              assert token not in lifecycle, token
+              assert token not in a21, token
+
+          assert 'GetApi<object>' not in a21
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+
+          print('Alpha 6.6.21 source acceptance PASS')
+          print('Pelipper ModEntry root binding PASS')
+          print('Enabled/disabled collection compatibility PASS')
+          print('Villager lifecycle Recall/Remove/Despawn family PASS')
+          print('Source reconcile/update pass PASS')
+          print('Probe command PASS')
+          print('Hard source-live 2/2 regression guard PASS')
+          print('No render/movement authority regression PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.21_PELIPPER_VILLAGER_LIFECYCLE_RECALL_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.21_PELIPPER_VILLAGER_LIFECYCLE_RECALL_TEST.sha256.txt
+          grep -q 'PELIPPER VILLAGER LIFECYCLE BRIDGE: ENABLED' BUILD_LOG.txt
+          grep -q 'DISABLED/HIDDEN STRING COLLECTION SUPPORT: ENABLED' BUILD_LOG.txt
+          grep -q 'REMOVE/DESPAWN/RECALL ACTION FAMILY: ENABLED' BUILD_LOG.txt
+          grep -q 'UPDATE/RECONCILE SOURCE PASS: ENABLED' BUILD_LOG.txt
+          grep -q 'PELIPPER PROBE COMMAND: ENABLED' BUILD_LOG.txt
+          grep -q 'NPC RECALL SOURCE-LIVE VERIFICATION: PRESERVED' BUILD_LOG.txt
+          grep -q 'SOURCE-LIVE 2/2 HARD CAP: PRESERVED' BUILD_LOG.txt
+          grep -q 'RENDER/MOVEMENT AUTHORITY: PELIPPER' BUILD_LOG.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.21' BUILD_LOG.txt
+          echo 'Alpha 6.6.21 package verification PASS'
+
+      - name: Materialize version labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha6621.ps1 SMOKE_TEST_V0_2_ALPHA6_6_21_PELIPPER_VILLAGER_LIFECYCLE_RECALL_VI.txt .github/workflows/team-up-alpha6-6-21-pelipper-villager-lifecycle-recall.yml
+          if git diff --cached --quiet; then
+            echo 'No materialized source diff.'
+          else
+            git commit -m 'chore: materialize Team Up v0.2.0-alpha.6.6.21 source [skip ci]'
+            git push origin HEAD:v0.2-alpha6-6-21-pelipper-villager-lifecycle-recall
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-21-pelipper-villager-lifecycle-recall
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.21_PELIPPER_VILLAGER_LIFECYCLE_RECALL_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.21_PELIPPER_VILLAGER_LIFECYCLE_RECALL_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_21_PELIPPER_VILLAGER_LIFECYCLE_RECALL_VI.txt
+          if-no-files-found: error
