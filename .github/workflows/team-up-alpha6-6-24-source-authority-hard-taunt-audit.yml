@@ -1,0 +1,158 @@
+name: Team Up v0.2.0-alpha.6.6.24 Source Authority Hard Taunt Audit
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-24-source-authority-hard-taunt-audit ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.24 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha6624.ps1
+
+      - name: Deep source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          a13 = (root/'ModEntry.Alpha6613.cs').read_text(encoding='utf-8')
+          a15 = (root/'ModEntry.Alpha6615.cs').read_text(encoding='utf-8')
+          a18 = (root/'ModEntry.Alpha6618.cs').read_text(encoding='utf-8')
+          a21 = (root/'ModEntry.Alpha6621.cs').read_text(encoding='utf-8')
+          deploy = (root/'Core/PelipperDeploymentStateService.cs').read_text(encoding='utf-8')
+          threat = (root/'Combat/ThreatService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          profile = (root/'UI/CharacterProfileMenu.cs').read_text(encoding='utf-8')
+
+          assert '<Version>0.2.0-alpha.6.6.24</Version>' in project
+          assert 'build: v0.2.0-alpha.6.6.24' in mod
+          assert 'Math.Clamp(Config.MaxPartyMembers, 1, 6)' in mod
+          assert 'Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2)' in mod
+
+          forbidden = [
+              'PelipperRenderSuppressedAlpha6613',
+              'PelipperRenderRestoreAlpha6613',
+              'TrySetActorInvisibleAlpha6613',
+              'RenderingWorld += OnAlpha6613RenderingWorld',
+              'RenderedWorld += OnAlpha6613RenderedWorld',
+          ]
+          for token in forbidden:
+              assert token not in a13, f'legacy Pelipper render ownership remains: {token}'
+
+          ensure_start = a15.index('private CompanionUnitData? EnsureLinkedCompanionRecordAlpha6615')
+          ensure_end = a15.index('private void ShowLinkedCompanionControlAlpha6615', ensure_start)
+          ensure_block = a15[ensure_start:ensure_end]
+          assert 'PelipperDeploymentStateService.SetDesiredDeployment' in ensure_block
+          assert 'TrySetPelipperSourceDeploymentAlpha6613' not in ensure_block, 'NPC record creation still toggles actor-level source state'
+
+          set_start = a15.index('private void SetPelipperSourceDeploymentForUnitAlpha6615')
+          npc_start = a15.index('if (unit.OwnerKind == CompanionOwnerKind.PartyMember', set_start)
+          fallback = a15.index('// Player-owned / non-NPC-linked Pelipper units', npc_start)
+          npc_block = a15[npc_start:fallback]
+          assert 'TrySetPelipperNpcSourceEnabledAlpha6618' in npc_block, 'NPC native lifecycle request missing'
+          assert 'PelipperDeploymentStateService.SetDesiredDeployment' in npc_block, 'NPC soft marker missing'
+          assert 'TrySetPelipperSourceDeploymentAlpha6613' not in npc_block, 'NPC native failure can still fall through to actor-level toggle'
+          assert 'return;' in npc_block, 'NPC source-authority block does not terminate'
+
+          assert 'GetEffectiveCombatCompanionCountAlpha6618' in a18
+          assert 'PrepareNpcCompanionRecruitCapacityAlpha6618' in a18
+          assert 'physically deployed and must block a third companion' in a18
+          assert 'PelipperNonConvergedSourceRequestsAlpha6623' in a21
+          assert 'Ronvotri.TeamUp/PelipperDeployment' in deploy
+
+          assert 'ForceAggro' in threat
+          assert 'IsForcedAggro' in threat
+          assert 'private const float NormalGuardRangeTiles = 4f;' in combat
+          assert 'private const float HardTauntGuardRangeTiles = 7f;' in combat
+          assert 'hardTauntOwnsPressure ? 1f' in combat
+          assert 'HARD TAUNT' in combat
+          assert 'private const int CombatPathRetryCooldownTicks = 24;' in combat
+          assert 'private const int CombatMovementPulseTicks = 3;' in combat
+
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+          assert 'Math.Min(1739, Game1.uiViewport.Width - 12)' in codex
+          assert 'Math.Min(1049, Game1.uiViewport.Height - 12)' in codex
+          assert 'Math.Min(1518, Game1.uiViewport.Width - 16)' in profile
+          assert 'Math.Min(897, Game1.uiViewport.Height - 16)' in profile
+
+          print('Alpha 6.6.24 deep source acceptance PASS')
+          print('Pelipper legacy render ownership ABSENT')
+          print('NPC native lifecycle fallthrough BLOCKED')
+          print('Source-live hard 2/2 accounting PRESERVED')
+          print('Hard Taunt 7-tile forced-owner geometry PASS')
+          print('Combat/water/UI regression gates PASS')
+          PY
+
+      - name: Binary and package acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP='release/TeamUp_v0.2.0-alpha.6.6.24_SOURCE_AUTHORITY_HARD_TAUNT_AUDIT_TEST.zip'
+          SHA='release/TeamUp_v0.2.0-alpha.6.6.24_SOURCE_AUTHORITY_HARD_TAUNT_AUDIT_TEST.sha256.txt'
+          test -s "$ZIP"
+          test -s "$SHA"
+
+          DLL=$(find src/TeamUp/bin/Release -type f -name TeamUp.dll | head -n 1)
+          test -s "$DLL"
+          ! strings "$DLL" | grep -q 'PelipperRenderSuppressedAlpha6613'
+          ! strings "$DLL" | grep -q 'PelipperRenderRestoreAlpha6613'
+          ! strings "$DLL" | grep -q 'TrySetActorInvisibleAlpha6613'
+          strings "$DLL" | grep -q 'ForceAggro'
+          strings "$DLL" | grep -q 'PelipperNonConvergedSourceRequestsAlpha6623'
+          strings "$DLL" | grep -q 'HardTauntGuardRangeTiles'
+
+          grep -q 'SOURCE AUTHORITY LEGACY RENDER SYMBOLS: ABSENT IN DLL' BUILD_LOG.txt
+          grep -q 'NPC NATIVE-LIFECYCLE FALLTHROUGH: BLOCKED' BUILD_LOG.txt
+          grep -q 'SOURCE-LIVE 2/2 HARD CAP: PRESERVED' BUILD_LOG.txt
+          grep -q 'HARD TAUNT FORCED AGGRO: PRESENT IN DLL' BUILD_LOG.txt
+          grep -q 'HARD TAUNT RANGE AUDIT: 7 TILES WHILE FORCED / 4 TILES NORMAL' BUILD_LOG.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.24' BUILD_LOG.txt
+          echo 'Alpha 6.6.24 binary/package acceptance PASS'
+
+      - name: Materialize audited source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha6624.ps1 SMOKE_TEST_V0_2_ALPHA6_6_24_SOURCE_AUTHORITY_HARD_TAUNT_AUDIT_VI.txt .github/workflows/team-up-alpha6-6-24-source-authority-hard-taunt-audit.yml AUDIT_ALPHA6623_FINDINGS.md
+          if git diff --cached --quiet; then
+            echo 'No materialized source diff.'
+          else
+            git commit -m 'chore: materialize Team Up v0.2.0-alpha.6.6.24 audited source [skip ci]'
+            git push origin HEAD:v0.2-alpha6-6-24-source-authority-hard-taunt-audit
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-24-source-authority-hard-taunt-audit
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.24_SOURCE_AUTHORITY_HARD_TAUNT_AUDIT_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.24_SOURCE_AUTHORITY_HARD_TAUNT_AUDIT_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_24_SOURCE_AUTHORITY_HARD_TAUNT_AUDIT_VI.txt
+            AUDIT_ALPHA6623_FINDINGS.md
+          if-no-files-found: error
