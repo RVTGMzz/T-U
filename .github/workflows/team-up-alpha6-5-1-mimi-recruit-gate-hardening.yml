@@ -1,0 +1,126 @@
+name: Team Up v0.2.0-alpha.6.5.1 MiMi Recruit Gate Hardening
+
+on:
+  push:
+    branches: [ v0.2-alpha6-5-1-mimi-recruit-gate-hardening ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.5.1 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha651.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.5.1'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/CustomNpcCompatibilityService.cs').read_text(encoding='utf-8')
+          config = (root/'ModConfig.cs').read_text(encoding='utf-8')
+          origin = (root/'Story/OriginStoryService.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+          identity = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'MiMi recruit gate hardening + Origin/Surge/custom recruit integration loaded' in mod
+
+          # Alpha 6.5.1 core: fail-closed Cardcha social unlock contract.
+          required = [
+              'CardchaModId = "Ronvotri.Cardcha"',
+              'MimiNpcId = "Ronvotri.Cardcha_MiMi"',
+              'Game1.player.friendshipData.ContainsKey(MimiNpcId)',
+              'npc.displayName.Equals("MiMi"',
+              'Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null',
+              'return npc.canTalk() || npc.IsVillager;'
+          ]
+          for token in required:
+              assert token in compat, token
+
+          # Team Up must not couple to Cardcha internal save/service implementation or work schedule.
+          for forbidden in [
+              'MimiMeetupCompleted', 'Cardcha.Services', 'SaveData', 'Reflection', 'GetApi<',
+              'MimiMerchantStartTime', 'MimiMerchantEndTime', 'IsMimiMerchantWeekday'
+          ]:
+              assert forbidden not in compat, forbidden
+
+          assert 'CustomNpcCompatibilityService.CanRecruit(npc, Helper.ModRegistry)' in mod
+
+          # Alpha 6.5.0 systems and prior regression fixes remain materialized.
+          for token in ['OriginStage', 'origin.linus', 'origin.marlon.surge', 'origin.awakening', 'origin.marlon.teamup']:
+              assert token in origin, token
+          for token in ['MonsterDensityMultiplier', 'MonsterSurgeExtraCap', 'SurgeMonstersDropLoot']:
+              assert token in config, token
+          assert 'OptionalTestHostCompatibility.CardchaArenaLocationName' in surge
+          assert 'SuppressKnownLootCollections' in surge
+          assert 'BROOMTAIL SIGIL' in identity
+          assert 'NINEFOLD SEAL' in identity
+          assert '[CustomNpcCompatibilityService.MimiNpcId] = P(' in renderer
+          assert '[CustomNpcCompatibilityService.SudokuCanonicalNpcId] = P(' in renderer
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert 'public override void releaseLeftClick' in vault
+          assert 'TargetLockDurationTicks = 45' in combat
+          assert 'FacingHoldDurationTicks = 10' in combat
+
+          print('Alpha 6.5.1 source acceptance PASS')
+          print('MiMi Cardcha-social-unlock gate PASS')
+          print('No Cardcha private-save/work-schedule coupling PASS')
+          print('Alpha 6.5.0 Origin/Surge/custom regressions retained PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.5.1_MIMI_RECRUIT_GATE_HARDENING_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.5.1_MIMI_RECRUIT_GATE_HARDENING_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.5.1' BUILD_LOG.txt
+          echo 'Alpha 6.5.1 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha651.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_5_1_MIMI_RECRUIT_GATE_VI.txt .github/workflows/team-up-alpha6-5-1-mimi-recruit-gate-hardening.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.5.1 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-5-1-mimi-recruit-gate-hardening
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-5-1-mimi-recruit-gate-hardening
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.5.1_MIMI_RECRUIT_GATE_HARDENING_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.5.1_MIMI_RECRUIT_GATE_HARDENING_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_5_1_MIMI_RECRUIT_GATE_VI.txt
+          if-no-files-found: error

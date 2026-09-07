@@ -1,0 +1,147 @@
+name: Team Up v0.2.0-alpha.6.6.3 Live Test Hotfix
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-3-live-test-hotfix ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.3 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha663.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.6.3'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          alpha661 = (root/'ModEntry.Alpha661.cs').read_text(encoding='utf-8')
+          alpha662 = (root/'ModEntry.Alpha662.cs').read_text(encoding='utf-8')
+          alpha663 = (root/'ModEntry.Alpha663.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          integration = (root/'Core/CompanionIntegrationService.cs').read_text(encoding='utf-8')
+          pelipper = (root/'Core/PelipperTownCompatibilityService.cs').read_text(encoding='utf-8')
+          party = (root/'Core/PartyManager.cs').read_text(encoding='utf-8')
+          companion = (root/'Core/CompanionUnitData.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+          strategy = (root/'Core/PartyStrategy.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/CustomNpcCompatibilityService.cs').read_text(encoding='utf-8')
+          identity = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'build: v{version}' in mod
+          assert 'RegisterAlpha661MultiplayerEvents();' in mod
+          assert 'RegisterAlpha662MultiplayerEvents();' in mod
+          assert 'RegisterAlpha663HotfixEvents();' in mod
+
+          for token in ['DoubleClickWindowMs = 450', 'TryActivateControllerPointer', '_preferFocusedGamepadActivation', 'Buttons.RightThumbstickUp', 'EquipInventoryIndex(i)']:
+              assert token in equipment, token
+
+          for token in ['int scrollStep = direction < 0 ? 2 : -2', 'firstVisible', 'lastVisible', 'MoveVertical(-2)', 'MoveVertical(2)']:
+              assert token in codex, token
+
+          for token in ['OpenSearchOffsets', 'location.isTileOnMap(tile) && location.isTilePassable(tile)', 'PelipperTownCompatibilityService.IsSourceControlled(unit)']:
+              assert token in follow, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          assert 'e.IsMultipleOf(4)' in alpha661
+
+          for token in ['PelipperTownCompatibilityService.FindVillagerPartner', 'PelipperTownCompatibilityService.FindPlayerCompanions']:
+              assert token in integration, token
+          for token in ['ProviderId = "Griff.PelipperTown"', 'CompanionOptOutKey', 'SuppressedKey', 'FindVillagerPartner', 'FindPlayerCompanions', 'ResolveActor', 'SetSuppressed']:
+              assert token in pelipper, token
+          for token in ['ReconcilePelipperCompanionsAlpha663', 'PelipperReconcileIntervalTicksAlpha663 = 30', 'ApplyPelipperRecruitChoiceAlpha663', 'ApplyPelipperLinkedDeploymentAlpha663', 'ReleasePelipperOwnerAlpha663', 'teamup_pelipper']:
+              assert token in alpha663, token
+          for token in ['detectedCompanion', 'ApplyPelipperRecruitChoiceAlpha663', 'ApplyPelipperLinkedDeploymentAlpha663', 'ReleasePelipperOwnerAlpha663']:
+              assert token in alpha661, token
+
+          assert 'public int MaxPartyMembers { get; set; } = 6;' in (root/'ModConfig.cs').read_text(encoding='utf-8')
+          assert 'public int MaxActiveLinkedCompanions { get; set; } = 2;' in (root/'ModConfig.cs').read_text(encoding='utf-8')
+          for token in ['GetSharedPeopleCount', 'GetActiveCombatCompanionCount', 'Math.Clamp(_maxActiveLinkedCompanions(), 0, 2)']:
+              assert token in party, token
+          assert 'CountsTowardCombatCompanionLimit' in companion
+          assert 'Kind == CompanionUnitKind.ExternalCreature' in companion
+
+          for token in ['StrategyRequestTypeAlpha662', 'StrategyStateTypeAlpha662', 'RequestStrategyChangeAlpha662', 'ApplyStrategyAuthoritativeAlpha662']:
+              assert token in alpha662, token
+          for token in ['Balanced', 'Defensive', 'Aggressive', 'HoldPosition', 'BossFocus']:
+              assert token in strategy, token
+
+          for token in ['isTileOnMap', 'isTilePassable', 'IsTileBlockedBy']:
+              assert token in surge, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+
+          assert 'farmer.friendshipData.ContainsKey(MimiNpcId)' in compat
+          assert 'SudokuCanonicalNpcId = "ronvotri.HeyYoureCursed_Sudoku"' in compat
+          assert 'BROOMTAIL SIGIL' in identity
+          assert 'NINEFOLD SEAL' in identity
+          assert 'public override void releaseLeftClick' in vault
+
+          print('Alpha 6.6.3 source acceptance PASS')
+          print('Controller equipment pointer/focus bridge PASS')
+          print('Codex analog viewport sync + speed PASS')
+          print('Pelipper Town shared 2/2 quota adapter PASS')
+          print('Water/narrow follower performance guards PASS')
+          print('Alpha 6.6.2/6.6.1 regressions PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.3_LIVE_TEST_HOTFIX_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.3_LIVE_TEST_HOTFIX_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.3' BUILD_LOG.txt
+          grep -q 'CONTROLLER EQUIPMENT HOTFIX: ENABLED' BUILD_LOG.txt
+          grep -q 'CODEX ANALOG SYNC/SPEED HOTFIX: ENABLED' BUILD_LOG.txt
+          grep -q 'PELIPPER SHARED 2/2 COMPANION QUOTA: ENABLED' BUILD_LOG.txt
+          grep -q 'WATER/NARROW FOLLOW PERFORMANCE HOTFIX: ENABLED' BUILD_LOG.txt
+          echo 'Alpha 6.6.3 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha663.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_3_LIVE_TEST_HOTFIX_VI.txt .github/workflows/team-up-alpha6-6-3-live-test-hotfix.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.3 hotfix source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-3-live-test-hotfix
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-3-live-test-hotfix
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.3_LIVE_TEST_HOTFIX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.3_LIVE_TEST_HOTFIX_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_3_LIVE_TEST_HOTFIX_VI.txt
+          if-no-files-found: error

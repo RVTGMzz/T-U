@@ -1,0 +1,159 @@
+name: Team Up v0.2.0-alpha.6.6.1 Shared Party Multiplayer
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-1-party-capacity-multiplayer ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.1 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha661.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.6.1'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          alpha = (root/'ModEntry.Alpha661.cs').read_text(encoding='utf-8')
+          config = (root/'ModConfig.cs').read_text(encoding='utf-8')
+          party = (root/'Core/PartyManager.cs').read_text(encoding='utf-8')
+          companion = (root/'Core/CompanionUnitData.cs').read_text(encoding='utf-8')
+          integration = (root/'Core/CompanionIntegrationService.cs').read_text(encoding='utf-8')
+          messages = (root/'Core/MultiplayerMessages.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/CustomNpcCompatibilityService.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          strategy = (root/'Core/PartyStrategy.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+          identity = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'Shared Party Capacity + Companion Choice + Multiplayer Foundation loaded' in mod
+          assert 'public sealed partial class ModEntry : Mod' in mod
+
+          assert 'public int MaxPartyMembers { get; set; } = 6;' in config
+          assert 'Config.MaxPartyMembers = Math.Clamp(Config.MaxPartyMembers, 1, 6);' in mod
+          for token in ['GetSharedPeopleCount', 'EnforceSharedPeopleCapacity', 'Math.Min(6, online.Count)', 'GetAnyOwner', 'TryAddMember(string characterName, long recruiterId, IReadOnlyCollection<long> onlineFarmerIds)']:
+              assert token in party, token
+          assert 'GetSharedPeopleCount(onlineFarmerIds) >= max' in party
+          assert 'member.State is PartyMemberState.Following or PartyMemberState.Waiting' in party
+
+          assert 'public int MaxActiveLinkedCompanions { get; set; } = 2;' in config
+          assert 'Config.MaxActiveLinkedCompanions = Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2);' in mod
+          assert 'CountsTowardCombatCompanionLimit' in companion
+          assert 'Kind == CompanionUnitKind.ExternalCreature' in companion
+          assert 'CompanionClassificationService.IsSpecialName(CharacterName, null)' in companion
+          for token in ['GetActiveCombatCompanionCount', 'GetActiveCombatCompanions', 'TryAddPlayerCompanion', 'CanActivateAnotherCombatCompanion', 'Math.Clamp(_maxActiveLinkedCompanions(), 0, 2)', 'CompanionDeploymentState.ReturningHome']:
+              assert token in party, token
+
+          for token in ['Ronvotri.TeamUp/CompanionOwnerCharacter', 'Ronvotri.TeamUp/CompanionOwnerFarmerId', 'FindLinkedCompanion', 'FindPlayerSummons']:
+              assert token in integration, token
+          for token in ['InviteOnly', 'InviteTogether', 'Cancel', 'ShowCompanionReplacementQuestionAlpha661']:
+              assert token in alpha, token
+          assert 'replaceable[index].UnitId' in alpha
+
+          for token in ['RecruitRequestMessage', 'LeaveRequestMessage', 'MemberCommandRequestMessage', 'PartySnapshotMessage']:
+              assert token in messages, token
+          for token in ['RegisterAlpha661MultiplayerEvents', 'PeerConnected', 'PeerDisconnected', 'ModMessageReceived', 'BroadcastPartySnapshot', 'RecruitNpcAuthoritative', 'GetOnlineFarmerIds', 'UpdateOwnedPartyRuntime', 'RemoteCombatServices']:
+              assert token in alpha, token
+          assert 'e.FromPlayerID' in alpha
+          assert 'GetAnyOwner(npc.Name)' in alpha
+          assert 'replacement.RecruiterId == recruiterId || recruiterId == Game1.player.UniqueMultiplayerID' in alpha
+
+          for token in ['Ronvotri.TeamUp/PartyControlled', 'Ronvotri.TeamUp/PartyControllerOwner', 'Farmer owner', 'owner.currentLocation', 'owner.Tile']:
+              assert token in follow, token
+          assert 'npc.modData.Remove(PartyControlledModDataKey)' in follow
+          assert 'npc.modData.Remove(PartyControllerOwnerModDataKey)' in follow
+          for token in ['SetFarmerContext', 'FarmerContext.currentLocation', 'HardLeashTiles = 12f', 'TargetLockDurationTicks = 45', 'FacingHoldDurationTicks = 10']:
+              assert token in combat, token
+
+          assert 'farmer.friendshipData.ContainsKey(MimiNpcId)' in compat
+          assert 'Game1.player.friendshipData.ContainsKey(MimiNpcId)' not in compat
+          assert 'SudokuCanonicalNpcId = "ronvotri.HeyYoureCursed_Sudoku"' in compat
+
+          for token in ['Balanced', 'Defensive', 'Aggressive', 'HoldPosition', 'BossFocus']:
+              assert token in strategy, token
+          assert 'teamup_strategy' in mod
+          assert 'Combat.Clear()' in mod
+
+          for token in ['ActiveInstance', 'LastTelemetryLine', 'DebugReapplyCurrentLocation', 'DebugShowThreatBoard', 'ClearOwnedSurgeMonsters', '[SurgeTelemetry]']:
+              assert token in surge, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
+          assert 'OptionalTestHostCompatibility.CardchaArenaLocationName' in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+          assert 'BROOMTAIL SIGIL' in identity
+          assert 'NINEFOLD SEAL' in identity
+          assert '[CustomNpcCompatibilityService.MimiNpcId] = P(' in renderer
+          assert '[CustomNpcCompatibilityService.SudokuCanonicalNpcId] = P(' in renderer
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert 'public override void releaseLeftClick' in vault
+
+          print('Alpha 6.6.1 source acceptance PASS')
+          print('Shared six-person capacity PASS')
+          print('Shared two-companion capacity PASS')
+          print('Linked companion recruit/replacement flow PASS')
+          print('Host-authoritative multiplayer + per-Farmer owner context PASS')
+          print('Sudoku PartyControlled handshake PASS')
+          print('Strategy/Surge/MiMi/Sudoku/core regressions PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.1_SHARED_PARTY_MULTIPLAYER_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.1_SHARED_PARTY_MULTIPLAYER_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.1' BUILD_LOG.txt
+          grep -q 'PEOPLE CAP: 6 TOTAL FARMERS + NPCS' BUILD_LOG.txt
+          grep -q 'COMPANION CAP: 2 SHARED EXTERNAL CREATURES' BUILD_LOG.txt
+          echo 'Alpha 6.6.1 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha661.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt .github/workflows/team-up-alpha6-6-1-shared-party-multiplayer.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.1 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-1-party-capacity-multiplayer
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-1-shared-party-multiplayer
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.1_SHARED_PARTY_MULTIPLAYER_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.1_SHARED_PARTY_MULTIPLAYER_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_1_SHARED_PARTY_MULTIPLAYER_VI.txt
+          if-no-files-found: error

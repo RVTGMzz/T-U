@@ -1,0 +1,124 @@
+name: Team Up v0.2.0-alpha.6.6.8 Land-Safe Follow Targets Hotfix
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-8-land-safe-follow-targets ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.8 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha668.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.6.8'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          safety = (root/'Core/PartyTileSafety.cs').read_text(encoding='utf-8')
+          alpha663 = (root/'ModEntry.Alpha663.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'build: v{version}' in mod
+
+          for token in [
+              'Vector2? targetTile = FindPlayerFollowTile',
+              'FindLandOpenNear',
+              'PartyTileSafety.IsWalkableLandOrBridge(owner.currentLocation, npc.Tile)',
+              'WarpNearTarget(npc, owner.currentLocation, targetTile.Value)',
+              'return PartyTileSafety.IsWalkableLandOrBridge(location, anchorTile) ? anchorTile : null'
+          ]:
+              assert token in follow, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+
+          for token in ['isWaterTile(x, y)', 'GetLayer("Buildings")', 'isTileOnMap(tile)', 'isTilePassable(tile)']:
+              assert token in safety, token
+
+          assert '=> PartyTileSafety.IsWalkableLandOrBridge(location, tile);' in combat
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+          for token in ['CombatPathRetryCooldownTicks = 24', 'CombatMovementPulseTicks = 3', 'ShouldExcludeFromTeamUpCombat(monster)']:
+              assert token in combat, token
+
+          for token in ['e.Button.IsActionButton()', 'e.Button.IsUseToolButton()', 'routedButton = Buttons.A', 'routedButton = Buttons.X']:
+              assert token in alpha663, token
+          for token in ['ControllerActivationDebounceMs = 180', 'ControllerMouseEchoSuppressionMs = 260', 'DoubleClickWindowMs = 450']:
+              assert token in equipment, token
+          assert 'MoveVertical(2)' not in codex
+          assert 'MoveVertical(-2)' not in codex
+
+          for token in ['isTileOnMap', 'isTilePassable', 'IsTileBlockedBy']:
+              assert token in surge, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+
+          print('Alpha 6.6.8 source acceptance PASS')
+          print('Humanoid bare-water rejection PASS')
+          print('Bridge overlay allowance PASS')
+          print('Stranded NPC water rescue PASS')
+          print('Combat land-safe approach PASS')
+          print('Alpha 6.6.7 performance regression PASS')
+          print('Switch/Codex/Surge regression PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.8_LAND_SAFE_FOLLOW_TARGETS_HOTFIX_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.8_LAND_SAFE_FOLLOW_TARGETS_HOTFIX_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.8' BUILD_LOG.txt
+          grep -q 'HUMANOID BARE-WATER REJECTION: ENABLED' BUILD_LOG.txt
+          grep -q 'BRIDGE OVERLAY ALLOWANCE: ENABLED' BUILD_LOG.txt
+          grep -q 'STRANDED NPC WATER RESCUE: ENABLED' BUILD_LOG.txt
+          grep -q 'COMBAT LAND-SAFE APPROACH: ENABLED' BUILD_LOG.txt
+          grep -q '6.6.7 PERFORMANCE REGRESSION: PRESERVED' BUILD_LOG.txt
+          echo 'Alpha 6.6.8 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha668.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_8_LAND_SAFE_FOLLOW_TARGETS_VI.txt .github/workflows/team-up-alpha6-6-8-land-safe-follow-targets.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.8 land-safe follow targets [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-8-land-safe-follow-targets
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-8-land-safe-follow-targets
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.8_LAND_SAFE_FOLLOW_TARGETS_HOTFIX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.8_LAND_SAFE_FOLLOW_TARGETS_HOTFIX_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_8_LAND_SAFE_FOLLOW_TARGETS_VI.txt
+          if-no-files-found: error

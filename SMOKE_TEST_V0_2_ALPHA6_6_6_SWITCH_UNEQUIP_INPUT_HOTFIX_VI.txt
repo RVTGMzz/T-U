@@ -1,0 +1,30 @@
+TEAM UP! v0.2.0-alpha.6.6.6
+SMOKE TEST - SWITCH UNEQUIP INPUT HOTFIX
+
+MUC TIEU CHINH
+1. Mo Equipment cua mot NPC da recruit.
+2. Dung controller Switch/Nintendo de chon mot item hop le trong tui.
+3. Bam nut Action mot lan. Item phai equip vao NPC dung mot lan.
+4. Chon dung slot dang co item.
+5. Bam nut Use Tool cua Stardew/controller mot lan. Item phai duoc thao khoi NPC va tra ve tui dung mot lan.
+6. Khong duoc co cap thong bao equip/unequip mau thuan cho mot lan bam.
+7. Sau khi thao, slot that su phai trong va item that su phai co lai trong tui.
+
+DUONG UI
+8. Di focus xuong nut 'Thao trang bi', bam Action. Phai thao binh thuong.
+9. Dung right-stick cursor dua con tro len nut 'Thao trang bi', bam Action. Phai thao binh thuong.
+10. Nut Auto Equip van hoat dong qua UI.
+
+REGRESSION
+11. Equip bang Action Button nhu Alpha 6.6.5 van hoat dong.
+12. Mouse double-click item trong tui trong 450ms van equip.
+13. Khong restore double-click unequip tren slot NPC.
+14. Codex D-pad/left stick di 1 profile moi input, khong skip A -> C.
+15. Character Profile giu scale 1.52 va scroll.
+16. Khong con glyph sao rong do ky tu UI khong duoc font Stardew ho tro.
+17. Tactics, Pelipper 2/2, Sudoku, MiMi, Surge va Party Vault van hoat dong.
+
+NEU UNEQUIP VAN KHONG HOAT DONG
+- Bam dung mot lan nut ban dang dung de 'Use Tool' trong Stardew.
+- Ngay sau do lay SMAPI log va gui lai.
+- Ghi ro nhan vat, slot Weapon/Armor/Trinket va item dang mac.

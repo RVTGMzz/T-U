@@ -1,0 +1,3 @@
+Team Up v0.2.0-alpha.6.6.13 authoritative rebuild checkpoint.
+Materialized source base: cc57a28d7dd1cb2189ce2c56c10fd85a133bbe44
+Expected: 0 warnings, 0 errors, source acceptance PASS, package PASS, No materialized source diff.

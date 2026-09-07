@@ -1,0 +1,30 @@
+TEAM UP v0.2.0-alpha.6.6.25 - PELIPPER TOWN 1.1.9 NATIVE BRIDGE
+
+MUC TIEU CHINH
+1. NPC + Pokemon: chon Return/Standby cho Pokemon cua NPC.
+   PASS: Pokemon bien mat/ngung bam theo ngay, khong chop tat; teamup_slots -> sourceLive=False.
+2. Khi effective=2/2, dung phim/menu cua Pelipper de goi them Pokemon nguoi choi.
+   PASS: Pokemon thu 3 KHONG spawn; Team Up bao companion slots full (2/2).
+3. Thu 1 Pokemon ve, sau do goi Pokemon nguoi choi.
+   PASS: deploy duoc binh thuong.
+4. Swap Pokemon nguoi choi A -> B khi pool van chi chiem 1 player slot.
+   PASS: A duoc Pelipper recall, B deploy; khong bi block sai.
+
+LENH CHAN DOAN
+teamup_slots
+teamup_pelipper_native
+teamup_pelipper_probe Alex
+
+KY VONG NATIVE STATUS
+root=PelipperTown.ModEntry
+manager=PelipperTown.VillagerCompanionManager
+deployQuotaPatch=True
+
+REGRESSION
+- hard cap companion 2/2
+- party people cap 6
+- Codex/Profile 115%
+- combat path retry 24 ticks
+- combat movement pulse 3 ticks
+- water/bridge path safety
+- khong IsInvisible/render suppression/controller ownership voi Pelipper actor

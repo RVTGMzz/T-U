@@ -1,0 +1,110 @@
+name: Team Up v0.2.0-alpha.6.6.4 Controller Equipment Transaction Hotfix
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-4-controller-equipment-transaction-hotfix ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.4 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha664.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.6.4'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          alpha663 = (root/'ModEntry.Alpha663.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'build: v{version}' in mod
+          for token in [
+              'DoubleClickWindowMs = 450',
+              'ControllerActivationDebounceMs = 180',
+              'ControllerMouseEchoSuppressionMs = 260',
+              'TryBeginControllerActivation()',
+              '_suppressMouseClickUntilMs',
+              'Slot cards only select',
+              'string requestedQualifiedId = item.QualifiedItemId',
+              'bool committed = committedData is not null',
+              'GetActualEquippedItem(_selectedSlot) is null',
+              'IsDoubleClick(1000 + i)'
+          ]:
+              assert token in equipment, token
+          assert 'IsDoubleClick(2000 + i)' not in equipment
+
+          for token in ['int scrollStep = direction < 0 ? 2 : -2', 'MoveVertical(2)']:
+              assert token in codex, token
+          for token in ['OpenSearchOffsets', 'location.isTileOnMap(tile) && location.isTilePassable(tile)', 'PelipperTownCompatibilityService.IsSourceControlled(unit)']:
+              assert token in follow, token
+          for token in ['ReconcilePelipperCompanionsAlpha663', 'teamup_pelipper']:
+              assert token in alpha663, token
+          for token in ['isTileOnMap', 'isTilePassable', 'IsTileBlockedBy']:
+              assert token in surge, token
+
+          print('Alpha 6.6.4 source acceptance PASS')
+          print('Controller input echo guard PASS')
+          print('Transactional equip/unequip HUD confirmation PASS')
+          print('Inventory double-click 450ms regression PASS')
+          print('Alpha 6.6.3 regression tokens PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.4' BUILD_LOG.txt
+          grep -q 'CONTROLLER INPUT ECHO GUARD: ENABLED' BUILD_LOG.txt
+          grep -q 'TRANSACTIONAL EQUIP HUD CONFIRMATION: ENABLED' BUILD_LOG.txt
+          grep -q 'INVENTORY DOUBLE-CLICK 450MS: PRESERVED' BUILD_LOG.txt
+          echo 'Alpha 6.6.4 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha664.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_VI.txt .github/workflows/team-up-alpha6-6-4-controller-equipment-transaction-hotfix.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.4 equipment hotfix source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-4-controller-equipment-transaction-hotfix
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-4-controller-equipment-transaction-hotfix
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_4_CONTROLLER_EQUIPMENT_TRANSACTION_HOTFIX_VI.txt
+          if-no-files-found: error

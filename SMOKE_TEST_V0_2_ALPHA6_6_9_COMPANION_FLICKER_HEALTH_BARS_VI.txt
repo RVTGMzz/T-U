@@ -1,0 +1,67 @@
+TEAM UP v0.2.0-alpha.6.6.9
+COMPANION FLICKER + THIN HEALTH BARS - SMOKE TEST VI
+
+MỤC TIÊU
+Alpha 6.6.9 tập trung hai lỗi test thật:
+1. Pokémon Pelipper của Farmer và của NPC bị nhấp nháy do Team Up tranh visibility/controller với mod nguồn.
+2. Người chơi không có HUD HP rõ ràng để biết NPC đồng đội đang mất bao nhiêu máu.
+
+A. PELIPPER FLICKER / SOURCE AUTHORITY
+[ ] 1. Vào save có Pokémon của Farmer đang hiện.
+[ ] 2. Đứng yên 20-30 giây: Pokémon Farmer không chớp tắt / mất hiện / hiện lại.
+[ ] 3. Di chuyển nhiều map: Pokémon Farmer không bị Team Up Halt hoặc giật controller.
+[ ] 4. Mời Alex hoặc NPC khác có Pokémon đi kèm.
+[ ] 5. Pokémon của NPC không nhấp nháy khi đứng cạnh owner.
+[ ] 6. Pokémon của NPC không bị snap qua lại do hai controller tranh quyền.
+[ ] 7. `teamup_pelipper status` báo Team Up không sở hữu Pelipper visibility/movement trong 6.6.9.
+[ ] 8. Quota logic vẫn tối đa 2/2 trong Team Up state.
+[ ] 9. Khi companion thứ ba bị Standby, Team Up chỉ ghi soft deployment marker, không ép IsInvisible/Halt/controller.
+[ ] 10. Save cũ từng bị suppression: load 6.6.9 phải dọn marker legacy và Pokémon trở lại render bình thường.
+[ ] 11. Leave NPC: soft deployment marker được xóa, source mod tiếp tục toàn quyền.
+[ ] 12. Không cài Pelipper Town: Team Up vẫn chạy bình thường.
+
+LƯU Ý QUAN TRỌNG
+Alpha 6.6.9 ưu tiên không flicker và không giành quyền render/movement. Nếu Pelipper Town chưa đọc soft marker
+`Ronvotri.TeamUp/PelipperDeployment`, một companion Standby có thể vẫn được mod nguồn vẽ ra. Không được sửa bằng cách bật/tắt IsInvisible liên tục trở lại.
+
+B. PARTY HUD HP MỎNG
+[ ] 13. Có 1-5 NPC active: mép trái giữa màn hình hiện danh sách tên nhỏ + HP bar mỏng.
+[ ] 14. HUD bar cao khoảng 5 px, không có panel lớn che game.
+[ ] 15. Full HP vẫn nhìn được nhẹ trên HUD để biết toàn team.
+[ ] 16. HP giảm: chiều dài bar giảm đúng tỷ lệ CurrentHealth/MaxHealth.
+[ ] 17. Healer hồi máu: bar tăng lại đúng tỷ lệ.
+[ ] 18. Downed: bar về cạn / trạng thái nguy hiểm rõ, không biến mất vô cớ.
+[ ] 19. Mở menu: HUD health ẩn để không chồng UI.
+
+C. OVERHEAD HP CONTEXTUAL
+[ ] 20. NPC full HP, ngoài combat: KHÔNG có thanh trên đầu.
+[ ] 21. NPC mất máu: thanh mỏng khoảng 4 px xuất hiện trên đầu.
+[ ] 22. NPC full HP nhưng đang gần quái/combat: thanh trên đầu xuất hiện.
+[ ] 23. Rời combat và full HP: thanh overhead biến mất.
+[ ] 24. Không hiện số `100/100` hoặc chữ dài trên đầu NPC, chỉ bar mỏng.
+[ ] 25. 4-5 NPC đứng gần nhau vẫn không biến màn hình thành rừng UI.
+
+D. MULTIPLAYER HEALTH SYNC
+[ ] 26. Host + farmhand cùng có Team Up.
+[ ] 27. NPC mất máu trên host: farmhand thấy HUD HP cập nhật trong thời gian ngắn.
+[ ] 28. Heal/downed cũng sync, không cần mở menu lại.
+[ ] 29. Không spam toast hoặc message khi health sync.
+
+E. REGRESSION 6.6.8 / 6.6.7
+[ ] 30. Đoạn sông/cầu trước đây lag vẫn mượt.
+[ ] 31. NPC người không đi/warp xuống bare water.
+[ ] 32. Cầu thật trên nước vẫn đi được.
+[ ] 33. Combat target Pelipper mặc định vẫn bị loại trừ.
+[ ] 34. Combat retry cooldown 24 ticks + movement pulse 3 vẫn còn.
+[ ] 35. Follow cadence mỗi 4 ticks vẫn còn.
+[ ] 36. Switch equip bằng Action Button vẫn được.
+[ ] 37. Switch unequip bằng Use Tool vẫn được.
+[ ] 38. Codex D-pad/analog mỗi lần đúng 1 hồ sơ, không skip A -> C.
+[ ] 39. Profile text scale/glyph fix vẫn còn.
+[ ] 40. Party people cap 6 và companion logical cap 2 giữ nguyên.
+
+KẾT LUẬN
+- A pass: flicker do Team Up visibility/controller ownership đã được loại bỏ.
+- B+C pass: health UI đủ đọc nhưng không rối.
+- D pass: health display multiplayer không stale.
+- E pass: không đổi flicker lấy lag hoặc lỗi nước quay trở lại.

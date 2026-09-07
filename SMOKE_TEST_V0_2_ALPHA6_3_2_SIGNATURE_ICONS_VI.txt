@@ -1,0 +1,50 @@
+TEAM UP v0.2.0-alpha.6.3.2 - SIGNATURE ICON ART PASS
+SMOKE TEST VI
+
+1. KHOI DONG
+- SMAPI khong co loi do cua Team Up.
+- Phai co marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.3.2
+
+2. CHARACTER PROFILE - MOT ICON DUY NHAT
+- Mo Codex / Character Profile.
+- Passive van hien text binh thuong nhung KHONG con icon rieng.
+- Signature co 1 icon duy nhat nam canh text Signature.
+- Khong bi chong chu, cat text, hoac day footer xuong ngoai panel.
+
+3. 5 VANILLA SIGNATURE PROTOTYPE
+Kiem tra icon khac nhau ro rang giua:
+- Abigail
+- Alex
+- Harvey
+- Maru
+- Emily
+
+4. SVE WAVE 1
+Kiem tra icon bespoke cho:
+Alesia, Andy, Camilla, Claire, Isaac, Jadu, Lance, Martin, Morgan, Olivia, Sophia, Victor.
+- Moi NPC phai co silhouette khac nhau, khong chi doi mau.
+
+5. RSV WAVE 1
+Kiem tra icon bespoke cho:
+Aguar, Blair, Carmen, Daia, Ian, Jio, June, Kenneth, Kiarra, Maddie, Shiro, Ysabelle.
+- Moi NPC phai co silhouette khac nhau, khong chi doi mau.
+
+6. FALLBACK AN TOAN
+- Mo profile cua NPC chua co signature kit bespoke.
+- UI van ve duoc signature icon procedural, khong crash.
+- Khong su dung PNG / asset cua Stardew, SVE hoac RSV.
+
+7. REGRESSION ALPHA 6.3.1
+- Equipment Menu van mo duoc.
+- Rarity frame, Role Score, Combat Impact, Signature CD van hien.
+- Auto Equip bang chuot/Y van hoat dong.
+- Equip/unequip khong mat hoac duplicate item.
+
+8. REGRESSION COMBAT
+- Abigail/Alex/Harvey/Maru/Emily signature van kich hoat nhu ban truoc.
+- 24 signature SVE/RSV Wave 1 van kich hoat khi dung role/tier.
+- ChaCha khong vao Main Party.
+- Alex Tank van approach truoc khi TAUNT.
+
+GHI CHU:
+Neu icon qua nho, kho doc, hoac profile bi cat o do phan giai man hinh, gui screenshot full Character Profile kem resolution de can lai UI.

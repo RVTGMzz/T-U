@@ -1,0 +1,3 @@
+Team Up v0.2.0-alpha.6.6.8 authoritative validation trigger.
+Source was materialized by CI commit b93fc29 after the first successful compile/package run.
+Expected authoritative result: 0 warnings, 0 errors, package acceptance PASS, and No materialized source diff.

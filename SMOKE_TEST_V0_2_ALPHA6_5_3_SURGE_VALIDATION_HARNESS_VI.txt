@@ -1,0 +1,83 @@
+TEAM UP v0.2.0-alpha.6.5.3
+SURGE VALIDATION HARNESS
+
+MUC TIEU
+- Giup test The Surge lap lai nhanh ma khong can doi tang mo lien tuc.
+- Khong thay doi balance 6.5.2.
+- Khong clone monster custom/boss/story/quest.
+- Khong xoa monster goc khi dung lenh debug.
+
+1. BUILD / LOAD
+[ ] SMAPI hien: Team Up DEBUG HARNESS READY ... v0.2.0-alpha.6.5.3
+[ ] Khong co error khi Cardcha / Hey! You're Cursed! vang mat.
+[ ] teamup_test help co dong: teamup_test surge <status|reapply|clear|board>
+
+2. SURGE STATUS
+Tai mot combat map co monster:
+[ ] Chay: teamup_test surge status
+[ ] SMAPI/log hien Describe cua Surge.
+[ ] Hien LastTelemetryLine bat dau bang [SurgeTelemetry].
+[ ] Hien so Team Up-owned Surge monsters tai map hien tai.
+
+3. REAPPLY KHONG CONG DON
+Tai Mines/Cave co monster goc:
+[ ] Cho Surge tu nhien apply mot lan.
+[ ] Chay: teamup_test surge reapply
+[ ] Quat lai phai xoa Surge extras cu truoc khi apply budget moi.
+[ ] Tong Surge extras khong tang kieu x2 -> x3 -> x4 do spam command.
+[ ] Monster goc van con nguyen.
+[ ] Telemetry moi cap nhat baseline/wanted/spawned/unsafeRejected/threat/suppression.
+
+4. CLEAR CHI XOA TEAM UP SURGE
+[ ] Chay: teamup_test surge clear
+[ ] Chi monster co modData Ronvotri.TeamUp/SurgeSpawn bi xoa.
+[ ] Monster vanilla/mod khac khong bi xoa.
+[ ] Chay status sau clear: Owned Surge monsters = 0.
+
+5. SAFE PLACEMENT 6.5.2 REGRESSION
+[ ] Reapply tren vai tang Mine co da/tuong/vat can.
+[ ] Extra monster chi spawn tren tile hop le.
+[ ] Map hep co the spawned < wanted.
+[ ] unsafeRejected tang khi khong co tile an toan.
+[ ] Khong thay monster bi ket trong tuong/da.
+
+6. CARDCHA SANDBOX
+Tai Cardcha_CardTestArena:
+[ ] Chay: teamup_test surge reapply
+[ ] suppression=cardcha-sandbox.
+[ ] Khong co Surge monster duoc inject.
+[ ] Cardcha dummy/kill target khong bi xoa boi surge clear.
+
+7. MARLON THREAT BOARD DEBUG
+Sau khi da co it nhat mot encounter duoc ghi:
+[ ] Vao AdventureGuild.
+[ ] Chay: teamup_test surge board
+[ ] Hien MARLON'S THREAT BOARD voi tier/location/baseline->total.
+[ ] Khi event/dialogue/menu dang mo, board phai fail closed va khong chen ngang.
+[ ] Neu chua co encounter, command bao No Surge encounter has been recorded yet.
+
+8. THREAT / TELEMETRY
+[ ] Tier van la LOW / ELEVATED / HIGH / SURGE.
+[ ] [SurgeTelemetry] van co location, baseline, wanted, spawned, unsafeRejected, total, multiplier, threat, suppression.
+[ ] LastTelemetryLine trong surge status khop encounter/reapply moi nhat.
+
+9. REGRESSION LOCK
+[ ] MiMi chi recruit sau Cardcha social/friendship unlock.
+[ ] ChaCha van Special Companion, khong Main Party.
+[ ] Sudoku van Control/Damage + NINEFOLD SEAL.
+[ ] MiMi van Support/Control + BROOMTAIL SIGIL.
+[ ] Origin Linus -> Marlon -> Awakening -> Stronger Together van hoat dong.
+[ ] 51 NPC SVE/RSV van co profile/skill/icon/balance.
+[ ] Equipment double-click van hoat dong.
+[ ] Controller focus van hoat dong.
+[ ] Party Vault drag/drop van hoat dong.
+[ ] Combat target-lock / anti-spin van hoat dong.
+
+10. GUI LOG CAN GUI LAI NEU LOI
+- SMAPI log day du.
+- Ket qua teamup_test surge status.
+- Map/tang mo dang test.
+- Neu spawn sai: anh vi tri monster + dong [SurgeTelemetry] moi nhat.
+
+GHI CHU
+Alpha 6.5.3 la validation/debug checkpoint tren nen 6.5.2. CI xanh chi xac nhan compile/source/package; van can smoke test in-game truoc khi coi Surge runtime la verified hoan toan.

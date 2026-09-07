@@ -1,0 +1,54 @@
+TEAM UP v0.2.0-alpha.6.6.21
+PELIPPER VILLAGER LIFECYCLE RECALL + PROBE - SMOKE TEST VI
+
+MỤC TIÊU
+Alpha 6.6.21 xử lý case đã xác nhận ở 6.6.20:
+- Team Up ghi Pokémon NPC = Standby.
+- teamup_slots vẫn báo sourceLive=True / effectiveSlot=True.
+- PelipperTown.ModEntry đã được tìm đúng nhưng Pokémon vẫn tiếp tục bám NPC.
+
+A. KHÔNG CÒN REGRESSION 6.6.19
+[ ] 1. Load save và quan sát SMAPI 20-30 giây.
+[ ] 2. KHÔNG xuất hiện spam: Tried to map a mod-provided API to class 'System.Object'.
+[ ] 3. teamup_slots phải báo runtimeRoot=PelipperTown.ModEntry khi Pelipper Town đang cài.
+
+B. NPC + POKÉMON RETURN / STANDBY
+[ ] 1. Mời một NPC có Pokémon của Pelipper Town, ví dụ Alex + Herdier.
+[ ] 2. Xác nhận Pokémon đang thật sự đi theo NPC.
+[ ] 3. Dùng P hoặc L+R mở Pokémon control của NPC.
+[ ] 4. Chọn Return / Standby.
+[ ] 5. PASS chính: Pokémon phải thật sự rời/biến mất khỏi runtime của Pelipper và ngừng bám NPC.
+[ ] 6. Gõ teamup_slots.
+[ ] 7. Pokémon vừa Return phải có state=Standby, sourceLive=False, effectiveSlot=False.
+[ ] 8. effective phải giảm tương ứng, ví dụ 2/2 -> 1/2.
+
+C. HARD CAP 2/2
+[ ] 1. Nếu sourceLive vẫn True, Team Up KHÔNG được giải phóng slot giả.
+[ ] 2. Không được có 3 Pokémon thật cùng lúc do state Team Up lệch Pelipper.
+[ ] 3. Khi recall thật thành công, slot mới được dùng cho Pokémon khác.
+
+D. PROBE NẾU VẪN BÁM
+Nếu Pokémon vẫn bám sau Return, KHÔNG cần đoán tiếp. Gõ:
+
+    teamup_pelipper_probe Alex
+
+(thay Alex bằng đúng tên NPC đang test)
+
+Sau đó gửi toàn bộ các dòng bắt đầu bằng:
+
+    [Team Up!] Pelipper probe:
+
+Probe sẽ in runtime root, candidate config dictionary/string collection và các lifecycle/reconcile method có liên quan trong đúng bản Pelipper Town đang cài.
+
+E. REGRESSION GUARD
+[ ] Pokémon Farmer không flicker.
+[ ] Pokémon NPC không flicker / snap controller.
+[ ] Team Up không dùng IsInvisible/Halt/controller để ép Pelipper.
+[ ] Health bars vẫn hoạt động.
+[ ] P và L+R vẫn mở đúng Pokémon control.
+[ ] Switch/controller equipment input không vỡ.
+[ ] Đi qua cầu/nước/map đông vẫn giữ performance của 6.6.7+.
+
+KẾT QUẢ CẦN GỬI LẠI
+- Nếu PASS: ảnh/video ngắn + output teamup_slots.
+- Nếu FAIL: output teamup_slots + teamup_pelipper_probe <NPC>.

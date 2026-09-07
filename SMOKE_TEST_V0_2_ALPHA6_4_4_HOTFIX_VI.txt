@@ -1,0 +1,85 @@
+TEAM UP v0.2.0-alpha.6.4.4 - TEST FEEDBACK + EQUIPMENT HOTFIX
+SMOKE TEST VI
+
+MUC TIEU
+- Sua dung cac loi live-test cua Alpha 6.4.3.
+- Khong them save field moi.
+- Khong thay doi Cardcha combat sandbox ownership/safety.
+
+1. STARTUP
+[ ] SMAPI khong co Team Up red error.
+[ ] Co marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.4
+
+2. HEALER / SUPPORT FEEDBACK
+Dung Cardcha Test Arena + Team Up sandbox.
+Vi du:
+cardcha_card_test
+-> TEST ARENA
+teamup_test add Harvey
+teamup_test preset tier3
+teamup_test farmerhp 40%
+teamup_test waves start normal
+
+[ ] Harvey/Healer bat dau hoi mau ro rang khi Farmer thap mau.
+[ ] Tren dau healer co HEAL +X khi heal Farmer.
+[ ] Heal khong vuot max HP.
+[ ] Support van hoi mau cham/it uu tien hon Healer.
+
+Thu Emily Tier 2/Tier 3:
+[ ] Tier 2 co the kich Signature khi Farmer bi thuong ro (~<62%) ngay ca khi chua co them mot ally nguy cap.
+[ ] Tier 3 phan ung som hon (~<72%) nhung van can co ngu canh bi thuong.
+[ ] Khong spam Signature lien tuc do cooldown van con.
+
+3. LIEM / ITEM TU CHON SLOT
+[ ] Chon Trinket truoc.
+[ ] Sau do click mot Liem / MeleeWeapon trong tui.
+[ ] Team Up tu chuyen selected slot sang Vu khi va trang bi ngay, KHONG can dong/mo lai menu.
+[ ] Click Boots tu chon Armor.
+[ ] Click Ring/Trinket tu chon Trinket.
+
+4. AUTO EQUIP + UNEQUIP
+[ ] Bam TU DONG TRANG BI.
+[ ] Sau khi auto equip, slot thay doi cuoi cung duoc highlight/focus.
+[ ] Bam X / Thao trang bi tra dung item ve tui Farmer.
+[ ] Neu slot dang chon trong nhung NPC con item khac, bam X tiep se tim va thao mot slot dang co do.
+[ ] Lap lai X co the lay lai tat ca gear ma khong mat/duplicate item.
+[ ] Neu tui Farmer day, thao do phai bi chan an toan.
+
+5. UI TUI DO
+[ ] Item hop le (Weapon/Boots/Ring/Trinket) khong bi dim chi vi selected slot khac.
+[ ] Footer lon, doc duoc: A/Enter Trang bi - X Thao - Y Tu dong.
+[ ] Hover comparison card khong che footer controls.
+[ ] Tooltip so sanh Liem dung voi Weapon hien tai ngay ca khi truoc do selected slot la Trinket.
+
+6. CHARACTER PROFILE OVERFLOW
+Mo Abigail/Emily o resolution da tung bi loi.
+[ ] Muc MOI QUAN HE khong con roi xuong nut Tat ca nhan vat.
+[ ] Relationship nam trong vung scroll ben phai sau Passive/Signature.
+[ ] Passive/Signature kit da hoan thien van giu chu mo ta lon x2.
+
+7. EXPANSION PENDING KIT
+Mo Ariah hoac NPC expansion chua co kit.
+[ ] Role/affinity placeholder van 0/5 / Chua chon nhu cu.
+[ ] Dong pending skill KHONG bi phong x2 thanh chu khong lo.
+[ ] Khong gia skill/buff cho NPC chua duoc curate.
+
+8. CARDCHA SANDBOX REGRESSION
+[ ] cardcha_card_test -> TEST ARENA vao dung Cardcha_CardTestArena.
+[ ] teamup_test sandbox normal sinh wave.
+[ ] Team Up khong danh dummy/kill targets cua Cardcha.
+[ ] Waves clear chi xoa quai Team Up.
+[ ] Roi arena thi waves dung.
+
+9. REGRESSION HE THONG CU
+[ ] Auto Equip Role Score / rarity / Combat Impact van hien.
+[ ] Friendship & Bond van hien va hoat dong.
+[ ] Signature icon van 1 icon duy nhat.
+[ ] SVE/RSV Wave 1 Signature van chay.
+[ ] ChaCha khong vao Main Party.
+[ ] Alex/Tank approach truoc TAUNT.
+
+NEU CO LOI
+- Chup full Equipment/Profile screen.
+- Gui NPC, selected slot, item dang click, va resolution.
+- Neu heal loi: gui role, Lv/Mastery, Farmer HP %, co bao nhieu monster trong wave.
+- Gui SMAPI log do neu co.

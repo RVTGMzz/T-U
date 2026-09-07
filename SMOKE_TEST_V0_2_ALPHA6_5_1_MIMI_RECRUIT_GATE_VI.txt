@@ -1,0 +1,37 @@
+TEAM UP v0.2.0-alpha.6.5.1
+MIMI RECRUIT GATE HARDENING
+
+1. XAC NHAN BUILD
+- SMAPI phai hien: Team Up DEBUG HARNESS READY ... v0.2.0-alpha.6.5.1
+- Cardcha vang mat: Team Up van load binh thuong, khong error.
+
+2. MIMI MYSTERY / STORY GATE
+- MiMi runtime canonical id van la Ronvotri.Cardcha_MiMi.
+- Khi display name con la ???: KHONG duoc recruit.
+- Du co actor MiMi visible nhung Cardcha chua tao friendshipData entry: KHONG duoc recruit.
+- Trong event, dialogue hoac menu story presentation: KHONG duoc recruit.
+- Farm/Wizard handoff truoc social unlock: KHONG duoc recruit.
+
+3. MIMI SOCIAL UNLOCK
+- Sau khi Cardcha hoan tat Wizard meetup va tao friendship entry Ronvotri.Cardcha_MiMi:
+  + MiMi visible va co the tuong tac: CO THE recruit vao Main Party.
+  + Khong ep Team Up phai biet lich merchant 11:00-17:00 hay ngay trong tuan.
+  + Neu Cardcha sau nay dat MiMi o nha/lich social hop le, Team Up van ton trong vi source mod la ben dieu khien vi tri/lich.
+- Team Up chi doc runtime friendshipData + actor state, KHONG doc/ghi SaveData noi bo cua Cardcha.
+
+4. SAU KHI RECRUIT
+- MiMi vao Main Party binh thuong.
+- Profile van Support primary / Control secondary; affinities 1/2/5/2/4.
+- BROOMTAIL SIGIL, icon rieng, Tier 2/Tier 3 van hoat dong.
+- ChaCha van Special/Farmer Companion, KHONG vao Main Party.
+
+5. REGRESSION ALPHA 6.5.0
+- Origin: Linus -> Marlon -> First Awakening -> Stronger Together van hoat dong.
+- The Surge van target x2, cap 18, khong chen Cardcha_CardTestArena, default no bonus loot.
+- Sudoku recruit/profile/NINEFOLD SEAL khong bi thay doi.
+- 51 NPC expansion, equipment double-click, controller focus, Party Vault drag/drop van giu nguyen.
+
+MUC TIEU HOTFIX
+- Fail closed voi MiMi truoc khi Cardcha chinh thuc promote co ay thanh social NPC.
+- Sau social unlock, Team Up khong hardcode merchant schedule/location nua.
+- Khong reflection vao service noi bo, khong rewrite source save.

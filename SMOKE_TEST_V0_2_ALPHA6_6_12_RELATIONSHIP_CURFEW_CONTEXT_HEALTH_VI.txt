@@ -1,0 +1,40 @@
+TEAM UP v0.2.0-alpha.6.6.12 - RELATIONSHIP CURFEW + CONTEXT HEALTH
+
+MUC TIEU
+- NPC khong con di theo va ngu gat qua khuya mot cach ky la.
+- Gio ve nha phu thuoc do than thiet voi Farmer tuyen NPC.
+- Thanh mau nam ngay duoi chan NPC, khong con HUD cot ben trai.
+- Thanh mau chi xuat hien theo ngu canh de man hinh sach hon.
+
+1) CURFEW / GIO VE NHA
+- 0-2 tim: toi 23:00 NPC phai roi Following/Waiting va tro ve schedule goc.
+- 3-5 tim: toi 00:00.
+- 6-7 tim: toi 01:00.
+- 8-9 tim: toi 02:00.
+- 10+ tim hoac spouse: Team Up cho phep toi 03:00 neu modpack cho phep ngay keo dai toi do.
+- Team Up KHONG thay doi hard sleep clock cua Stardew. Neu game bat ngu som hon thi NPC se theo toi luc game ket thuc ngay.
+- Roster/progression/equipment phai con nguyen. NPC chi chuyen Inactive cho phan con lai cua ngay.
+- Sang ngay moi co the goi/tuyen lai theo flow hien tai.
+
+2) NPC-LINKED COMPANION
+- Neu NPC co Pokemon/summon lien ket, khi NPC het gio dong hanh thi companion do chuyen Standby.
+- Khong duoc de NPC ve nha ma Pokemon cua NPC van bi Team Up giu trong formation.
+- Khong duoc tai xuat hien flicker Pelipper.
+
+3) HEALTH BAR DUOI CHAN
+- Khong con danh sach ten + thanh mau doc ben trai man hinh.
+- Thanh mau phai nam sat duoi chan NPC.
+- Ngoai combat, full HP, khong noi chuyen: thanh mau an.
+- Khi NPC bi gay sat thuong: thanh mau hien va giu khoang 3 giay.
+- Khi con dang combat: thanh mau tiep tuc hien.
+- Sau khi combat ket thuc: giu them khoang 3 giay roi an.
+- Khi dang noi chuyen truc tiep voi NPC: thanh mau cua NPC do hien.
+- NPC downed: thanh mau van hien de de nhan biet.
+
+4) REGRESSION
+- Pelipper Pokemon Farmer + NPC: khong flicker, Team Up khong giat movement authority.
+- Pokemon/summon: khong co Ho so.
+- Song/cau: van muot, NPC nguoi khong roi xuong nuoc.
+- Switch equip/unequip van dung.
+- Codex di tung ho so mot, khong skip.
+- People cap 6 total va combat companion cap 2 giu nguyen.

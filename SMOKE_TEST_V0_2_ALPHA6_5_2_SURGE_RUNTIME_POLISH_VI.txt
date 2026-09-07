@@ -1,0 +1,63 @@
+TEAM UP v0.2.0-alpha.6.5.2
+SURGE RUNTIME POLISH
+
+1. XAC NHAN BUILD
+- SMAPI phai hien: Team Up DEBUG HARNESS READY ... v0.2.0-alpha.6.5.2
+- Build/SMAPI khong co error.
+- Cardcha / Hey! You're Cursed! vang mat: Team Up van load binh thuong.
+
+2. SAFE SPAWN PLACEMENT
+- Vao Mines/Cave/Dungeon co monster va doi khoang 1 giay sau warp.
+- Surge van target density theo MonsterDensityMultiplier, mac dinh 2.0, cap 18.
+- Extra monster chi duoc spawn tren tile Stardew bao la totally clear/placeable.
+- Khong spawn truc tiep sat Farmer.
+- Khong chen extra monster chong len monster dang song.
+- O map hep/nhieu vat can: CHAP NHAN spawn it hon target. Team Up phai fail closed, khong co nhai quai vao tuong/da/vat the.
+- Extra Surge monster van co modData Ronvotri.TeamUp/SurgeSpawn.
+- SurgeSource marker van ghi loai monster baseline dung lam tham chieu.
+
+3. TELEMETRY
+- Mo SMAPI log va tim dong [SurgeTelemetry].
+- Dong log phai co:
+  + location=
+  + baseline=
+  + wanted=
+  + spawned=
+  + unsafeRejected=
+  + total=
+  + multiplier=
+  + threat=
+  + suppression=
+- Combat zone binh thuong co cho trong: suppression=none.
+- Neu mot phan budget khong tim duoc tile an toan: suppression=partial-safe-placement.
+- Neu khong co tile an toan nao: suppression=no-safe-spawn-tile, game khong error.
+- Map khong phai combat: suppression=not-combat-zone.
+- Combat zone khong co monster baseline: suppression=no-baseline-monsters.
+
+4. CARDCHA SANDBOX / ECONOMY
+- Cardcha_CardTestArena: KHONG duoc inject Surge monster.
+- Telemetry cho arena phai ghi suppression=cardcha-sandbox.
+- SurgeMonstersDropLoot=false mac dinh van suppress known bonus loot collections.
+- Khong clone boss/story/quest/custom monster. Extra runtime van la safe GreenSlime overlay.
+
+5. THREAT PRESENTATION
+- Khi Surge spawn thanh cong, global message co dang:
+  THE SURGE • LOW/ELEVATED/HIGH/SURGE • +N MONSTERS
+- Tier threat phai tang theo tong ap luc/spawn budget, khong can co dinh mot tier moi map.
+- Sau mot encounter co telemetry, quay ve AdventureGuild khi khong co event/dialogue/menu:
+  + hien 1 lan MARLON'S THREAT BOARD • <TIER> • <LOCATION> • baseline->total
+  + khong spam lai cung encounter moi tick.
+- Neu dang co Origin Marlon dialogue/event/menu, threat board KHONG chen vao. Co the hien o lan quay lai Guild sau.
+
+6. REGRESSION ALPHA 6.5.1 / 6.5.0
+- MiMi van chi recruit sau Cardcha social/friendship unlock; mystery/story gate van fail closed.
+- ChaCha van Special/Farmer Companion, khong Main Party.
+- Sudoku recruit/profile/NINEFOLD SEAL khong doi.
+- Origin: Linus -> Marlon -> First Awakening -> Stronger Together van hoat dong.
+- 51 NPC expansion, signature icon/balance van giu nguyen.
+- Equipment double-click, controller focus, Party Vault drag/drop, AI anti-spin van hoat dong.
+
+MUC TIEU ALPHA 6.5.2
+- Khong danh doi map stability de dat dung x2 monster.
+- Neu map khong co vi tri an toan, spawn it hon la hanh vi DUNG.
+- Log phai du de nhin mot dong la biet Surge da lam gi va vi sao bi suppress.

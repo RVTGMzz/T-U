@@ -1,0 +1,163 @@
+name: Team Up v0.2.0-alpha.6.5.3 Surge Validation Harness
+
+on:
+  push:
+    branches: [ v0.2-alpha6-5-3-surge-validation-harness ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.5.3 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha653.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.5.3'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          config = (root/'ModConfig.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+          debug = (root/'Debugging/TeamUpDebugService.cs').read_text(encoding='utf-8')
+          origin = (root/'Story/OriginStoryService.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/CustomNpcCompatibilityService.cs').read_text(encoding='utf-8')
+          identity = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'Surge validation harness + 6.5.2 runtime polish + Origin/MiMi/Sudoku integration loaded' in mod
+
+          # Alpha 6.5.3 validation harness contract.
+          for token in [
+              'ActiveInstance', 'LastTelemetryLine', 'CountOwnedSurgeMonsters',
+              'ClearOwnedSurgeMonsters', 'DebugReapplyCurrentLocation',
+              'DebugShowThreatBoard', 'BuildGuildThreatBrief',
+              '.Where(IsSurgeMonster)', '[SurgeTelemetry] no-record'
+          ]:
+              assert token in surge, token
+
+          for token in [
+              'case "surge":', 'CommandSurge(args)',
+              'teamup_test surge <status|reapply|clear|board>',
+              'MonsterSurgeService.ActiveInstance',
+              'surge.ClearOwnedSurgeMonsters()',
+              'surge.DebugReapplyCurrentLocation',
+              'surge.DebugShowThreatBoard',
+              'surge.LastTelemetryLine'
+          ]:
+              assert token in debug, token
+
+          reapply = surge[surge.index('public bool DebugReapplyCurrentLocation'):surge.index('public bool DebugShowThreatBoard')]
+          assert reapply.index('ClearOwnedSurgeMonsters(location)') < reapply.index('ApplyOnce(location)')
+          assert 'Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null' in reapply
+
+          board = surge[surge.index('public bool DebugShowThreatBoard'):surge.index('public static bool IsSurgeMonster')]
+          assert 'AdventureGuild' in board
+          assert 'Game1.eventUp || Game1.dialogueUp || Game1.activeClickableMenu is not null' in board
+
+          # Alpha 6.5.2 safe placement remains locked to current Stardew 1.6 collision APIs.
+          for token in [
+              'SafeSpawnOffsets', 'TryFindSafeSpawnPosition',
+              'isTileOnMap(tile)', 'isTilePassable(tile)',
+              'IsTileBlockedBy(tile, ignorePassables: CollisionMask.All)',
+              'MinimumFarmerSpawnDistance', 'MinimumMonsterSpawnDistance',
+              'no-safe-spawn-tile', 'partial-safe-placement'
+          ]:
+              assert token in surge, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
+
+          # Still safe overlays only, never blind custom cloning.
+          assert 'location.characters.Add(extra)' in surge
+          assert 'GreenSlime extra = new' in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+          assert 'GetType().GetConstructor' not in surge
+          assert 'OptionalTestHostCompatibility.CardchaArenaLocationName' in surge
+          assert 'SuppressKnownLootCollections' in surge
+
+          # Telemetry and threat board regressions.
+          for token in [
+              'baseline=', 'wanted=', 'spawned=', 'unsafeRejected=',
+              'total=', 'multiplier=', 'threat=', 'suppression=',
+              'LOW', 'ELEVATED', 'HIGH', 'SURGE', "MARLON'S THREAT BOARD"
+          ]:
+              assert token in surge, token
+          assert 'LastTelemetryLine = line;' in surge
+
+          # Alpha 6.5.1 / 6.5.0 and prior regressions remain locked.
+          for token in ['MonsterDensityMultiplier', 'MonsterSurgeExtraCap', 'SurgeMonstersDropLoot']:
+              assert token in config, token
+          for token in ['OriginStage', 'origin.linus', 'origin.marlon.surge', 'origin.awakening', 'origin.marlon.teamup']:
+              assert token in origin, token
+          assert 'Game1.player.friendshipData.ContainsKey(MimiNpcId)' in compat
+          assert 'BROOMTAIL SIGIL' in identity
+          assert 'NINEFOLD SEAL' in identity
+          assert '[CustomNpcCompatibilityService.MimiNpcId] = P(' in renderer
+          assert '[CustomNpcCompatibilityService.SudokuCanonicalNpcId] = P(' in renderer
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert 'public override void releaseLeftClick' in vault
+          assert 'TargetLockDurationTicks = 45' in combat
+          assert 'FacingHoldDurationTicks = 10' in combat
+
+          print('Alpha 6.5.3 source acceptance PASS')
+          print('Surge status/reapply/clear/board harness PASS')
+          print('Non-stacking reapply ownership guard PASS')
+          print('Alpha 6.5.2 safe placement/threat/telemetry retained PASS')
+          print('Alpha 6.5.1 / 6.5.0 regressions retained PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.5.3_SURGE_VALIDATION_HARNESS_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.5.3_SURGE_VALIDATION_HARNESS_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.5.3' BUILD_LOG.txt
+          echo 'Alpha 6.5.3 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha653.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_5_3_SURGE_VALIDATION_HARNESS_VI.txt .github/workflows/team-up-alpha6-5-3-surge-validation-harness.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.5.3 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-5-3-surge-validation-harness
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-5-3-surge-validation-harness
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.5.3_SURGE_VALIDATION_HARNESS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.5.3_SURGE_VALIDATION_HARNESS_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_5_3_SURGE_VALIDATION_HARNESS_VI.txt
+          if-no-files-found: error

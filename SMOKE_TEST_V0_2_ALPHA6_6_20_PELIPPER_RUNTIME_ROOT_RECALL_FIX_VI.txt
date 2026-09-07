@@ -1,0 +1,37 @@
+TEAM UP v0.2.0-alpha.6.6.20
+PELIPPER RUNTIME ROOT + VERIFIED RECALL - SMOKE TEST VI
+
+MUC TIEU
+1. Khong con spam loi SMAPI "Tried to map a mod-provided API to class System.Object".
+2. Team Up tim Pelipper live ModEntry/config qua SMAPI mod metadata, khong dung GetApi<object>.
+3. Return/Standby Pokemon cua NPC chi nha slot khi Pelipper sourceLive=False that su.
+4. Hard cap 2/2 van tinh theo effective runtime, khong cho 3/2.
+
+A. STARTUP / LOG
+[ ] 1. Load save co Pelipper Town + Team Up.
+[ ] 2. Khong co dong "Tried to map a mod-provided API to class 'System.Object'" lap lai.
+[ ] 3. teamup_slots phai co runtimeRoot=... thay vi apiRoot=<none> neu locator tim duoc Pelipper ModEntry.
+
+B. NPC POKEMON RETURN
+[ ] 4. Moi NPC + Pokemon khi con slot.
+[ ] 5. Noi chuyen NPC, bam P hoac L+R, chon Return/Standby Pokemon.
+[ ] 6. Pokemon phai ngung bam theo NPC that su.
+[ ] 7. Sau recall, teamup_slots: state=Standby sourceLive=False effectiveSlot=False.
+[ ] 8. effective phai giam, vi du 2/2 -> 1/2.
+
+C. HARD CAP
+[ ] 9. Tao 2 Pokemon source-live.
+[ ] 10. Moi NPC + Pokemon thu ba.
+[ ] 11. Bat buoc Replace/Cancel, khong cho 3/2.
+[ ] 12. Neu Pokemon cu chua source recall thanh cong thi replace phai fail an toan.
+
+D. REGRESSION
+[ ] 13. Pokemon Farmer summon/recall van mirror source truth.
+[ ] 14. P / L+R van mo menu Pokemon; L rieng Profile, R rieng Leave.
+[ ] 15. Khong IsInvisible/Halt/controller fallback cho Pelipper.
+[ ] 16. Khong tai xuat lag song/cau/pathfinding.
+
+CHAN DOAN
+- Gui teamup_slots neu Return van fail.
+- Neu runtimeRoot=<none>, gui 5-10 dong Team Up quanh warning "could not resolve Pelipper live ModEntry".
+- Neu runtimeRoot co gia tri nhung sourceLive van True sau Return, gui dong warning co route de map tiep dung Pelipper config/refresh contract.

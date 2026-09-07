@@ -1,0 +1,140 @@
+name: Team Up v0.2.0-alpha.6.4.5 Interaction AI Expansion Completion
+
+on:
+  push:
+    branches: [ v0.2-alpha6-4-5-interaction-ai-expansion-completion ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.4.5 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha645.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.4.5'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          profile_catalog = (root/'Core/NpcProfileCatalog.cs').read_text(encoding='utf-8')
+          completion = (root/'Core/ExpansionRosterCompletion.cs').read_text(encoding='utf-8')
+          expansion = (root/'Combat/ExpansionSkillService.cs').read_text(encoding='utf-8')
+          full_skills = (root/'Combat/ExpansionSkillService.FullRoster.cs').read_text(encoding='utf-8')
+          rpg = (root/'Core/EquipmentRpgPolishService.cs').read_text(encoding='utf-8')
+          profile = (root/'UI/CharacterProfileMenu.cs').read_text(encoding='utf-8')
+          sandbox = (root/'Debugging/CardchaCombatSandboxService.cs').read_text(encoding='utf-8')
+          relationship = (root/'Core/RelationshipBondService.cs').read_text(encoding='utf-8')
+          i18n_en = json.loads((root/'i18n/default.json').read_text(encoding='utf-8'))
+          i18n_vi = json.loads((root/'i18n/vi.json').read_text(encoding='utf-8'))
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'interaction + AI + full expansion roster loaded' in mod
+
+          # Equipment interaction requested by live test.
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert 'IsDoubleClick(1000 + i)' in equipment
+          assert 'IsDoubleClick(2000 + i)' in equipment
+          assert '_loadoutFocusIndex = Math.Clamp(_loadoutFocusIndex + delta, 0, 4)' in equipment
+          assert '_loadoutFocusIndex == 3' in equipment
+          assert '_loadoutFocusIndex == 4' in equipment
+          assert 'AutoEquipBest();' in equipment
+          assert 'UnequipSelected();' in equipment
+
+          # Vault supports actual mouse drag/drop, while existing quick transfer remains.
+          assert 'public override void releaseLeftClick' in vault
+          assert 'BeginMouseDragCandidate' in vault
+          assert 'QuickTransferSelected()' in vault
+          assert 'FillExistingVaultStacks()' in vault
+
+          # Combat anti-thrash + local awareness.
+          assert 'TargetLockDurationTicks = 45' in combat
+          assert 'FacingHoldDurationTicks = 10' in combat
+          assert 'RepathThresholdTiles = 1.35f' in combat
+          assert 'FaceTargetStable(npc, target, attackReady)' in combat
+          assert 'Math.Min(radius, 5.5f)' in combat
+          assert 'EngagementStyle.Cautious => 5.5f' in combat
+          assert 'EngagementStyle.Balanced => 7.0f' in combat
+          assert 'EngagementStyle.Aggressive => 9.0f' in combat
+
+          # Complete all 51 previous expansion placeholders.
+          assert 'ExpansionRosterCompletion.Resolve(profile)' in profile_catalog
+          assert 'internal sealed partial class ExpansionSkillService' in expansion
+          assert 'ExpansionSkillService.TryGetBaseCooldownTicks' in rpg
+          names = re.findall(r'\["([^"]+)"\]\s*=\s*R\(PartyRole\.', completion)
+          skill_names = re.findall(r'Skills\["([^"]+)"\]\s*=\s*S\("', full_skills)
+          assert len(names) == 51, len(names)
+          assert len(skill_names) == 51, len(skill_names)
+          assert set(names) == set(skill_names)
+          for name in names:
+              key = name.lower()
+              assert f'codex.expansion.{key}.passive' in i18n_en, name
+              assert f'codex.expansion.{key}.ability' in i18n_en, name
+              assert f'codex.expansion.{key}.passive' in i18n_vi, name
+              assert f'codex.expansion.{key}.ability' in i18n_vi, name
+          assert 'Ariah' in names and 'Zayne' in names and 'Apples' in names
+
+          # Prior architecture / UX locks.
+          assert 'DescriptionScale = BodyScale * 2f' in profile
+          assert 'Cardcha_CardTestArena' in sandbox
+          for token in ['TrustedHearts = 4', 'CloseCompanionHearts = 8', 'MaxFriendshipHearts = 10', 'SoulmateHearts = 14']:
+              assert token in relationship
+
+          print('Alpha 6.4.5 source acceptance PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.4.5_INTERACTION_AI_EXPANSION_COMPLETION_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.4.5_INTERACTION_AI_EXPANSION_COMPLETION_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.4.5' BUILD_LOG.txt
+          echo 'Alpha 6.4.5 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp _build_support/IntegrateAlpha645InteractionAiExpansionCompletion.ps1 BuildV0_2Alpha645.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_4_5_INTERACTION_AI_EXPANSION_VI.txt .github/workflows/team-up-alpha6-4-5-interaction-ai-expansion-completion.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.4.5 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-4-5-interaction-ai-expansion-completion
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-4-5-interaction-ai-expansion-completion
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.4.5_INTERACTION_AI_EXPANSION_COMPLETION_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.4.5_INTERACTION_AI_EXPANSION_COMPLETION_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_4_5_INTERACTION_AI_EXPANSION_VI.txt
+          if-no-files-found: error

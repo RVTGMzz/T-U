@@ -1,0 +1,141 @@
+name: Team Up v0.2.0-alpha.6.5.2 Surge Runtime Polish
+
+on:
+  push:
+    branches: [ v0.2-alpha6-5-2-surge-runtime-polish ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.5.2 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha652.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.5.2'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          config = (root/'ModConfig.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+          origin = (root/'Story/OriginStoryService.cs').read_text(encoding='utf-8')
+          compat = (root/'Core/CustomNpcCompatibilityService.cs').read_text(encoding='utf-8')
+          identity = (root/'Core/CharacterSkillIdentityCatalog.cs').read_text(encoding='utf-8')
+          renderer = (root/'UI/TraitIconRenderer.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          vault = (root/'Storage/PartyVaultService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'Team Up DEBUG HARNESS READY | command: teamup_test | build: v{version}' in mod
+          assert 'Surge runtime polish + Origin/MiMi/Sudoku integration loaded' in mod
+
+          # Safe placement uses the current Stardew 1.6 collision contract and fails closed.
+          for token in [
+              'SafeSpawnOffsets',
+              'TryFindSafeSpawnPosition',
+              'isTileOnMap(tile)',
+              'isTilePassable(tile)',
+              'IsTileBlockedBy(tile, ignorePassables: CollisionMask.All)',
+              'MinimumFarmerSpawnDistance',
+              'MinimumMonsterSpawnDistance',
+              'no-safe-spawn-tile',
+              'partial-safe-placement'
+          ]:
+              assert token in surge, token
+          assert 'location.characters.Add(extra)' in surge
+          assert 'GreenSlime extra = new' in surge
+          assert 'Activator.CreateInstance' not in surge
+          assert 'MemberwiseClone' not in surge
+          assert 'GetType().GetConstructor' not in surge
+          assert 'isTileLocationTotallyClearAndPlaceable' not in surge
+
+          # Telemetry explains every visit in one compact line.
+          for token in [
+              '[SurgeTelemetry]',
+              'baseline=', 'wanted=', 'spawned=', 'unsafeRejected=',
+              'total=', 'multiplier=', 'threat=', 'suppression=',
+              'not-combat-zone', 'cardcha-sandbox', 'no-baseline-monsters', 'spawn-budget-zero'
+          ]:
+              assert token in surge, token
+
+          # Threat presentation is light and Guild-aware, not another forced quest chain.
+          for token in ['ResolveThreatLevel', 'LOW', 'ELEVATED', 'HIGH', 'SURGE', "MARLON'S THREAT BOARD", 'AdventureGuild']:
+              assert token in surge, token
+          assert 'Game1.eventUp' in surge and 'Game1.dialogueUp' in surge and 'Game1.activeClickableMenu is not null' in surge
+
+          # Alpha 6.5.0/6.5.1 foundations stay locked.
+          for token in ['MonsterDensityMultiplier', 'MonsterSurgeExtraCap', 'SurgeMonstersDropLoot']:
+              assert token in config, token
+          assert 'OptionalTestHostCompatibility.CardchaArenaLocationName' in surge
+          assert 'SuppressKnownLootCollections' in surge
+          for token in ['OriginStage', 'origin.linus', 'origin.marlon.surge', 'origin.awakening', 'origin.marlon.teamup']:
+              assert token in origin, token
+          assert 'Game1.player.friendshipData.ContainsKey(MimiNpcId)' in compat
+          assert 'BROOMTAIL SIGIL' in identity
+          assert 'NINEFOLD SEAL' in identity
+          assert '[CustomNpcCompatibilityService.MimiNpcId] = P(' in renderer
+          assert '[CustomNpcCompatibilityService.SudokuCanonicalNpcId] = P(' in renderer
+          assert 'DoubleClickWindowMs = 450' in equipment
+          assert 'public override void releaseLeftClick' in vault
+          assert 'TargetLockDurationTicks = 45' in combat
+          assert 'FacingHoldDurationTicks = 10' in combat
+
+          print('Alpha 6.5.2 source acceptance PASS')
+          print('Current Stardew 1.6 safe tile placement PASS')
+          print('Surge telemetry + suppression reasons PASS')
+          print('Threat tier + Marlon Guild presentation PASS')
+          print('Alpha 6.5.1 / 6.5.0 regressions retained PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.5.2_SURGE_RUNTIME_POLISH_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.5.2_SURGE_RUNTIME_POLISH_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.5.2' BUILD_LOG.txt
+          echo 'Alpha 6.5.2 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha652.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_5_2_SURGE_RUNTIME_POLISH_VI.txt .github/workflows/team-up-alpha6-5-2-surge-runtime-polish.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.5.2 build source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-5-2-surge-runtime-polish
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-5-2-surge-runtime-polish
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.5.2_SURGE_RUNTIME_POLISH_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.5.2_SURGE_RUNTIME_POLISH_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_5_2_SURGE_RUNTIME_POLISH_VI.txt
+          if-no-files-found: error

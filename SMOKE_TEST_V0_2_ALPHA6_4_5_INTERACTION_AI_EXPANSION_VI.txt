@@ -1,0 +1,86 @@
+TEAM UP v0.2.0-alpha.6.4.5 - INTERACTION + AI + EXPANSION COMPLETION
+SMOKE TEST VI
+
+MUC TIEU
+- Sua dung feedback test 6.4.4: double-click Equipment, controller action buttons, Vault drag/drop, NPC idle/quay lien tuc.
+- Hoan thien 9 NPC SVE + 42 NPC RSV con placeholder bang role/affinity/Signature Team Up that.
+- Giu nguyen Cardcha sandbox, Friendship/Bond, Equipment backend va 1 icon Signature.
+
+1. STARTUP
+[ ] SMAPI khong co Team Up red error.
+[ ] Marker: Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.4.5
+
+2. EQUIPMENT CHUOT - DOUBLE CLICK
+Mo Equipment cua Harvey/Abigail.
+[ ] Click 1 lan vao Liem: chi focus/chon item, KHONG trang bi ngay.
+[ ] Double-click Liem: vao slot Vu khi ngay, khong can dong/mo menu.
+[ ] Double-click Giay: vao slot Giap/Giay.
+[ ] Double-click Nhan/Trinket: vao slot Nhan/Trinket.
+[ ] Double-click vao slot NPC dang mac: item tra ve tui Farmer.
+[ ] Khong mat item, khong duplicate item.
+
+3. EQUIPMENT CONTROLLER
+[ ] D-pad Up/Down di duoc: Vu khi -> Giap -> Trinket -> TU DONG TRANG BI -> Thao trang bi.
+[ ] A tren TU DONG TRANG BI: auto-equip.
+[ ] A tren Thao trang bi: tra item ve tui.
+[ ] Right tu 3 slot gear sang backpack; Left o cot trai backpack quay ve loadout.
+[ ] Y van Auto Equip, X van Unequip, B van Quay lai.
+
+4. PARTY VAULT - KEO THA
+[ ] Nhan giu item trong tui Farmer, keo vao mot o Kho Party, tha chuot: item nam trong kho.
+[ ] Nhan giu item trong Kho Party, keo ve tui Farmer, tha: item ve tui.
+[ ] Click 1 lan nhac item + click o dich van dung duoc nhu cu.
+[ ] Controller A/X/Y va Fill Stacks/Organize van dung.
+[ ] Dong menu khi dang cam item khong mat item.
+
+5. COMBAT AI ANTI-JITTER
+Trong Cardcha_CardTestArena, bat:
+teamup_test sandbox normal
+[ ] Khi Farmer dung yen, NPC van danh quai o gan chinh NPC.
+[ ] NPC khong quay len/xuong lien tuc moi frame giua 2 quai.
+[ ] NPC giu mot muc tieu ngan han thay vi doi muc tieu lien tuc.
+[ ] Khi muc tieu chet/ra khoi tam hop ly, NPC doi sang muc tieu moi.
+[ ] Tank van approach truoc TAUNT.
+[ ] Healer/Support van heal dung nguong 6.4.4.
+
+6. SOUND ERROR
+[ ] Theo doi SMAPI khi Signature lien tuc. Team Up khong duoc phat sinh loi cue null tu helper skill variable.
+[ ] Neu van co "ArgumentNullException (name)" gui 20-30 dong log truoc loi de xac dinh mod/monster nao goi sound.
+Ghi chu: 6.4.5 chi co the chan Team Up truyen cue null/blank; metadata sound cua mod khac khong bi Team Up sua toan cuc.
+
+7. FULL SVE ROSTER
+Kiem tra mot vai NPC moi:
+Apples, Charlie, Hank, Jolyne, Peaches, Scarlett, Suki, Susan, Treyvon.
+[ ] Khong con 0/5 tat ca role.
+[ ] Co Primary + Secondary + Engagement + Affinity.
+[ ] Co Passive text rieng va Signature text rieng.
+[ ] Tier 2/3 co Signature runtime.
+
+8. FULL RSV ROSTER
+Kiem tra it nhat:
+Ariah, Alissa, Anton, Bliss, Bryle, Jeric, Keahi, Maive, Olga, Pipo, Raeriyala, Torts, Undreya, Yuuma, Zayne.
+[ ] Khong con "Ky nang dang cho hoan thien".
+[ ] Khong con 0/5 tat ca role.
+[ ] Signature runtime dung class chinh/phu.
+[ ] Ariah hien Damage/Control thay vi Chua chon.
+
+9. BALANCE QUICK CHECK
+[ ] Tank khong DPS hon DPS cung level/gear.
+[ ] Healer/Support co utility/heal ro hon raw damage.
+[ ] Control stun/zone tot hon raw DPS, khong stun-lock vo han.
+[ ] Hybrid co secondary utility nhung raw power bi doi lai.
+
+10. REGRESSION
+[ ] Cardcha Test Arena endless waves van dung va bo qua dummy/kill targets.
+[ ] Friendship 4/8/10 + spouse/14 tim van hien/dung.
+[ ] Character Profile chu mo ta skill that van x2 + scroll.
+[ ] Passive text-only, Signature chi 1 icon.
+[ ] Auto Equip/Role Score/Rarity/Combat Impact van dung.
+[ ] ChaCha khong vao Main Party.
+[ ] Farmer pass-through Team Up NPC van dung.
+
+NEU CO LOI
+- Gui screenshot full menu/map.
+- Gui NPC + role + Lv/Mastery.
+- Neu combat, gui ten map va co dang bat sandbox hay khong.
+- Neu sound, gui 20-30 dong SMAPI log TRUOC stack trace, khong chi rieng stack trace.

@@ -1,0 +1,2 @@
+Team Up v0.2.0-alpha.6.6.15 authoritative rebuild trigger.
+Expected: 0 warnings, 0 errors, source acceptance PASS, package PASS, No materialized source diff.

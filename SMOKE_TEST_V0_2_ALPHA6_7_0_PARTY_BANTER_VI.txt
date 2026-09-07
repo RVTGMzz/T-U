@@ -1,0 +1,82 @@
+TEAM UP v0.2.0-alpha.6.7.0 - PARTY BANTER + MIMI SHIPPER
+============================================================
+
+MUC TIEU
+- Party people cap = 5 tong cong, Farmer tinh 1 slot => single-player toi da 4 NPC.
+- Companion/Summon/Pokemon hard cap van = 2.
+- Hint chung doi thanh: P / L+R Companion.
+- NPC trong party co banter khong khoa gameplay.
+- MiMi ship couple nam-nam khi co MiMi + it nhat 2 NPC nam trong party.
+- Banter khong sua friendship, dating, spouse hay canon cua NPC.
+
+A. PARTY CAP
+1. Farmer + 4 NPC dang Following/Waiting => PASS.
+2. Thu moi NPC thu 5 => phai bi PartyFull / khong vao active party.
+3. Companion van co the dat 2/2 rieng, khong an slot NPC.
+4. Multiplayer: tong Farmer + active NPC khong vuot 5.
+
+B. COMPANION LABEL
+1. Noi chuyen NPC co linked companion.
+2. Hint tren dialogue phai la: P / L+R Companion.
+3. P va L+R van mo dung linked companion menu.
+
+C. AMBIENT BANTER
+1. Co it nhat 2 NPC Following trong cung map.
+2. Cho game chay tu nhien 20-30 giay.
+3. Hai NPC noi bang bubble tren dau, cau sau dap cau truoc.
+4. Khong mo DialogueBox, khong dung player, khong lay controller cua NPC.
+5. Khong spam cung mot cap lien tuc.
+
+D. PERSONALITY / PAIR-SPECIFIC
+Thu cac cap neu co:
+- Alex + Sebastian
+- Abigail + Sebastian
+- Sam + Sebastian
+- Harvey + Maru
+- Leah + Elliott
+- Shane + Harvey
+PASS neu noi chuyen co sac thai rieng thay vi cung mot cau generic.
+
+E. COMBAT BANTER
+1. Dua 2+ NPC vao map co monster.
+2. Trong combat co the xuat hien cau bao ve/khieu chien/chien thuat tuy tinh cach-role.
+3. Banter khong can thiep movement/combat controller.
+
+F. LOW HP ENCOURAGEMENT
+1. De 1 NPC xuong <= 38% HP.
+2. NPC khac nen co the dong vien/canh bao.
+3. Cung target khong bi spam lien tuc.
+
+G. AFTER COMBAT
+1. Ket thuc mot dot combat.
+2. Sau khoang ngan co the co cau victory/relief giua 2 NPC.
+
+H. MIMI SHIPPER
+1. Party co MiMi + 2 NPC nam tro len.
+2. Ngoai combat, cho he thong chay hoac dung console:
+   teamup_banter ship
+3. MiMi phai chọc ghẹo/shipping 2 NPC nam.
+4. Mot trong hai NPC nam dap lai theo tinh cach.
+5. MiMi co the chot them 1 cau.
+6. Khong thay doi romance/friendship/canon.
+7. Party MiMi + chi 1 NPC nam => teamup_banter ship phai bao khong du dieu kien.
+
+I. DEBUG
+teamup_banter status
+- Ky vong: banter=on, activeNPCs=<n>, mimi=<true/false>, maleNPCs=<n>, shipping=on.
+
+teamup_banter now
+- Ep 1 ambient exchange neu co >=2 NPC hop le.
+
+teamup_banter ship
+- Ep 1 MiMi shipping exchange neu MiMi + >=2 NPC nam hop le.
+
+J. REGRESSION
+- Pelipper custom NPC detection 6.6.27 van dung.
+- Single companion authority van chi 1 reconciler.
+- Khong effective=3/2 hoac 4/2.
+- Pelipper native Call/Return van hoat dong.
+- Khong Pokemon flicker do Team Up render suppression.
+- Codex/Profile 115% van giu.
+- Alex Hard Taunt van giu.
+- Combat retry cooldown 24 ticks, movement pulse 3 van giu.

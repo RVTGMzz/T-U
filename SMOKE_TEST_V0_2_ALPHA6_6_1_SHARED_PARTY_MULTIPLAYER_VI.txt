@@ -1,0 +1,102 @@
+TEAM UP! v0.2.0-alpha.6.6.1
+SHARED PARTY CAPACITY + COMPANION CHOICE + MULTIPLAYER FOUNDATION
+SMOKE TEST VI
+
+MUC TIEU
+- Tong party nguoi = 6, tinh Farmer dang online + NPC Team Up dang Following/Waiting.
+- Tong Pokemon/summon combat = 2 dung chung toan farm.
+- Vanilla pet va ChaCha khong chiem slot 2/2.
+- NPC co companion phai hien 3 lua chon: NPC only / NPC + companion / Cancel.
+- Multiplayer host authoritative, farmhand van co the moi NPC cua rieng minh.
+- Sudoku dung handshake Ronvotri.TeamUp/PartyControlled de HeyYoureCursed tam ngung roommate movement khi Team Up dang dieu khien.
+
+A. SINGLE PLAYER PEOPLE CAP
+[ ] 1. Load save voi 1 Farmer. Moi lan luot 5 NPC. Xac nhan tong = Farmer + 5 NPC = 6/6.
+[ ] 2. Thu moi NPC thu 6. Phai bi tu choi voi PARTY FULL 6/6, khong them vao roster active.
+[ ] 3. Cho mot NPC Wait. Wait van chiem people slot, van la 6/6.
+[ ] 4. Cho mot NPC Leave. Slot phai mo lai, co the moi NPC khac.
+
+B. COMPANION POOL 2/2
+[ ] 1. Deploy 1 external summon/Pokemon cua Farmer, sau do 1 external summon/Pokemon cua NPC. Xac nhan = 2/2.
+[ ] 2. Vanilla dog/cat van hoat dong nhung khong lam day 2/2.
+[ ] 3. ChaCha van hoat dong nhung khong lam day 2/2 va khong vao Main Party.
+[ ] 4. Waiting companion van giu slot.
+[ ] 5. ReturningHome companion van giu slot cho toi khi khong con deployed.
+[ ] 6. Standby/Inactive companion khong chiem slot.
+
+C. NPC + COMPANION RECRUIT UX
+[ ] 1. Tim NPC co live linked companion contract.
+[ ] 2. Khi Invite, phai co 3 option cap tren:
+    - NPC only
+    - NPC + companion
+    - Cancel
+[ ] 3. Chon NPC only: NPC vao party, companion khong bi Team Up giat quyen dieu khien.
+[ ] 4. Chon NPC + companion khi pool con slot: ca hai vao dung owner, companion active.
+[ ] 5. Khi pool da 2/2, chon NPC + companion phai mo menu replacement.
+[ ] 6. Chon companion can Return: companion cu -> Standby, companion moi -> Active.
+[ ] 7. Cancel replacement: khong thay doi companion pool.
+
+D. SUDOKU HANDSHAKE
+[ ] 1. Recruit Sudoku trong FarmHouse.
+[ ] 2. Khi Team Up dieu khien Sudoku, npc.modData co Ronvotri.TeamUp/PartyControlled = true.
+[ ] 3. Neu HeyYoureCursed da cap nhat compat, roommate AI khong keo Sudoku ve TV/furniture.
+[ ] 4. Cho Sudoku Leave Party. Marker PartyControlled va PartyControllerOwner phai bi xoa.
+[ ] 5. Roommate AI cua HeyYoureCursed co the tiep tuc lai sau khi Team Up nha quyen dieu khien.
+[ ] 6. Warp vao/ra FarmHouse khi Sudoku dang Following, khong spin/teleport lap.
+
+E. MULTIPLAYER 2 FARMER
+[ ] 1. Host + Farmhand online. Shared people capacity phai tinh 2 Farmer, chi con 4 NPC active.
+[ ] 2. Host moi NPC A. Farmhand moi NPC B. A theo Host, B theo Farmhand.
+[ ] 3. Host va Farmhand tach sang hai map khac nhau. NPC moi nguoi van bam dung owner/map.
+[ ] 4. Combat gan Host khong keo NPC cua Farmhand sang Host.
+[ ] 5. Combat gan Farmhand dung dung Farmer context cua Farmhand cho leash/heal/guard/targeting.
+[ ] 6. Farmhand co the doi Movement/Role/Engagement cho NPC do minh recruit.
+[ ] 7. Farmhand khong the dieu khien/Leave NPC do Farmer khac so huu.
+[ ] 8. Hai nguoi cung thu moi mot NPC gan nhu dong thoi: chi mot request thanh cong, khong duplicate roster.
+
+F. MULTIPLAYER CAP REBALANCE
+[ ] 1. Single-player dang Farmer + 5 NPC = 6/6. Cho Farmhand join.
+[ ] 2. Mot NPC overflow phai chuyen Inactive va ve schedule, KHONG bi xoa roster/level/loadout.
+[ ] 3. Farmhand disconnect: NPC cua Farmhand ve Inactive; linked companions ve Standby/Inactive.
+[ ] 4. Farmhand join lai: ownership RecruiterId van dung, roster/progression van con.
+[ ] 5. Shared companion pool chi 2/2 cho ca Host + Farmhand, khong phai moi Farmer 2 slot.
+[ ] 6. Farmhand khi replacement chi duoc thay companion cua minh. Host co quyen quan ly toan farm.
+
+G. MIMI / CUSTOM NPC REGRESSION
+[ ] 1. MiMi van chi recruit sau Cardcha social/friendship unlock.
+[ ] 2. Trong multiplayer, MiMi friendship gate kiem tra Farmer gui loi moi, khong mac dinh Host.
+[ ] 3. Sudoku canonical ID van ronvotri.HeyYoureCursed_Sudoku.
+[ ] 4. NINEFOLD SEAL van hoat dong.
+[ ] 5. BROOMTAIL SIGIL van hoat dong.
+
+H. PARTY STRATEGY REGRESSION
+[ ] 1. teamup_strategy balanced
+[ ] 2. teamup_strategy defensive
+[ ] 3. teamup_strategy aggressive
+[ ] 4. teamup_strategy hold
+[ ] 5. teamup_strategy boss
+[ ] 6. Hard leash 12 tiles van con.
+[ ] 7. Doi strategy khong gay stale chase/spin.
+
+I. SURGE / CORE REGRESSION
+[ ] 1. teamup_test surge status
+[ ] 2. teamup_test surge reapply
+[ ] 3. teamup_test surge clear
+[ ] 4. teamup_test surge board
+[ ] 5. Cardcha_CardTestArena van khong co Surge.
+[ ] 6. Surge reapply khong stack x2 -> x3 -> x4.
+[ ] 7. Equipment double click van dung.
+[ ] 8. Controller focus van dung.
+[ ] 9. Party Vault drag/drop van dung.
+[ ] 10. SVE/RSV profile/icon regression khong mat.
+
+J. SAVE / RELOAD
+[ ] 1. Save game, thoat, load lai.
+[ ] 2. Roster, RecruiterId, level, equipment, linked companion registrations van dung.
+[ ] 3. Active party duoc normalize theo Farmer online hien tai va shared cap 6.
+[ ] 4. Companion pool duoc normalize theo shared cap 2.
+[ ] 5. Khong co SMAPI error do multiplayer snapshot/message.
+
+GHI CHU
+- Alpha 6.6.1 la multiplayer FOUNDATION. Equipment inventory mutation cua remote farmhand duoc fail closed/host-authoritative, khong duoc tu dong chuyen item giua inventory client va host trong milestone nay.
+- CI chi xac nhan compile/source/package. Cac muc multiplayer tren can test live 2 client truoc khi goi la in-game verified.

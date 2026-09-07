@@ -1,0 +1,55 @@
+TEAM UP v0.2.0-alpha.6.6.4
+CONTROLLER EQUIPMENT TRANSACTION HOTFIX - SMOKE TEST VI
+
+MỤC TIÊU
+Fix riêng lỗi controller Equipment tạo thông báo giả / thao tác kép:
+- A có thể bị Stardew echo thành click chuột ảo.
+- slot card từng có double-click để tháo, nên gamepad input có thể vô tình chạy cả equip và unequip.
+- HUD success trước đây chỉ dựa vào backend trả true, chưa xác nhận cả metadata + global inventory slot đã commit.
+
+A. GAMEPAD A MỘT LẦN = MỘT HÀNH ĐỘNG
+[ ] 1. Mở Equipment bằng controller.
+[ ] 2. Chọn Weapon bằng D-pad/left stick, đi sang túi, chọn vũ khí, bấm A một lần.
+[ ] 3. Chỉ xuất hiện 1 toast “Đã trang bị ...”.
+[ ] 4. Slot Weapon phải hiện icon + tên + stat thật ngay sau thao tác.
+[ ] 5. Item phải biến khỏi túi đúng một lần.
+[ ] 6. Giữ A hơi lâu / bấm A dày trong khoảng rất ngắn không tạo chuỗi equip/unequip giả.
+
+B. RIGHT-STICK CONTROLLER CURSOR
+[ ] 7. Dùng right stick đưa cursor lên item trong túi, bấm A một lần.
+[ ] 8. Đúng item dưới cursor được trang bị.
+[ ] 9. Không xuất hiện toast tháo trang bị ngay sau toast trang bị.
+[ ] 10. Virtual click echo không làm slot card nhận double-click.
+[ ] 11. Sau đó dùng D-pad/left stick chọn item khác, A phải theo logical focus mới, không theo stale cursor.
+
+C. UNEQUIP PHẢI LÀ HÀNH ĐỘNG RÕ RÀNG
+[ ] 12. Click đơn / click đôi vào slot card bằng chuột chỉ SELECT slot, không tự tháo nữa.
+[ ] 13. Bấm X bằng controller -> tháo đúng một lần.
+[ ] 14. Bấm nút “Tháo trang bị” -> tháo đúng một lần.
+[ ] 15. Khi tháo thành công, slot phải trống thật và item quay về túi thật trước khi hiện toast success.
+
+D. MOUSE REGRESSION
+[ ] 16. Double-click item trong túi bằng chuột trong 450ms vẫn equip.
+[ ] 17. Single-click item trong túi chỉ chọn/preview, không equip ngay.
+[ ] 18. Double-click slot card không còn tháo. Dùng nút tháo hoặc X thay thế.
+
+E. TRANSACTIONAL HUD
+[ ] 19. Khi toast “Đã trang bị X” hiện, cả member metadata và global equipment inventory phải cùng có X.
+[ ] 20. Khi toast “Đã tháo X” hiện, cả metadata lẫn global equipment inventory phải cùng trống.
+[ ] 21. Nếu commit verification fail, phải hiện lỗi và KHÔNG được hiện success toast giả.
+[ ] 22. Inventory full khi swap/unequip vẫn fail-safe, không mất item.
+
+F. REGRESSION 6.6.3
+[ ] 23. Codex analog viewport sync còn đúng.
+[ ] 24. Shared 2/2 companion quota còn đúng.
+[ ] 25. Pelipper adapter/diagnostic còn nguyên.
+[ ] 26. Water/bridge follow performance hotfix còn nguyên.
+[ ] 27. Tactics 5 strategy còn nguyên.
+[ ] 28. Sudoku/MiMi/Surge/Vault không regress.
+
+KẾT LUẬN
+PASS khi:
+- controller A không còn sinh cặp toast equip/unequip giả;
+- slot hiển thị đúng trạng thái thật;
+- một input controller chỉ tạo một state transition;
+- mouse inventory double-click 450ms vẫn hoạt động.

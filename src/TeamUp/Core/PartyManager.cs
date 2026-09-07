@@ -29,12 +29,20 @@ public sealed class PartyManager
         return Get(characterName, recruiterId) is not null;
     }
 
+    public PartyMemberData? GetAnyOwner(string characterName)
+        => _members.FirstOrDefault(member =>
+            string.Equals(member.CharacterName, characterName, StringComparison.OrdinalIgnoreCase));
+
     public CompanionUnitData? GetCompanionByUnitId(string unitId, long recruiterId)
     {
         return _companionUnits.FirstOrDefault(unit =>
             unit.RecruiterId == recruiterId
             && string.Equals(unit.UnitId, unitId, StringComparison.OrdinalIgnoreCase));
     }
+
+    public CompanionUnitData? GetCompanionByUnitIdAnyOwner(string unitId)
+        => _companionUnits.FirstOrDefault(unit =>
+            string.Equals(unit.UnitId, unitId, StringComparison.OrdinalIgnoreCase));
 
     public CompanionUnitData? GetCompanionByCharacter(string characterName, long recruiterId)
     {
@@ -53,24 +61,45 @@ public sealed class PartyManager
     }
 
     public int GetActiveLinkedCompanionCount(long recruiterId)
-    {
-        return _companionUnits.Count(unit =>
+        => _companionUnits.Count(unit =>
             unit.RecruiterId == recruiterId
-            && unit.OwnerKind == CompanionOwnerKind.PartyMember
-            && unit.State == CompanionDeploymentState.Active);
+            && unit.CountsTowardCombatCompanionLimit
+            && IsSlotOccupiedState(unit.State));
+
+    public int GetActiveCombatCompanionCount()
+        => _companionUnits.Count(unit =>
+            unit.CountsTowardCombatCompanionLimit
+            && IsSlotOccupiedState(unit.State));
+
+    public IReadOnlyList<CompanionUnitData> GetActiveCombatCompanions()
+        => _companionUnits
+            .Where(unit => unit.CountsTowardCombatCompanionLimit && IsSlotOccupiedState(unit.State))
+            .ToList();
+
+    public int GetSharedPeopleCount(IReadOnlyCollection<long> onlineFarmerIds)
+    {
+        HashSet<long> online = onlineFarmerIds.ToHashSet();
+        int farmers = Math.Min(6, online.Count);
+        int activeNpcs = _members.Count(member =>
+            online.Contains(member.RecruiterId)
+            && member.State is PartyMemberState.Following or PartyMemberState.Waiting);
+        return farmers + activeNpcs;
     }
 
     public PartyAddResult TryAddMember(string characterName, long recruiterId)
+        => TryAddMember(characterName, recruiterId, new[] { recruiterId });
+
+    public PartyAddResult TryAddMember(string characterName, long recruiterId, IReadOnlyCollection<long> onlineFarmerIds)
     {
         if (string.IsNullOrWhiteSpace(characterName))
             return PartyAddResult.InvalidCharacter;
-
-        if (Contains(characterName, recruiterId))
+        if (CompanionClassificationService.IsSpecialName(characterName, null))
+            return PartyAddResult.InvalidCharacter;
+        if (GetAnyOwner(characterName) is not null)
             return PartyAddResult.AlreadyInParty;
 
         int max = Math.Clamp(_maxPartySize(), 1, 6);
-        int ownedCount = _members.Count(member => member.RecruiterId == recruiterId);
-        if (ownedCount >= max)
+        if (GetSharedPeopleCount(onlineFarmerIds) >= max)
             return PartyAddResult.PartyFull;
 
         _members.Add(new PartyMemberData
@@ -82,7 +111,6 @@ public sealed class PartyManager
             Engagement = EngagementStyle.Balanced,
             State = PartyMemberState.Following
         });
-
         return PartyAddResult.Added;
     }
 
@@ -112,6 +140,46 @@ public sealed class PartyManager
         return CompanionAddResult.AddedActive;
     }
 
+    public CompanionAddResult TryAddPlayerCompanion(
+        string unitId,
+        string characterName,
+        string displayName,
+        long recruiterId,
+        string providerId,
+        string? providerUnitId,
+        bool requestActive)
+    {
+        if (string.IsNullOrWhiteSpace(unitId) || string.IsNullOrWhiteSpace(characterName))
+            return CompanionAddResult.InvalidCompanion;
+        if (GetCompanionByUnitId(unitId, recruiterId) is not null)
+            return CompanionAddResult.AlreadyRegistered;
+
+        bool canActivate = !requestActive || CanActivateAnotherCombatCompanion();
+        CompanionDeploymentState state = requestActive && canActivate
+            ? CompanionDeploymentState.Active
+            : CompanionDeploymentState.Standby;
+
+        _companionUnits.Add(new CompanionUnitData
+        {
+            UnitId = unitId,
+            CharacterName = characterName,
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? characterName : displayName,
+            RecruiterId = recruiterId,
+            OwnerKind = CompanionOwnerKind.Player,
+            Kind = CompanionUnitKind.ExternalCreature,
+            ProviderId = string.IsNullOrWhiteSpace(providerId) ? "Unknown" : providerId,
+            ProviderUnitId = providerUnitId,
+            Role = PartyRole.Unassigned,
+            State = state,
+            IsPlayerMainPet = false
+        });
+
+        if (requestActive && !canActivate)
+            return CompanionAddResult.AddedStandbyLimitReached;
+        return state == CompanionDeploymentState.Active
+            ? CompanionAddResult.AddedActive
+            : CompanionAddResult.AddedStandby;
+    }
     public CompanionAddResult TryLinkCompanion(
         string unitId,
         string characterName,
@@ -136,7 +204,7 @@ public sealed class PartyManager
         if (GetCompanionByUnitId(unitId, recruiterId) is not null)
             return CompanionAddResult.AlreadyRegistered;
 
-        bool canActivate = !requestActive || CanActivateAnotherLinkedCompanion(recruiterId);
+        bool canActivate = !requestActive || CanActivateAnotherCombatCompanion();
         CompanionDeploymentState state = requestActive && canActivate
             ? CompanionDeploymentState.Active
             : CompanionDeploymentState.Standby;
@@ -168,6 +236,33 @@ public sealed class PartyManager
             : CompanionAddResult.AddedStandby;
     }
 
+    public IReadOnlyList<PartyMemberData> EnforceSharedPeopleCapacity(IReadOnlyCollection<long> onlineFarmerIds)
+    {
+        HashSet<long> online = onlineFarmerIds.ToHashSet();
+        List<PartyMemberData> deactivated = new();
+
+        foreach (PartyMemberData member in _members.Where(member =>
+            !online.Contains(member.RecruiterId)
+            && member.State is PartyMemberState.Following or PartyMemberState.Waiting))
+        {
+            member.State = PartyMemberState.Inactive;
+            deactivated.Add(member);
+        }
+
+        int max = Math.Clamp(_maxPartySize(), 1, 6);
+        int npcSlots = Math.Max(0, max - Math.Min(6, online.Count));
+        List<PartyMemberData> activeOnline = _members
+            .Where(member => online.Contains(member.RecruiterId))
+            .Where(member => member.State is PartyMemberState.Following or PartyMemberState.Waiting)
+            .ToList();
+
+        for (int i = npcSlots; i < activeOnline.Count; i++)
+        {
+            activeOnline[i].State = PartyMemberState.Inactive;
+            deactivated.Add(activeOnline[i]);
+        }
+        return deactivated;
+    }
     public bool SetState(string characterName, long recruiterId, PartyMemberState state)
     {
         PartyMemberData? member = Get(characterName, recruiterId);
@@ -205,9 +300,9 @@ public sealed class PartyManager
             return false;
 
         if (state == CompanionDeploymentState.Active
-            && unit.OwnerKind == CompanionOwnerKind.PartyMember
+            && unit.CountsTowardCombatCompanionLimit
             && unit.State != CompanionDeploymentState.Active
-            && !CanActivateAnotherLinkedCompanion(recruiterId))
+            && !CanActivateAnotherCombatCompanion())
         {
             return false;
         }
@@ -329,7 +424,7 @@ public sealed class PartyManager
     {
         return new PartySaveData
         {
-            SchemaVersion = 3,
+            SchemaVersion = 4,
             Members = _members
                 .Select(member => new PartyMemberData
                 {
@@ -339,7 +434,23 @@ public sealed class PartyManager
                     LinkedCompanionUnitId = member.LinkedCompanionUnitId,
                     Role = member.Role,
                     Engagement = member.Engagement,
-                    State = member.State
+                    State = member.State,
+                    Level = member.Level,
+                    Experience = member.Experience,
+                    CurrentHealth = member.CurrentHealth,
+                    TankMasteryExperience = member.TankMasteryExperience,
+                    DamageMasteryExperience = member.DamageMasteryExperience,
+                    SupportMasteryExperience = member.SupportMasteryExperience,
+                    HealerMasteryExperience = member.HealerMasteryExperience,
+                    ControlMasteryExperience = member.ControlMasteryExperience,
+                    Weapon = member.Weapon,
+                    Armor = member.Armor,
+                    Trinket = member.Trinket,
+                    IsDowned = member.IsDowned,
+                    IsWithdrawn = member.IsWithdrawn,
+                    DownedTicks = member.DownedTicks,
+                    DownCountToday = member.DownCountToday,
+                    WoundedTicks = member.WoundedTicks
                 })
                 .ToList(),
             CompanionUnits = _companionUnits
@@ -368,11 +479,16 @@ public sealed class PartyManager
         _companionUnits.Clear();
     }
 
-    private bool CanActivateAnotherLinkedCompanion(long recruiterId)
+    private bool CanActivateAnotherCombatCompanion()
     {
-        int max = Math.Clamp(_maxActiveLinkedCompanions(), 0, 6);
-        return GetActiveLinkedCompanionCount(recruiterId) < max;
+        int max = Math.Clamp(_maxActiveLinkedCompanions(), 0, 2);
+        return GetActiveCombatCompanionCount() < max;
     }
+
+    private static bool IsSlotOccupiedState(CompanionDeploymentState state)
+        => state is CompanionDeploymentState.Active
+            or CompanionDeploymentState.Waiting
+            or CompanionDeploymentState.ReturningHome;
 
     private void RepairLinks()
     {

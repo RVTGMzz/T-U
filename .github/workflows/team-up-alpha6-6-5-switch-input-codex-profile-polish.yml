@@ -1,0 +1,137 @@
+name: Team Up v0.2.0-alpha.6.6.5 Switch Input + Codex Profile Polish
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-5-switch-input-codex-profile-polish ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.5 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha665.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path('src/TeamUp')
+          version = '0.2.0-alpha.6.6.5'
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          alpha663 = (root/'ModEntry.Alpha663.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          profile = (root/'UI/CharacterProfileMenu.cs').read_text(encoding='utf-8')
+          progression = (root/'Core/ProgressionService.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          surge = (root/'Combat/MonsterSurgeService.cs').read_text(encoding='utf-8')
+
+          assert f'<Version>{version}</Version>' in project
+          assert f'build: v{version}' in mod
+
+          for token in [
+              'OnAlpha665EquipmentButtonPressed',
+              'e.Button.IsActionButton()',
+              'Helper.Input.Suppress(e.Button)',
+              'menu.receiveGamePadButton(Buttons.A)'
+          ]:
+              assert token in alpha663, token
+
+          assert 'MoveVertical(-2)' not in codex
+          assert 'MoveVertical(2)' not in codex
+          assert codex.count('MoveVertical(-1);') >= 2
+          assert codex.count('MoveVertical(1);') >= 2
+
+          assert 'ProfileContentScale = 1.52f' in profile
+          assert 'DescriptionScale = BodyScale * 2f' not in profile
+          assert 'WrapScaled(_relationshipText, contentWidth, ProfileContentScale)' in profile
+          assert 'new Rectangle(x, y, 136, 34)' in profile
+
+          assert 'Lv.{member.Level} | HP' in progression
+          assert 'W: {weapon} | A: {armor}' in progression
+          assert ' · ' not in progression
+          assert '—' not in progression
+          assert '→' not in equipment
+          assert '\\u2192' not in equipment
+          assert '  ·  ' not in equipment
+          assert 'string arrow = "->";' in equipment
+
+          for token in [
+              'DoubleClickWindowMs = 450',
+              'ControllerActivationDebounceMs = 180',
+              'ControllerMouseEchoSuppressionMs = 260',
+              'TryBeginControllerActivation()',
+              'bool committed = committedData is not null',
+              'GetActualEquippedItem(_selectedSlot) is null'
+          ]:
+              assert token in equipment, token
+          assert 'IsDoubleClick(2000 + i)' not in equipment
+          assert 'IsDoubleClick(1000 + i)' in equipment
+
+          for token in ['OpenSearchOffsets', 'location.isTileOnMap(tile) && location.isTilePassable(tile)', 'PelipperTownCompatibilityService.IsSourceControlled(unit)']:
+              assert token in follow, token
+          for token in ['ReconcilePelipperCompanionsAlpha663', 'teamup_pelipper']:
+              assert token in alpha663, token
+          for token in ['isTileOnMap', 'isTilePassable', 'IsTileBlockedBy']:
+              assert token in surge, token
+
+          print('Alpha 6.6.5 source acceptance PASS')
+          print('Switch SMAPI Action Button bridge PASS')
+          print('Codex one-row controller navigation PASS')
+          print('Character Profile 1.52 uniform typography PASS')
+          print('Stardew-font-safe punctuation PASS')
+          print('Alpha 6.6.4/6.6.3 regression tokens PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.5_SWITCH_CODEX_PROFILE_HOTFIX_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.5_SWITCH_CODEX_PROFILE_HOTFIX_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.5' BUILD_LOG.txt
+          grep -q 'SWITCH SMAPI ACTION INPUT: ENABLED' BUILD_LOG.txt
+          grep -q 'CODEX ONE-ROW CONTROLLER NAV: ENABLED' BUILD_LOG.txt
+          grep -q 'PROFILE UNIFORM 1.52 SCALE: ENABLED' BUILD_LOG.txt
+          grep -q 'FONT-SAFE ASCII UI PUNCTUATION: ENABLED' BUILD_LOG.txt
+          echo 'Alpha 6.6.5 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha665.ps1 BUILD_V0_2_ALPHA6.bat SMOKE_TEST_V0_2_ALPHA6_6_5_SWITCH_CODEX_PROFILE_POLISH_VI.txt .github/workflows/team-up-alpha6-6-5-switch-input-codex-profile-polish.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.5 Switch Codex profile hotfix source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-5-switch-input-codex-profile-polish
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-5-switch-input-codex-profile-polish
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.5_SWITCH_CODEX_PROFILE_HOTFIX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.5_SWITCH_CODEX_PROFILE_HOTFIX_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_5_SWITCH_CODEX_PROFILE_POLISH_VI.txt
+          if-no-files-found: error

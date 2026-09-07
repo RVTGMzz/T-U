@@ -1,0 +1,29 @@
+TEAM UP v0.2.0-alpha.6.6.13 - SMOKE TEST
+
+1) SINGLE TARGET COMBAT
+- Dua party co Tank + DPS + Control vao khu co dung 1 Pokemon hoang / combat proxy Pelipper.
+- Chi 1 enemy van phai duoc acquire va party phai tan cong binh thuong.
+- Healer van heal nhu cu.
+- Thu lai voi nhieu quai de dam bao khong regression.
+
+2) PELIPPER HARD 2/2
+- Goi hon 2 Pokemon / companion co tinh slot chien dau.
+- Team Up state phai chi co toi da 2 Active/Waiting/ReturningHome.
+- Pokemon Pelipper o Standby khong duoc render nhu mot companion dang trien khai.
+- Khi mot slot duoc giai phong, companion Standby duoc promote theo reconcile hien tai.
+- Khong duoc quay lai flicker cua 6.6.9/6.6.10.
+
+3) CURFEW FAREWELL
+- NPC 0-2 tim: test truoc 23:00, den gio phai noi 1 cau bye roi moi ve nha.
+- Thu Abigail / Sebastian / Shane / Harvey de kiem tra cau noi dung tinh cach.
+- Custom NPC khong co mapping dung fallback tu nhien.
+- Pokemon/summon khong tu noi bye.
+- Khong spam lap lai sau khi NPC da Inactive.
+
+4) REGRESSION
+- 6 people total cap van dung.
+- Water/bridge khong lag lai.
+- NPC nguoi khong roi xuong nuoc.
+- Pelipper source-owned actor khong bi Team Up FollowService giat movement.
+- HP bar duoi chan van hien theo context.
+- Switch equip/unequip va Codex navigation van hoat dong.

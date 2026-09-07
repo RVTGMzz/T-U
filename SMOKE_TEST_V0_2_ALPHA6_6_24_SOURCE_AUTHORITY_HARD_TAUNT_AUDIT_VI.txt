@@ -1,0 +1,51 @@
+TEAM UP v0.2.0-alpha.6.6.24
+SOURCE AUTHORITY + HARD TAUNT AUDIT - SMOKE TEST VI
+
+MỤC TIÊU
+Bản này không vá thêm visibility cho Pelipper. Nó xóa tận gốc đường render suppression legacy còn sót từ Alpha 6.6.13 và khóa NPC-owned Pokemon vào mô hình source-authority đã chốt từ Alpha 6.6.9.
+
+A. PELIPPER NPC-ONLY / KHÔNG FLICKER
+[ ] 1. Mời một NPC có Pokemon nhưng chọn NPC-only.
+[ ] 2. Pokemon không được chớp tắt theo nhịp 10/15 tick.
+[ ] 3. Team Up không ghi IsInvisible, không dùng RenderingWorld/RenderedWorld để giấu Pokemon.
+[ ] 4. Team Up không Halt/giành controller/movement của Pokemon nguồn Pelipper.
+[ ] 5. Nếu native recall của Pelipper chưa converge, Pokemon có thể vẫn còn hiện nhưng Team Up KHÔNG spam lifecycle và KHÔNG giật render.
+[ ] 6. Pokemon source-live vẫn chiếm slot thật. Không được biến 2/2 thành 1/2 giả.
+[ ] 7. Gọi Pokemon lại: intent/soft marker chuyển Active và native source route được gọi lại khi intent thay đổi.
+[ ] 8. Return/Standby lần nữa: chỉ một native lifecycle request cho intent mới; không loop spam.
+[ ] 9. Leave NPC: source mod được trả quyền và marker Team Up không khóa actor.
+[ ] 10. Không cài Pelipper Town: Team Up vẫn load bình thường.
+
+B. LEGACY SOURCE-AUTHORITY REGRESSION GATE
+[ ] 1. DLL không còn symbol PelipperRenderSuppressedAlpha6613.
+[ ] 2. DLL không còn symbol PelipperRenderRestoreAlpha6613.
+[ ] 3. DLL không còn symbol TrySetActorInvisibleAlpha6613.
+[ ] 4. Source không subscribe RenderingWorld/RenderedWorld trong Alpha6613.
+[ ] 5. NPC-linked SetPelipperSourceDeployment không fall-through sang TrySetPelipperSourceDeploymentAlpha6613 khi native route fail.
+[ ] 6. Soft marker Ronvotri.TeamUp/PelipperDeployment vẫn còn.
+
+C. ALEX HARD TAUNT
+[ ] 1. Alex ở role Tank, có quái gần, chữ HARD TAUNT xuất hiện khi skill kích hoạt.
+[ ] 2. Forced aggro tồn tại 150-240 tick tùy Tank Mastery.
+[ ] 3. Trong Hard Taunt, Farmer bị vanilla monster chạm thì HP loss được hoàn lại và damage chuyển sang Alex.
+[ ] 4. Alex sở hữu forced aggro vẫn đủ điều kiện redirect khi cách Farmer tối đa 7 tiles; normal Guard vẫn 4 tiles.
+[ ] 5. Không double-hit Alex trong cùng nhịp redirect + virtual incoming damage.
+[ ] 6. Alex downed/withdrawn thì forced aggro tự hết vì actor không còn valid.
+[ ] 7. Hết Hard Taunt thì Guard trở lại tỉ lệ hấp thụ bình thường, không giữ 100% redirect vĩnh viễn.
+
+LƯU Ý VỀ HÌNH ẢNH QUÁI
+Stardew Valley monster AI gốc chủ yếu pathfind tới Farmer, không có target-NPC API chung cho mọi Monster/mod. Alpha 6.6.24 đảm bảo gameplay aggro/damage của Team Up chuyển sang Alex trong Hard Taunt, nhưng không cưỡng chiếm controller của mọi Monster để ép sprite quay đầu. Làm vậy sẽ dễ phá AI quái vanilla/mod khác.
+
+D. REGRESSION BẮT BUỘC
+[ ] Party người tối đa 6.
+[ ] Companion combat tối đa 2/2.
+[ ] Combat path retry = 24 ticks.
+[ ] Combat movement pulse = 3 ticks.
+[ ] Follow cadence = 4 ticks.
+[ ] NPC người không path xuống bare water; cầu thật vẫn đi được.
+[ ] Pelipper capture/combat exclusions giữ nguyên.
+[ ] Switch equip bằng Action Button còn hoạt động.
+[ ] Switch unequip bằng Use Tool còn hoạt động.
+[ ] Codex D-pad/analog chỉ nhảy một profile mỗi press.
+[ ] Codex/Profile 115% UI từ 6.6.22 vẫn giữ nguyên.
+[ ] Thin/contextual HP bars + multiplayer health sync không regression.

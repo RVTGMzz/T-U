@@ -4,6 +4,12 @@ public sealed class NpcCombatProfile
 {
     public string CharacterName { get; init; } = string.Empty;
 
+    // Data-provider identity used by Codex filters. Core stays expansion-agnostic;
+    // adapters can provide their own source IDs/labels later.
+    public string SourceId { get; init; } = "stardew-valley";
+
+    public string SourceLabel { get; init; } = "Stardew Valley";
+
     public PartyRole PrimaryRole { get; init; } = PartyRole.Unassigned;
 
     public PartyRole SecondaryRole { get; init; } = PartyRole.Unassigned;

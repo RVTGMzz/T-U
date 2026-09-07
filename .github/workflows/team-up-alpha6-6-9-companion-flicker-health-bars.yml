@@ -1,0 +1,164 @@
+name: Team Up v0.2.0-alpha.6.6.9 Companion Flicker + Health Bars
+
+on:
+  push:
+    branches: [ v0.2-alpha6-6-9-companion-flicker-health-bars ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+
+      - name: Build Alpha 6.6.9 end-to-end
+        shell: pwsh
+        run: |
+          ./BuildV0_2Alpha669.ps1
+
+      - name: Source acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('src/TeamUp')
+          project = (root/'TeamUp.csproj').read_text(encoding='utf-8')
+          mod = (root/'ModEntry.cs').read_text(encoding='utf-8')
+          alpha661 = (root/'ModEntry.Alpha661.cs').read_text(encoding='utf-8')
+          alpha663 = (root/'ModEntry.Alpha663.cs').read_text(encoding='utf-8')
+          alpha669 = (root/'ModEntry.Alpha669.cs').read_text(encoding='utf-8')
+          deployment = (root/'Core/PelipperDeploymentStateService.cs').read_text(encoding='utf-8')
+          health = (root/'UI/PartyHealthOverlayService.cs').read_text(encoding='utf-8')
+          follow = (root/'Following/FollowService.cs').read_text(encoding='utf-8')
+          combat = (root/'Combat/CombatService.cs').read_text(encoding='utf-8')
+          tile = (root/'Core/PartyTileSafety.cs').read_text(encoding='utf-8')
+          equipment = (root/'UI/EquipmentMenu.cs').read_text(encoding='utf-8')
+          codex = (root/'UI/CodexBrowserMenu.cs').read_text(encoding='utf-8')
+          config = (root/'ModConfig.cs').read_text(encoding='utf-8')
+
+          assert '<Version>0.2.0-alpha.6.6.9</Version>' in project
+          assert 'RegisterAlpha669HotfixEvents();' in mod
+          assert 'build: v0.2.0-alpha.6.6.9' in mod
+          assert 'Companion Flicker + Thin Health Bars Hotfix loaded.' in mod
+
+          for token in [
+              'RenderedWorld',
+              'RenderedHud',
+              'PartyHealthCombatRadiusAlpha669 = 10f',
+              'BuildHealthSnapshotSignatureAlpha669',
+              'BroadcastPartySnapshot()',
+              'PelipperDeploymentStateService.CleanupLegacySuppressionOnAllPelipperActors()',
+          ]:
+              assert token in alpha669, token
+
+          for token in [
+              'HudBarHeight = 5',
+              'WorldBarHeight = 4',
+              'HudRowHeight = 17',
+              'ratio < 0.999f',
+              'DrawHud',
+              'DrawWorld',
+          ]:
+              assert token in health, token
+          assert 'hpText' not in health
+          assert '100/100' not in health
+
+          for token in [
+              'DeploymentStateKey = "Ronvotri.TeamUp/PelipperDeployment"',
+              'DeploymentOwnerKey = "Ronvotri.TeamUp/PelipperDeploymentOwner"',
+              'ActiveValue = "Active"',
+              'StandbyValue = "Standby"',
+              'SetDesiredDeployment',
+              'CleanupLegacySuppressionOnAllPelipperActors',
+              'ClearDesiredDeploymentOnAllPelipperActors',
+          ]:
+              assert token in deployment, token
+          assert 'PelipperTownCompatibilityService.SetSuppressed(actor, owner, false);' in deployment
+          assert 'SetSuppressed(actor, owner, true)' not in deployment
+
+          for token in [
+              'PelipperDeploymentStateService.SetDesiredDeployment',
+              'IsPelipperUnitDeployedAlpha669',
+              'source visibility/movement authority',
+          ]:
+              assert token in alpha663, token
+          assert 'PelipperTownCompatibilityService.SetSuppressed(' not in alpha663
+          assert 'PelipperTownCompatibilityService.SetSuppressed(' not in alpha661
+          assert 'PelipperDeploymentStateService.SetDesiredDeployment(replacementActor' in alpha661
+
+          assert 'FindLandOpenNear' in follow
+          assert 'PartyTileSafety.IsWalkableLandOrBridge(owner.currentLocation, npc.Tile)' in follow
+          assert 'isTileLocationTotallyClearAndPlaceable' not in follow
+          for token in ['CombatPathRetryCooldownTicks = 24', 'CombatMovementPulseTicks = 3', 'ShouldExcludeFromTeamUpCombat(monster)', 'PartyTileSafety.IsWalkableLandOrBridge(location, tile)']:
+              assert token in combat, token
+          assert 'isTileLocationTotallyClearAndPlaceable' not in combat
+          for token in ['isWaterTile(x, y)', 'GetLayer("Buildings")', 'isTilePassable(tile)']:
+              assert token in tile, token
+
+          for token in ['e.Button.IsActionButton()', 'e.Button.IsUseToolButton()', 'routedButton = Buttons.A', 'routedButton = Buttons.X']:
+              assert token in alpha663, token
+          for token in ['ControllerActivationDebounceMs = 180', 'ControllerMouseEchoSuppressionMs = 260', 'DoubleClickWindowMs = 450']:
+              assert token in equipment, token
+          assert 'MoveVertical(2)' not in codex
+          assert 'MoveVertical(-2)' not in codex
+
+          assert 'public int MaxPartyMembers { get; set; } = 6;' in config
+          assert 'public int MaxActiveLinkedCompanions { get; set; } = 2;' in config
+
+          print('Alpha 6.6.9 source acceptance PASS')
+          print('Pelipper source render/movement authority PASS')
+          print('Soft Active/Standby deployment contract PASS')
+          print('Legacy visibility one-shot repair PASS')
+          print('Thin NPC world + HUD health bars PASS')
+          print('Multiplayer health snapshot sync PASS')
+          print('6.6.7 performance + 6.6.8 land-safe regression PASS')
+          print('Switch input + Codex one-row regression PASS')
+          PY
+
+      - name: Verify packaged build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release/TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.zip
+          test -s release/TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.sha256.txt
+          grep -q 'BUILD SUCCESS - ALPHA 6.6.9' BUILD_LOG.txt
+          grep -q 'PELIPPER SOURCE RENDER/MOVEMENT AUTHORITY: ENABLED' BUILD_LOG.txt
+          grep -q 'PELIPPER SOFT DEPLOYMENT MARKERS: ENABLED' BUILD_LOG.txt
+          grep -q 'PARTY HUD HEALTH BAR HEIGHT: 5PX' BUILD_LOG.txt
+          grep -q 'OVERHEAD HEALTH BAR HEIGHT: 4PX' BUILD_LOG.txt
+          grep -q 'MULTIPLAYER HEALTH SNAPSHOT SYNC: ENABLED' BUILD_LOG.txt
+          echo 'Alpha 6.6.9 package verification PASS'
+
+      - name: Materialize generated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp BuildV0_2Alpha669.ps1 SMOKE_TEST_V0_2_ALPHA6_6_9_COMPANION_FLICKER_HEALTH_BARS_VI.txt .github/workflows/team-up-alpha6-6-9-companion-flicker-health-bars.yml
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.6.9 source [skip ci]"
+            git push origin HEAD:v0.2-alpha6-6-9-companion-flicker-health-bars
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-6-9-companion-flicker-health-bars
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.sha256.txt
+            BUILD_LOG.txt
+            SMOKE_TEST_V0_2_ALPHA6_6_9_COMPANION_FLICKER_HEALTH_BARS_VI.txt
+          if-no-files-found: error

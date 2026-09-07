@@ -1,0 +1,74 @@
+TEAM UP! v0.2.0-alpha.6.6.0 - PARTY STRATEGY FOUNDATION
+
+MUC TIEU
+- Kiem tra 5 party strategy co tac dong runtime that.
+- Khong thay doi PartySaveData schema.
+- Khong lam hong Alpha 6.5.3 Surge validation harness va cac regression lock truoc do.
+
+LENH
+teamup_strategy status
+teamup_strategy balanced
+teamup_strategy defensive
+teamup_strategy aggressive
+teamup_strategy hold
+teamup_strategy boss
+
+TEST 1 - BALANCED
+1. Vao Mine/Cave co quai.
+2. Chay: teamup_strategy balanced
+3. Party combat nhu baseline Alpha 6.5.3.
+4. Chay: teamup_strategy status
+5. Phai hien Party Strategy: Balanced.
+
+TEST 2 - DEFENSIVE
+1. Chay: teamup_strategy defensive
+2. Party phai acquisition gan hon Balanced.
+3. Healer/Support uu tien Farmer som hon khi bi mat mau.
+4. Attack cadence cham hon nhe.
+5. Khong duoc lam Tank/Healer dung im vo ly.
+
+TEST 3 - AGGRESSIVE
+1. Chay: teamup_strategy aggressive
+2. Party acquisition xa hon Balanced.
+3. Attack cadence nhanh hon nhe.
+4. Hard leash cu van phai con hieu luc, khong chase vo han.
+
+TEST 4 - HOLD POSITION
+1. Chay: teamup_strategy hold
+2. De party dung tai vi tri hien tai roi de quai o ngoai attack range.
+3. Party co the target quai gan nhung KHONG duoc chase den target.
+4. Khi quai vao attack range, party van danh/heal/control binh thuong.
+5. UI feedback HOLD POSITION co the hien mot lan khi bat dau giu vi tri.
+
+TEST 5 - BOSS FOCUS
+1. Chay: teamup_strategy boss
+2. Tao/vao encounter co nhieu quai khac MaxHealth.
+3. Party phai uu tien monster co MaxHealth cao nhat trong candidate set, sau do dung role score de tie-break.
+4. Khong blind-clone hay sua identity cua monster.
+
+TEST 6 - CONFIG PERSISTENCE
+1. Chon mot strategy bat ky, vd defensive.
+2. Save game / thoat game.
+3. Mo lai va chay teamup_strategy status.
+4. Strategy phai duoc doc tu config, khong can migration PartySaveData.
+
+TEST 7 - STRATEGY SWITCH CLEAN RETARGET
+1. Dang combat, doi balanced -> aggressive -> hold.
+2. Moi lan doi strategy, Combat.Clear() phai reset target/runtime locks sach.
+3. Khong duoc de NPC quay loang choang hoac giu target cu vo han.
+
+TEST 8 - SURGE REGRESSION
+- teamup_test surge status/reapply/clear/board van hoat dong.
+- Cardcha_CardTestArena van suppression=cardcha-sandbox.
+- Safe tile placement 6.5.2 van giu nguyen.
+
+TEST 9 - CORE REGRESSION
+- MiMi chi recruit sau Cardcha friendship/social unlock.
+- Sudoku identity/skill con nguyen.
+- Origin Linus -> Marlon -> Awakening -> Stronger Together con nguyen.
+- 51 NPC SVE/RSV identity/icon/balance con nguyen.
+- Equipment double-click, controller focus, Party Vault drag/drop con nguyen.
+- Target lock / anti-spin con nguyen.
+
+NEU CO LOI
+Gui SMAPI log + lenh strategy dang dung + ten map + party composition cho ChatGPT.

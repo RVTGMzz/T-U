@@ -1,0 +1,83 @@
+TEAM UP v0.2.0-alpha.6.6.5 - SWITCH INPUT + CODEX PROFILE POLISH
+================================================================
+
+MUC TIEU CUA BAN TEST NAY
+1. Xac nhan nut Action tren controller/Switch trang bi do that, khong phu thuoc XInput A.
+2. Xac nhan Codex moi lan nhan xuong/len chi di DUNG 1 ho so.
+3. Xac nhan UI ho so co chu can bang, dong deu, lon hon ban cu nhung khong con dong mo ta khong lo.
+4. Xac nhan cac dau sao rong do font fallback cua ky tu — / · / → da bien mat.
+
+A. EQUIPMENT - SWITCH CONTROLLER
+--------------------------------
+1. Mo menu cua 1 NPC dang trong party > Trang bi.
+2. Dung D-pad/left stick dua focus sang tui do.
+3. Chon 1 vu khi hop le.
+4. Nhan nut Action dung de tuong tac tren Switch DUNG 1 LAN.
+   PASS:
+   - item roi khoi tui;
+   - slot Vu khi NPC hien item that;
+   - chi co 1 thong bao trang bi;
+   - khong can double-click;
+   - khong xuat hien trang bi roi thao ngay sau do.
+5. Thu lai voi giay va ring/trinket.
+6. Dung right stick dua controller cursor len 1 item khac, nhan Action 1 lan.
+   PASS: dung item duoi pointer duoc xu ly.
+7. Spam/giu ngan nut Action.
+   PASS: debounce van ngan duplicate transaction.
+8. Mouse double-click item trong tui van equip trong cua so 450ms.
+9. X / nut Thao trang bi van unequip binh thuong.
+
+B. CODEX - KHONG SKIP HO SO
+----------------------------
+1. Mo danh sach Codex co it nhat 5 NPC A-B-C-D-E.
+2. Dung D-pad Down tung lan.
+   PASS: A -> B -> C -> D -> E, khong bo qua dong.
+3. Dung left stick Down tung nhip ngan.
+   PASS: cung chi di 1 ho so moi input, khong A -> C.
+4. Thu Up tu E ve A.
+   PASS: moi input chi lui 1 ho so.
+5. Dropdown Role/Status/Source van di 1 option moi lan.
+6. Right-stick / mouse wheel scroll van dong bo viewport va selection, khong snap nguoc.
+
+C. CHARACTER PROFILE UI
+-----------------------
+1. Mo ho so Harvey hoac NPC co passive/signature dai.
+2. Kiem tra panel ben phai.
+   PASS:
+   - tieu de section, affinity label/score, passive, signature, relationship co co chu cung he scale ~1.52;
+   - dong Doctor's Eye / Emergency Care khong con to gap doi phan con lai;
+   - chu van lon, de doc;
+   - noi dung dai dung scroll thay vi ep nho.
+3. Cuon het tu tren xuong duoi va nguoc lai bang D-pad/left stick/mouse wheel.
+   PASS: khong de chu, khong cat dong, scrollbar hop ly.
+
+D. FONT FALLBACK / DAU SAO RONG
+-------------------------------
+1. Xem cot thong tin ben trai cua Character Profile.
+2. NPC chua co equipment phai hien:
+   W: - | A: -
+   T: -
+   KHONG duoc hien cac dau ☆ thay cho ky tu trong.
+3. Mo Equipment comparison tooltip.
+   PASS: separator la | va mui ten la ->, khong co ☆ do glyph thieu.
+4. Neu van con ☆, chup dung vi tri + gui SMAPI log.
+
+E. REGRESSION NHANH
+-------------------
+- Equipment transactional confirm cua 6.6.4 van hoat dong.
+- Slot NPC khong double-click de unequip.
+- Inventory mouse double-click 450ms van duoc giu.
+- Tactics 5 strategy van mo/chuyen duoc.
+- Party cap nguoi va companion 2/2 khong doi.
+- Pelipper Town compatibility khong doi.
+- Sudoku/MiMi recruitment khong doi.
+- Surge/Cardcha sandbox khong doi.
+- Party Vault khong doi.
+
+NEU EQUIP SWITCH VAN KHONG HOAT DONG
+-----------------------------------
+Gui:
+1. nut vat ly ban bam tren Switch controller;
+2. anh focus/pointer ngay truoc khi bam;
+3. SMAPI log cua lan bam do.
+Alpha 6.6.5 bat Action Button o tang SMAPI, nen log/test nay se tach duoc mapping controller khoi IClickableMenu.
