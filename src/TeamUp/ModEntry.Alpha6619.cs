@@ -16,6 +16,7 @@ public sealed partial class ModEntry
     {
         EnsureAlpha6621Registered();
         ConfigurePelipperApiBridgeAlpha6619();
+        EnsureAlpha6625Registered();
         if (Alpha6619EventsRegistered)
             return;
 
@@ -39,10 +40,11 @@ public sealed partial class ModEntry
         {
             PelipperApiRuntimeRootBridge.Configure(runtimeRoot);
             PelipperVillagerLifecycleBridge.Configure(runtimeRoot);
+            PelipperTown119NativeBridge.Configure(runtimeRoot);
             PelipperApiBridgeConfiguredAlpha6619 = true;
             PelipperRuntimeRootLookupLoggedAlpha6620 = false;
             Monitor.Log(
-                $"Alpha 6.6.21 bound Pelipper live runtime root {PelipperVillagerLifecycleBridge.RootTypeName} via {locatorRoute}.",
+                $"Alpha 6.6.25 bound Pelipper live runtime root {PelipperVillagerLifecycleBridge.RootTypeName} via {locatorRoute}; exact119={PelipperTown119NativeBridge.Status}.",
                 LogLevel.Debug);
             return;
         }
@@ -51,7 +53,7 @@ public sealed partial class ModEntry
         {
             PelipperRuntimeRootLookupLoggedAlpha6620 = true;
             Monitor.Log(
-                $"Alpha 6.6.21 could not resolve Pelipper live ModEntry from SMAPI metadata type {modInfo.GetType().FullName}. Falling back to the legacy assembly bridge; no invalid generic API retry will be attempted.",
+                $"Alpha 6.6.25 could not resolve Pelipper live ModEntry from SMAPI metadata type {modInfo.GetType().FullName}. Exact 1.1.9 native lifecycle bridge is unavailable; no invalid generic API retry will be attempted.",
                 LogLevel.Warn);
         }
     }
@@ -62,6 +64,7 @@ public sealed partial class ModEntry
             return;
 
         ConfigurePelipperApiBridgeAlpha6619();
+        EnsureAlpha6625Registered();
     }
 
     private void OnAlpha6619DayEnding(object? sender, DayEndingEventArgs e)
@@ -69,6 +72,7 @@ public sealed partial class ModEntry
         if (!Context.IsMainPlayer || !Context.IsWorldReady)
             return;
 
+        PelipperTown119NativeBridge.RestoreAll();
         PelipperVillagerLifecycleBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperApiRuntimeRootBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperNonConvergedRoutesAlpha6619.Clear();
@@ -76,9 +80,11 @@ public sealed partial class ModEntry
 
     private void OnAlpha6619ReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
+        PelipperTown119NativeBridge.RestoreAll();
         PelipperVillagerLifecycleBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperApiRuntimeRootBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperNonConvergedRoutesAlpha6619.Clear();
+        PelipperTown119NativeBridge.Reset();
         PelipperVillagerLifecycleBridge.Reset();
         PelipperApiRuntimeRootBridge.Reset();
         PelipperApiBridgeConfiguredAlpha6619 = false;
