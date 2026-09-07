@@ -36,12 +36,28 @@ public static class CompanionIntegrationService
             return Describe(candidate, CompanionOwnerKind.PartyMember, owner.Name, null);
         }
 
-        // Alpha 6.6.26: Pelipper Town 1.1.9 exposes an exact VillagerName -> runtime -> entity map.
-        // When that map is available its answer is authoritative, including a null result after
-        // native Despawn. This prevents a different nearby Pokemon from being proximity-matched to
-        // the NPC that was just recalled.
-        if (PelipperTown119NativeBridge.TryGetVillagerCompanionDescriptor(owner.Name, out LiveCompanionDescriptor? nativePelipper))
+        // Alpha 6.6.27: exact Pelipper 1.1.9 runtime lookup remains first authority. If Pelipper
+        // says this enabled custom NPC has a runtime but its _entity is wrapped (or the runtime
+        // entry hasn't materialized yet), use the bridge's unique/unclaimed safe fallback. Never
+        // fall through to the old nearest-Pokemon heuristic while the exact 1.1.9 map is bound.
+        if (PelipperTown119NativeBridge.TryGetVillagerCompanionDescriptor(
+            owner.Name,
+            out LiveCompanionDescriptor? nativePelipper))
+        {
             return nativePelipper;
+        }
+
+        if (PelipperTown119NativeBridge.HasExactVillagerRuntimeMap)
+        {
+            if (PelipperTown119NativeBridge.TryGetSafeCustomVillagerCompanionDescriptor(
+                owner,
+                out LiveCompanionDescriptor? safeCustomPelipper))
+            {
+                return safeCustomPelipper;
+            }
+
+            return null;
+        }
 
         // Older/unsupported Pelipper builds keep the conservative compatibility adapter.
         return PelipperTownCompatibilityService.FindVillagerPartner(owner);
