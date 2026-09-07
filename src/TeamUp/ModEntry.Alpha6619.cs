@@ -14,6 +14,7 @@ public sealed partial class ModEntry
 
     private void EnsureAlpha6619EventsRegistered()
     {
+        EnsureAlpha6621Registered();
         ConfigurePelipperApiBridgeAlpha6619();
         if (Alpha6619EventsRegistered)
             return;
@@ -37,10 +38,11 @@ public sealed partial class ModEntry
             && runtimeRoot is not null)
         {
             PelipperApiRuntimeRootBridge.Configure(runtimeRoot);
+            PelipperVillagerLifecycleBridge.Configure(runtimeRoot);
             PelipperApiBridgeConfiguredAlpha6619 = true;
             PelipperRuntimeRootLookupLoggedAlpha6620 = false;
             Monitor.Log(
-                $"Alpha 6.6.20 bound Pelipper live runtime root {PelipperApiRuntimeRootBridge.ApiTypeName} via {locatorRoute}.",
+                $"Alpha 6.6.21 bound Pelipper live runtime root {PelipperVillagerLifecycleBridge.RootTypeName} via {locatorRoute}.",
                 LogLevel.Debug);
             return;
         }
@@ -49,7 +51,7 @@ public sealed partial class ModEntry
         {
             PelipperRuntimeRootLookupLoggedAlpha6620 = true;
             Monitor.Log(
-                $"Alpha 6.6.20 could not resolve Pelipper live ModEntry from SMAPI metadata type {modInfo.GetType().FullName}. Falling back to the legacy assembly bridge; no invalid generic API retry will be attempted.",
+                $"Alpha 6.6.21 could not resolve Pelipper live ModEntry from SMAPI metadata type {modInfo.GetType().FullName}. Falling back to the legacy assembly bridge; no invalid generic API retry will be attempted.",
                 LogLevel.Warn);
         }
     }
@@ -67,14 +69,17 @@ public sealed partial class ModEntry
         if (!Context.IsMainPlayer || !Context.IsWorldReady)
             return;
 
+        PelipperVillagerLifecycleBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperApiRuntimeRootBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperNonConvergedRoutesAlpha6619.Clear();
     }
 
     private void OnAlpha6619ReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
+        PelipperVillagerLifecycleBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperApiRuntimeRootBridge.RestoreAll(name => Game1.getCharacterFromName(name));
         PelipperNonConvergedRoutesAlpha6619.Clear();
+        PelipperVillagerLifecycleBridge.Reset();
         PelipperApiRuntimeRootBridge.Reset();
         PelipperApiBridgeConfiguredAlpha6619 = false;
         PelipperRuntimeRootLookupLoggedAlpha6620 = false;
@@ -83,63 +88,9 @@ public sealed partial class ModEntry
     private bool IsNpcPelipperSourceLiveAlpha6619(NPC owner)
         => PelipperTownCompatibilityService.IsPelipperDescriptor(CompanionIntegrationService.FindLinkedCompanion(owner));
 
-    /// <summary>
-    /// Source writes are not considered successful until Pelipper's live descriptor agrees. A
-    /// failed or asynchronous route is retried on later reconciliation pulses instead of being
-    /// permanently blacklisted after one attempt, which was the key 6.6.18 failure mode.
-    /// </summary>
     private bool TrySetPelipperNpcSourceEnabledAlpha6619(NPC owner, bool enabled, string reason)
-    {
-        ConfigurePelipperApiBridgeAlpha6619();
-
-        bool routed = PelipperApiRuntimeRootBridge.TrySetEnabled(owner.Name, owner, enabled, out string route);
-        if (!routed)
-            routed = PelipperVillagerCompanionRuntimeBridge.TrySetEnabled(owner.Name, owner, enabled, out route);
-
-        if (routed)
-        {
-            bool sourceLive = IsNpcPelipperSourceLiveAlpha6619(owner);
-            bool converged = enabled ? sourceLive : !sourceLive;
-            if (converged)
-            {
-                PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
-                PelipperNonConvergedRoutesAlpha6619.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));
-                Monitor.Log(
-                    $"Alpha 6.6.20 verified Pelipper villager source {(enabled ? "deploy" : "recall")} {owner.Name} via {route} ({reason}).",
-                    LogLevel.Debug);
-                return true;
-            }
-
-            string convergenceKey = $"{owner.Name}|{enabled}|{route}";
-            if (PelipperNonConvergedRoutesAlpha6619.Add(convergenceKey))
-            {
-                Monitor.Log(
-                    $"Alpha 6.6.20 route {route} accepted the {(enabled ? "deploy" : "recall")} request for {owner.Name}, but Pelipper source is still live={sourceLive}. Team Up keeps the real slot occupied and will retry.",
-                    LogLevel.Warn);
-            }
-            return false;
-        }
-
-        if (PelipperNpcNativeControlWarningsAlpha6618.Add(owner.Name))
-        {
-            Monitor.Log(
-                $"Could not locate Pelipper's live villager companion enable/recall contract for {owner.Name}. API root={PelipperApiRuntimeRootBridge.ApiTypeName}. Team Up keeps the source-live Pokemon counted and will retry.",
-                LogLevel.Warn);
-        }
-        return false;
-    }
+        => TrySetPelipperNpcSourceEnabledAlpha6621(owner, enabled, reason);
 
     private void RestorePelipperNpcSourceAlpha6619(NPC owner)
-    {
-        ConfigurePelipperApiBridgeAlpha6619();
-        bool restored = PelipperApiRuntimeRootBridge.Restore(owner.Name, owner, out string route);
-        if (!restored)
-            restored = PelipperVillagerCompanionRuntimeBridge.Restore(owner.Name, owner, out route);
-
-        if (restored)
-            Monitor.Log($"Alpha 6.6.20 restored Pelipper villager companion source setting for {owner.Name} via {route}.", LogLevel.Debug);
-
-        PelipperNpcNativeControlWarningsAlpha6618.Remove(owner.Name);
-        PelipperNonConvergedRoutesAlpha6619.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));
-    }
+        => RestorePelipperNpcSourceAlpha6621(owner);
 }
