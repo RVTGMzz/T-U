@@ -12,8 +12,9 @@ public sealed partial class ModEntry
     private const int PelipperCombatProbePulseAlpha6613 = 5;
     private const int PelipperQuotaPulseAlpha6613 = 15;
 
-    // Kept only for the older player-owned actor handshake. NPC-owned Pelipper actors never use
-    // this as a render/controller authority path in Alpha 6.6.24.
+    // Compatibility cache for the older player-owned actor handshake. Alpha 6.6.25 first routes
+    // player Call/Return through Pelipper Town 1.1.9's exact ModEntry lifecycle; the actor fallback
+    // is retained only for unsupported Pelipper builds where the native bridge cannot bind.
     private readonly Dictionary<NPC, bool> PelipperSourceDeploymentAlpha6613 = new(ReferenceEqualityComparer.Instance);
 
     private void RegisterAlpha6613Events()
@@ -95,7 +96,7 @@ public sealed partial class ModEntry
 
             bool deployed = deployedIds.Contains(unit.UnitId);
 
-            // Alpha 6.6.24 source authority: quota enforcement records intent only.
+            // Alpha 6.6.24+ source authority: quota enforcement records intent only.
             // It never toggles source-owned render/controller/runtime state.
             PelipperDeploymentStateService.SetDesiredDeployment(
                 actor,
@@ -132,8 +133,30 @@ public sealed partial class ModEntry
         if (PelipperSourceDeploymentAlpha6613.TryGetValue(actor, out bool previous) && previous == deployed)
             return;
 
-        PelipperSourceDeploymentAlpha6613[actor] = deployed;
+        // Alpha 6.6.25: when this actor belongs to a registered player-owned Pelipper companion,
+        // use Pelipper Town 1.1.9's own RecallToBall/DeployBesideOwner lifecycle first. This avoids
+        // synthetic actor state and lets the source mod perform the real ball/deploy transition.
+        CompanionUnitData? playerUnit = Party.CompanionUnits
+            .Where(PelipperTownCompatibilityService.IsSourceControlled)
+            .Where(unit => unit.OwnerKind == CompanionOwnerKind.Player)
+            .FirstOrDefault(unit => ReferenceEquals(PelipperTownCompatibilityService.ResolveActor(unit), actor));
 
+        if (playerUnit is not null)
+        {
+            ConfigurePelipperApiBridgeAlpha6619();
+            if (PelipperTown119NativeBridge.TrySetPlayerDeployment(playerUnit.RecruiterId, deployed, out string nativeRoute))
+            {
+                PelipperSourceDeploymentAlpha6613[actor] = deployed;
+                Monitor.Log(
+                    $"Alpha 6.6.25 routed player Pelipper {(deployed ? "Call" : "Return")} owner={playerUnit.RecruiterId} via {nativeRoute}.",
+                    LogLevel.Debug);
+                return;
+            }
+        }
+
+        // Compatibility fallback for Pelipper builds that don't expose the verified 1.1.9 root.
+        // Cache only after a source mutation succeeds so a blocked/failed native Call isn't falsely
+        // remembered as deployed.
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
         Type type = actor.GetType();
 
@@ -148,6 +171,7 @@ public sealed partial class ModEntry
                 if (method is null)
                     continue;
                 method.Invoke(actor, new object[] { deployed });
+                PelipperSourceDeploymentAlpha6613[actor] = deployed;
                 return;
             }
             catch
@@ -167,6 +191,7 @@ public sealed partial class ModEntry
                 if (property?.CanWrite == true && property.PropertyType == typeof(bool))
                 {
                     property.SetValue(actor, deployed);
+                    PelipperSourceDeploymentAlpha6613[actor] = deployed;
                     return;
                 }
 
@@ -174,6 +199,7 @@ public sealed partial class ModEntry
                 if (field?.FieldType == typeof(bool))
                 {
                     field.SetValue(actor, deployed);
+                    PelipperSourceDeploymentAlpha6613[actor] = deployed;
                     return;
                 }
             }
