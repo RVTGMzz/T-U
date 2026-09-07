@@ -1,0 +1,45 @@
+TEAM UP v0.2.0-alpha.6.6.27
+CUSTOM NPC COMPANION DETECTION - SMOKE TEST VI
+
+MỤC TIÊU
+Alpha 6.6.27 sửa lỗi NPC custom như Martin có Pokémon Pelipper hiện rõ bên cạnh nhưng Team Up vẫn báo:
+"Không tìm thấy Pokémon đồng hành của nhân vật này."
+
+A. MARTIN - NHẬN ĐÚNG POKÉMON
+[ ] 1. Trong Pelipper Town, bảo đảm Martin có partner và Companion enabled = ON.
+[ ] 2. Mời Martin vào Team Up.
+[ ] 3. Đứng cạnh Martin khi Pokémon của Martin đang hiện rõ.
+[ ] 4. Mở điều khiển Pokémon bằng P hoặc L+R khi đang nói chuyện với Martin.
+[ ] 5. KHÔNG được hiện "Không tìm thấy Pokémon đồng hành của nhân vật này."
+[ ] 6. Menu phải hiện đúng tên Pokémon của Martin và cho phép Call/Return.
+
+B. CỤM NHIỀU NPC + POKÉMON - KHÔNG NHẬN NHẦM
+[ ] 1. Cho Martin và ít nhất một NPC khác có Pokémon đứng gần nhau.
+[ ] 2. Mở điều khiển Pokémon của Martin.
+[ ] 3. Team Up không được lấy Pokémon của NPC khác làm partner của Martin.
+[ ] 4. Nếu exact runtime chưa sẵn sàng và có nhiều ứng viên mơ hồ, Team Up phải fail closed thay vì chọn con gần nhất.
+[ ] 5. Khi runtime Pelipper ổn định lại, mở menu lần nữa phải nhận đúng partner của Martin.
+
+C. RETURN / CALL
+[ ] 1. Return Pokémon của Martin -> Pokémon được Pelipper thu native, Team Up chuyển Standby.
+[ ] 2. Mở lại P/L+R -> đường Call vẫn tồn tại.
+[ ] 3. Khi effective < 2/2, Call hoạt động và Pokémon trở lại.
+[ ] 4. Khi effective = 2/2, Call phải bị chặn hoặc mở lựa chọn thay thế.
+[ ] 5. Không bao giờ xuất hiện companion thật thứ ba.
+
+D. SINGLE AUTHORITY / REGRESSION
+[ ] 1. `teamup_authority` báo single=True và legacyLoops=disabled.
+[ ] 2. `teamup_pelipper_native` báo exactOwnerMap=True trên Pelipper Town 1.1.9.
+[ ] 3. `teamup_pelipper_probe Martin` dùng để xem trạng thái runtime Martin nếu cần.
+[ ] 4. effective/reserved không được dao động thành 3/2 hoặc 4/2.
+[ ] 5. Pokémon không nhấp nháy, không bị Team Up giành controller/render.
+[ ] 6. NPC thường + Pokémon người chơi + NPC Pokémon vẫn giữ hard cap 2/2.
+[ ] 7. Leave Martin trả quyền lifecycle lại cho Pelipper Town.
+[ ] 8. Không cài Pelipper Town: Team Up vẫn phải load bình thường.
+
+PASS TỐI THIỂU CHO BUG ẢNH MARTIN
+- Martin có Pokémon hiện bên cạnh.
+- P/L+R không còn báo "Không tìm thấy Pokémon đồng hành...".
+- Menu nhận đúng Pokémon của Martin.
+- Không nhận nhầm Pokémon của NPC kế bên.
+- Không có 3/2 hoặc 4/2.
