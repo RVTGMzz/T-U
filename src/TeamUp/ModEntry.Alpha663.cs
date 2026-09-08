@@ -193,7 +193,10 @@ public sealed partial class ModEntry
         // Alpha 6.7.1: recruitment controls Pelipper at the source even while the configured
         // partner actor is asleep/dormant. NPC-only therefore cannot auto-spawn later.
         if (PelipperTown119NativeBridge.HasVillagerLifecycle)
-            PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled(owner.Name, includeCompanion, out _);
+        {
+            string pelipperOwnerKey = ResolvePelipperVillagerConfigKeyAlpha6713(owner);
+            PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled(pelipperOwnerKey, includeCompanion, out _);
+        }
 
         if (!PelipperTownCompatibilityService.IsPelipperDescriptor(detectedCompanion))
             return;

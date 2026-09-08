@@ -257,9 +257,6 @@ internal static class PelipperTown119NativeBridge
             return false;
         }
 
-        if (TryIsVillagerCompanionConfiguredEnabled(npcName, out bool enabled) && !enabled)
-            return true;
-
         MethodInfo? method = manager.GetType().GetMethods(InstanceFlags)
             .FirstOrDefault(candidate =>
             {

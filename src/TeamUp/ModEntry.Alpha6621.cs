@@ -28,8 +28,14 @@ public sealed partial class ModEntry
         ConfigurePelipperApiBridgeAlpha6619();
 
         string requestKey = $"{owner.Name}|{enabled}";
+        string nativeOwnerKey = ResolvePelipperVillagerConfigKeyAlpha6713(owner);
         bool sourceLiveBefore = IsNpcPelipperSourceLiveAlpha6619(owner);
-        bool alreadyConverged = enabled ? sourceLiveBefore : !sourceLiveBefore;
+        bool hasConfiguredEnabled = PelipperTown119NativeBridge.TryIsVillagerCompanionConfiguredEnabled(
+            nativeOwnerKey,
+            out bool configuredEnabled);
+        bool alreadyConverged = enabled
+            ? sourceLiveBefore && (!hasConfiguredEnabled || configuredEnabled)
+            : !sourceLiveBefore && (!hasConfiguredEnabled || !configuredEnabled);
         if (alreadyConverged)
         {
             PelipperNonConvergedSourceRequestsAlpha6623.Remove(requestKey);
@@ -71,7 +77,7 @@ public sealed partial class ModEntry
         // VillagerCompanionManager.ApplyConfiguredAssignments(), whose IL directly invokes
         // VillagerCompanionRuntime.Despawn() for disabled NPC partners.
         bool nativeAvailable = PelipperTown119NativeBridge.HasVillagerLifecycle;
-        bool routed = PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled(owner.Name, enabled, out string route);
+        bool routed = PelipperTown119NativeBridge.TrySetVillagerCompanionEnabled(nativeOwnerKey, enabled, out string route);
 
         // Only unsupported Pelipper builds may fall back to older discovery bridges. If the exact
         // 1.1.9 surface is bound, its false result is authoritative and must never be bypassed.
@@ -127,7 +133,8 @@ public sealed partial class ModEntry
         PelipperNonConvergedSourceRequestsAlpha6623.RemoveWhere(key => key.StartsWith(owner.Name + "|", StringComparison.OrdinalIgnoreCase));
 
         bool nativeAvailable = PelipperTown119NativeBridge.HasVillagerLifecycle;
-        bool restored = PelipperTown119NativeBridge.RestoreVillager(owner.Name, out string route);
+        string nativeOwnerKey = ResolvePelipperVillagerConfigKeyAlpha6713(owner);
+        bool restored = PelipperTown119NativeBridge.RestoreVillager(nativeOwnerKey, out string route);
 
         if (!restored && !nativeAvailable)
             restored = PelipperVillagerLifecycleBridge.Restore(owner.Name, owner, out route);

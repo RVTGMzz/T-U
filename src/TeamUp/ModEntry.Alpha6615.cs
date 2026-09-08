@@ -97,16 +97,7 @@ public sealed partial class ModEntry
 
     private void OnAlpha6615UpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
-        if (!Context.IsMainPlayer || !Context.IsWorldReady)
-            return;
-
-        // 6.7.12: mercy/capture is a world combat invariant, not an NPC-party behavior. Keep a
-        // per-tick last-resort floor repair active even while party composition changes.
-        int repaired = PelipperCaptureSafetyService.RepairCurrentLocationFloors(Game1.currentLocation);
-        if (repaired > 0)
-            Monitor.LogOnce("Alpha 6.7.12 repaired a live wild Pokemon below the active capture floor.", LogLevel.Trace);
-
-        if (!e.IsMultipleOf(15))
+        if (!Context.IsMainPlayer || !Context.IsWorldReady || !e.IsMultipleOf(15))
             return;
 
         DetectPlayerCompanionRecallAttemptsAlpha6615();

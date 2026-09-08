@@ -49,10 +49,14 @@ public sealed partial class ModEntry
             if (owned.Contains(monster))
             {
                 monster.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
+                monster.modData.Remove(PelipperTownCompatibilityService.WildCombatProxyKey);
                 continue;
             }
 
+            // The same unowned Pelipper Monster proxy that Team Up opts into combat is the exact
+            // entity whose HP must obey Pelipper's capture/mercy floor.
             monster.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
+            monster.modData[PelipperTownCompatibilityService.WildCombatProxyKey] = "true";
         }
     }
 

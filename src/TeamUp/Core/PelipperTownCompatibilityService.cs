@@ -1,5 +1,6 @@
 using System.Reflection;
 using StardewValley;
+using StardewValley.Monsters;
 
 namespace Ronvotri.TeamUp.Core;
 
@@ -16,6 +17,7 @@ public static class PelipperTownCompatibilityService
     public const string SuppressedKey = "Ronvotri.TeamUp/PelipperSuppressed";
     public const string SuppressedOwnerKey = "Ronvotri.TeamUp/PelipperSuppressedOwner";
     public const string CombatTargetOptInKey = "Ronvotri.TeamUp/CombatTarget";
+    public const string WildCombatProxyKey = "Ronvotri.TeamUp/PelipperWildCombatProxy";
     private const string OriginalInvisibleKey = "Ronvotri.TeamUp/PelipperOriginalInvisible";
 
     private static readonly string[] OwnerStringMemberHints =
@@ -218,10 +220,26 @@ public static class PelipperTownCompatibilityService
             || !raw.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
-    // Capture safety must not depend on Team Up's 5-tick combat opt-in marker. Pelipper's own
-    // Pokemon can damage a wild proxy before that marker exists, so expose direct wild identity.
+    // Pelipper Town builds each wild encounter as a visible Wild NPC plus a separate Monster
+    // combat proxy. The proxy can lack Wild in its name/type/modData even though Team Up has already
+    // classified it as the attackable unowned Pelipper target. Capture identity therefore accepts
+    // both the source-facing Wild signals and Team Up's explicit proxy/target markers.
     public static bool IsWildCombatActor(NPC actor)
-        => LooksLikePelipperActor(actor) && LooksWild(actor);
+    {
+        if (!LooksLikePelipperActor(actor))
+            return false;
+        if (LooksWild(actor))
+            return true;
+        if (actor is not Monster)
+            return false;
+
+        return HasTrueModData(actor, WildCombatProxyKey)
+            || HasTrueModData(actor, CombatTargetOptInKey);
+    }
+
+    private static bool HasTrueModData(NPC actor, string key)
+        => actor.modData.TryGetValue(key, out string? raw)
+            && raw.Equals("true", StringComparison.OrdinalIgnoreCase);
 
     public static bool LooksLikePelipperActor(NPC actor)
     {

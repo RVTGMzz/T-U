@@ -18,11 +18,9 @@ public sealed partial class ModEntry
         if (live is not null)
             return live;
 
-        return PelipperTown119NativeBridge.TryGetConfiguredVillagerCompanionDescriptor(
-            owner.Name,
-            out LiveCompanionDescriptor? configured)
-                ? configured
-                : null;
+        // Recruitment intent is the configured species, not the current enabled/render state.
+        // This also tries displayName for expansion NPCs while rebinding ownership to NPC.Name.
+        return GetConfiguredRecruitDescriptorAlpha6713(owner);
     }
 
     /// <summary>
@@ -57,13 +55,9 @@ public sealed partial class ModEntry
         if (PelipperTownCompatibilityService.IsPelipperDescriptor(CompanionIntegrationService.FindLinkedCompanion(owner)))
             return false;
 
-        if (!PelipperTown119NativeBridge.TryGetConfiguredVillagerCompanionDescriptor(
-                owner.Name,
-                out LiveCompanionDescriptor? configured)
-            || configured is null)
-        {
+        LiveCompanionDescriptor? configured = GetConfiguredRecruitDescriptorAlpha6713(owner);
+        if (configured is null)
             return false;
-        }
 
         // A synthetic configured row may later be replaced by the actor's stable runtime UnitId.
         // Owner identity is therefore the durable match, while provider/type prevents false claims.
