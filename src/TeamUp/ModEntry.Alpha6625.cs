@@ -45,6 +45,9 @@ public sealed partial class ModEntry
 
         // Alpha 6.7.6: context-aware cosmetic chatter + static context audit.
         EnsureAlpha676ContextBanterRegistered();
+
+        // Alpha 6.7.7: cosmetic banter recency memory + repetition guard.
+        EnsureAlpha677BanterMemoryRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)

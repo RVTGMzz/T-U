@@ -41,6 +41,7 @@ internal sealed class PartyBanterService
     private readonly Dictionary<string, long> PairCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, long> LowHpCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<QueuedLine> PendingLines = new();
+    private readonly BanterMemoryTracker BanterMemory = new();
 
     private long NextAmbientTick;
     private long NextCombatTick;
@@ -113,6 +114,7 @@ internal sealed class PartyBanterService
         PairCooldownUntil.Clear();
         LowHpCooldownUntil.Clear();
         PendingLines.Clear();
+        BanterMemory.Reset();
         NextAmbientTick = 0;
         NextCombatTick = 0;
         NextMimiShipTick = 0;
@@ -126,7 +128,7 @@ internal sealed class PartyBanterService
     public string DescribeStatus()
     {
         List<ActiveNpc> active = GetActivePartyNpcs();
-        return $"banter={(IsEnabled() ? "on" : "off")}, activeNPCs={active.Count}, queued={PendingLines.Count}, mimi={active.Any(IsMimi)}, maleNPCs={active.Count(npc => IsMale(npc.Actor))}, shipping={(IsMimiShippingEnabled() ? "on" : "off")}";
+        return $"banter={(IsEnabled() ? "on" : "off")}, activeNPCs={active.Count}, queued={PendingLines.Count}, mimi={active.Any(IsMimi)}, maleNPCs={active.Count(npc => IsMale(npc.Actor))}, shipping={(IsMimiShippingEnabled() ? "on" : "off")}, memory={BanterMemory.RecentExchangeCount}/{BanterMemoryTracker.MaxRecentExchangeIds}";
     }
 
     public void Update()
@@ -224,6 +226,12 @@ internal sealed class PartyBanterService
 
     public bool ForceContext()
         => Context.IsWorldReady && Context.IsMainPlayer && TryContextExchange(GetActivePartyNpcs(), forcedContext: null, ignoreCooldown: true);
+
+    public string DescribeMemory()
+        => BanterMemory.Describe();
+
+    public void ResetMemory()
+        => BanterMemory.Reset();
 
     private List<ActiveNpc> GetActivePartyNpcs()
     {
@@ -330,7 +338,13 @@ internal sealed class PartyBanterService
             if (candidates.Count == 0)
                 continue;
 
-            (ContextBanterScript selectedScript, ActiveNpc selectedSpeaker, ActiveNpc? selectedPartner) = candidates[Game1.random.Next(candidates.Count)];
+            (ContextBanterScript selectedScript, ActiveNpc selectedSpeaker, ActiveNpc? selectedPartner) = candidates
+                .OrderBy(candidate => BanterMemory.Score(
+                    candidate.Script.Id,
+                    candidate.Speaker.Member.CharacterName,
+                    candidate.Partner?.Member.CharacterName))
+                .ThenBy(_ => Game1.random.Next())
+                .First();
             PairCooldownUntil["context|" + selectedScript.Id] = Game1.ticks + 2400;
             bool vi = IsVietnamese();
             string line = vi ? selectedScript.ViLine : selectedScript.EnLine;
@@ -691,23 +705,35 @@ internal sealed class PartyBanterService
             return false;
 
         long tick = Game1.ticks;
-        List<ActiveNpc> shuffled = active.OrderBy(_ => Game1.random.Next()).ToList();
-        for (int i = 0; i < shuffled.Count; i++)
+        List<(ActiveNpc A, ActiveNpc B, string Key, int MemoryScore)> eligible = new();
+        for (int i = 0; i < active.Count; i++)
         {
-            for (int j = i + 1; j < shuffled.Count; j++)
+            for (int j = i + 1; j < active.Count; j++)
             {
-                string key = BuildPairKey(shuffled[i].Member.CharacterName, shuffled[j].Member.CharacterName);
+                string key = BuildPairKey(active[i].Member.CharacterName, active[j].Member.CharacterName);
                 if (!ignorePairCooldown && PairCooldownUntil.TryGetValue(key, out long until) && tick < until)
                     continue;
 
-                bool normalOrder = Game1.random.NextDouble() < 0.5;
-                first = normalOrder ? shuffled[i] : shuffled[j];
-                second = normalOrder ? shuffled[j] : shuffled[i];
-                PairCooldownUntil[key] = tick + 1500;
-                return true;
+                int memoryScore = BanterMemory.Score(
+                    "pair-choice:" + key,
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName);
+                eligible.Add((active[i], active[j], key, memoryScore));
             }
         }
-        return false;
+
+        if (eligible.Count == 0)
+            return false;
+
+        (ActiveNpc a, ActiveNpc b, string selectedKey, _) = eligible
+            .OrderBy(candidate => candidate.MemoryScore)
+            .ThenBy(_ => Game1.random.Next())
+            .First();
+        bool normalOrder = Game1.random.NextDouble() < 0.5;
+        first = normalOrder ? a : b;
+        second = normalOrder ? b : a;
+        PairCooldownUntil[selectedKey] = tick + 1500;
+        return true;
     }
 
     private void EnqueueSingleLine(string id, ActiveNpc speaker, string line, long tick)
@@ -715,6 +741,7 @@ internal sealed class PartyBanterService
         if (PendingLines.Count > 0)
             return;
         LastExchangeId = id;
+        BanterMemory.Record(id, speaker.Member.CharacterName);
         PendingLines.Enqueue(new QueuedLine(speaker.Member.CharacterName, line, tick, 1650));
         FlushQueuedLines(tick);
         Monitor.Log($"Party context banter: {id}", LogLevel.Trace);
@@ -725,6 +752,11 @@ internal sealed class PartyBanterService
         if (PendingLines.Count > 0)
             return;
         LastExchangeId = exchange.Id;
+        BanterMemory.Record(
+            exchange.Id,
+            exchange.First.Member.CharacterName,
+            exchange.Second.Member.CharacterName,
+            exchange.ThirdSpeaker);
         PendingLines.Enqueue(new QueuedLine(exchange.First.Member.CharacterName, exchange.FirstLine, tick, 1650));
         PendingLines.Enqueue(new QueuedLine(exchange.Second.Member.CharacterName, exchange.SecondLine, tick + 110, 1650));
         if (!string.IsNullOrWhiteSpace(exchange.ThirdSpeaker) && !string.IsNullOrWhiteSpace(exchange.ThirdLine))
