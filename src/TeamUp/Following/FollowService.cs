@@ -85,6 +85,7 @@ public sealed class FollowService
     {
         RememberBaseSpeed(npc);
         EnableFarmerPassThrough(npc);
+        UnlockVanillaMovementAnimation(npc);
         npc.modData[PartyControlledModDataKey] = "true";
         if (recruiterId.HasValue)
             npc.modData[PartyControllerOwnerModDataKey] = recruiterId.Value.ToString();
@@ -104,10 +105,39 @@ public sealed class FollowService
     private static void ResetToStandingPose(NPC npc)
     {
         int facing = Math.Clamp(npc.FacingDirection, 0, 3);
+        UnlockVanillaMovementAnimation(npc, force: true);
+        npc.Halt();
+        npc.Sprite.StopAnimation();
+        npc.faceDirection(facing);
+    }
+
+    /// <summary>
+    /// Alpha 6.7.2: some vanilla end-of-route jobs (notably Gus at the Saloon) leave
+    /// AnimatedSprite.ignoreStopAnimation enabled. Stardew's StopAnimation() and faceDirection()
+    /// both early-return while that flag is set, so Team Up pathfinding can move the NPC while the
+    /// visible sprite remains frozen on one frame. Clear only the vanilla route-animation locks;
+    /// walking/facing remains entirely Stardew's normal NPC animation system.
+    /// </summary>
+    private static void UnlockVanillaMovementAnimation(NPC npc, bool force = false)
+    {
+        bool routeLocked = npc.Sprite.ignoreStopAnimation
+            || npc.Sprite.ignoreSourceRectUpdates
+            || npc.doingEndOfRouteAnimation.Value
+            || npc.goingToDoEndOfRouteAnimation.Value;
+        if (!force && !routeLocked)
+            return;
+
+        int facing = Math.Clamp(npc.FacingDirection, 0, 3);
         npc.doingEndOfRouteAnimation.Value = false;
+        npc.goingToDoEndOfRouteAnimation.Value = false;
+        npc.endOfRouteBehaviorName.Value = null;
         npc.nextEndOfRouteMessage = null;
         npc.endOfRouteMessage.Value = null;
-        npc.Halt();
+
+        npc.Sprite.ignoreStopAnimation = false;
+        npc.Sprite.ignoreSourceRectUpdates = false;
+        npc.Sprite.loop = true;
+        npc.Sprite.ClearAnimation();
         npc.Sprite.StopAnimation();
         npc.faceDirection(facing);
     }
