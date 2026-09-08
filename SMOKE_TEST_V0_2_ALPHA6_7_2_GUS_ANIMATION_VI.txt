@@ -1,0 +1,27 @@
+TEAM UP v0.2.0-alpha.6.7.2 - GUS VANILLA ANIMATION UNLOCK
+
+Mục tiêu bản này:
+- KHÔNG thêm custom animation cho Gus.
+- Gỡ visual HOT PLATE thêm nhầm ở 6.7.1.
+- Sửa cờ animation vanilla bị kẹt khiến Gus không quay hướng / không chạy walk cycle.
+- Giữ nguyên toàn bộ fix 6.7.1: 5/5 people, Gunther + dormant Aerodactyl, Gunther profile, i18n.
+
+TEST CHÍNH - GUS
+1. Vào save có Gus đang ở Team Up hoặc tuyển Gus khi ông đang ở Stardrop Saloon.
+2. Đi sang trái/phải/lên/xuống vài lần, đổi map nếu tiện.
+3. Xác nhận Gus:
+   - quay mặt đúng theo hướng di chuyển;
+   - có walk cycle vanilla khi bước;
+   - không còn giữ nguyên một frame bất kể hướng;
+   - khi dừng thì đứng ở facing hợp lệ.
+4. Vào khu có quái:
+   - Gus vẫn di chuyển/path bình thường;
+   - không có visual HOT PLATE riêng do 6.7.1 thêm nhầm;
+   - skill/damage/profile Support-Healer vẫn hoạt động như trước.
+
+REGRESSION NHANH
+- Party full hiển thị 5/5, không phải 6/6.
+- Gunther khi Aerodactyl ngủ vẫn có lựa chọn Gunther + Aerodactyl.
+- 2/2 companion không được thành 3/2.
+- Recruit menu dùng tiếng Việt đầy đủ khi game để tiếng Việt.
+- Pelipper source-owned Pokemon không bị Team Up giành controller/visibility.
