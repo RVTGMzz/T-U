@@ -41,10 +41,12 @@ internal sealed class PartyBanterService
     private readonly Dictionary<string, long> PairCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, long> LowHpCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<QueuedLine> PendingLines = new();
+    private readonly BanterMemoryTracker BanterMemory = new();
 
     private long NextAmbientTick;
     private long NextCombatTick;
     private long NextMimiShipTick;
+    private long NextContextTick;
     private long CombatEndedCandidateTick;
     private bool WasInCombat;
     private bool Primed;
@@ -54,7 +56,7 @@ internal sealed class PartyBanterService
     {
         "Alex", "Clint", "Demetrius", "Elliott", "George", "Gus", "Harvey", "Kent", "Leo",
         "Lewis", "Linus", "Pierre", "Sam", "Sebastian", "Shane", "Willy", "Wizard",
-        "Victor", "Lance", "Andy", "Martin", "Morris"
+        "Victor", "Lance", "Andy", "Martin", "Morris", "Marlon"
     };
 
     private static readonly Dictionary<string, BanterTrait> ExplicitTraits = new(StringComparer.OrdinalIgnoreCase)
@@ -112,9 +114,11 @@ internal sealed class PartyBanterService
         PairCooldownUntil.Clear();
         LowHpCooldownUntil.Clear();
         PendingLines.Clear();
+        BanterMemory.Reset();
         NextAmbientTick = 0;
         NextCombatTick = 0;
         NextMimiShipTick = 0;
+        NextContextTick = 0;
         CombatEndedCandidateTick = 0;
         WasInCombat = false;
         Primed = false;
@@ -124,7 +128,7 @@ internal sealed class PartyBanterService
     public string DescribeStatus()
     {
         List<ActiveNpc> active = GetActivePartyNpcs();
-        return $"banter={(IsEnabled() ? "on" : "off")}, activeNPCs={active.Count}, queued={PendingLines.Count}, mimi={active.Any(IsMimi)}, maleNPCs={active.Count(npc => IsMale(npc.Actor))}, shipping={(IsMimiShippingEnabled() ? "on" : "off")}";
+        return $"banter={(IsEnabled() ? "on" : "off")}, activeNPCs={active.Count}, queued={PendingLines.Count}, mimi={active.Any(IsMimi)}, maleNPCs={active.Count(npc => IsMale(npc.Actor))}, shipping={(IsMimiShippingEnabled() ? "on" : "off")}, memory={BanterMemory.RecentExchangeCount}/{BanterMemoryTracker.MaxRecentExchangeIds}";
     }
 
     public void Update()
@@ -144,11 +148,12 @@ internal sealed class PartyBanterService
             NextAmbientTick = tick + 600;
             NextCombatTick = tick + 240;
             NextMimiShipTick = tick + 900;
+            NextContextTick = tick + 720;
             return;
         }
 
         List<ActiveNpc> active = GetActivePartyNpcs();
-        if (active.Count < 2)
+        if (active.Count == 0)
         {
             WasInCombat = false;
             return;
@@ -174,9 +179,11 @@ internal sealed class PartyBanterService
             {
                 WasInCombat = false;
                 CombatEndedCandidateTick = 0;
-                if (TryVictoryExchange(active))
+                if (TryContextExchange(active, BanterContextKind.PostCombat, ignoreCooldown: true)
+                    || TryVictoryExchange(active))
                 {
                     NextAmbientTick = tick + 600;
+                    NextContextTick = Math.Max(NextContextTick, tick + 900);
                     return;
                 }
             }
@@ -196,6 +203,17 @@ internal sealed class PartyBanterService
             NextMimiShipTick = tick + 300;
         }
 
+        if (tick >= NextContextTick && PendingLines.Count == 0)
+        {
+            if (TryContextExchange(active))
+            {
+                NextContextTick = tick + Game1.random.Next(1800, 2701);
+                NextAmbientTick = Math.Max(NextAmbientTick, tick + 750);
+                return;
+            }
+            NextContextTick = tick + 600;
+        }
+
         if (tick >= NextAmbientTick && PendingLines.Count == 0 && TryAmbientExchange(active))
             NextAmbientTick = tick + Game1.random.Next(1050, 1651);
     }
@@ -205,6 +223,15 @@ internal sealed class PartyBanterService
 
     public bool ForceMimiShipping()
         => Context.IsWorldReady && Context.IsMainPlayer && TryMimiShippingExchange(GetActivePartyNpcs(), ignoreCooldown: true);
+
+    public bool ForceContext()
+        => Context.IsWorldReady && Context.IsMainPlayer && TryContextExchange(GetActivePartyNpcs(), forcedContext: null, ignoreCooldown: true);
+
+    public string DescribeMemory()
+        => BanterMemory.Describe();
+
+    public void ResetMemory()
+        => BanterMemory.Reset();
 
     private List<ActiveNpc> GetActivePartyNpcs()
     {
@@ -270,6 +297,129 @@ internal sealed class PartyBanterService
         }
         return false;
     }
+
+    private bool TryContextExchange(
+        List<ActiveNpc> active,
+        BanterContextKind? forcedContext = null,
+        bool ignoreCooldown = false)
+    {
+        if (active.Count == 0 || PendingLines.Count != 0)
+            return false;
+
+        IReadOnlyList<BanterContextKind> contexts = forcedContext.HasValue
+            ? new[] { forcedContext.Value }
+            : ResolveCurrentContexts();
+        if (contexts.Count == 0)
+            return false;
+
+        foreach (BanterContextKind context in contexts)
+        {
+            List<(ContextBanterScript Script, ActiveNpc Speaker, ActiveNpc? Partner)> candidates = new();
+            foreach (ContextBanterScript script in ContextBanterCatalog.Get(context))
+            {
+                ActiveNpc? speaker = FindActive(active, script.SpeakerName);
+                if (speaker is null)
+                    continue;
+
+                ActiveNpc? partner = null;
+                if (script.HasPartner)
+                {
+                    partner = FindActive(active, script.PartnerName);
+                    if (partner is null || ReferenceEquals(partner, speaker))
+                        continue;
+                }
+
+                string cooldownKey = "context|" + script.Id;
+                if (!ignoreCooldown && PairCooldownUntil.TryGetValue(cooldownKey, out long until) && Game1.ticks < until)
+                    continue;
+                candidates.Add((script, speaker, partner));
+            }
+
+            if (candidates.Count == 0)
+                continue;
+
+            (ContextBanterScript selectedScript, ActiveNpc selectedSpeaker, ActiveNpc? selectedPartner) = candidates
+                .OrderBy(candidate => BanterMemory.Score(
+                    candidate.Script.Id,
+                    candidate.Speaker.Member.CharacterName,
+                    candidate.Partner?.Member.CharacterName))
+                .ThenBy(_ => Game1.random.Next())
+                .First();
+            PairCooldownUntil["context|" + selectedScript.Id] = Game1.ticks + 2400;
+            bool vi = IsVietnamese();
+            string line = vi ? selectedScript.ViLine : selectedScript.EnLine;
+            if (selectedPartner is null)
+            {
+                EnqueueSingleLine(selectedScript.Id, selectedSpeaker, line, Game1.ticks);
+                return true;
+            }
+
+            EnqueueExchange(new Exchange(
+                selectedScript.Id,
+                selectedSpeaker,
+                line,
+                selectedPartner,
+                vi ? selectedScript.ViReply : selectedScript.EnReply), Game1.ticks);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static ActiveNpc? FindActive(IReadOnlyList<ActiveNpc> active, string characterName)
+        => active.FirstOrDefault(npc => npc.Member.CharacterName.Equals(characterName, StringComparison.OrdinalIgnoreCase)
+            || npc.Actor.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+
+    private static IReadOnlyList<BanterContextKind> ResolveCurrentContexts()
+    {
+        GameLocation? location = Game1.currentLocation;
+        if (location is null)
+            return Array.Empty<BanterContextKind>();
+
+        List<BanterContextKind> contexts = new();
+        bool outdoors = ReadBooleanMember(location, "IsOutdoors") || ReadBooleanMember(location, "isOutdoors");
+        bool raining = outdoors && ReadStaticGameBoolean("isRaining");
+        bool lightning = raining && ReadStaticGameBoolean("isLightning");
+        if (lightning)
+            contexts.Add(BanterContextKind.Storm);
+        if (raining)
+            contexts.Add(BanterContextKind.Rain);
+
+        string locationName = location.NameOrUniqueName ?? string.Empty;
+        if (ContainsAny(locationName, "Mine", "SkullCave", "VolcanoDungeon", "Volcano"))
+            contexts.Add(BanterContextKind.Mine);
+        if (ContainsAny(locationName, "AdventureGuild", "AdventurerGuild"))
+            contexts.Add(BanterContextKind.AdventurerGuild);
+        if (ContainsAny(locationName, "Saloon"))
+            contexts.Add(BanterContextKind.Saloon);
+        if (ContainsAny(locationName, "Beach", "Ocean"))
+            contexts.Add(BanterContextKind.Beach);
+        if (ContainsAny(locationName, "Forest", "Woods", "Backwoods"))
+            contexts.Add(BanterContextKind.Forest);
+        if (Game1.timeOfDay >= 1900)
+            contexts.Add(BanterContextKind.Night);
+        return contexts;
+    }
+
+    private static bool ContainsAny(string value, params string[] needles)
+        => needles.Any(needle => value.Contains(needle, StringComparison.OrdinalIgnoreCase));
+
+    private static bool ReadStaticGameBoolean(string name)
+    {
+        try
+        {
+            const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
+            FieldInfo? field = typeof(Game1).GetField(name, flags);
+            if (field?.GetValue(null) is bool fieldValue)
+                return fieldValue;
+            PropertyInfo? property = typeof(Game1).GetProperty(name, flags);
+            return property?.GetIndexParameters().Length == 0 && property.GetValue(null) is bool propertyValue && propertyValue;
+        }
+        catch { return false; }
+    }
+
+    private static bool ReadBooleanMember(object target, string name)
+        => UnwrapValue(ReadMember(target, name)) is bool value && value;
 
     private bool TryLowHealthEncouragement(List<ActiveNpc> active, long tick)
     {
@@ -388,19 +538,69 @@ internal sealed class PartyBanterService
 
     private Exchange BuildAmbientExchange(ActiveNpc first, ActiveNpc second, bool vi)
     {
-        string pair = BuildPairKey(first.Member.CharacterName, second.Member.CharacterName);
-        if (pair == BuildPairKey("Alex", "Sebastian"))
-            return OrderedPair(first, second, "Alex", "pair:alex-sebastian", vi ? "Cậu lúc nào cũng trông như vừa thức cả đêm vậy." : "You always look like you were up all night.", vi ? "Ít nhất tôi không dậy lúc sáu giờ để nâng một cục sắt." : "At least I don't wake up at six to lift a chunk of iron.");
-        if (pair == BuildPairKey("Abigail", "Sebastian"))
-            return OrderedPair(first, second, "Abigail", "pair:abigail-sebastian", vi ? "Nếu thấy thứ gì phát sáng, để tớ chạm vào trước nhé." : "If we find something glowing, I get to touch it first.", vi ? "Đó chính xác là điều cậu không nên làm." : "That's exactly what you shouldn't do.");
-        if (pair == BuildPairKey("Sam", "Sebastian"))
-            return OrderedPair(first, second, "Sam", "pair:sam-sebastian", vi ? "Sau vụ này làm một bài nhạc mới nhé?" : "New song after this?", vi ? "Nếu cậu không bắt tôi đặt tên bài." : "Only if you don't make me name it.");
-        if (pair == BuildPairKey("Harvey", "Maru"))
-            return OrderedPair(first, second, "Harvey", "pair:harvey-maru", vi ? "Maru, nhớ để ý nhịp nghỉ của cả đội nhé." : "Maru, keep an eye on everyone's rest intervals.", vi ? "Em đang theo dõi rồi. Bác sĩ cũng nhớ nghỉ đấy." : "Already tracking it. That includes you, doctor.");
-        if (pair == BuildPairKey("Leah", "Elliott"))
-            return OrderedPair(first, second, "Leah", "pair:leah-elliott", vi ? "Đừng biến chuyến đi này thành một chương tiểu thuyết nhé." : "Don't turn this trip into another novel chapter.", vi ? "Quá muộn rồi. Tôi đã có câu mở đầu." : "Too late. I already have the opening line.");
-        if (pair == BuildPairKey("Shane", "Harvey"))
-            return OrderedPair(first, second, "Shane", "pair:shane-harvey", vi ? "Đừng có nhìn tôi kiểu bác sĩ đó." : "Don't give me that doctor look.", vi ? "Tôi còn chưa nói gì mà." : "I haven't said anything yet.");
+        if (BanterContentCatalog.TryGetPair(first.Member.CharacterName, second.Member.CharacterName, out PairBanterScript? scripted)
+            && scripted is not null)
+        {
+            return OrderedPair(
+                first,
+                second,
+                scripted.LeadName,
+                scripted.Id,
+                vi ? scripted.ViLeadLine : scripted.EnLeadLine,
+                vi ? scripted.ViReplyLine : scripted.EnReplyLine);
+        }
+
+        PartyChemistryType chemistry = PartyChemistryCatalog.Resolve(first.Member.CharacterName, second.Member.CharacterName);
+        if (chemistry != PartyChemistryType.Neutral)
+        {
+            ChemistryPairVariant variantProfile = ChemistryVariantCatalog.ResolveProfile(
+                first.Member.CharacterName,
+                second.Member.CharacterName,
+                chemistry);
+            IReadOnlyList<ChemistryVariantLine> variantLines = ChemistryVariantCatalog.GetLines(variantProfile.Variant);
+            if (variantLines.Count > 0)
+            {
+                ActiveNpc lead = first;
+                ActiveNpc reply = second;
+                if (!string.IsNullOrWhiteSpace(variantProfile.PreferredLeadName))
+                {
+                    lead = first.Member.CharacterName.Equals(variantProfile.PreferredLeadName, StringComparison.OrdinalIgnoreCase) ? first : second;
+                    reply = ReferenceEquals(lead, first) ? second : first;
+                }
+
+                string pairKey = BuildPairKey(first.Member.CharacterName, second.Member.CharacterName);
+                ChemistryVariantLine selectedLine = variantLines
+                    .OrderBy(line => BanterMemory.Score(
+                        $"chemvar:{variantProfile.Variant}:{line.Id}:{pairKey}",
+                        lead.Member.CharacterName,
+                        reply.Member.CharacterName))
+                    .ThenBy(_ => Game1.random.Next())
+                    .First();
+                return new Exchange(
+                    $"chemvar:{variantProfile.Variant}:{selectedLine.Id}:{pairKey}",
+                    lead,
+                    vi ? selectedLine.ViLeadLine : selectedLine.EnLeadLine,
+                    reply,
+                    vi ? selectedLine.ViReplyLine : selectedLine.EnReplyLine);
+            }
+
+            if (PartyChemistryCatalog.TryBuildAmbientLines(
+                chemistry,
+                first.Actor.displayName,
+                second.Actor.displayName,
+                vi,
+                out string chemistryLeadLine,
+                out string chemistryReplyLine,
+                out string chemistryToneId))
+            {
+                return new Exchange(
+                    $"chem:{chemistryToneId}:{BuildPairKey(first.Member.CharacterName, second.Member.CharacterName)}",
+                    first,
+                    chemistryLeadLine,
+                    second,
+                    chemistryReplyLine);
+            }
+        }
 
         return BuildGenericAmbientExchange(first, second, vi);
     }
@@ -487,18 +687,32 @@ internal sealed class PartyBanterService
         bool vi = IsVietnamese();
         string a = firstMale.Actor.displayName;
         string b = secondMale.Actor.displayName;
-        string[] openers = vi
-            ? new[] { $"{a} với {b}... ừm, tôi thấy có tiềm năng nha~", "Hai người cứ đi cạnh nhau thế này là tôi bắt đầu có ý tưởng rồi đó~", $"{a}, {b}, đứng gần nhau thêm chút đi. Tôi cần tư liệu!" }
-            : new[] { $"{a} and {b}... hmm. I see potential~", "The way you two keep walking together is giving me ideas~", $"{a}, {b}, stand a little closer. I need material!" };
+        string opener;
+        string closer;
+
+        if (BanterContentCatalog.TryGetShippingPair(firstMale.Member.CharacterName, secondMale.Member.CharacterName, out MimiShippingBanterScript? scripted)
+            && scripted is not null)
+        {
+            opener = vi ? scripted.ViOpener : scripted.EnOpener;
+            closer = vi ? scripted.ViCloser : scripted.EnCloser;
+        }
+        else
+        {
+            string[] openers = vi
+                ? new[] { $"{a} với {b}... ừm, tôi thấy có tiềm năng nha~", "Hai người cứ đi cạnh nhau thế này là tôi bắt đầu có ý tưởng rồi đó~", $"{a}, {b}, đứng gần nhau thêm chút đi. Tôi cần tư liệu!" }
+                : new[] { $"{a} and {b}... hmm. I see potential~", "The way you two keep walking together is giving me ideas~", $"{a}, {b}, stand a little closer. I need material!" };
+            opener = openers[Game1.random.Next(openers.Length)];
+            closer = vi ? "Tôi chỉ đang quan sát độ hợp nhau thôi mà~" : "I'm only observing the chemistry~";
+        }
 
         EnqueueExchange(new Exchange(
             $"mimi-ship:{firstMale.Member.CharacterName}:{secondMale.Member.CharacterName}",
             mimi,
-            openers[Game1.random.Next(openers.Length)],
+            opener,
             firstMale,
             BuildMimiShipResponse(firstMale, vi),
             mimi.Member.CharacterName,
-            vi ? "Tôi chỉ đang quan sát độ hợp nhau thôi mà~" : "I'm only observing the chemistry~"), tick);
+            closer), tick);
         return true;
     }
 
@@ -543,23 +757,57 @@ internal sealed class PartyBanterService
             return false;
 
         long tick = Game1.ticks;
-        List<ActiveNpc> shuffled = active.OrderBy(_ => Game1.random.Next()).ToList();
-        for (int i = 0; i < shuffled.Count; i++)
+        List<(ActiveNpc A, ActiveNpc B, string Key, int SelectionScore)> eligible = new();
+        for (int i = 0; i < active.Count; i++)
         {
-            for (int j = i + 1; j < shuffled.Count; j++)
+            for (int j = i + 1; j < active.Count; j++)
             {
-                string key = BuildPairKey(shuffled[i].Member.CharacterName, shuffled[j].Member.CharacterName);
+                string key = BuildPairKey(active[i].Member.CharacterName, active[j].Member.CharacterName);
                 if (!ignorePairCooldown && PairCooldownUntil.TryGetValue(key, out long until) && tick < until)
                     continue;
 
-                bool normalOrder = Game1.random.NextDouble() < 0.5;
-                first = normalOrder ? shuffled[i] : shuffled[j];
-                second = normalOrder ? shuffled[j] : shuffled[i];
-                PairCooldownUntil[key] = tick + 1500;
-                return true;
+                int memoryScore = BanterMemory.Score(
+                    "pair-choice:" + key,
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName);
+                int chemistryBias = PartyChemistryCatalog.SelectionBias(
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName);
+                PartyChemistryType chemistry = PartyChemistryCatalog.Resolve(
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName);
+                ChemistryVariant variant = ChemistryVariantCatalog.ResolveProfile(
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName,
+                    chemistry).Variant;
+                int variantBias = variant == ChemistryVariant.None ? 0 : -3;
+                eligible.Add((active[i], active[j], key, memoryScore + chemistryBias + variantBias));
             }
         }
-        return false;
+
+        if (eligible.Count == 0)
+            return false;
+
+        (ActiveNpc a, ActiveNpc b, string selectedKey, _) = eligible
+            .OrderBy(candidate => candidate.SelectionScore)
+            .ThenBy(_ => Game1.random.Next())
+            .First();
+        bool normalOrder = Game1.random.NextDouble() < 0.5;
+        first = normalOrder ? a : b;
+        second = normalOrder ? b : a;
+        PairCooldownUntil[selectedKey] = tick + 1500;
+        return true;
+    }
+
+    private void EnqueueSingleLine(string id, ActiveNpc speaker, string line, long tick)
+    {
+        if (PendingLines.Count > 0)
+            return;
+        LastExchangeId = id;
+        BanterMemory.Record(id, speaker.Member.CharacterName);
+        PendingLines.Enqueue(new QueuedLine(speaker.Member.CharacterName, line, tick, 1650));
+        FlushQueuedLines(tick);
+        Monitor.Log($"Party context banter: {id}", LogLevel.Trace);
     }
 
     private void EnqueueExchange(Exchange exchange, long tick)
@@ -567,6 +815,11 @@ internal sealed class PartyBanterService
         if (PendingLines.Count > 0)
             return;
         LastExchangeId = exchange.Id;
+        BanterMemory.Record(
+            exchange.Id,
+            exchange.First.Member.CharacterName,
+            exchange.Second.Member.CharacterName,
+            exchange.ThirdSpeaker);
         PendingLines.Enqueue(new QueuedLine(exchange.First.Member.CharacterName, exchange.FirstLine, tick, 1650));
         PendingLines.Enqueue(new QueuedLine(exchange.Second.Member.CharacterName, exchange.SecondLine, tick + 110, 1650));
         if (!string.IsNullOrWhiteSpace(exchange.ThirdSpeaker) && !string.IsNullOrWhiteSpace(exchange.ThirdLine))
@@ -583,7 +836,7 @@ internal sealed class PartyBanterService
             NPC? speaker = Game1.getCharacterFromName(line.SpeakerName);
             if (speaker is null || speaker.IsInvisible || speaker.currentLocation != Game1.currentLocation)
                 continue;
-            speaker.showTextAboveHead(line.Text, new Color(245, 235, 205), 2, line.DurationMs, 0);
+            speaker.showTextAboveHead(line.Text, new Color(72, 42, 28), 2, line.DurationMs, 0);
         }
     }
 

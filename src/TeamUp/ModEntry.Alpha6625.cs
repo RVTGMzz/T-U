@@ -33,6 +33,30 @@ public sealed partial class ModEntry
         // Alpha 6.7.0 adds provider-neutral companion terminology plus non-blocking party banter.
         // Registration is idempotent and remains independent from whether Pelipper is installed.
         EnsureAlpha67BanterRegistered();
+
+        // Alpha 6.7.3: combat ranks, Special Recruit kits and S-rank identities.
+        EnsureAlpha673SpecialRecruitRegistered();
+
+        // Alpha 6.7.4: static roster coverage/balance audit + one signature authority.
+        EnsureAlpha674RosterIntegrityRegistered();
+
+        // Alpha 6.7.5: authored party banter catalog + static dialogue audit.
+        EnsureAlpha675BanterCatalogRegistered();
+
+        // Alpha 6.7.6: context-aware cosmetic chatter + static context audit.
+        EnsureAlpha676ContextBanterRegistered();
+
+        // Alpha 6.7.7: cosmetic banter recency memory + repetition guard.
+        EnsureAlpha677BanterMemoryRegistered();
+
+        // Alpha 6.7.8: cosmetic pair chemistry types guide banter tone and pair scoring.
+        EnsureAlpha678PartyChemistryRegistered();
+
+        // Alpha 6.7.9: chemistry variants + memory-aware line pools.
+        EnsureAlpha679ChemistryVariantsRegistered();
+
+        // Alpha 6.7.10: preserve route metadata, guard loadEndOfRouteBehavior and tune A-rank combat.
+        EnsureAlpha6710Registered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)

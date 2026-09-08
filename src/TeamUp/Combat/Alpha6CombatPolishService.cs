@@ -205,12 +205,12 @@ public sealed class Alpha6CombatPolishService
         List<Monster> targets = inRange
             .Where(monster => Vector2.Distance(monster.Tile, anchor.Tile) <= radius)
             .OrderBy(monster => Vector2.DistanceSquared(monster.Tile, anchor.Tile))
-            .Take(tier >= 3 ? 5 : 3)
+            .Take(tier >= 3 ? 6 : 3)
             .ToList();
         if (targets.Count == 0)
             return false;
 
-        int baseDamage = tier >= 3 ? 8 + affinity * 2 : 5 + affinity;
+        int baseDamage = tier >= 3 ? 9 + affinity * 2 : 5 + affinity;
         int damage = Math.Max(1, (int)Math.Round(baseDamage * _progression.GetDamageMultiplier(member, role) * _progression.GetSignatureEffectMultiplier(member, role)));
         int dealtTotal = 0;
         Color purple = new(195, 95, 255);
@@ -231,7 +231,7 @@ public sealed class Alpha6CombatPolishService
 
         npc.showTextAboveHead(tier >= 3 ? "HAUNTED BLADE" : "SPIRIT WAVE", purple, 2, 1450, 0);
         Game1.currentLocation.playSound("swordswipe");
-        _signatureCooldowns[member.CharacterName] = ScaleCooldown(member, role, tier >= 3 ? 480 : 600);
+        _signatureCooldowns[member.CharacterName] = ScaleCooldown(member, role, tier >= 3 ? 450 : 600);
         return true;
     }
 
@@ -242,7 +242,7 @@ public sealed class Alpha6CombatPolishService
 
         List<Monster> nearby = monsters.Where(monster => Vector2.Distance(monster.Tile, npc.Tile) <= 4.5f).Take(6).ToList();
         float farmerRatio = Game1.player.health / (float)Math.Max(1, Game1.player.maxHealth);
-        if (nearby.Count < 2 && farmerRatio > 0.45f)
+        if (nearby.Count < 2 && farmerRatio > 0.55f)
             return false;
         if (nearby.Count == 0)
             return false;
@@ -259,14 +259,14 @@ public sealed class Alpha6CombatPolishService
 
         if (tier >= 3)
         {
-            int selfHeal = Math.Max(2, _progression.GetMaxHealth(member) / 12);
+            int selfHeal = Math.Max(2, _progression.GetMaxHealth(member) / 10);
             member.CurrentHealth = Math.Min(_progression.GetMaxHealth(member), member.CurrentHealth + selfHeal);
         }
 
         npc.showTextAboveHead(tier >= 3 ? "IRON WALL" : "CHALLENGE", orange, 2, 1450, 0);
         SpawnBurst(Game1.currentLocation, Game1.player.Position, orange, tier >= 3 ? 10 : 7, 42f);
         Game1.currentLocation.playSound("clubSmash");
-        _signatureCooldowns[member.CharacterName] = ScaleCooldown(member, role, tier >= 3 ? 600 : 720);
+        _signatureCooldowns[member.CharacterName] = ScaleCooldown(member, role, tier >= 3 ? 570 : 720);
         return true;
     }
 
@@ -324,7 +324,9 @@ public sealed class Alpha6CombatPolishService
             .Where(monster => Vector2.Distance(monster.Tile, Game1.player.Tile) <= 8f)
             .Where(monster => monster.stunTime.Value < 600)
             .ToList();
-        if (candidates.Count < 2)
+        if (candidates.Count == 0)
+            return false;
+        if (candidates.Count < 2 && !candidates.Any(monster => monster.MaxHealth >= 300))
             return false;
 
         Monster? anchor = candidates.OrderByDescending(monster => candidates.Count(other => Vector2.Distance(other.Tile, monster.Tile) <= 3f)).FirstOrDefault();

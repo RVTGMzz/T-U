@@ -194,7 +194,7 @@ public sealed class CombatService
 
             _retreatNotified.Remove(member.CharacterName);
 
-            Monster? target = AcquireTarget(npc, member, role, monsters, activeMembers, validThreatActors, assignedCounts);
+            Monster? target = AcquireCoordinatedTarget(npc, member, role, monsters, activeMembers, validThreatActors, assignedCounts);
             if (target is null)
             {
                 if (!stillEngaged.Contains(member.CharacterName))
@@ -215,7 +215,7 @@ public sealed class CombatService
             }
 
             float attackRange = GetAttackRange(role);
-            float distanceToTarget = Vector2.Distance(npc.Tile, target.Tile);
+            float distanceToTarget = GetDistanceToMonsterBoundsTiles(npc, target);
 
             if (role == PartyRole.Tank)
                 TryTankTaunt(npc, member, monsters, validThreatActors);
@@ -270,6 +270,45 @@ public sealed class CombatService
         }
 
         _lastFarmerHealth = FarmerContext.health;
+    }
+
+    private Monster? AcquireCoordinatedTarget(
+        NPC npc,
+        PartyMemberData member,
+        PartyRole role,
+        IReadOnlyList<Monster> monsters,
+        IReadOnlyList<PartyMemberData> activeMembers,
+        IReadOnlyCollection<string> validThreatActors,
+        IReadOnlyDictionary<Monster, int> assignedCounts)
+    {
+        Monster? normal = AcquireTarget(npc, member, role, monsters, activeMembers, validThreatActors, assignedCounts);
+        if (role is PartyRole.Tank or PartyRole.Healer || monsters.Count == 0)
+            return normal;
+
+        bool shouldCoordinate = _strategy() == PartyStrategy.BossFocus
+            || role is PartyRole.Damage or PartyRole.Control
+            || member.Engagement is EngagementStyle.Aggressive or EngagementStyle.Reckless;
+        if (!shouldCoordinate)
+            return normal;
+
+        Monster? major = monsters
+            .Where(monster => monster.Health > 0)
+            .Where(monster => Vector2.Distance(monster.Tile, FarmerContext.Tile) <= 10f)
+            .Where(monster => monster.MaxHealth >= 300)
+            .OrderByDescending(monster => monster.MaxHealth)
+            .ThenBy(monster => Vector2.DistanceSquared(monster.Tile, FarmerContext.Tile))
+            .FirstOrDefault();
+
+        return major ?? normal;
+    }
+
+    private static float GetDistanceToMonsterBoundsTiles(NPC npc, Monster target)
+    {
+        Rectangle a = npc.GetBoundingBox();
+        Rectangle b = target.GetBoundingBox();
+        int dx = a.Right < b.Left ? b.Left - a.Right : b.Right < a.Left ? a.Left - b.Right : 0;
+        int dy = a.Bottom < b.Top ? b.Top - a.Bottom : b.Bottom < a.Top ? a.Top - b.Bottom : 0;
+        return MathF.Sqrt(dx * dx + dy * dy) / 64f;
     }
 
     private void PulseAmbientThreat(IReadOnlyList<PartyMemberData> members, IReadOnlyList<Monster> monsters)
@@ -942,6 +981,8 @@ public sealed class CombatService
         int healthBeforeBaseHeal,
         IReadOnlyList<Monster> monsters)
     {
+        if (SignatureAuthorityService.IsAlpha6PrototypeSignatureOwner(member.CharacterName))
+            return;
         if (GetCooldown(_signatureCooldowns, member.CharacterName) > 0)
             return;
 
@@ -992,6 +1033,8 @@ public sealed class CombatService
 
     private void TryTriggerAttackSignature(NPC npc, Monster target, PartyMemberData member, PartyRole role, int affinity)
     {
+        if (SignatureAuthorityService.IsAlpha6PrototypeSignatureOwner(member.CharacterName))
+            return;
         if (target.Health <= 0 || GetCooldown(_signatureCooldowns, member.CharacterName) > 0)
             return;
 

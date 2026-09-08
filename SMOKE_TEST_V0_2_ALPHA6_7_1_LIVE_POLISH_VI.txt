@@ -1,0 +1,66 @@
+TEAM UP v0.2.0-alpha.6.7.1 - LIVE POLISH / DORMANT COMPANION SMOKE TEST
+
+MỤC TIÊU
+- Sửa đúng 5 lỗi quan sát sau Alpha 6.7.0.
+- Không regression Pelipper 1.1.9 / single companion authority / 2-2 quota.
+
+1) PARTY CAP 5 NGƯỜI
+- Solo: Farmer + 4 NPC = 5/5.
+- Thử mời NPC thứ 5.
+- Kỳ vọng: bị chặn và HUD báo TEAM UP ĐÃ ĐẦY • 5/5 người.
+- Không được còn bất kỳ thông báo 6/6.
+
+2) BANTER READABILITY
+- Team từ 2 NPC trở lên, chờ banter hoặc dùng: teamup_banter now
+- Kỳ vọng: chữ bubble màu nâu/tối, đọc rõ trên nền bubble trắng/sáng.
+- Không còn chữ pastel gần như chìm vào nền.
+
+3) GUNTHER + AERODACTYL ĐANG NGỦ / DORMANT
+- Đảm bảo Pelipper Town đang cấu hình Gunther có Aerodactyl nhưng Aerodactyl chưa hiện/live.
+- Nói chuyện với Gunther và mở recruit.
+- Kỳ vọng: vẫn có 2 lựa chọn:
+  * Chỉ Gunther
+  * Gunther + Aerodactyl
+
+3A) CHỈ GUNTHER
+- Chọn Chỉ Gunther.
+- Rời map / đi qua cửa để Pelipper refresh.
+- Kỳ vọng: Aerodactyl KHÔNG tự xuất hiện rồi auto-add vào Team Up.
+
+3B) GUNTHER + AERODACTYL
+- Reload hoặc cho Gunther rời team rồi thử lại.
+- Chọn Gunther + Aerodactyl khi Aerodactyl vẫn dormant.
+- Kỳ vọng: Team Up giữ trước 1 slot companion cho Aerodactyl.
+- Nếu đã có 2/2 companion thật/reserved thì phải bị chặn/replacement flow, không được tạo 3/2.
+- Khi Aerodactyl thức/live, record dormant được thay bằng runtime source-truth mà tổng effective vẫn <= 2/2.
+
+Chẩn đoán sau test:
+  teamup_slots
+  teamup_authority
+  teamup_pelipper_native
+
+4) GUNTHER COMBAT PROFILE
+- Mở Codex/profile Gunther.
+- Kỳ vọng: không còn HỒ SƠ COMBAT ĐANG HOÀN THIỆN.
+- Role: Control / Support.
+- Signature: Relic Seal.
+
+5) GUS FEEDBACK
+- Cho Gus vào party và đánh quái.
+- Kỳ vọng: khi Gus thực hiện đòn generic combat có visual burst màu ấm quanh Gus.
+- Thỉnh thoảng hiện HOT PLATE + sound feedback (có cooldown chống spam).
+- Gus vẫn follow/path bình thường, không bị khóa animation/controller.
+
+6) VIỆT HÓA RECRUIT MENU
+- Mở recruit với NPC có Pokemon (ví dụ Abigail + Sableye hoặc Apples nếu có).
+- Kỳ vọng title tiếng Việt: Bạn muốn thu nạp <NPC> vào Team Up?
+- Lựa chọn: Chỉ <NPC> / <NPC> + <Pokemon> / Hủy.
+- Không được nhảy riêng phần title/choice sang tiếng Anh khi locale vi.
+
+7) REGRESSION
+- Companion hard cap: 2/2.
+- People cap: Farmer + 4 NPC = 5/5.
+- Pelipper không flicker, Team Up không dùng IsInvisible để hide.
+- NPC-linked Pokemon custom vẫn detect đúng như 6.6.27.
+- Codex/Profile 115% giữ nguyên.
+- Water/pathfinding và combat cadence không đổi.

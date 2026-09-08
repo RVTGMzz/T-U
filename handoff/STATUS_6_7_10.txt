@@ -1,0 +1,5 @@
+TEAM UP v0.2.0-alpha.6.7.10
+CI VERIFIED: YES
+LIVE VERIFIED: NO
+PRIMARY NEXT TEST: Gunther route-state / NPC.loadEndOfRouteBehavior crash
+MAINLINE CANDIDATE: YES

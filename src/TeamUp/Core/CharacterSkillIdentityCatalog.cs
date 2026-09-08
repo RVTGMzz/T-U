@@ -79,9 +79,9 @@ public static class CharacterSkillIdentityCatalog
                 buffTicks: 420, damageBuff: 0.08f, cdrBuff: 4, partyWide: true),
 
             // Healer / Support. Highest pure recovery among this wave, with a gentle healing amplifier.
-            ["Evelyn"] = I("Evelyn", "GARDEN REMEDY", CharacterSignatureArchetype.Recovery, 810, 720,
-                heal: 10, radius: 7.0f, maxTargets: 4, triggerHp: 0.82f,
-                buffTicks: 420, healBuff: 0.10f, partyWide: true),
+            ["Evelyn"] = I("Evelyn", "GARDEN REMEDY", CharacterSignatureArchetype.Recovery, 750, 660,
+                heal: 11, radius: 7.5f, maxTargets: 5, triggerHp: 0.86f,
+                buffTicks: 480, healBuff: 0.12f, cdrBuff: 2, partyWide: true),
 
             // Tank / Control. Lower damage than Clint, stronger stop/knockback and sturdier guard.
             ["George"] = I("George", "HARD STOP", CharacterSignatureArchetype.Guard, 750, 660,
@@ -93,10 +93,15 @@ public static class CharacterSkillIdentityCatalog
                 damage: 2, heal: 6, radius: 6.0f, maxTargets: 4, knockback: 0.8f, triggerHp: 0.76f,
                 buffTicks: 360, healBuff: 0.06f, cdrBuff: 3, partyWide: true),
 
+            // Control / Support. Museum knowledge becomes a safe crowd-control seal.
+            ["Gunther"] = I("Gunther", "RELIC SEAL", CharacterSignatureArchetype.Control, 720, 630,
+                damage: 4, radius: 5.5f, maxTargets: 4, stun2: 620, stun3: 960, knockback: 0.8f,
+                buffTicks: 300, controlBuff: 0.08f, cdrBuff: 3, partyWide: true),
+
             // Damage / Support. Fast single-target pressure with a small self tempo buff.
-            ["Haley"] = I("Haley", "FLASH SHOT", CharacterSignatureArchetype.Burst, 600, 510,
-                damage: 11, radius: 8.0f, maxTargets: 1, stun3: 180, knockback: 1.2f,
-                buffTicks: 240, damageBuff: 0.08f, cdrBuff: 2),
+            ["Haley"] = I("Haley", "FLASH SHOT", CharacterSignatureArchetype.Burst, 570, 480,
+                damage: 11, radius: 8.5f, maxTargets: 1, stun2: 120, stun3: 260, knockback: 1.2f,
+                buffTicks: 270, damageBuff: 0.08f, cdrBuff: 3),
 
             // Support / Healer. Safer recovery plus party defense rather than raw healing ceiling.
             ["Jodi"] = I("Jodi", "HOME GUARD", CharacterSignatureArchetype.Recovery, 780, 690,

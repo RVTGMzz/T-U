@@ -34,6 +34,7 @@ internal sealed partial class ExpansionSkillService
         Skills["Suki"] = S("MARKET RHYTHM", SkillMode.QuickAssist, PartyRole.Support, PartyRole.Control, 700, 6.0f, 5, SupportColor);
         Skills["Susan"] = S("GREENHOUSE GRACE", SkillMode.PartyRally, PartyRole.Healer, PartyRole.Support, 780, 7.0f, 7, HealColor);
         Skills["Treyvon"] = S("IRON ARC", SkillMode.BurstDamage, PartyRole.Damage, PartyRole.Tank, 650, 2.2f, 9, DamageColor);
+        Skills["Morris"] = S("CORPORATE LEVERAGE", SkillMode.ControlField, PartyRole.Support, PartyRole.Control, 740, 3.0f, 3, SupportColor);
 
         // Ridgeside Village remaining roster.
         Skills["Acorn"] = S("SEEDLING WARD", SkillMode.QuickAssist, PartyRole.Support, PartyRole.Control, 700, 5.8f, 5, SupportColor);

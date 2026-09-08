@@ -161,7 +161,7 @@ public sealed partial class ModEntry
                 .ToList())
             {
                 string key = BuildAuthorityUnitKeyAlpha6626(unit.UnitId, unit.RecruiterId);
-                if (liveKeys.Contains(key))
+                if (liveKeys.Contains(key) || IsDormantConfiguredReservationAlpha671(unit, online))
                     continue;
 
                 if (IsSlotReservedAlpha6617(unit.State))
@@ -207,7 +207,25 @@ public sealed partial class ModEntry
                 changed |= Party.SetCompanionState(overflow.UnitId, overflow.RecruiterId, CompanionDeploymentState.Standby);
             }
 
-            int availablePelipperSlots = Math.Max(0, max - Math.Min(max, nonPelipper.Count));
+            // Alpha 6.7.1: an explicitly selected NPC + Pokemon reserves capacity even while
+            // Pelipper keeps that Pokemon asleep/dormant. Trim impossible old-save overflow first.
+            int dormantBudget = Math.Max(0, max - Math.Min(max, nonPelipper.Count));
+            List<CompanionUnitData> dormantPelipper = Party.CompanionUnits
+                .Where(unit => IsDormantConfiguredReservationAlpha671(unit, online))
+                .ToList();
+            for (int i = dormantBudget; i < dormantPelipper.Count; i++)
+            {
+                CompanionUnitData overflow = dormantPelipper[i];
+                changed |= Party.SetCompanionState(overflow.UnitId, overflow.RecruiterId, CompanionDeploymentState.Standby);
+                if (repairOverflow)
+                    RequestAuthorityReturnAlpha6626(overflow, "dormant configured 2/2 overflow");
+            }
+
+            int activeDormantReservations = dormantPelipper
+                .Take(dormantBudget)
+                .Count(unit => IsSlotReservedAlpha6617(unit.State));
+            int availablePelipperSlots = Math.Max(0,
+                max - Math.Min(max, nonPelipper.Count) - activeDormantReservations);
 
             // Only source-live Pelipper rows may be Active. Preserve already-active rows first, then
             // player companions, then NPC companions in stable roster order.
