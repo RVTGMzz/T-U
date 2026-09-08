@@ -240,6 +240,10 @@ public sealed class CharacterProfileMenu : IClickableMenu
         int headerY = yPositionOnScreen + 22;
         DrawScaledString(b, Game1.smallFont, _i18n.Get("profile.title"), new Vector2(xPositionOnScreen + OuterPadding, headerY), new Color(102, 63, 37), CaptionScale);
         b.DrawString(Game1.dialogueFont, _displayName, new Vector2(xPositionOnScreen + OuterPadding, headerY + 29), Game1.textColor);
+        CombatRankInfo rankInfo = CombatRankCatalog.Get(_characterName, _profile);
+        string rankBadge = rankInfo.ToCompactLabel();
+        int rankX = xPositionOnScreen + OuterPadding + (int)Game1.dialogueFont.MeasureString(_displayName).X + 18;
+        DrawFitString(b, Game1.smallFont, rankBadge, new Rectangle(rankX, headerY + 36, Math.Max(90, width / 2 - rankX + xPositionOnScreen - 18), 28), CombatRankCatalog.GetColor(rankInfo.Rank), 1.04f);
 
         DrawFitString(
             b,

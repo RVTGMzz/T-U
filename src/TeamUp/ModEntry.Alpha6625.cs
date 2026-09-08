@@ -33,6 +33,9 @@ public sealed partial class ModEntry
         // Alpha 6.7.0 adds provider-neutral companion terminology plus non-blocking party banter.
         // Registration is idempotent and remains independent from whether Pelipper is installed.
         EnsureAlpha67BanterRegistered();
+
+        // Alpha 6.7.3: combat ranks, Special Recruit kits and S-rank identities.
+        EnsureAlpha673SpecialRecruitRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)

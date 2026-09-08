@@ -25,6 +25,7 @@ internal sealed partial class ExpansionSkillService
         ["Suki"] = T(0, 1, 1, -2),
         ["Susan"] = T(0, 2, 0, -2),
         ["Treyvon"] = T(2, -2, 0, 0),
+        ["Morris"] = T(-1, 1, 1, -1),
 
         // RSV remaining roster.
         ["Acorn"] = T(0, 1, 1, -2),

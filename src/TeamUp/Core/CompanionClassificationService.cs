@@ -61,6 +61,12 @@ public static class CompanionClassificationService
         if (BuiltInNonMainPartyNames.Contains(npc.Name))
             return TeamUpCharacterKind.Ineligible;
 
+        if (npc.Name.Equals("Henchman", StringComparison.OrdinalIgnoreCase)
+            && !HasUsableDirectionalSprite(npc))
+        {
+            return TeamUpCharacterKind.Ineligible;
+        }
+
         if (!npc.IsVillager || !npc.canTalk())
             return TeamUpCharacterKind.Ineligible;
 
@@ -83,6 +89,17 @@ public static class CompanionClassificationService
         return specialNpcNames?.Any(name =>
             !string.IsNullOrWhiteSpace(name)
             && name.Equals(characterName, StringComparison.OrdinalIgnoreCase)) == true;
+    }
+
+    private static bool HasUsableDirectionalSprite(NPC npc)
+    {
+        if (npc.Sprite?.Texture is null)
+            return false;
+
+        int frameWidth = Math.Max(1, npc.Sprite.SpriteWidth);
+        int frameHeight = Math.Max(1, npc.Sprite.SpriteHeight);
+        return npc.Sprite.Texture.Width >= frameWidth * 4
+            && npc.Sprite.Texture.Height >= frameHeight * 4;
     }
 
     private static bool TryGetDeclaredKind(NPC npc, out TeamUpCharacterKind kind)
