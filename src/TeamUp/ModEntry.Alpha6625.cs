@@ -39,6 +39,9 @@ public sealed partial class ModEntry
 
         // Alpha 6.7.4: static roster coverage/balance audit + one signature authority.
         EnsureAlpha674RosterIntegrityRegistered();
+
+        // Alpha 6.7.5: authored party banter catalog + static dialogue audit.
+        EnsureAlpha675BanterCatalogRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)

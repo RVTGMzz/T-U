@@ -54,7 +54,7 @@ internal sealed class PartyBanterService
     {
         "Alex", "Clint", "Demetrius", "Elliott", "George", "Gus", "Harvey", "Kent", "Leo",
         "Lewis", "Linus", "Pierre", "Sam", "Sebastian", "Shane", "Willy", "Wizard",
-        "Victor", "Lance", "Andy", "Martin", "Morris"
+        "Victor", "Lance", "Andy", "Martin", "Morris", "Marlon"
     };
 
     private static readonly Dictionary<string, BanterTrait> ExplicitTraits = new(StringComparer.OrdinalIgnoreCase)
@@ -388,19 +388,17 @@ internal sealed class PartyBanterService
 
     private Exchange BuildAmbientExchange(ActiveNpc first, ActiveNpc second, bool vi)
     {
-        string pair = BuildPairKey(first.Member.CharacterName, second.Member.CharacterName);
-        if (pair == BuildPairKey("Alex", "Sebastian"))
-            return OrderedPair(first, second, "Alex", "pair:alex-sebastian", vi ? "Cậu lúc nào cũng trông như vừa thức cả đêm vậy." : "You always look like you were up all night.", vi ? "Ít nhất tôi không dậy lúc sáu giờ để nâng một cục sắt." : "At least I don't wake up at six to lift a chunk of iron.");
-        if (pair == BuildPairKey("Abigail", "Sebastian"))
-            return OrderedPair(first, second, "Abigail", "pair:abigail-sebastian", vi ? "Nếu thấy thứ gì phát sáng, để tớ chạm vào trước nhé." : "If we find something glowing, I get to touch it first.", vi ? "Đó chính xác là điều cậu không nên làm." : "That's exactly what you shouldn't do.");
-        if (pair == BuildPairKey("Sam", "Sebastian"))
-            return OrderedPair(first, second, "Sam", "pair:sam-sebastian", vi ? "Sau vụ này làm một bài nhạc mới nhé?" : "New song after this?", vi ? "Nếu cậu không bắt tôi đặt tên bài." : "Only if you don't make me name it.");
-        if (pair == BuildPairKey("Harvey", "Maru"))
-            return OrderedPair(first, second, "Harvey", "pair:harvey-maru", vi ? "Maru, nhớ để ý nhịp nghỉ của cả đội nhé." : "Maru, keep an eye on everyone's rest intervals.", vi ? "Em đang theo dõi rồi. Bác sĩ cũng nhớ nghỉ đấy." : "Already tracking it. That includes you, doctor.");
-        if (pair == BuildPairKey("Leah", "Elliott"))
-            return OrderedPair(first, second, "Leah", "pair:leah-elliott", vi ? "Đừng biến chuyến đi này thành một chương tiểu thuyết nhé." : "Don't turn this trip into another novel chapter.", vi ? "Quá muộn rồi. Tôi đã có câu mở đầu." : "Too late. I already have the opening line.");
-        if (pair == BuildPairKey("Shane", "Harvey"))
-            return OrderedPair(first, second, "Shane", "pair:shane-harvey", vi ? "Đừng có nhìn tôi kiểu bác sĩ đó." : "Don't give me that doctor look.", vi ? "Tôi còn chưa nói gì mà." : "I haven't said anything yet.");
+        if (BanterContentCatalog.TryGetPair(first.Member.CharacterName, second.Member.CharacterName, out PairBanterScript? scripted)
+            && scripted is not null)
+        {
+            return OrderedPair(
+                first,
+                second,
+                scripted.LeadName,
+                scripted.Id,
+                vi ? scripted.ViLeadLine : scripted.EnLeadLine,
+                vi ? scripted.ViReplyLine : scripted.EnReplyLine);
+        }
 
         return BuildGenericAmbientExchange(first, second, vi);
     }
@@ -487,18 +485,32 @@ internal sealed class PartyBanterService
         bool vi = IsVietnamese();
         string a = firstMale.Actor.displayName;
         string b = secondMale.Actor.displayName;
-        string[] openers = vi
-            ? new[] { $"{a} với {b}... ừm, tôi thấy có tiềm năng nha~", "Hai người cứ đi cạnh nhau thế này là tôi bắt đầu có ý tưởng rồi đó~", $"{a}, {b}, đứng gần nhau thêm chút đi. Tôi cần tư liệu!" }
-            : new[] { $"{a} and {b}... hmm. I see potential~", "The way you two keep walking together is giving me ideas~", $"{a}, {b}, stand a little closer. I need material!" };
+        string opener;
+        string closer;
+
+        if (BanterContentCatalog.TryGetShippingPair(firstMale.Member.CharacterName, secondMale.Member.CharacterName, out MimiShippingBanterScript? scripted)
+            && scripted is not null)
+        {
+            opener = vi ? scripted.ViOpener : scripted.EnOpener;
+            closer = vi ? scripted.ViCloser : scripted.EnCloser;
+        }
+        else
+        {
+            string[] openers = vi
+                ? new[] { $"{a} với {b}... ừm, tôi thấy có tiềm năng nha~", "Hai người cứ đi cạnh nhau thế này là tôi bắt đầu có ý tưởng rồi đó~", $"{a}, {b}, đứng gần nhau thêm chút đi. Tôi cần tư liệu!" }
+                : new[] { $"{a} and {b}... hmm. I see potential~", "The way you two keep walking together is giving me ideas~", $"{a}, {b}, stand a little closer. I need material!" };
+            opener = openers[Game1.random.Next(openers.Length)];
+            closer = vi ? "Tôi chỉ đang quan sát độ hợp nhau thôi mà~" : "I'm only observing the chemistry~";
+        }
 
         EnqueueExchange(new Exchange(
             $"mimi-ship:{firstMale.Member.CharacterName}:{secondMale.Member.CharacterName}",
             mimi,
-            openers[Game1.random.Next(openers.Length)],
+            opener,
             firstMale,
             BuildMimiShipResponse(firstMale, vi),
             mimi.Member.CharacterName,
-            vi ? "Tôi chỉ đang quan sát độ hợp nhau thôi mà~" : "I'm only observing the chemistry~"), tick);
+            closer), tick);
         return true;
     }
 
