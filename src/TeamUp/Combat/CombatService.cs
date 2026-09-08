@@ -942,6 +942,8 @@ public sealed class CombatService
         int healthBeforeBaseHeal,
         IReadOnlyList<Monster> monsters)
     {
+        if (SignatureAuthorityService.IsAlpha6PrototypeSignatureOwner(member.CharacterName))
+            return;
         if (GetCooldown(_signatureCooldowns, member.CharacterName) > 0)
             return;
 
@@ -992,6 +994,8 @@ public sealed class CombatService
 
     private void TryTriggerAttackSignature(NPC npc, Monster target, PartyMemberData member, PartyRole role, int affinity)
     {
+        if (SignatureAuthorityService.IsAlpha6PrototypeSignatureOwner(member.CharacterName))
+            return;
         if (target.Health <= 0 || GetCooldown(_signatureCooldowns, member.CharacterName) > 0)
             return;
 

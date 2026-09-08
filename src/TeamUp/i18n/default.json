@@ -357,7 +357,7 @@
   "codex.custom.sudoku.passive": "Pattern Reader: Sudoku favors deliberate spacing and punishes enemies that form predictable clusters.",
   "origin.awakening": "{{name}} suddenly awakens a combat instinct that was never there before... or perhaps was simply sleeping.",
   "origin.complete": "TEAM UP ORIGIN • Stronger together.",
-"tactics.open": "Tactics",
+  "tactics.open": "Tactics",
   "tactics.title": "Party Tactics",
   "tactics.subtitle": "Choose the farm-wide combat posture and review shared party capacity.",
   "tactics.strategy-heading": "Current Strategy: {{strategy}}",
@@ -375,5 +375,11 @@
   "tactics.strategy.hold": "Hold Position",
   "tactics.strategy.hold-desc": "Do not chase beyond attack range; fight, heal and control nearby threats.",
   "tactics.strategy.boss": "Boss Focus",
-  "tactics.strategy.boss-desc": "Prefer the highest-MaxHealth target among already valid nearby candidates."
+  "tactics.strategy.boss-desc": "Prefer the highest-MaxHealth target among already valid nearby candidates.",
+  "codex.expansion.marlon.passive": "Veteran Instinct: Marlon prioritizes dangerous, high-health monsters and holds the front line when the fight turns ugly.",
+  "codex.expansion.marlon.ability": "MONSTER HUNTER: strikes the toughest nearby target; elite and boss-class monsters take a capped veteran bonus and may be briefly stunned.",
+  "codex.expansion.morris.passive": "Leverage: Morris fights cautiously, trading raw force for reach, support pressure, and battlefield control.",
+  "codex.expansion.morris.ability": "CORPORATE LEVERAGE: creates a disruptive control field with modest damage, sacrificing raw power for reach and utility.",
+  "codex.expansion.henchman.passive": "Goblin Contract: a durable control specialist built to hold cramped lanes; his value rises when enemies cluster together.",
+  "codex.expansion.henchman.ability": "VOID MAYO SPLASH: splashes a nearby enemy cluster with light damage and a strong short control burst."
 }

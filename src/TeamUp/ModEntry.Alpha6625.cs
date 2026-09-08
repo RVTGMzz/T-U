@@ -36,6 +36,9 @@ public sealed partial class ModEntry
 
         // Alpha 6.7.3: combat ranks, Special Recruit kits and S-rank identities.
         EnsureAlpha673SpecialRecruitRegistered();
+
+        // Alpha 6.7.4: static roster coverage/balance audit + one signature authority.
+        EnsureAlpha674RosterIntegrityRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)

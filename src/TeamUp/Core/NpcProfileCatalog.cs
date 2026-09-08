@@ -62,7 +62,7 @@ public static class NpcProfileCatalog
             ["Kent"] = P("Kent", PartyRole.Tank, PartyRole.Damage, EngagementStyle.Aggressive, 5, 4, 2, 1, 3),
             ["Leah"] = P("Leah", PartyRole.Damage, PartyRole.Control, EngagementStyle.Balanced, 3, 4, 3, 2, 4),
             ["Lewis"] = P("Lewis", PartyRole.Tank, PartyRole.Support, EngagementStyle.Balanced, 4, 2, 4, 2, 3),
-            ["Linus"] = P("Linus", PartyRole.Support, PartyRole.Control, EngagementStyle.Cautious, 3, 2, 4, 3, 5),
+            ["Linus"] = P("Linus", PartyRole.Support, PartyRole.Control, EngagementStyle.Cautious, 3, 2, 5, 3, 4),
             ["Marnie"] = P("Marnie", PartyRole.Healer, PartyRole.Support, EngagementStyle.Cautious, 2, 1, 5, 5, 2),
             ["Maru"] = P("Maru", PartyRole.Control, PartyRole.Support, EngagementStyle.Balanced, 1, 2, 4, 2, 5),
             ["Pam"] = P("Pam", PartyRole.Tank, PartyRole.Damage, EngagementStyle.Reckless, 5, 4, 1, 1, 2),
