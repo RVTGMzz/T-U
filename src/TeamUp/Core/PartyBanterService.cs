@@ -551,8 +551,40 @@ internal sealed class PartyBanterService
         }
 
         PartyChemistryType chemistry = PartyChemistryCatalog.Resolve(first.Member.CharacterName, second.Member.CharacterName);
-        if (chemistry != PartyChemistryType.Neutral
-            && PartyChemistryCatalog.TryBuildAmbientLines(
+        if (chemistry != PartyChemistryType.Neutral)
+        {
+            ChemistryPairVariant variantProfile = ChemistryVariantCatalog.ResolveProfile(
+                first.Member.CharacterName,
+                second.Member.CharacterName,
+                chemistry);
+            IReadOnlyList<ChemistryVariantLine> variantLines = ChemistryVariantCatalog.GetLines(variantProfile.Variant);
+            if (variantLines.Count > 0)
+            {
+                ActiveNpc lead = first;
+                ActiveNpc reply = second;
+                if (!string.IsNullOrWhiteSpace(variantProfile.PreferredLeadName))
+                {
+                    lead = first.Member.CharacterName.Equals(variantProfile.PreferredLeadName, StringComparison.OrdinalIgnoreCase) ? first : second;
+                    reply = ReferenceEquals(lead, first) ? second : first;
+                }
+
+                string pairKey = BuildPairKey(first.Member.CharacterName, second.Member.CharacterName);
+                ChemistryVariantLine selectedLine = variantLines
+                    .OrderBy(line => BanterMemory.Score(
+                        $"chemvar:{variantProfile.Variant}:{line.Id}:{pairKey}",
+                        lead.Member.CharacterName,
+                        reply.Member.CharacterName))
+                    .ThenBy(_ => Game1.random.Next())
+                    .First();
+                return new Exchange(
+                    $"chemvar:{variantProfile.Variant}:{selectedLine.Id}:{pairKey}",
+                    lead,
+                    vi ? selectedLine.ViLeadLine : selectedLine.EnLeadLine,
+                    reply,
+                    vi ? selectedLine.ViReplyLine : selectedLine.EnReplyLine);
+            }
+
+            if (PartyChemistryCatalog.TryBuildAmbientLines(
                 chemistry,
                 first.Actor.displayName,
                 second.Actor.displayName,
@@ -560,13 +592,14 @@ internal sealed class PartyBanterService
                 out string chemistryLeadLine,
                 out string chemistryReplyLine,
                 out string chemistryToneId))
-        {
-            return new Exchange(
-                $"chem:{chemistryToneId}:{BuildPairKey(first.Member.CharacterName, second.Member.CharacterName)}",
-                first,
-                chemistryLeadLine,
-                second,
-                chemistryReplyLine);
+            {
+                return new Exchange(
+                    $"chem:{chemistryToneId}:{BuildPairKey(first.Member.CharacterName, second.Member.CharacterName)}",
+                    first,
+                    chemistryLeadLine,
+                    second,
+                    chemistryReplyLine);
+            }
         }
 
         return BuildGenericAmbientExchange(first, second, vi);
@@ -740,7 +773,15 @@ internal sealed class PartyBanterService
                 int chemistryBias = PartyChemistryCatalog.SelectionBias(
                     active[i].Member.CharacterName,
                     active[j].Member.CharacterName);
-                eligible.Add((active[i], active[j], key, memoryScore + chemistryBias));
+                PartyChemistryType chemistry = PartyChemistryCatalog.Resolve(
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName);
+                ChemistryVariant variant = ChemistryVariantCatalog.ResolveProfile(
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName,
+                    chemistry).Variant;
+                int variantBias = variant == ChemistryVariant.None ? 0 : -3;
+                eligible.Add((active[i], active[j], key, memoryScore + chemistryBias + variantBias));
             }
         }
 

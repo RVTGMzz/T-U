@@ -51,6 +51,9 @@ public sealed partial class ModEntry
 
         // Alpha 6.7.8: cosmetic pair chemistry types guide banter tone and pair scoring.
         EnsureAlpha678PartyChemistryRegistered();
+
+        // Alpha 6.7.9: chemistry variants + memory-aware line pools.
+        EnsureAlpha679ChemistryVariantsRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)
