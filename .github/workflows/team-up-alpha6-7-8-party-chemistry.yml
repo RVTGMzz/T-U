@@ -20,7 +20,9 @@ jobs:
           dotnet_version: 6.0.x
 
       - name: Materialize Alpha 6.7.8 source
-        run: python3 tools/materialize_alpha678.py
+        run: |
+          python3 tools/materialize_alpha678.py
+          python3 tools/fix_alpha678_audit.py
 
       - name: Build, audit and package Alpha 6.7.8
         run: python3 tools/build_alpha678.py
