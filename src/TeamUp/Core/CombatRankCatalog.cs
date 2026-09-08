@@ -79,7 +79,7 @@ public static class CombatRankCatalog
     public static Color GetColor(CombatRank rank)
         => rank switch
         {
-            CombatRank.S => new Color(218, 155, 48),
+            CombatRank.S => new Color(132, 70, 12),
             CombatRank.A => new Color(151, 91, 194),
             CombatRank.B => new Color(64, 126, 190),
             CombatRank.C => new Color(78, 145, 92),

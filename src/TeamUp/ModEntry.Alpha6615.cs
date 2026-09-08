@@ -19,6 +19,10 @@ public sealed partial class ModEntry
         Helper.Events.GameLoop.ReturnedToTitle += OnAlpha6615ReturnedToTitle;
         Helper.Events.Input.ButtonPressed += OnAlpha6615ButtonPressed;
         Helper.Events.Display.RenderedActiveMenu += OnAlpha6615RenderedActiveMenu;
+        Helper.ConsoleCommands.Add(
+            "teamup_capture",
+            "Show Team Up Pelipper capture-floor diagnostics.",
+            OnAlpha6712CaptureStatus);
     }
 
     private void OnAlpha6615SaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -59,6 +63,33 @@ public sealed partial class ModEntry
         }
     }
 
+    private void OnAlpha6712CaptureStatus(string command, string[] args)
+    {
+        if (!Context.IsWorldReady)
+        {
+            Monitor.Log("teamup_capture requires a loaded save.", LogLevel.Info);
+            return;
+        }
+
+        List<string> targets = new();
+        if (Game1.currentLocation is not null)
+        {
+            foreach (StardewValley.Monsters.Monster monster in Game1.currentLocation.characters.OfType<StardewValley.Monsters.Monster>())
+            {
+                if (!PelipperCaptureSafetyService.TryGetDamageBudget(monster, out int budget))
+                    continue;
+                int floor = Math.Max(1, (int)Math.Ceiling(monster.MaxHealth * PelipperCaptureSafetyService.CurrentThreshold));
+                targets.Add($"{monster.Name}:{monster.Health}/{monster.MaxHealth}:floor={floor}:budget={budget}");
+            }
+        }
+
+        Monitor.Log(
+            $"Capture floor: enabled={PelipperCaptureSafetyService.CurrentEnabled}, threshold={PelipperCaptureSafetyService.CurrentThreshold:P0}, " +
+            $"takeDamagePatches={PelipperCaptureDamagePatch.TakeDamagePatchCount}, areaDamagePatches={PelipperCaptureDamagePatch.AreaDamagePatchCount}, " +
+            $"wildTargets=[{string.Join(", ", targets)}]",
+            LogLevel.Info);
+    }
+
     private void OnAlpha6615ReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
         PendingPlayerCompanionRecallAlpha6615.Clear();
@@ -66,7 +97,16 @@ public sealed partial class ModEntry
 
     private void OnAlpha6615UpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
-        if (!Context.IsMainPlayer || !Context.IsWorldReady || !e.IsMultipleOf(15))
+        if (!Context.IsMainPlayer || !Context.IsWorldReady)
+            return;
+
+        // 6.7.12: mercy/capture is a world combat invariant, not an NPC-party behavior. Keep a
+        // per-tick last-resort floor repair active even while party composition changes.
+        int repaired = PelipperCaptureSafetyService.RepairCurrentLocationFloors(Game1.currentLocation);
+        if (repaired > 0)
+            Monitor.LogOnce("Alpha 6.7.12 repaired a live wild Pokemon below the active capture floor.", LogLevel.Trace);
+
+        if (!e.IsMultipleOf(15))
             return;
 
         DetectPlayerCompanionRecallAttemptsAlpha6615();

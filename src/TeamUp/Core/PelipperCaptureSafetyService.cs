@@ -1,4 +1,5 @@
 using System.Reflection;
+using StardewValley;
 using StardewValley.Monsters;
 
 namespace Ronvotri.TeamUp.Core;
@@ -54,6 +55,48 @@ internal static class PelipperCaptureSafetyService
         return TryGetDamageBudget(monster, out int budget)
             ? Math.Min(requestedDamage, budget)
             : requestedDamage;
+    }
+
+    public static bool TryGetCaptureFloor(Monster monster, out int stopAtHealth)
+    {
+        stopAtHealth = 0;
+        if (monster.Health <= 0 || monster.MaxHealth <= 0)
+            return false;
+        if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
+            return false;
+
+        RefreshPolicyIfNeeded();
+        if (!_enabled)
+            return false;
+
+        stopAtHealth = Math.Max(1, (int)Math.Ceiling(monster.MaxHealth * _threshold));
+        return true;
+    }
+
+    /// <summary>
+    /// Last-resort repair for custom friendly damage paths that directly lower Health without
+    /// crossing a patched damage entry point. This never revives a dead/removed monster; it only
+    /// restores a still-live wild Pelipper proxy to the active capture floor.
+    /// </summary>
+    public static int RepairCurrentLocationFloors(GameLocation? location)
+    {
+        if (location is null || !_enabled)
+            return 0;
+
+        int repaired = 0;
+        foreach (Monster monster in location.characters.OfType<Monster>())
+        {
+            if (monster.Health <= 0
+                || !TryGetCaptureFloor(monster, out int floor)
+                || monster.Health >= floor)
+            {
+                continue;
+            }
+
+            monster.Health = floor;
+            repaired++;
+        }
+        return repaired;
     }
 
     public static float CurrentThreshold => _threshold;
