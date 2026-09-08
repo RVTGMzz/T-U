@@ -48,6 +48,9 @@ public sealed partial class ModEntry
 
         // Alpha 6.7.7: cosmetic banter recency memory + repetition guard.
         EnsureAlpha677BanterMemoryRegistered();
+
+        // Alpha 6.7.8: cosmetic pair chemistry types guide banter tone and pair scoring.
+        EnsureAlpha678PartyChemistryRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)

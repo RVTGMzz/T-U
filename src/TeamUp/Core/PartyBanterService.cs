@@ -550,6 +550,25 @@ internal sealed class PartyBanterService
                 vi ? scripted.ViReplyLine : scripted.EnReplyLine);
         }
 
+        PartyChemistryType chemistry = PartyChemistryCatalog.Resolve(first.Member.CharacterName, second.Member.CharacterName);
+        if (chemistry != PartyChemistryType.Neutral
+            && PartyChemistryCatalog.TryBuildAmbientLines(
+                chemistry,
+                first.Actor.displayName,
+                second.Actor.displayName,
+                vi,
+                out string chemistryLeadLine,
+                out string chemistryReplyLine,
+                out string chemistryToneId))
+        {
+            return new Exchange(
+                $"chem:{chemistryToneId}:{BuildPairKey(first.Member.CharacterName, second.Member.CharacterName)}",
+                first,
+                chemistryLeadLine,
+                second,
+                chemistryReplyLine);
+        }
+
         return BuildGenericAmbientExchange(first, second, vi);
     }
 
@@ -705,7 +724,7 @@ internal sealed class PartyBanterService
             return false;
 
         long tick = Game1.ticks;
-        List<(ActiveNpc A, ActiveNpc B, string Key, int MemoryScore)> eligible = new();
+        List<(ActiveNpc A, ActiveNpc B, string Key, int SelectionScore)> eligible = new();
         for (int i = 0; i < active.Count; i++)
         {
             for (int j = i + 1; j < active.Count; j++)
@@ -718,7 +737,10 @@ internal sealed class PartyBanterService
                     "pair-choice:" + key,
                     active[i].Member.CharacterName,
                     active[j].Member.CharacterName);
-                eligible.Add((active[i], active[j], key, memoryScore));
+                int chemistryBias = PartyChemistryCatalog.SelectionBias(
+                    active[i].Member.CharacterName,
+                    active[j].Member.CharacterName);
+                eligible.Add((active[i], active[j], key, memoryScore + chemistryBias));
             }
         }
 
@@ -726,7 +748,7 @@ internal sealed class PartyBanterService
             return false;
 
         (ActiveNpc a, ActiveNpc b, string selectedKey, _) = eligible
-            .OrderBy(candidate => candidate.MemoryScore)
+            .OrderBy(candidate => candidate.SelectionScore)
             .ThenBy(_ => Game1.random.Next())
             .First();
         bool normalOrder = Game1.random.NextDouble() < 0.5;
