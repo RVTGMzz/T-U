@@ -1,0 +1,1 @@
+Branch preparation marker. No runtime effect.
