@@ -54,6 +54,9 @@ public sealed partial class ModEntry
 
         // Alpha 6.7.9: chemistry variants + memory-aware line pools.
         EnsureAlpha679ChemistryVariantsRegistered();
+
+        // Alpha 6.7.10: preserve route metadata, guard loadEndOfRouteBehavior and tune A-rank combat.
+        EnsureAlpha6710Registered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)

@@ -130,9 +130,8 @@ public sealed class FollowService
         int facing = Math.Clamp(npc.FacingDirection, 0, 3);
         npc.doingEndOfRouteAnimation.Value = false;
         npc.goingToDoEndOfRouteAnimation.Value = false;
-        npc.endOfRouteBehaviorName.Value = null;
-        npc.nextEndOfRouteMessage = null;
-        npc.endOfRouteMessage.Value = null;
+        // Alpha 6.7.10: preserve endOfRouteBehaviorName/messages. Team Up suspends route
+        // execution while it owns the NPC instead of corrupting the schedule metadata.
 
         npc.Sprite.ignoreStopAnimation = false;
         npc.Sprite.ignoreSourceRectUpdates = false;

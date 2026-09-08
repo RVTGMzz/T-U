@@ -48,6 +48,11 @@ public static class CombatRankCatalog
         ["Marlon"] = new(CombatRank.S, RecruitBadge.Legendary),
         ["Henchman"] = new(CombatRank.B, RecruitBadge.Special),
         ["Morris"] = new(CombatRank.C),
+        ["Abigail"] = new(CombatRank.A),
+        ["Alex"] = new(CombatRank.A),
+        ["Haley"] = new(CombatRank.A),
+        ["Maru"] = new(CombatRank.A),
+        ["Evelyn"] = new(CombatRank.A),
     };
 
     public static CombatRankInfo Get(string characterName, NpcCombatProfile? profile = null)
