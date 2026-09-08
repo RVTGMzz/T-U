@@ -45,6 +45,7 @@ internal sealed class PartyBanterService
     private long NextAmbientTick;
     private long NextCombatTick;
     private long NextMimiShipTick;
+    private long NextContextTick;
     private long CombatEndedCandidateTick;
     private bool WasInCombat;
     private bool Primed;
@@ -115,6 +116,7 @@ internal sealed class PartyBanterService
         NextAmbientTick = 0;
         NextCombatTick = 0;
         NextMimiShipTick = 0;
+        NextContextTick = 0;
         CombatEndedCandidateTick = 0;
         WasInCombat = false;
         Primed = false;
@@ -144,11 +146,12 @@ internal sealed class PartyBanterService
             NextAmbientTick = tick + 600;
             NextCombatTick = tick + 240;
             NextMimiShipTick = tick + 900;
+            NextContextTick = tick + 720;
             return;
         }
 
         List<ActiveNpc> active = GetActivePartyNpcs();
-        if (active.Count < 2)
+        if (active.Count == 0)
         {
             WasInCombat = false;
             return;
@@ -174,9 +177,11 @@ internal sealed class PartyBanterService
             {
                 WasInCombat = false;
                 CombatEndedCandidateTick = 0;
-                if (TryVictoryExchange(active))
+                if (TryContextExchange(active, BanterContextKind.PostCombat, ignoreCooldown: true)
+                    || TryVictoryExchange(active))
                 {
                     NextAmbientTick = tick + 600;
+                    NextContextTick = Math.Max(NextContextTick, tick + 900);
                     return;
                 }
             }
@@ -196,6 +201,17 @@ internal sealed class PartyBanterService
             NextMimiShipTick = tick + 300;
         }
 
+        if (tick >= NextContextTick && PendingLines.Count == 0)
+        {
+            if (TryContextExchange(active))
+            {
+                NextContextTick = tick + Game1.random.Next(1800, 2701);
+                NextAmbientTick = Math.Max(NextAmbientTick, tick + 750);
+                return;
+            }
+            NextContextTick = tick + 600;
+        }
+
         if (tick >= NextAmbientTick && PendingLines.Count == 0 && TryAmbientExchange(active))
             NextAmbientTick = tick + Game1.random.Next(1050, 1651);
     }
@@ -205,6 +221,9 @@ internal sealed class PartyBanterService
 
     public bool ForceMimiShipping()
         => Context.IsWorldReady && Context.IsMainPlayer && TryMimiShippingExchange(GetActivePartyNpcs(), ignoreCooldown: true);
+
+    public bool ForceContext()
+        => Context.IsWorldReady && Context.IsMainPlayer && TryContextExchange(GetActivePartyNpcs(), forcedContext: null, ignoreCooldown: true);
 
     private List<ActiveNpc> GetActivePartyNpcs()
     {
@@ -270,6 +289,123 @@ internal sealed class PartyBanterService
         }
         return false;
     }
+
+    private bool TryContextExchange(
+        List<ActiveNpc> active,
+        BanterContextKind? forcedContext = null,
+        bool ignoreCooldown = false)
+    {
+        if (active.Count == 0 || PendingLines.Count != 0)
+            return false;
+
+        IReadOnlyList<BanterContextKind> contexts = forcedContext.HasValue
+            ? new[] { forcedContext.Value }
+            : ResolveCurrentContexts();
+        if (contexts.Count == 0)
+            return false;
+
+        foreach (BanterContextKind context in contexts)
+        {
+            List<(ContextBanterScript Script, ActiveNpc Speaker, ActiveNpc? Partner)> candidates = new();
+            foreach (ContextBanterScript script in ContextBanterCatalog.Get(context))
+            {
+                ActiveNpc? speaker = FindActive(active, script.SpeakerName);
+                if (speaker is null)
+                    continue;
+
+                ActiveNpc? partner = null;
+                if (script.HasPartner)
+                {
+                    partner = FindActive(active, script.PartnerName);
+                    if (partner is null || ReferenceEquals(partner, speaker))
+                        continue;
+                }
+
+                string cooldownKey = "context|" + script.Id;
+                if (!ignoreCooldown && PairCooldownUntil.TryGetValue(cooldownKey, out long until) && Game1.ticks < until)
+                    continue;
+                candidates.Add((script, speaker, partner));
+            }
+
+            if (candidates.Count == 0)
+                continue;
+
+            (ContextBanterScript selectedScript, ActiveNpc selectedSpeaker, ActiveNpc? selectedPartner) = candidates[Game1.random.Next(candidates.Count)];
+            PairCooldownUntil["context|" + selectedScript.Id] = Game1.ticks + 2400;
+            bool vi = IsVietnamese();
+            string line = vi ? selectedScript.ViLine : selectedScript.EnLine;
+            if (selectedPartner is null)
+            {
+                EnqueueSingleLine(selectedScript.Id, selectedSpeaker, line, Game1.ticks);
+                return true;
+            }
+
+            EnqueueExchange(new Exchange(
+                selectedScript.Id,
+                selectedSpeaker,
+                line,
+                selectedPartner,
+                vi ? selectedScript.ViReply : selectedScript.EnReply), Game1.ticks);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static ActiveNpc? FindActive(IReadOnlyList<ActiveNpc> active, string characterName)
+        => active.FirstOrDefault(npc => npc.Member.CharacterName.Equals(characterName, StringComparison.OrdinalIgnoreCase)
+            || npc.Actor.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
+
+    private static IReadOnlyList<BanterContextKind> ResolveCurrentContexts()
+    {
+        GameLocation? location = Game1.currentLocation;
+        if (location is null)
+            return Array.Empty<BanterContextKind>();
+
+        List<BanterContextKind> contexts = new();
+        bool outdoors = ReadBooleanMember(location, "IsOutdoors") || ReadBooleanMember(location, "isOutdoors");
+        bool raining = outdoors && ReadStaticGameBoolean("isRaining");
+        bool lightning = raining && ReadStaticGameBoolean("isLightning");
+        if (lightning)
+            contexts.Add(BanterContextKind.Storm);
+        if (raining)
+            contexts.Add(BanterContextKind.Rain);
+
+        string locationName = location.NameOrUniqueName ?? string.Empty;
+        if (ContainsAny(locationName, "Mine", "SkullCave", "VolcanoDungeon", "Volcano"))
+            contexts.Add(BanterContextKind.Mine);
+        if (ContainsAny(locationName, "AdventureGuild", "AdventurerGuild"))
+            contexts.Add(BanterContextKind.AdventurerGuild);
+        if (ContainsAny(locationName, "Saloon"))
+            contexts.Add(BanterContextKind.Saloon);
+        if (ContainsAny(locationName, "Beach", "Ocean"))
+            contexts.Add(BanterContextKind.Beach);
+        if (ContainsAny(locationName, "Forest", "Woods", "Backwoods"))
+            contexts.Add(BanterContextKind.Forest);
+        if (Game1.timeOfDay >= 1900)
+            contexts.Add(BanterContextKind.Night);
+        return contexts;
+    }
+
+    private static bool ContainsAny(string value, params string[] needles)
+        => needles.Any(needle => value.Contains(needle, StringComparison.OrdinalIgnoreCase));
+
+    private static bool ReadStaticGameBoolean(string name)
+    {
+        try
+        {
+            const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
+            FieldInfo? field = typeof(Game1).GetField(name, flags);
+            if (field?.GetValue(null) is bool fieldValue)
+                return fieldValue;
+            PropertyInfo? property = typeof(Game1).GetProperty(name, flags);
+            return property?.GetIndexParameters().Length == 0 && property.GetValue(null) is bool propertyValue && propertyValue;
+        }
+        catch { return false; }
+    }
+
+    private static bool ReadBooleanMember(object target, string name)
+        => UnwrapValue(ReadMember(target, name)) is bool value && value;
 
     private bool TryLowHealthEncouragement(List<ActiveNpc> active, long tick)
     {
@@ -572,6 +708,16 @@ internal sealed class PartyBanterService
             }
         }
         return false;
+    }
+
+    private void EnqueueSingleLine(string id, ActiveNpc speaker, string line, long tick)
+    {
+        if (PendingLines.Count > 0)
+            return;
+        LastExchangeId = id;
+        PendingLines.Enqueue(new QueuedLine(speaker.Member.CharacterName, line, tick, 1650));
+        FlushQueuedLines(tick);
+        Monitor.Log($"Party context banter: {id}", LogLevel.Trace);
     }
 
     private void EnqueueExchange(Exchange exchange, long tick)

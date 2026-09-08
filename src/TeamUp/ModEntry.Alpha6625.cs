@@ -42,6 +42,9 @@ public sealed partial class ModEntry
 
         // Alpha 6.7.5: authored party banter catalog + static dialogue audit.
         EnsureAlpha675BanterCatalogRegistered();
+
+        // Alpha 6.7.6: context-aware cosmetic chatter + static context audit.
+        EnsureAlpha676ContextBanterRegistered();
     }
 
     private bool CanPelipperPlayerDeployAlpha6625(long ownerId)
