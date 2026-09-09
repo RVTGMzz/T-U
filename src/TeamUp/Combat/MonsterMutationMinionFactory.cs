@@ -34,7 +34,7 @@ internal static class MonsterMutationMinionFactory
         int baseSpeed,
         out string mode)
     {
-        if (TryCreateSameRuntimeType(source, position, baseMaxHealth, out Monster? sameType))
+        if (TryCreateSameRuntimeType(source, position, baseMaxHealth, out Monster? sameType) && sameType is not null)
         {
             NormalizeNormalStats(sameType, baseMaxHealth, baseDamage, baseSpeed);
             SameTypeSpawned++;
