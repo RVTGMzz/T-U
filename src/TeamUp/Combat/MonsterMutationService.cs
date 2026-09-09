@@ -141,7 +141,9 @@ internal sealed class MonsterMutationService
             + $"HPx{Math.Clamp(_healthMultiplier(), 1f, 10f):0.##} | Statx{Math.Clamp(_statMultiplier(), 1f, 5f):0.##} | "
             + $"Scalex{Math.Clamp(_visualScaleMultiplier(), 1f, 5f):0.##} | Minions={Math.Clamp(_minionMin(), 0, 8)}-{Math.Clamp(_minionMax(), 0, 8)} | "
             + $"deathHooks={PatchedDeathMethodCount} | rolls={_rolls} | mutations={_mutations} | excluded={_excludedDeaths} | "
-            + $"active={active} | activeMinions={minions} | spawnedMinions={_minionsSpawned}";
+            + $"active={active} | activeMinions={minions} | spawnedMinions={_minionsSpawned} | "
+            + $"footprintHooks={MonsterMutationFootprintPatch.PatchedMethodCount} | sameTypeMinions={MonsterMutationMinionFactory.SameTypeSpawned} | "
+            + $"fallbackMinions={MonsterMutationMinionFactory.FallbackSpawned}";
     }
 
     public IReadOnlyList<string> DescribeCurrentLocation()
@@ -304,11 +306,15 @@ internal sealed class MonsterMutationService
         // Scale is best-effort reflection so custom monster classes without a writable Scale member
         // remain fully functional instead of failing mutation. Existing custom scale is multiplied.
         double existingScale = ReadNumericMember(monster, "Scale", "scale") ?? 1d;
-        TryWriteNumericMember(monster, Math.Clamp(existingScale * visualScale, 0.25d, 12d), "Scale", "scale");
+        bool visualScaleApplied = TryWriteNumericMember(
+            monster,
+            Math.Clamp(existingScale * visualScale, 0.25d, 12d),
+            "Scale", "scale");
+        float effectiveFootprintScale = visualScaleApplied ? visualScale : 1f;
 
         monster.modData[MutantMarker] = "1";
         monster.modData[MutationSourceMarker] = monster.GetType().FullName ?? monster.GetType().Name;
-        monster.modData[MutationScaleMarker] = visualScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+        monster.modData[MutationScaleMarker] = effectiveFootprintScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
         int min = Math.Clamp(_minionMin(), 0, 8);
         int max = Math.Clamp(_minionMax(), 0, 8);
@@ -332,7 +338,8 @@ internal sealed class MonsterMutationService
         LastMutationLine =
             $"[MutationTelemetry] source={monster.GetType().FullName} location={location.NameOrUniqueName} "
             + $"baseHP={baseMaxHealth} mutantHP={mutantMax} baseDamage={baseDamage} damageX={statScale:0.##} "
-            + $"baseResilience={baseResilience} speed={baseSpeed}->{mutantSpeed} scaleX={visualScale:0.##} minionsRequested={requestedMinions} force={force}";
+            + $"baseResilience={baseResilience} speed={baseSpeed}->{mutantSpeed} scaleX={effectiveFootprintScale:0.##} "
+            + $"scaleApplied={visualScaleApplied} minionsRequested={requestedMinions} force={force}";
         _monitor.Log(LastMutationLine, LogLevel.Info);
 
         if (!Game1.eventUp)
@@ -429,6 +436,8 @@ internal sealed class MonsterMutationService
 
         int spawned = 0;
         int rejected = 0;
+        int sameType = 0;
+        int fallback = 0;
         for (int i = 0; i < wave.RequestedCount; i++)
         {
             if (!TryFindSafeSpawnPosition(wave.Location, wave.Mutant, i, out Vector2 position))
@@ -437,15 +446,17 @@ internal sealed class MonsterMutationService
                 continue;
             }
 
-            int minionHealth = Math.Clamp((int)Math.Round(wave.BaseMaxHealth * 0.65f), 24, 900);
-            int mineLevel = Math.Clamp(20 + wave.BaseMaxHealth / 3, 20, 100);
-            GreenSlime minion = new(position, mineLevel)
-            {
-                MaxHealth = minionHealth,
-                Health = minionHealth,
-                Speed = Math.Clamp(wave.BaseSpeed, 2, 6)
-            };
-            TryWriteNumericMember(minion, Math.Max(1, wave.BaseDamage), "DamageToFarmer", "damageToFarmer");
+            Monster minion = MonsterMutationMinionFactory.Create(
+                wave.Mutant,
+                position,
+                wave.BaseMaxHealth,
+                wave.BaseDamage,
+                wave.BaseSpeed,
+                out string spawnMode);
+            if (spawnMode == "same-runtime-type")
+                sameType++;
+            else
+                fallback++;
             minion.modData[MutationMinionMarker] = "1";
             minion.modData[MutationSourceMarker] = wave.SourceType;
             if (!_minionLoot())
@@ -456,8 +467,11 @@ internal sealed class MonsterMutationService
         }
 
         _minionsSpawned += spawned;
-        LastMutationLine += $" | minionsSpawned={spawned}/{wave.RequestedCount} safeRejected={rejected}";
-        _monitor.Log($"[MutationMinions] source={wave.SourceType} location={wave.Location.NameOrUniqueName} spawned={spawned}/{wave.RequestedCount} safeRejected={rejected}", LogLevel.Info);
+        LastMutationLine += $" | minionsSpawned={spawned}/{wave.RequestedCount} sameType={sameType} fallback={fallback} safeRejected={rejected}";
+        _monitor.Log(
+            $"[MutationMinions] source={wave.SourceType} location={wave.Location.NameOrUniqueName} "
+            + $"spawned={spawned}/{wave.RequestedCount} sameType={sameType} fallback={fallback} safeRejected={rejected}",
+            LogLevel.Info);
     }
 
     private static bool TryFindSafeSpawnPosition(GameLocation location, Monster anchor, int seed, out Vector2 position)
