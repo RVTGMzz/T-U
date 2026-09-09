@@ -20,6 +20,7 @@ public sealed partial class ModEntry
         }
 
         EnsureAlpha6713Registered();
+        EnsureAlpha6714Registered();
     }
 
     private void OnAlpha6710RouteGuardStatus(string command, string[] args)

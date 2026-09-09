@@ -53,10 +53,17 @@ public sealed partial class ModEntry
                 continue;
             }
 
-            // The same unowned Pelipper Monster proxy that Team Up opts into combat is the exact
-            // entity whose HP must obey Pelipper's capture/mercy floor.
-            monster.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
+            // Keep durable wild-proxy identity even during capture ceasefire. The offensive
+            // CombatTarget marker is separate and may be removed at the floor without disabling
+            // the hard capture clamp/watchdog.
             monster.modData[PelipperTownCompatibilityService.WildCombatProxyKey] = "true";
+            if (PelipperCaptureSafetyService.IsProtected(monster))
+            {
+                monster.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
+                continue;
+            }
+
+            monster.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
         }
     }
 
