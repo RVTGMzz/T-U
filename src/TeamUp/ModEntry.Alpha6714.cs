@@ -23,6 +23,7 @@ public sealed partial class ModEntry
             OnAlpha6714NpcOnlyLockCommand);
 
         EnsureAlpha6715Registered();
+        EnsureAlpha6716Registered();
         Monitor.Log("Team Up Alpha 6.7.14 NPC-only source lock + capture ceasefire enabled.", LogLevel.Info);
     }
 
