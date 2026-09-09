@@ -45,6 +45,14 @@ public sealed partial class ModEntry : Mod
         Config.SpecialCompanionNpcNames ??= new List<string>();
         Config.MonsterDensityMultiplier = Math.Clamp(Config.MonsterDensityMultiplier, 1f, 2.5f);
         Config.MonsterSurgeExtraCap = Math.Clamp(Config.MonsterSurgeExtraCap, 0, 30);
+        Config.MutationChancePercent = Math.Clamp(Config.MutationChancePercent, 0f, 100f);
+        Config.MutationHealthMultiplier = Math.Clamp(Config.MutationHealthMultiplier, 1f, 10f);
+        Config.MutationStatMultiplier = Math.Clamp(Config.MutationStatMultiplier, 1f, 5f);
+        Config.MutationVisualScaleMultiplier = Math.Clamp(Config.MutationVisualScaleMultiplier, 1f, 5f);
+        Config.MutationMinionMin = Math.Clamp(Config.MutationMinionMin, 0, 8);
+        Config.MutationMinionMax = Math.Clamp(Config.MutationMinionMax, 0, 8);
+        if (Config.MutationMinionMax < Config.MutationMinionMin)
+            (Config.MutationMinionMin, Config.MutationMinionMax) = (Config.MutationMinionMax, Config.MutationMinionMin);
         if (!Enum.IsDefined(typeof(PartyStrategy), Config.PartyStrategy))
             Config.PartyStrategy = PartyStrategy.Balanced;
         helper.WriteConfig(Config);
@@ -96,6 +104,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha663HotfixEvents();
         RegisterAlpha669HotfixEvents();
         RegisterAlpha6612Events();
+        RegisterAlpha6719Events();
 
         Monitor.Log("Team Up! v0.2.0-alpha.6.6.24 Source Authority + Hard Taunt Audit loaded. Codex 115% preserved.", LogLevel.Info);
     }

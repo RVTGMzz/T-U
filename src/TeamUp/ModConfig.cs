@@ -57,6 +57,26 @@ public sealed class ModConfig
     // automatically become x2 economy. Set true only if the player wants full drops.
     public bool SurgeMonstersDropLoot { get; set; } = false;
 
+    // Alpha 6.7.19: a normal hostile monster has a small chance to mutate instead of dying.
+    // The same runtime instance is reused so custom-mod AI/state stays intact.
+    public bool EnableMutationEncounters { get; set; } = true;
+
+    public float MutationChancePercent { get; set; } = 5f;
+
+    public float MutationHealthMultiplier { get; set; } = 3f;
+
+    public float MutationStatMultiplier { get; set; } = 2f;
+
+    public float MutationVisualScaleMultiplier { get; set; } = 3f;
+
+    public int MutationMinionMin { get; set; } = 2;
+
+    public int MutationMinionMax { get; set; } = 4;
+
+    // Mutation minions are reward-suppressed by default to avoid turning a 5% danger event
+    // into an economy multiplier. The mutant itself still drops its normal loot when finally slain.
+    public bool MutationMinionsDropLoot { get; set; } = false;
+
     // Alpha 6.6.0: party-wide tactical posture. This is config-backed so changing strategy
     // never migrates or mutates PartySaveData.
     public PartyStrategy PartyStrategy { get; set; } = PartyStrategy.Balanced;

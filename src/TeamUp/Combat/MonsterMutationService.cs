@@ -515,8 +515,9 @@ internal sealed class MonsterMutationService
 
     private static bool HasTruthyPolicyTag(Monster monster, params string[] tokens)
     {
-        foreach ((string key, string value) in monster.modData.Pairs)
+        foreach (string key in monster.modData.Keys)
         {
+            string value = monster.modData.TryGetValue(key, out string? rawValue) ? rawValue ?? string.Empty : string.Empty;
             string normalizedKey = Normalize(key);
             if (!tokens.Any(token => normalizedKey.Contains(Normalize(token), StringComparison.Ordinal)))
                 continue;
