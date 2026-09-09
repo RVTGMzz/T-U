@@ -22,6 +22,7 @@ public sealed partial class ModEntry
             "Force/check Team Up NPC-only Pelipper source locks.",
             OnAlpha6714NpcOnlyLockCommand);
 
+        EnsureAlpha6715Registered();
         Monitor.Log("Team Up Alpha 6.7.14 NPC-only source lock + capture ceasefire enabled.", LogLevel.Info);
     }
 
