@@ -42,9 +42,20 @@ public sealed class MonsterSurgeService
     private readonly Func<int> _extraCap;
     private readonly Func<bool> _fullLoot;
 
+    private const int InitialDiscoveryDelayTicks = 90;
+    private const int LateSpawnRetryTicks = 60;
+    private const int MaxDiscoveryAttempts = 5;
+
     private string _locationKey = string.Empty;
     private int _pendingTicks;
     private bool _applied;
+    private int _discoveryAttempts;
+
+    private int _lastRawCount;
+    private int _lastBossExcluded;
+    private int _lastProtectedExcluded;
+    private int _lastPelipperSignals;
+    private int _lastFactoryRejected;
 
     private int _lastBaselineCount;
     private int _lastWantedCount;
@@ -81,6 +92,8 @@ public sealed class MonsterSurgeService
         _locationKey = string.Empty;
         _pendingTicks = 0;
         _applied = false;
+        _discoveryAttempts = 0;
+        UniversalMonsterDensitySpawnFactory.ResetTelemetry();
         ResetVisitTelemetry("not-applied");
 
         _recentEncounterSerial = 0;
@@ -98,8 +111,9 @@ public sealed class MonsterSurgeService
             TryShowGuildThreatBrief();
 
         _locationKey = location.NameOrUniqueName;
-        _pendingTicks = 45;
+        _pendingTicks = InitialDiscoveryDelayTicks;
         _applied = false;
+        _discoveryAttempts = 0;
         ResetVisitTelemetry("pending");
     }
 
@@ -118,14 +132,56 @@ public sealed class MonsterSurgeService
         if (_pendingTicks-- > 0)
             return;
 
-        ApplyOnce(location);
-        _applied = true;
+        bool terminal = ApplyOnce(location);
+        if (terminal)
+        {
+            _applied = true;
+            return;
+        }
+
+        _discoveryAttempts++;
+        if (_discoveryAttempts >= MaxDiscoveryAttempts)
+        {
+            _applied = true;
+            _lastSuppressionReason = _lastPelipperSignals > 0
+                ? "pelipper-only-source-owned-by-pelipper"
+                : "late-spawn-timeout";
+            LogTelemetry(location, Math.Clamp(_multiplier(), 1f, 2.5f));
+            return;
+        }
+
+        _pendingTicks = LateSpawnRetryTicks;
+        _lastSuppressionReason = _lastPelipperSignals > 0
+            ? "pelipper-source-wait"
+            : "late-spawn-retry";
+        LogTelemetry(location, Math.Clamp(_multiplier(), 1f, 2.5f));
     }
 
     public string Describe()
-        => $"Surge: Enabled={_enabled()} | Multiplier={Math.Clamp(_multiplier(), 1f, 2.5f):0.00} | "
-            + $"Location={_locationKey} | Applied={_applied} | Baseline={_lastBaselineCount} | Wanted={_lastWantedCount} | "
-            + $"Spawned={_lastSpawnedCount} | UnsafeRejected={_lastUnsafeRejected} | Threat={_lastThreatLevel} | Suppress={_lastSuppressionReason}";
+        => $"Density: Enabled={_enabled()} | Multiplier={Math.Clamp(_multiplier(), 1f, 2.5f):0.00} | "
+            + $"Location={_locationKey} | Applied={_applied} | Attempt={_discoveryAttempts}/{MaxDiscoveryAttempts} | "
+            + $"Raw={_lastRawCount} | Eligible={_lastBaselineCount} | BossExcluded={_lastBossExcluded} | "
+            + $"ProtectedExcluded={_lastProtectedExcluded} | PelipperSignals={_lastPelipperSignals} | Wanted={_lastWantedCount} | "
+            + $"Spawned={_lastSpawnedCount} | FactoryRejected={_lastFactoryRejected} | UnsafeRejected={_lastUnsafeRejected} | "
+            + $"SameType={UniversalMonsterDensitySpawnFactory.SameTypeSpawned} | VanillaFallback={UniversalMonsterDensitySpawnFactory.VanillaFallbackSpawned} | "
+            + $"CustomRejected={UniversalMonsterDensitySpawnFactory.CustomRejected} | Threat={_lastThreatLevel} | Suppress={_lastSuppressionReason}";
+
+    public IReadOnlyList<string> DescribeCurrentSources()
+    {
+        if (!Context.IsWorldReady || Game1.currentLocation is null)
+            return new[] { "Density sources unavailable until a save is loaded." };
+
+        List<string> lines = new();
+        foreach (Monster monster in Game1.currentLocation.characters.OfType<Monster>().Where(monster => monster.Health > 0))
+        {
+            string classification = ClassifyDensitySource(monster);
+            lines.Add($"DensitySource {classification} name={monster.Name} type={monster.GetType().FullName} HP={monster.Health}/{monster.MaxHealth}");
+        }
+
+        if (lines.Count == 0)
+            lines.Add("No live Monster actors in the current location.");
+        return lines;
+    }
 
     public int CountOwnedSurgeMonsters(GameLocation? location = null)
     {
@@ -176,11 +232,14 @@ public sealed class MonsterSurgeService
         _locationKey = location.NameOrUniqueName;
         _pendingTicks = 0;
         _applied = false;
+        _discoveryAttempts = 0;
         ResetVisitTelemetry("debug-reapply");
-        ApplyOnce(location);
-        _applied = true;
+        bool terminal = ApplyOnce(location);
+        _applied = terminal;
+        if (!terminal)
+            _pendingTicks = LateSpawnRetryTicks;
 
-        result = $"Surge reapply complete: cleared={cleared} | {Describe()}";
+        result = $"Density reapply: cleared={cleared} | {Describe()}";
         return true;
     }
 
@@ -219,37 +278,68 @@ public sealed class MonsterSurgeService
     public static bool IsSurgeMonster(Monster monster)
         => monster.modData.ContainsKey(SurgeMarker);
 
-    private void ApplyOnce(GameLocation location)
+    private bool ApplyOnce(GameLocation location)
     {
-        if (!LooksLikeCombatZone(location))
-        {
-            SetSuppressed(location, "not-combat-zone");
-            return;
-        }
-
+        // Cardcha's explicit test sandbox is never density-amplified. Normal Cardcha maps are.
         if (location.NameOrUniqueName.Equals(OptionalTestHostCompatibility.CardchaArenaLocationName, StringComparison.OrdinalIgnoreCase))
         {
             SetSuppressed(location, "cardcha-sandbox");
-            return;
+            return true;
         }
 
-        List<Monster> baseline = location.characters
+        List<Monster> raw = location.characters
             .OfType<Monster>()
             .Where(monster => monster.Health > 0)
-            .Where(monster => !IsSurgeMonster(monster))
-            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
             .ToList();
 
+        _lastRawCount = raw.Count;
+        _lastBossExcluded = 0;
+        _lastProtectedExcluded = 0;
+        _lastPelipperSignals = 0;
+        _lastFactoryRejected = 0;
+
+        List<Monster> baseline = new();
+        foreach (Monster monster in raw)
+        {
+            string classification = ClassifyDensitySource(monster);
+            switch (classification)
+            {
+                case "ELIGIBLE":
+                    baseline.Add(monster);
+                    break;
+                case "BOSS":
+                    _lastBossExcluded++;
+                    break;
+                case "PELIPPER":
+                    _lastPelipperSignals++;
+                    break;
+                case "PROTECTED":
+                    _lastProtectedExcluded++;
+                    break;
+            }
+        }
+
         _lastBaselineCount = baseline.Count;
+        _lastWantedCount = 0;
+        _lastSpawnedCount = 0;
+        _lastUnsafeRejected = 0;
+
+        // No map-name heuristic anymore. A real eligible hostile Monster is the combat-zone signal.
+        // Empty/late-spawn maps are retried by Update() before the visit is sealed.
         if (baseline.Count == 0)
         {
-            SetSuppressed(location, "no-baseline-monsters");
-            return;
+            _lastThreatLevel = "LOW";
+            _lastSuppressionReason = _lastPelipperSignals > 0
+                ? "pelipper-source-owned-by-pelipper"
+                : "no-eligible-density-source";
+            return false;
         }
 
         float multiplier = Math.Clamp(_multiplier(), 1f, 2.5f);
-        int wanted = (int)Math.Round(baseline.Count * (multiplier - 1f), MidpointRounding.AwayFromZero);
-        int toSpawn = Math.Clamp(wanted, 0, Math.Clamp(_extraCap(), 0, 30));
+        int targetTotal = Math.Max(baseline.Count,
+            (int)Math.Round(baseline.Count * multiplier, MidpointRounding.AwayFromZero));
+        int wanted = Math.Max(0, targetTotal - baseline.Count);
+        int toSpawn = Math.Clamp(wanted, 0, Math.Clamp(_extraCap(), 0, 60));
         _lastWantedCount = toSpawn;
 
         if (toSpawn <= 0)
@@ -258,13 +348,12 @@ public sealed class MonsterSurgeService
             _lastSuppressionReason = "spawn-budget-zero";
             RecordEncounter(location, baseline.Count, 0, _lastThreatLevel);
             LogTelemetry(location, multiplier);
-            return;
+            return true;
         }
 
-        int averageHealth = (int)Math.Round(baseline.Average(monster => (double)Math.Max(1, monster.MaxHealth)));
-        int surgeHealth = Math.Clamp((int)Math.Round(averageHealth * 0.82f), 36, 220);
         int spawned = 0;
         int unsafeRejected = 0;
+        int factoryRejected = 0;
 
         for (int i = 0; i < toSpawn; i++)
         {
@@ -275,15 +364,15 @@ public sealed class MonsterSurgeService
                 continue;
             }
 
-            int mineLevel = Math.Clamp(20 + averageHealth / 3, 20, 100);
-            GreenSlime extra = new(position, mineLevel)
+            if (!UniversalMonsterDensitySpawnFactory.TryCreate(source, position, out Monster? extra, out string mode)
+                || extra is null)
             {
-                MaxHealth = surgeHealth,
-                Health = surgeHealth,
-                Speed = Math.Clamp(source.Speed, 2, 5)
-            };
+                factoryRejected++;
+                continue;
+            }
+
             extra.modData[SurgeMarker] = "1";
-            extra.modData[SurgeSourceMarker] = source.GetType().FullName ?? source.GetType().Name;
+            extra.modData[SurgeSourceMarker] = $"{source.GetType().FullName ?? source.GetType().Name}|{mode}";
             if (!_fullLoot())
                 SuppressKnownLootCollections(extra);
 
@@ -293,18 +382,21 @@ public sealed class MonsterSurgeService
 
         _lastSpawnedCount = spawned;
         _lastUnsafeRejected = unsafeRejected;
+        _lastFactoryRejected = factoryRejected;
         _lastThreatLevel = ResolveThreatLevel(baseline.Count, spawned);
         _lastSuppressionReason = spawned == 0
-            ? "no-safe-spawn-tile"
-            : unsafeRejected > 0
-                ? "partial-safe-placement"
+            ? factoryRejected > 0 ? "no-safe-custom-constructor" : "no-safe-spawn-tile"
+            : factoryRejected > 0 || unsafeRejected > 0
+                ? "partial-density-placement"
                 : "none";
 
         RecordEncounter(location, baseline.Count, spawned, _lastThreatLevel);
         LogTelemetry(location, multiplier);
 
         if (spawned > 0)
-            Game1.showGlobalMessage($"THE SURGE • {_lastThreatLevel} • +{spawned} MONSTERS");
+            Game1.showGlobalMessage($"MONSTER DENSITY • {_lastThreatLevel} • +{spawned}");
+
+        return true;
     }
 
     private bool TryFindSafeSpawnPosition(GameLocation location, Monster source, int seed, out Vector2 position)
@@ -400,19 +492,27 @@ public sealed class MonsterSurgeService
     private void LogTelemetry(GameLocation location, float multiplier)
     {
         string line =
-            $"[SurgeTelemetry] location={location.NameOrUniqueName} baseline={_lastBaselineCount} wanted={_lastWantedCount} "
-            + $"spawned={_lastSpawnedCount} unsafeRejected={_lastUnsafeRejected} total={_lastBaselineCount + _lastSpawnedCount} "
-            + $"multiplier={multiplier:0.00} threat={_lastThreatLevel} suppression={_lastSuppressionReason}";
+            $"[DensityTelemetry] location={location.NameOrUniqueName} raw={_lastRawCount} eligible={_lastBaselineCount} "
+            + $"bossExcluded={_lastBossExcluded} protectedExcluded={_lastProtectedExcluded} pelipperSignals={_lastPelipperSignals} "
+            + $"wanted={_lastWantedCount} spawned={_lastSpawnedCount} factoryRejected={_lastFactoryRejected} unsafeRejected={_lastUnsafeRejected} "
+            + $"total={_lastBaselineCount + _lastSpawnedCount} multiplier={multiplier:0.00} attempt={_discoveryAttempts}/{MaxDiscoveryAttempts} "
+            + $"sameType={UniversalMonsterDensitySpawnFactory.SameTypeSpawned} vanillaFallback={UniversalMonsterDensitySpawnFactory.VanillaFallbackSpawned} "
+            + $"customRejected={UniversalMonsterDensitySpawnFactory.CustomRejected} threat={_lastThreatLevel} suppression={_lastSuppressionReason}";
         LastTelemetryLine = line;
         _monitor.Log(line, LogLevel.Trace);
     }
 
     private void ResetVisitTelemetry(string reason)
     {
+        _lastRawCount = 0;
         _lastBaselineCount = 0;
         _lastWantedCount = 0;
         _lastSpawnedCount = 0;
         _lastUnsafeRejected = 0;
+        _lastBossExcluded = 0;
+        _lastProtectedExcluded = 0;
+        _lastPelipperSignals = 0;
+        _lastFactoryRejected = 0;
         _lastSuppressionReason = reason;
         _lastThreatLevel = "LOW";
     }
@@ -429,19 +529,72 @@ public sealed class MonsterSurgeService
         return "LOW";
     }
 
-    private static bool LooksLikeCombatZone(GameLocation location)
+    private static string ClassifyDensitySource(Monster monster)
     {
-        if (location is MineShaft)
-            return true;
-
-        string name = location.NameOrUniqueName.ToLowerInvariant();
-        string[] combatTokens =
+        if (IsSurgeMonster(monster)
+            || MonsterMutationService.IsMutant(monster)
+            || MonsterMutationService.IsMutationMinion(monster)
+            || OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
         {
-            "mine", "cave", "cavern", "dungeon", "volcano", "skull", "quarry",
-            "highland", "badland", "combat", "monster", "lair", "depth"
-        };
-        return combatTokens.Any(name.Contains);
+            return "PROTECTED";
+        }
+
+        // Pelipper owns its wild/capture/companion lifecycle. Those actors are useful telemetry
+        // signals that combat exists, but Team Up never fabricates duplicate Pokemon/proxies.
+        if (PelipperTownCompatibilityService.IsWildCombatActor(monster)
+            || PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
+        {
+            return "PELIPPER";
+        }
+
+        if (IsBossLike(monster))
+            return "BOSS";
+
+        if (HasTruthyPolicyTag(monster, "scripted", "questprotected", "densityexcluded", "surgeexcluded", "mutationexcluded"))
+            return "PROTECTED";
+
+        return "ELIGIBLE";
     }
+
+    private static bool IsBossLike(Monster monster)
+    {
+        string typeName = monster.GetType().Name;
+        string fullTypeName = monster.GetType().FullName ?? typeName;
+        string monsterName = monster.Name ?? string.Empty;
+        if (typeName.Contains("Boss", StringComparison.OrdinalIgnoreCase)
+            || fullTypeName.Contains(".Boss", StringComparison.OrdinalIgnoreCase)
+            || monsterName.Contains("Boss", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return HasTruthyPolicyTag(monster, "boss", "mutationboss");
+    }
+
+    private static bool HasTruthyPolicyTag(Monster monster, params string[] tokens)
+    {
+        foreach (string key in monster.modData.Keys)
+        {
+            string value = monster.modData.TryGetValue(key, out string? rawValue) ? rawValue ?? string.Empty : string.Empty;
+            string normalizedKey = Normalize(key);
+            if (!tokens.Any(token => normalizedKey.Contains(Normalize(token), StringComparison.Ordinal)))
+                continue;
+            if (IsTruthy(value))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool IsTruthy(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return true;
+        string normalized = value.Trim().ToLowerInvariant();
+        return normalized is "1" or "true" or "yes" or "on" or "enabled";
+    }
+
+    private static string Normalize(string text)
+        => new(text.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
 
     private static void SuppressKnownLootCollections(Monster monster)
     {

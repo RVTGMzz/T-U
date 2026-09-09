@@ -49,9 +49,9 @@ public sealed class ModConfig
     // spawn-budget overlay. It never blindly clones scripted/boss/custom entities.
     public bool EnableMonsterSurge { get; set; } = true;
 
-    public float MonsterDensityMultiplier { get; set; } = 2.0f;
+    public float MonsterDensityMultiplier { get; set; } = 2.5f;
 
-    public int MonsterSurgeExtraCap { get; set; } = 18;
+    public int MonsterSurgeExtraCap { get; set; } = 36;
 
     // Extra Surge monsters are reward-suppressed by default so x2 danger does not
     // automatically become x2 economy. Set true only if the player wants full drops.

@@ -44,7 +44,7 @@ public sealed partial class ModEntry : Mod
         Config.MaxActiveLinkedCompanions = Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2);
         Config.SpecialCompanionNpcNames ??= new List<string>();
         Config.MonsterDensityMultiplier = Math.Clamp(Config.MonsterDensityMultiplier, 1f, 2.5f);
-        Config.MonsterSurgeExtraCap = Math.Clamp(Config.MonsterSurgeExtraCap, 0, 30);
+        Config.MonsterSurgeExtraCap = Math.Clamp(Config.MonsterSurgeExtraCap, 0, 60);
         Config.MutationChancePercent = Math.Clamp(Config.MutationChancePercent, 0f, 100f);
         Config.MutationHealthMultiplier = Math.Clamp(Config.MutationHealthMultiplier, 1f, 10f);
         Config.MutationStatMultiplier = Math.Clamp(Config.MutationStatMultiplier, 1f, 5f);
@@ -105,6 +105,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha669HotfixEvents();
         RegisterAlpha6612Events();
         RegisterAlpha6719Events();
+        RegisterAlpha6721Events();
         RegisterAlpha6720Events();
 
         Monitor.Log("Team Up! v0.2.0-alpha.6.6.24 Source Authority + Hard Taunt Audit loaded. Codex 115% preserved.", LogLevel.Info);
