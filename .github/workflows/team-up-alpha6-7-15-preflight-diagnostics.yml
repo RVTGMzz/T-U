@@ -1,0 +1,35 @@
+name: Team Up v0.2.0-alpha.6.7.15 Preflight Diagnostics
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-15-preflight-diagnostics
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+
+      - name: Build, audit and package Alpha 6.7.15
+        run: python3 tools/build_alpha6715.py
+
+      - name: Upload Alpha 6.7.15 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-15-preflight-diagnostics
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.15_PREFLIGHT_DIAGNOSTICS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.15_PREFLIGHT_DIAGNOSTICS_TEST.sha256.txt
+            BUILD_LOG_ALPHA6715.txt
+            PREFLIGHT_DIAGNOSTICS_AUDIT_ALPHA6715.md
+            SMOKE_TEST_V0_2_ALPHA6_7_15_PREFLIGHT_DIAGNOSTICS_VI.txt
+          if-no-files-found: error
