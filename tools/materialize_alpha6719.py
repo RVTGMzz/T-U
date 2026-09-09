@@ -51,4 +51,16 @@ entry = patch_once(
 )
 entry_path.write_text(entry, encoding="utf-8", newline="\n")
 
+# ModDataDictionary is IDictionary-like in Stardew 1.6. Materialize the policy loop using
+# KeyValuePair enumeration instead of depending on any internal Pairs member.
+mutation_path = SRC / "Combat" / "MonsterMutationService.cs"
+mutation = mutation_path.read_text(encoding="utf-8")
+mutation = patch_once(
+    mutation,
+    "        foreach ((string key, string value) in monster.modData.Pairs)\n        {\n",
+    "        foreach (KeyValuePair<string, string> pair in monster.modData)\n        {\n            string key = pair.Key;\n            string value = pair.Value;\n",
+    "mutation modData enumeration",
+)
+mutation_path.write_text(mutation, encoding="utf-8", newline="\n")
+
 print("Alpha 6.7.19 mutation encounter source materialized.")
