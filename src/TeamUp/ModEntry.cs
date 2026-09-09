@@ -106,6 +106,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6612Events();
         RegisterAlpha6719Events();
         RegisterAlpha6721Events();
+        RegisterAlpha6722Events();
         RegisterAlpha6720Events();
 
         Monitor.Log("Team Up! v0.2.0-alpha.6.6.24 Source Authority + Hard Taunt Audit loaded. Codex 115% preserved.", LogLevel.Info);
