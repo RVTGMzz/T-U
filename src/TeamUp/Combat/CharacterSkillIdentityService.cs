@@ -48,8 +48,7 @@ public sealed class CharacterSkillIdentityService
 
         List<Monster> monsters = Game1.currentLocation.characters
             .OfType<Monster>()
-            .Where(monster => monster.Health > 0)
-            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
+            .Where(TeamUpOffensiveTargetPolicy.IsEligible)
             .ToList();
 
         foreach (PartyMemberData member in activeMembers)
@@ -457,6 +456,10 @@ public sealed class CharacterSkillIdentityService
     private static void DamageMonster(Monster monster, int damage, float knockback)
     {
         if (damage <= 0 || Game1.currentLocation is null)
+            return;
+
+        damage = PelipperCaptureSafetyService.ClampDamage(monster, damage);
+        if (damage <= 0)
             return;
 
         Game1.currentLocation.damageMonster(

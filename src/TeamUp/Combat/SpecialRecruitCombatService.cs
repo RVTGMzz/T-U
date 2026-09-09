@@ -60,9 +60,7 @@ public sealed class SpecialRecruitCombatService
 
         List<Monster> monsters = Game1.currentLocation.characters
             .OfType<Monster>()
-            .Where(monster => monster.Health > 0)
-            .Where(monster => !OptionalTestHostCompatibility.IsCardchaHarnessMonster(monster))
-            .Where(monster => !PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
+            .Where(TeamUpOffensiveTargetPolicy.IsEligible)
             .ToList();
 
         UpdateMimi(active, monsters, elapsedTicks);
