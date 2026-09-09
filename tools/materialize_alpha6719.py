@@ -51,14 +51,14 @@ entry = patch_once(
 )
 entry_path.write_text(entry, encoding="utf-8", newline="\n")
 
-# ModDataDictionary is IDictionary-like in Stardew 1.6. Materialize the policy loop using
-# KeyValuePair enumeration instead of depending on any internal Pairs member.
+# ModDataDictionary's direct enumerator is not a KeyValuePair enumerator in the Stardew
+# reference assemblies. Keys + TryGetValue are part of its public dictionary-like surface.
 mutation_path = SRC / "Combat" / "MonsterMutationService.cs"
 mutation = mutation_path.read_text(encoding="utf-8")
 mutation = patch_once(
     mutation,
     "        foreach ((string key, string value) in monster.modData.Pairs)\n        {\n",
-    "        foreach (KeyValuePair<string, string> pair in monster.modData)\n        {\n            string key = pair.Key;\n            string value = pair.Value;\n",
+    "        foreach (string key in monster.modData.Keys)\n        {\n            string value = monster.modData.TryGetValue(key, out string? rawValue) ? rawValue ?? string.Empty : string.Empty;\n",
     "mutation modData enumeration",
 )
 mutation_path.write_text(mutation, encoding="utf-8", newline="\n")
