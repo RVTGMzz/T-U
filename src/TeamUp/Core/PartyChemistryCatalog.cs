@@ -53,7 +53,23 @@ internal static class PartyChemistryCatalog
         P("Marlon", "Lance", PartyChemistryType.Mentor | PartyChemistryType.Respectful),
         P("Marlon", "Wizard", PartyChemistryType.Respectful),
         P("Alex", "Sebastian", PartyChemistryType.Rivals | PartyChemistryType.Awkward),
-        P("Pierre", "Morris", PartyChemistryType.Rivals)
+        P("Pierre", "Morris", PartyChemistryType.Rivals),
+        P("Penny", "Maru", PartyChemistryType.Friends | PartyChemistryType.Respectful),
+        P("Leah", "Emily", PartyChemistryType.Friends | PartyChemistryType.Respectful),
+        P("Gus", "Willy", PartyChemistryType.Friends | PartyChemistryType.Respectful),
+        P("Sandy", "Emily", PartyChemistryType.Friends),
+        P("Harvey", "Elliott", PartyChemistryType.Respectful),
+        P("Robin", "Leah", PartyChemistryType.Respectful),
+        P("Olivia", "Victor", PartyChemistryType.Family | PartyChemistryType.Protective),
+        P("Sophia", "Claire", PartyChemistryType.Friends),
+        P("Martin", "Claire", PartyChemistryType.Friends),
+        P("Jio", "Daia", PartyChemistryType.Rivals | PartyChemistryType.Respectful),
+        P("Kenneth", "Philip", PartyChemistryType.Rivals | PartyChemistryType.Respectful),
+        P("Shiro", "Carmen", PartyChemistryType.Friends | PartyChemistryType.Protective),
+        P("Maddie", "Blair", PartyChemistryType.Rivals | PartyChemistryType.Friends),
+        P("June", "Ysabelle", PartyChemistryType.Friends),
+        P("Lance", "Wizard", PartyChemistryType.Respectful),
+        P("Andy", "Morris", PartyChemistryType.Rivals)
     };
 
     private static readonly Dictionary<string, PartyChemistryType> ByPair = BuildLookup();
