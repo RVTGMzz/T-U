@@ -71,7 +71,7 @@ public sealed partial class ModEntry
             return false;
         }
 
-        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, Origin.Stage, npc.Name, out string key))
+        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6729(), npc.Name, out string key))
             return false;
 
         string text = Helper.Translation.Get(key).ToString();
@@ -146,7 +146,7 @@ public sealed partial class ModEntry
 
     private void WriteAlpha6728StoryReactionDiagnostic()
     {
-        int stage = Origin.Stage;
+        int stage = GetStoryReactionWindowAlpha6729();
         List<string> lines = new()
         {
             "TEAM UP 6.7.28 - GEORGE CAMOUFLAGE + MILESTONE REACTIONS",

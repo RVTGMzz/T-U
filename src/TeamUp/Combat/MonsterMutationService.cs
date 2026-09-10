@@ -249,6 +249,8 @@ internal sealed class MonsterMutationService
 
         try
         {
+            MarlonInvestigationStoryService.ActiveInstance?.ObserveMonsterDeath(__instance);
+
             // Returning false suppresses the lethal death animation only when the same monster
             // has successfully been converted into a mutant and its Health restored above zero.
             return !service.TryMutate(__instance, force: false);

@@ -115,9 +115,10 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6726Events();
         RegisterAlpha6727Events();
         RegisterAlpha6728Events();
+        RegisterAlpha6729Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Story roster + milestone reaction layer active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Marlon investigation + milestone reaction layer active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)

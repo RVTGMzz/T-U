@@ -7,7 +7,7 @@ namespace Ronvotri.TeamUp.Story;
 ///
 /// Reactions are deliberately contextual rather than a global lore dump. A supported NPC can react
 /// once during each opening window: after the first Mutant but before Linus, after Linus but before
-/// Marlon, and after Marlon opens the first Team Up ally slot. Missing a window simply means that
+/// Marlon, after Marlon opens the first Team Up ally slot, and the four beats of Marlon's first field case. Missing a window simply means that
 /// reaction is missed; later milestones never replay stale dialogue.
 /// </summary>
 internal sealed class StoryMilestoneReactionService
@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 2 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 6 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -107,11 +107,79 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.2.robin",
             "Wizard", "story.react.2.wizard");
 
+        Dictionary<string, string> investigationAssigned = Stage(
+            "Abigail", "story.react.3.abigail",
+            "Alex", "story.react.3.alex",
+            "Clint", "story.react.3.clint",
+            "Demetrius", "story.react.3.demetrius",
+            "Evelyn", "story.react.3.evelyn",
+            "George", "story.react.3.george",
+            "Gus", "story.react.3.gus",
+            "Lewis", "story.react.3.lewis",
+            "Linus", "story.react.3.linus",
+            "Marlon", "story.react.3.marlon",
+            "Maru", "story.react.3.maru",
+            "Pierre", "story.react.3.pierre",
+            "Robin", "story.react.3.robin",
+            "Wizard", "story.react.3.wizard");
+
+        Dictionary<string, string> mineTrailFound = Stage(
+            "Abigail", "story.react.4.abigail",
+            "Alex", "story.react.4.alex",
+            "Clint", "story.react.4.clint",
+            "Demetrius", "story.react.4.demetrius",
+            "Evelyn", "story.react.4.evelyn",
+            "George", "story.react.4.george",
+            "Gus", "story.react.4.gus",
+            "Lewis", "story.react.4.lewis",
+            "Linus", "story.react.4.linus",
+            "Marlon", "story.react.4.marlon",
+            "Maru", "story.react.4.maru",
+            "Pierre", "story.react.4.pierre",
+            "Robin", "story.react.4.robin",
+            "Wizard", "story.react.4.wizard");
+
+        Dictionary<string, string> evidenceSecured = Stage(
+            "Abigail", "story.react.5.abigail",
+            "Alex", "story.react.5.alex",
+            "Clint", "story.react.5.clint",
+            "Demetrius", "story.react.5.demetrius",
+            "Evelyn", "story.react.5.evelyn",
+            "George", "story.react.5.george",
+            "Gus", "story.react.5.gus",
+            "Lewis", "story.react.5.lewis",
+            "Linus", "story.react.5.linus",
+            "Marlon", "story.react.5.marlon",
+            "Maru", "story.react.5.maru",
+            "Pierre", "story.react.5.pierre",
+            "Robin", "story.react.5.robin",
+            "Wizard", "story.react.5.wizard");
+
+        Dictionary<string, string> secondSlotUnlocked = Stage(
+            "Abigail", "story.react.6.abigail",
+            "Alex", "story.react.6.alex",
+            "Clint", "story.react.6.clint",
+            "Demetrius", "story.react.6.demetrius",
+            "Evelyn", "story.react.6.evelyn",
+            "George", "story.react.6.george",
+            "Gus", "story.react.6.gus",
+            "Lewis", "story.react.6.lewis",
+            "Linus", "story.react.6.linus",
+            "Marlon", "story.react.6.marlon",
+            "Maru", "story.react.6.maru",
+            "Pierre", "story.react.6.pierre",
+            "Robin", "story.react.6.robin",
+            "Wizard", "story.react.6.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
             [1] = afterLinus,
-            [2] = afterMarlon
+            [2] = afterMarlon,
+            [3] = investigationAssigned,
+            [4] = mineTrailFound,
+            [5] = evidenceSecured,
+            [6] = secondSlotUnlocked
         };
     }
 
