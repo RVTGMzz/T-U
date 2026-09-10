@@ -416,7 +416,7 @@ public sealed class CodexBrowserMenu : IClickableMenu
             RoleIconRenderer.Draw(b, profile.PrimaryRole, new Vector2(bounds.X + 16, bounds.Y + 18), pixelSize: 2);
 
             int nameWidth = (int)(bounds.Width * 0.28f);
-            CombatRankInfo rankInfo = CombatRankCatalog.Get(profile.CharacterName, profile);
+            CombatRankInfo rankInfo = CodexAssessmentService.GetObservedRank(Game1.player, profile.CharacterName, profile);
             string rankedName = $"[{rankInfo.Rank}] {_displayName(profile.CharacterName)}";
             DrawFitString(b, rankedName, new Rectangle(bounds.X + 52, bounds.Y + 6, nameWidth - 52, bounds.Height - 12), 1.22f, CombatRankCatalog.GetColor(rankInfo.Rank));
 

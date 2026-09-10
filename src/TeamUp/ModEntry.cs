@@ -29,6 +29,7 @@ public sealed partial class ModEntry : Mod
     private CombatService Combat { get; set; } = null!;
     private Alpha6CombatPolishService Alpha6Polish { get; set; } = null!;
     private CharacterSkillIdentityService SkillIdentity { get; set; } = null!;
+    private CodexDiscoveryService CodexDiscovery { get; set; } = null!;
     private TeamUpDebugService DebugTools { get; set; } = null!;
     private OriginStoryService Origin { get; set; } = null!;
     private MonsterSurgeService Surge { get; set; } = null!;
@@ -67,6 +68,7 @@ public sealed partial class ModEntry : Mod
         Combat = new CombatService(Monitor, Follow, Progression, () => Config.PartyStrategy);
         Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);
         SkillIdentity = new CharacterSkillIdentityService(Progression);
+        CodexDiscovery = new CodexDiscoveryService();
         Origin = new OriginStoryService(Helper, Monitor, () => Party.Members, () => Config.EnableOriginStory);
         Surge = new MonsterSurgeService(
             Monitor,
@@ -88,7 +90,7 @@ public sealed partial class ModEntry : Mod
             "teamup_strategy",
             "Set Team Up party strategy: status|balanced|defensive|aggressive|hold|boss.",
             OnStrategyCommand);
-        Monitor.Log("Team Up DEBUG HARNESS READY | command: teamup_test | build: v0.2.0-alpha.6.6.24", LogLevel.Info);
+        Monitor.Log($"Team Up DEBUG HARNESS READY | command: teamup_test | build: v{ModManifest.Version}", LogLevel.Info);
 
         helper.Events.GameLoop.SaveLoaded += OnSaveLoaded;
         helper.Events.GameLoop.Saving += OnSaving;
@@ -108,9 +110,10 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6721Events();
         RegisterAlpha6722Events();
         RegisterAlpha6723Events();
+        RegisterAlpha6724Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log("Team Up! v0.2.0-alpha.6.6.24 Source Authority + Hard Taunt Audit loaded. Codex 115% preserved.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + observed assessment active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
@@ -152,6 +155,7 @@ public sealed partial class ModEntry : Mod
         Relationships.Clear();
         SkillIdentity.Clear();
         Progression.NormalizeRoster(Party.Members);
+        CodexDiscovery.OnSaveLoaded(Game1.player, Party.Members);
         Origin.OnSaveLoaded();
         Surge.Reset();
         Surge.OnWarped(Game1.currentLocation);
@@ -586,7 +590,10 @@ public sealed partial class ModEntry : Mod
 
     private void OpenCharacterProfile(string characterName, Action? onBack = null, Action? onOpenAll = null)
     {
+        CodexDiscovery.Discover(Game1.player, characterName);
         NpcCombatProfile? profile = NpcProfileCatalog.Get(characterName);
+        if (profile is not null)
+            profile = CodexAssessmentService.GetObservedProfile(Game1.player, profile);
         NPC? npc = Game1.getCharacterFromName(characterName);
         string displayName = npc?.displayName ?? characterName;
         string status = GetProfileStatus(characterName);
@@ -627,7 +634,7 @@ public sealed partial class ModEntry : Mod
         RecruitHintNpcName = null;
 
         Game1.activeClickableMenu = new CodexBrowserMenu(
-            NpcProfileCatalog.GetAvailableProfiles(Helper.ModRegistry),
+            CodexDiscovery.GetDiscoveredProfiles(Game1.player, NpcProfileCatalog.GetAvailableProfiles(Helper.ModRegistry)),
             GetNpcDisplayName,
             GetRoleLabel,
             IsCharacterInParty,
