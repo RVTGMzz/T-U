@@ -1,0 +1,42 @@
+TEAM UP 6.7.29 - MARLON INVESTIGATION + NPC REACTIONS
+=====================================================
+
+CAI DAT:
+E:\SteamLibrary\steamapps\common\Stardew Valley\Mods\Team Up
+
+LUU Y: BAN NAY CI-VERIFIED, VAN CAN LIVE TEST.
+
+A. CHUAN BI NHANH:
+1. Can The Surge da active va Origin stage=2 (da gap Marlon).
+2. Story roster phai co it nhat 1 slot, recruit 1 NPC thuong va cho NPC dang Following/Waiting cung map.
+3. Neu can debug: teamup_story_intro stage 2 ; teamup_roster_story setslots 1 ; teamup_marlon_case reset.
+
+B. TUYEN DIEU TRA:
+1. Cung dong doi di vao AdventureGuild. Ky vong Marlon briefing, case stage=1, reaction window=3.
+2. Cung dong doi di vao MineShaft. Ky vong tim dau vet da chay, case stage=2, reaction window=4.
+3. Ha MOT MUTANT that su trong MineShaft khi dong doi van o cung map. Ky vong lay manh bang chung, case stage=3, reaction window=5.
+4. Cung dong doi quay lai AdventureGuild. Ky vong Marlon debrief, case stage=4, reaction window=6.
+5. teamup_roster_story status phai bao unlockedNpcSlots=2/4. Luc nay co the recruit NPC thu 2 neu tong nguoi chua cham cap 5.
+
+C. PHAN UNG NPC GIUA CAC COT MOC:
+1. Moi window 3,4,5,6 noi chuyen tay rong voi Abigail/Alex/Clint/Demetrius/Evelyn/George/Gus/Lewis/Linus/Marlon/Maru/Pierre/Robin/Wizard.
+2. Moi NPC chi reaction 1 lan/window; lan noi tiep quay ve interaction binh thuong.
+3. George khong duoc lo Rank S/Last Blaster va van khong recruit duoc. Evelyn cung khong duoc lo twist sau game.
+
+LENH:
+teamup_marlon_case status
+teamup_marlon_case reset
+teamup_marlon_case stage 0
+teamup_marlon_case stage 1
+teamup_marlon_case stage 2
+teamup_marlon_case stage 3
+teamup_marlon_case stage 4
+teamup_story_reactions status
+teamup_story_reactions reset
+teamup_roster_story status
+
+CHAN DOAN:
+E:\SteamLibrary\steamapps\common\Stardew Valley\Mods\Team Up\diagnostics\TeamUp_Marlon_Investigation_latest.txt
+
+NEU LOI/CRASH: THOAT GAME NGAY VA GUI:
+%appdata%\StardewValley\ErrorLogs\SMAPI-latest.txt
