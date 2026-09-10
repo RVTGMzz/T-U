@@ -4,6 +4,7 @@ using HarmonyLib;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Ronvotri.TeamUp.Core;
+using Ronvotri.TeamUp.Story;
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Locations;
@@ -271,12 +272,23 @@ internal sealed class MonsterMutationService
             return false;
         }
 
+        SurgeMutationDirective storyDirective = SurgeMutationDirective.NormalRoll;
+        if (!force)
+            storyDirective = TheSurgeStoryService.ActiveInstance?.ObserveEligibleDeath(monster)
+                ?? SurgeMutationDirective.NormalRoll;
+
         if (!force)
         {
             _rolls++;
-            double chance = Math.Clamp(_chancePercent(), 0f, 100f) / 100d;
-            if (chance <= 0d || Game1.random.NextDouble() >= chance)
+            if (storyDirective == SurgeMutationDirective.SuppressMutation)
                 return false;
+
+            if (storyDirective != SurgeMutationDirective.ForceFirstMutation)
+            {
+                double chance = Math.Clamp(_chancePercent(), 0f, 100f) / 100d;
+                if (chance <= 0d || Game1.random.NextDouble() >= chance)
+                    return false;
+            }
         }
 
         GameLocation? location = monster.currentLocation ?? Game1.currentLocation;
@@ -339,13 +351,16 @@ internal sealed class MonsterMutationService
             $"[MutationTelemetry] source={monster.GetType().FullName} location={location.NameOrUniqueName} "
             + $"baseHP={baseMaxHealth} mutantHP={mutantMax} baseDamage={baseDamage} damageX={statScale:0.##} "
             + $"baseResilience={baseResilience} speed={baseSpeed}->{mutantSpeed} scaleX={effectiveFootprintScale:0.##} "
-            + $"scaleApplied={visualScaleApplied} minionsRequested={requestedMinions} force={force}";
+            + $"scaleApplied={visualScaleApplied} minionsRequested={requestedMinions} force={force} storyDirective={storyDirective}";
         _monitor.Log(LastMutationLine, LogLevel.Info);
 
-        if (!Game1.eventUp)
+        bool transformed = monster.Health > 0;
+        if (transformed && storyDirective == SurgeMutationDirective.ForceFirstMutation)
+            TheSurgeStoryService.ActiveInstance?.CommitFirstMutation(monster);
+        else if (transformed && !Game1.eventUp)
             Game1.showGlobalMessage($"⚠ MUTATION DETECTED • {monster.Name}");
 
-        return monster.Health > 0;
+        return transformed;
     }
 
     private bool IsEligible(Monster monster)

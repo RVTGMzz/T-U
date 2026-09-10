@@ -72,7 +72,7 @@ public sealed partial class ModEntry : Mod
         Origin = new OriginStoryService(Helper, Monitor, () => Party.Members, () => Config.EnableOriginStory);
         Surge = new MonsterSurgeService(
             Monitor,
-            () => Config.EnableMonsterSurge,
+            () => Config.EnableMonsterSurge && (SurgeStoryAlpha6725?.IsActivated ?? false),
             () => Config.MonsterDensityMultiplier,
             () => Config.MonsterSurgeExtraCap,
             () => Config.SurgeMonstersDropLoot);
@@ -111,9 +111,10 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6722Events();
         RegisterAlpha6723Events();
         RegisterAlpha6724Events();
+        RegisterAlpha6725Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + observed assessment active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + first Surge trigger active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
