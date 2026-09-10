@@ -119,7 +119,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6730Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Old mine connection layer active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Old mine milestone reaction layer active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)

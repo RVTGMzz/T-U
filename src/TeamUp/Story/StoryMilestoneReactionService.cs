@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 6 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 9 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -171,6 +171,54 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.6.robin",
             "Wizard", "story.react.6.wizard");
 
+        Dictionary<string, string> oldMineArchiveLead = Stage(
+            "Abigail", "story.react.7.abigail",
+            "Alex", "story.react.7.alex",
+            "Clint", "story.react.7.clint",
+            "Demetrius", "story.react.7.demetrius",
+            "Evelyn", "story.react.7.evelyn",
+            "George", "story.react.7.george",
+            "Gus", "story.react.7.gus",
+            "Lewis", "story.react.7.lewis",
+            "Linus", "story.react.7.linus",
+            "Marlon", "story.react.7.marlon",
+            "Maru", "story.react.7.maru",
+            "Pierre", "story.react.7.pierre",
+            "Robin", "story.react.7.robin",
+            "Wizard", "story.react.7.wizard");
+
+        Dictionary<string, string> oldMineSealedRecord = Stage(
+            "Abigail", "story.react.8.abigail",
+            "Alex", "story.react.8.alex",
+            "Clint", "story.react.8.clint",
+            "Demetrius", "story.react.8.demetrius",
+            "Evelyn", "story.react.8.evelyn",
+            "George", "story.react.8.george",
+            "Gus", "story.react.8.gus",
+            "Lewis", "story.react.8.lewis",
+            "Linus", "story.react.8.linus",
+            "Marlon", "story.react.8.marlon",
+            "Maru", "story.react.8.maru",
+            "Pierre", "story.react.8.pierre",
+            "Robin", "story.react.8.robin",
+            "Wizard", "story.react.8.wizard");
+
+        Dictionary<string, string> oldMineConnectionConfirmed = Stage(
+            "Abigail", "story.react.9.abigail",
+            "Alex", "story.react.9.alex",
+            "Clint", "story.react.9.clint",
+            "Demetrius", "story.react.9.demetrius",
+            "Evelyn", "story.react.9.evelyn",
+            "George", "story.react.9.george",
+            "Gus", "story.react.9.gus",
+            "Lewis", "story.react.9.lewis",
+            "Linus", "story.react.9.linus",
+            "Marlon", "story.react.9.marlon",
+            "Maru", "story.react.9.maru",
+            "Pierre", "story.react.9.pierre",
+            "Robin", "story.react.9.robin",
+            "Wizard", "story.react.9.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
@@ -179,7 +227,10 @@ internal sealed class StoryMilestoneReactionService
             [3] = investigationAssigned,
             [4] = mineTrailFound,
             [5] = evidenceSecured,
-            [6] = secondSlotUnlocked
+            [6] = secondSlotUnlocked,
+            [7] = oldMineArchiveLead,
+            [8] = oldMineSealedRecord,
+            [9] = oldMineConnectionConfirmed
         };
     }
 
