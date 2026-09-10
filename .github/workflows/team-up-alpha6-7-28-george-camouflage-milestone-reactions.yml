@@ -27,14 +27,23 @@ jobs:
       - name: Materialize Alpha 6.7.28 George/reaction source
         run: python3 tools/materialize_alpha6728.py
 
-      - name: Normalize generated George diagnostic quote
+      - name: Normalize generated source fixes
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           p = Path('src/TeamUp/ModEntry.Alpha6728.cs')
           text = p.read_text(encoding='utf-8')
           text = text.replace(r'IsGeorgePreRevealLockedAlpha6728(\"George\")', 'IsGeorgePreRevealLockedAlpha6728("George")')
           p.write_text(text, encoding='utf-8', newline='\n')
+
+          p = Path('src/TeamUp/Story/StoryMilestoneReactionService.cs')
+          text = p.read_text(encoding='utf-8')
+          old = '''        if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)\n            || !stage.TryGetValue(characterName, out translationKey))\n        {\n            return false;\n        }'''
+          new = '''        if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)\n            || !stage.TryGetValue(characterName, out string? foundKey)\n            || string.IsNullOrWhiteSpace(foundKey))\n        {\n            return false;\n        }\n\n        translationKey = foundKey;'''
+          if old not in text:
+              raise RuntimeError('nullable reaction lookup patch target missing')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
           PY
 
       - name: Build, audit and package Alpha 6.7.28
