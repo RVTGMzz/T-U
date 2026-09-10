@@ -550,5 +550,15 @@
   "story.react.9.maru": "Maru: With three companions available, you can actually split observation roles: route, environment, threat. That's much better data than everyone staring at the same monster.",
   "story.react.9.pierre": "Pierre: Three companions means three times the supplies. I mean preparedness. Obviously I mean preparedness.",
   "story.react.9.robin": "Robin: Before anyone hunts for an old sealed section, reconstruct the map. Mines change, supports fail, and a thirty-year-old route may no longer be a route.",
-  "story.react.9.wizard": "Wizard: The old wound and the new one share a pulse. Your constellation grows because the darkness beneath the Valley is growing with it."
+  "story.react.9.wizard": "Wizard: The old wound and the new one share a pulse. Your constellation grows because the darkness beneath the Valley is growing with it.",
+  "story.triangulation.briefing": "Marlon: The records give us a closure order, not a location. Old survey bearings suggest the sealed workings cross beneath the modern mine network, but the map is incomplete. We need observations from more than one shaft. Bring a real field team. Three people minimum, and at least one Team Up ally. We triangulate this together.",
+  "story.triangulation.objective.first-bearing": "FIELD TRIANGULATION • With at least 3 people present, including 1 active Team Up NPC ally, enter a MineShaft and take the first bearing.",
+  "story.triangulation.bearing-one": "The team spreads out instead of staring at the same wall. One person finds coal dust collecting against the wrong draft; another notices old timber cuts hidden behind newer stone. The two signs point across the shaft, not deeper into it. First bearing recorded.",
+  "story.triangulation.objective.second-bearing": "FIELD TRIANGULATION • Move to a different MineShaft location with the field team and take a second bearing.",
+  "story.triangulation.same-shaft": "FIELD TRIANGULATION • This shaft repeats the first reading. Move to a different MineShaft location for an independent bearing.",
+  "story.triangulation.bearing-two": "A second shaft gives the missing angle. A faint inward-burn line in the coal seam aligns with an obsolete support notch, and the air pulls sideways toward solid rock. The bearings intersect beyond the mapped tunnel edge.",
+  "story.triangulation.objective.return": "FIELD TRIANGULATION • Return to Marlon with the field team and compare both bearings.",
+  "story.triangulation.confirmed": "Marlon: Two independent bearings, same buried direction. Good. The sealed workings are not somewhere below the mine in general. They sit beside the modern network, behind a corridor the current maps no longer show. We finally know where to search next. We still do not know who sealed it, and we are not guessing.",
+  "story.triangulation.complete": "FIELD TRIANGULATION • Likely sealed-workings corridor identified. Story ally slot 4 remains locked.",
+  "story.triangulation.need-team": "FIELD TRIANGULATION • Assemble at least 3 people in this location, including at least 1 active Team Up NPC ally."
 }
