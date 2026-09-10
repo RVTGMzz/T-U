@@ -114,9 +114,10 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6725Events();
         RegisterAlpha6726Events();
         RegisterAlpha6727Events();
+        RegisterAlpha6728Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + story roster progression active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Story roster + milestone reaction layer active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
@@ -330,6 +331,13 @@ public sealed partial class ModEntry : Mod
                     return;
                 }
 
+                if (IsGeorgePreRevealLockedAlpha6728(speaker.Name))
+                {
+                    Helper.Input.Suppress(e.Button);
+                    ShowGeorgePreRevealRecruitTeaseAlpha6728(speaker);
+                    return;
+                }
+
                 if (IsRecruitableNpc(speaker))
                 {
                     Helper.Input.Suppress(e.Button);
@@ -362,6 +370,12 @@ public sealed partial class ModEntry : Mod
         if (Game1.player.ActiveObject is not null)
         {
             RecruitHintNpcName = null;
+            return;
+        }
+
+        if (TryShowMilestoneReactionAlpha6728(npc))
+        {
+            Helper.Input.Suppress(e.Button);
             return;
         }
 
@@ -716,9 +730,11 @@ public sealed partial class ModEntry : Mod
         string leftText = Helper.Translation.Get("hint.profile").ToString();
         string? rightText = member is not null
             ? Helper.Translation.Get("hint.leave").ToString()
-            : IsRecruitableNpc(speaker)
-                ? Helper.Translation.Get("hint.recruit").ToString()
-                : null;
+            : IsGeorgePreRevealLockedAlpha6728(speaker.Name)
+                ? Helper.Translation.Get("hint.recruit-try").ToString()
+                : IsRecruitableNpc(speaker)
+                    ? Helper.Translation.Get("hint.recruit").ToString()
+                    : null;
 
         const int tagHeight = 50;
 
@@ -920,7 +936,11 @@ public sealed partial class ModEntry : Mod
 
         NPC? npc = Game1.getCharacterFromName(characterName);
         if (npc is not null)
+        {
+            if (TryGetCharacterStoryProfileStatusAlpha6728(npc, out string storyStatus))
+                return storyStatus;
             return GetRosterProfileStatusAlpha6727(npc);
+        }
 
         return Helper.Translation.Get("profile.status-special");
     }

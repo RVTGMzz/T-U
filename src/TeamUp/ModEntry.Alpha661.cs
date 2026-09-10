@@ -280,6 +280,12 @@ public sealed partial class ModEntry
         long responsePlayerId)
     {
         long recruiterId = recruiter.UniqueMultiplayerID;
+        if (!CanRecruitCharacterByStoryAlpha6728(npc, out string characterStoryFailure))
+        {
+            SendActionResult(responsePlayerId, false, characterStoryFailure);
+            return;
+        }
+
         if (!IsBaseRecruitableNpcForAlpha6727(npc, recruiter))
         {
             SendActionResult(responsePlayerId, false, "This NPC is not currently recruitable.");
@@ -629,6 +635,13 @@ public sealed partial class ModEntry
 
         if (request.Command == "Movement" && Enum.TryParse(request.Value, out PartyMemberState state))
         {
+            if (state is PartyMemberState.Following or PartyMemberState.Waiting
+                && IsGeorgePreRevealLockedAlpha6728(request.CharacterName))
+            {
+                SendActionResult(responsePlayerId, false, Helper.Translation.Get("story.george.pre-reveal.recruit-blocked"));
+                return false;
+            }
+
             if (state == PartyMemberState.Following
                 && member.State == PartyMemberState.Inactive
                 && !CanActivateRosterSlotAlpha6727(recruiterId, out string rosterFailure))
@@ -678,6 +691,9 @@ public sealed partial class ModEntry
 
     private bool IsRecruitableNpcFor(NPC npc, Farmer farmer)
     {
+        if (!CanRecruitCharacterByStoryAlpha6728(npc, out _))
+            return false;
+
         if (!IsBaseRecruitableNpcForAlpha6727(npc, farmer))
             return false;
 
