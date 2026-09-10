@@ -27,6 +27,19 @@ jobs:
       - name: Materialize Alpha 6.7.29 Marlon investigation source
         run: python3 tools/materialize_alpha6729.py
 
+      - name: Route reaction interaction to expanded story window
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/TeamUp/ModEntry.Alpha6728.cs')
+          text = p.read_text(encoding='utf-8')
+          old = 'MilestoneReactionsAlpha6728.TryConsume(Game1.player, Origin.Stage, npc.Name, out string key)'
+          new = 'MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6729(), npc.Name, out string key)'
+          if old not in text:
+              raise RuntimeError('Alpha6728 reaction interaction target missing')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+          PY
+
       - name: Build, audit and package Alpha 6.7.29
         run: python3 tools/build_alpha6729.py
 
