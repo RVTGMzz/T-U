@@ -388,5 +388,11 @@
   "origin.linus.first-surge": "Linus: Tôi đã cảm nhận được nó trước khi bạn tới. Những sinh vật ấy không chỉ trở nên hung dữ hơn. Chúng đang chạy trốn khỏi một thứ gì đó. Hãy tìm Marlon. Nếu chuyện này đã lan tới các hầm mỏ, ông ấy cần biết bạn vừa chứng kiến điều gì.",
   "origin.quest.marlon": "NHIỆM VỤ CẬP NHẬT • Hãy kể cho Marlon chuyện đã xảy ra với con quái đột biến đầu tiên.",
   "origin.marlon.first-surge": "Marlon: ...Tôi từng thấy những dấu vết như thế này. Không phải trên một sinh vật sống, và cũng không phải vào thời của tôi. Trong một hồ sơ cũ của Hội. Khi chúng tôi tới nơi, trận chiến đã kết thúc. Một người không thuộc Hội đã ngăn nó lại. Còn bây giờ, hãy nhớ điều này: nếu Thung Lũng đang thay đổi, đừng xuống dưới đó một mình.",
-  "origin.first-surge-bridge.complete": "THE SURGE • Marlon đã bắt đầu điều tra hồ sơ cũ."
+  "origin.first-surge-bridge.complete": "THE SURGE • Marlon đã bắt đầu điều tra hồ sơ cũ.",
+  "story.roster.first-unlock": "TEAM UP • Lời cảnh báo của Marlon đã thay đổi cuộc chơi. Giờ bạn có thể đưa 1 NPC đồng hành. Ô cốt truyện: {{unlocked}}/{{max}}.",
+  "story.roster.locked": "TEAM UP chưa được mở. Hãy tiếp tục điều tra The Surge và tìm Marlon.",
+  "story.roster.limit": "GIỚI HẠN TEAM UP • Đang dùng {{used}}/{{max}} ô NPC đồng hành. Hãy tiếp tục cốt truyện để mở rộng đội. Tiến độ mở khóa: {{unlocked}}/4.",
+  "story.roster.multiplayer-full": "GIỚI HẠN TEAM UP • {{farmers}} Farmer đang online đã chiếm dung lượng đội hình 5 người (giới hạn cấu hình: {{people}} người).",
+  "profile.status-story-locked": "Team Up chưa mở",
+  "profile.status-team-limit": "Đã chạm giới hạn đội"
 }

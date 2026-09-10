@@ -41,7 +41,7 @@ public sealed partial class ModEntry : Mod
     public override void Entry(IModHelper helper)
     {
         Config = helper.ReadConfig<ModConfig>();
-        Config.MaxPartyMembers = Math.Clamp(Config.MaxPartyMembers, 1, 6);
+        Config.MaxPartyMembers = Math.Clamp(Config.MaxPartyMembers, 1, 5);
         Config.MaxActiveLinkedCompanions = Math.Clamp(Config.MaxActiveLinkedCompanions, 0, 2);
         Config.SpecialCompanionNpcNames ??= new List<string>();
         Config.MonsterDensityMultiplier = Math.Clamp(Config.MonsterDensityMultiplier, 1f, 2.5f);
@@ -113,9 +113,10 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6724Events();
         RegisterAlpha6725Events();
         RegisterAlpha6726Events();
+        RegisterAlpha6727Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + first Surge narrative bridge active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + story roster progression active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
@@ -918,8 +919,8 @@ public sealed partial class ModEntry : Mod
         }
 
         NPC? npc = Game1.getCharacterFromName(characterName);
-        if (npc is not null && IsRecruitableNpc(npc))
-            return Helper.Translation.Get("profile.status-recruitable");
+        if (npc is not null)
+            return GetRosterProfileStatusAlpha6727(npc);
 
         return Helper.Translation.Get("profile.status-special");
     }

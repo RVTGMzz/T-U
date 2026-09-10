@@ -388,5 +388,11 @@
   "origin.linus.first-surge": "Linus: I felt it before you came. Those creatures aren't simply becoming more violent. They're running from something. Find Marlon. If this has reached the mines, he needs to know what you saw.",
   "origin.quest.marlon": "QUEST UPDATED • Tell Marlon what happened to the first mutant.",
   "origin.marlon.first-surge": "Marlon: ...I've seen marks like this before. Not on a living creature, and not in my time. An old Guild report. We arrived after the fighting was already over. Someone outside the Guild had stopped it. For now, remember this: if the Valley is changing, don't go below alone.",
-  "origin.first-surge-bridge.complete": "THE SURGE • Marlon has begun investigating the old record."
+  "origin.first-surge-bridge.complete": "THE SURGE • Marlon has begun investigating the old record.",
+  "story.roster.first-unlock": "TEAM UP • Marlon's warning changes the rules. You can now bring one NPC ally. Story slots: {{unlocked}}/{{max}}.",
+  "story.roster.locked": "TEAM UP is not available yet. Follow the Surge investigation and speak with Marlon.",
+  "story.roster.limit": "TEAM UP LIMIT • {{used}}/{{max}} NPC ally slots are active. Continue the story to expand the team. Story unlock: {{unlocked}}/4.",
+  "story.roster.multiplayer-full": "TEAM UP LIMIT • {{farmers}} online Farmers already use the five-person formation capacity (configured people cap: {{people}}).",
+  "profile.status-story-locked": "Team Up Locked",
+  "profile.status-team-limit": "Team Limit Reached"
 }

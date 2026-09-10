@@ -280,9 +280,15 @@ public sealed partial class ModEntry
         long responsePlayerId)
     {
         long recruiterId = recruiter.UniqueMultiplayerID;
-        if (!IsRecruitableNpcFor(npc, recruiter))
+        if (!IsBaseRecruitableNpcForAlpha6727(npc, recruiter))
         {
             SendActionResult(responsePlayerId, false, "This NPC is not currently recruitable.");
+            return;
+        }
+
+        if (!CanRecruitByStoryAlpha6727(recruiter, out string rosterFailure))
+        {
+            SendActionResult(responsePlayerId, false, rosterFailure);
             return;
         }
 
@@ -625,9 +631,9 @@ public sealed partial class ModEntry
         {
             if (state == PartyMemberState.Following
                 && member.State == PartyMemberState.Inactive
-                && Party.GetSharedPeopleCount(GetOnlineFarmerIds()) >= Math.Clamp(Config.MaxPartyMembers, 1, 6))
+                && !CanActivateRosterSlotAlpha6727(recruiterId, out string rosterFailure))
             {
-                SendActionResult(responsePlayerId, false, Helper.Translation.Get("party.full-hud", new { max = Config.MaxPartyMembers }));
+                SendActionResult(responsePlayerId, false, rosterFailure);
                 return false;
             }
 
@@ -672,9 +678,9 @@ public sealed partial class ModEntry
 
     private bool IsRecruitableNpcFor(NPC npc, Farmer farmer)
     {
-        if (CustomNpcCompatibilityService.IsExplicitCustomRecruit(npc))
-            return CustomNpcCompatibilityService.CanRecruit(npc, Helper.ModRegistry, farmer);
+        if (!IsBaseRecruitableNpcForAlpha6727(npc, farmer))
+            return false;
 
-        return CompanionClassificationService.CanRecruitToMainParty(npc, Config.SpecialCompanionNpcNames);
+        return CanRecruitByStoryAlpha6727(farmer, out _);
     }
 }
