@@ -383,5 +383,10 @@
   "codex.expansion.morris.passive": "Morris được xây dựng theo hướng Hỗ trợ/Khống chế trong Team Up: giữ cự ly an toàn hơn và chỉ lao vào khi tình huống thuận lợi. Vai trò phụ mở thêm phương án nhưng không lấn át nhiệm vụ Hỗ trợ.",
   "codex.expansion.morris.ability": "CORPORATE LEVERAGE: tạo cửa sổ khống chế trên cụm quái bằng sát thương nhẹ và hiệu ứng choáng. CD gốc ~12.3 giây; Tier 3 giảm khoảng 1,5 giây và tăng hiệu quả kỹ năng.",
   "codex.expansion.henchman.passive": "HỢP ĐỒNG GOBLIN: một chuyên gia Đỡ đòn/Khống chế bền bỉ, đặc biệt hữu dụng ở lối hẹp và khi quái tụ thành nhóm.",
-  "codex.expansion.henchman.ability": "VOID MAYO SPLASH: hắt Void Mayonnaise vào cụm quái gần đó, gây sát thương nhẹ và một đợt khống chế ngắn nhưng mạnh."
+  "codex.expansion.henchman.ability": "VOID MAYO SPLASH: hắt Void Mayonnaise vào cụm quái gần đó, gây sát thương nhẹ và một đợt khống chế ngắn nhưng mạnh.",
+  "origin.quest.linus": "NHIỆM VỤ CẬP NHẬT • Con quái đột biến không phải chuyện ngẫu nhiên. Có lẽ Linus đã nhận ra Thung Lũng đang thay đổi.",
+  "origin.linus.first-surge": "Linus: Tôi đã cảm nhận được nó trước khi bạn tới. Những sinh vật ấy không chỉ trở nên hung dữ hơn. Chúng đang chạy trốn khỏi một thứ gì đó. Hãy tìm Marlon. Nếu chuyện này đã lan tới các hầm mỏ, ông ấy cần biết bạn vừa chứng kiến điều gì.",
+  "origin.quest.marlon": "NHIỆM VỤ CẬP NHẬT • Hãy kể cho Marlon chuyện đã xảy ra với con quái đột biến đầu tiên.",
+  "origin.marlon.first-surge": "Marlon: ...Tôi từng thấy những dấu vết như thế này. Không phải trên một sinh vật sống, và cũng không phải vào thời của tôi. Trong một hồ sơ cũ của Hội. Khi chúng tôi tới nơi, trận chiến đã kết thúc. Một người không thuộc Hội đã ngăn nó lại. Còn bây giờ, hãy nhớ điều này: nếu Thung Lũng đang thay đổi, đừng xuống dưới đó một mình.",
+  "origin.first-surge-bridge.complete": "THE SURGE • Marlon đã bắt đầu điều tra hồ sơ cũ."
 }

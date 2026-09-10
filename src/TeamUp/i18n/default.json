@@ -383,5 +383,10 @@
   "codex.expansion.morris.passive": "Morris is built as a Support/Control Team Up specialist: keeps safer spacing and commits only when the situation is favorable. The secondary role adds options without replacing the Support job.",
   "codex.expansion.morris.ability": "CORPORATE LEVERAGE: creates a control window around grouped enemies with light damage and stun utility. Base CD ~12.3s; Tier 3 trims about 1.5s and strengthens the effect.",
   "codex.expansion.henchman.passive": "Goblin Contract: a durable control specialist built to hold cramped lanes; his value rises when enemies cluster together.",
-  "codex.expansion.henchman.ability": "VOID MAYO SPLASH: splashes a nearby enemy cluster with light damage and a strong short control burst."
+  "codex.expansion.henchman.ability": "VOID MAYO SPLASH: splashes a nearby enemy cluster with light damage and a strong short control burst.",
+  "origin.quest.linus": "QUEST UPDATED • The mutant was not an isolated incident. Linus may have noticed what is changing in the Valley.",
+  "origin.linus.first-surge": "Linus: I felt it before you came. Those creatures aren't simply becoming more violent. They're running from something. Find Marlon. If this has reached the mines, he needs to know what you saw.",
+  "origin.quest.marlon": "QUEST UPDATED • Tell Marlon what happened to the first mutant.",
+  "origin.marlon.first-surge": "Marlon: ...I've seen marks like this before. Not on a living creature, and not in my time. An old Guild report. We arrived after the fighting was already over. Someone outside the Guild had stopped it. For now, remember this: if the Valley is changing, don't go below alone.",
+  "origin.first-surge-bridge.complete": "THE SURGE • Marlon has begun investigating the old record."
 }

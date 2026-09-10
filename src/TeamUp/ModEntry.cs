@@ -69,7 +69,7 @@ public sealed partial class ModEntry : Mod
         Alpha6Polish = new Alpha6CombatPolishService(Monitor, Progression);
         SkillIdentity = new CharacterSkillIdentityService(Progression);
         CodexDiscovery = new CodexDiscoveryService();
-        Origin = new OriginStoryService(Helper, Monitor, () => Party.Members, () => Config.EnableOriginStory);
+        Origin = new OriginStoryService(Helper, Monitor, () => Config.EnableOriginStory);
         Surge = new MonsterSurgeService(
             Monitor,
             () => Config.EnableMonsterSurge && (SurgeStoryAlpha6725?.IsActivated ?? false),
@@ -112,9 +112,10 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6723Events();
         RegisterAlpha6724Events();
         RegisterAlpha6725Events();
+        RegisterAlpha6726Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + first Surge trigger active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Codex discovery + first Surge narrative bridge active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
