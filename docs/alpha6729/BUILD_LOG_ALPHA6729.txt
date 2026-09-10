@@ -1,0 +1,30 @@
+SOURCE ACCEPTANCE: PASS
+MARLON FIELD CASE 0..4 PERSISTENT ROUTE: PASS
+REAL ACTIVE NPC ALLY REQUIRED AT STORY GATES: PASS
+MINESHAFT TRAIL GATE: PASS
+NATURAL MUTANT DEATH EVIDENCE GATE: PASS
+DUPLICATE EVIDENCE DEATH GUARD: PASS
+MARLON DEBRIEF -> STORY NPC SLOT 2: PASS
+REACTION WINDOWS 0..6: PASS
+CURATED MILESTONE REACTION LOCALIZATION: PASS (94 lines/language total)
+GEORGE/EVELYN/MARLON BETWEEN-MILESTONE COVERAGE: PASS
+GEORGE SECRET RANK S / LAST BLASTER SPOILER BOUNDARY: PASS
+6.7.25-6.7.28 STORY/ROSTER CARRY-FORWARD: PASS
+PELIPPER/CAPTURE/PARTY SAFETY CARRY-FORWARD: PASS
+LIVE STORY PACING / MUTANT KILL / WARP TEST STILL REQUIRED
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 792 ms).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.29', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.29.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:15.64
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.29
+ZIP: TeamUp_v0.2.0-alpha.6.7.29_MARLON_INVESTIGATION_REACTIONS_TEST.zip
+SHA256: 27952892d7ba1f61d6440ef5922c76f0bf56147372b64436e263803e1eff41c0
