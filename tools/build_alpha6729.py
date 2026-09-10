@@ -73,9 +73,8 @@ try:
     req('UnlockTo(\n            Game1.MasterPlayer,\n            2,' in alpha6729, "slot-2 story payoff missing")
     req('"marlon-investigation-debrief"' in alpha6729, "slot-2 unlock source tag missing")
     req("GetStoryReactionWindowAlpha6729" in alpha6729, "expanded reaction window resolver missing")
-    req("GetStoryReactionWindowAlpha6729(), npc.Name" in entry, "interaction surface is not using 6.7.29 reaction window")
+    req("GetStoryReactionWindowAlpha6729(), npc.Name" in alpha6728, "interaction surface is not using 6.7.29 reaction window")
 
-    # All opening and investigation reaction windows must coexist.
     for window in range(7):
         req(f"[{window}] =" in reactions, f"reaction window {window} missing")
     req("narrativeStage > 6" in reactions, "reaction service range did not expand to window 6")
@@ -103,12 +102,10 @@ try:
         req("Rank S" not in default_i18n[key] and "Rank S" not in vi_i18n[key], f"reaction leaks Rank S: {key}")
         req("Last Blaster" not in default_i18n[key] and "Last Blaster" not in vi_i18n[key], f"reaction leaks Last Blaster: {key}")
 
-    # George remains sealed until a later finale chapter.
     req('modData[GeorgeCombatRevealedKeyAlpha6728] = "1"' not in all_source, "6.7.29 reveals George too early")
     req("IsGeorgePreRevealLockedAlpha6728" in alpha6728, "George pre-reveal lock regressed")
     req("CanRecruitCharacterByStoryAlpha6728(npc, out string characterStoryFailure)" in alpha661, "authoritative George block regressed")
 
-    # Carry-forward invariants.
     req("public const int FirstMutationKillThreshold = 10;" in surge_story, "10-kill first Mutant trigger regressed")
     req('StageKey = "Ronvotri.TeamUp/SurgeNarrativeStage"' in origin, "Linus/Marlon origin bridge regressed")
     req("MaxStoryNpcSlots = 4" in roster, "story NPC slot ceiling regressed")
