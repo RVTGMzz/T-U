@@ -59,7 +59,6 @@ try:
     req("new OriginStoryService(Helper, Monitor, () => Config.EnableOriginStory)" in entry,
         "main entry still uses obsolete origin constructor")
 
-    # Narrative must be driven by the deterministic first Mutant, never by merely seeing combat.
     req('StageKey = "Ronvotri.TeamUp/SurgeNarrativeStage"' in origin, "new narrative stage key missing")
     req("TheSurgeStoryService.ActiveInstance?.IsActivated == true" in origin,
         "Origin narrative is not gated by committed first Surge activation")
@@ -75,14 +74,12 @@ try:
     req("_stage >= 2" in origin and "Math.Clamp(stage, 0, 2)" in origin,
         "6.7.26 bridge does not stop after Marlon investigation")
 
-    # The 6.7.25 deterministic trigger remains the sole first-Mutant authority.
     req("public const int FirstMutationKillThreshold = 10;" in surge_story, "10-kill threshold regressed")
     req("ForceFirstMutation" in surge_story and "CommitFirstMutation" in surge_story,
         "first Mutant commitment flow regressed")
     req("ObserveEligibleDeath(monster)" in mutation and "CommitFirstMutation(monster)" in mutation,
         "mutation engine no longer bridges to Surge story")
 
-    # Debug command is non-destructive to Surge activation.
     req('"teamup_story_intro"' in alpha6726, "story bridge diagnostic command missing")
     req("Origin.ResetStory(Game1.player);" in alpha6726, "story reset command missing")
     req("SurgeStoryAlpha6725.Reset" not in alpha6726,
@@ -101,10 +98,9 @@ try:
         "first Surge narrative localization incomplete")
     req("Someone outside the Guild" in default_i18n["origin.marlon.first-surge"],
         "anonymous-hero Marlon hint missing")
-    req("một người không thuộc Hội" in vi_i18n["origin.marlon.first-surge"],
+    req("Một người không thuộc Hội" in vi_i18n["origin.marlon.first-surge"],
         "Vietnamese anonymous-hero Marlon hint missing")
 
-    # Carry forward hard safety locks while touching story runtime.
     req("public int MaxPartyMembers { get; set; } = 5;" in config, "5-person total party cap regression")
     req("public int MaxActiveLinkedCompanions { get; set; } = 2;" in config, "2/2 companion cap regression")
     req("PelipperCaptureSafetyService.IsProtected(monster)" in policy, "capture ceasefire regression")
