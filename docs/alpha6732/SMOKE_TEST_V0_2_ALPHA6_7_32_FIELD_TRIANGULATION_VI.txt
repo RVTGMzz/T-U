@@ -1,0 +1,43 @@
+TEAM UP 6.7.32 - FIELD TRIANGULATION
+====================================
+
+BAN NAY DA CI-VERIFIED, NHUNG VAN CAN LIVE TEST.
+
+CHUAN BI
+1. teamup_old_mine status -> stage=3/3.
+2. teamup_roster_story status -> unlockedNpcSlots=3/4.
+3. Lap team co it nhat 3 nguoi CUNG MAP.
+4. Bat buoc co it nhat 1 NPC Team Up dang Following hoac Waiting cung map.
+
+SOLO
+- Farmer + 2 NPC Team Up = du dieu kien.
+
+CO-OP
+- Farmer khac cung location cung duoc tinh vao tong field team.
+- Van phai co it nhat 1 NPC Team Up.
+
+TUYEN TEST
+1. Vao AdventureGuild voi du field team -> triangulation stage 1.
+2. Vao mot MineShaft -> stage 2, lay bearing A.
+3. Thu vao lai cung MineShaft location -> KHONG duoc len stage 3.
+4. Sang MineShaft location khac -> stage 3, lay bearing B.
+5. Quay lai AdventureGuild voi du field team -> stage 4.
+6. teamup_roster_story status van phai = 3/4.
+7. George van Rank D / Non-Combatant, khong recruit.
+
+DEBUG
+teamup_triangulation status
+teamup_triangulation reset
+teamup_triangulation stage 0
+teamup_triangulation stage 1
+teamup_triangulation stage 2
+teamup_triangulation stage 3
+teamup_triangulation stage 4
+
+DIAGNOSTIC
+diagnostics\TeamUp_Field_Triangulation_latest.txt
+
+NEU LOI/CRASH
+Gui:
+%appdata%\StardewValley\ErrorLogs\SMAPI-latest.txt
+va file diagnostic o tren.
