@@ -1,0 +1,50 @@
+name: Team Up v0.2.0-alpha.6.7.25 First Surge Trigger
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-25-first-surge-trigger
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+
+      - name: Materialize Alpha 6.7.25 first Surge trigger
+        run: python3 tools/materialize_alpha6725.py
+
+      - name: Build, audit and package Alpha 6.7.25
+        run: python3 tools/build_alpha6725.py
+
+      - name: Materialize verified source back to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.7.25 first Surge trigger [skip ci]"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: Upload Alpha 6.7.25 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-25-first-surge-trigger
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.25_FIRST_SURGE_TRIGGER_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.25_FIRST_SURGE_TRIGGER_TEST.sha256.txt
+            BUILD_LOG_ALPHA6725.txt
+            FIRST_SURGE_TRIGGER_AUDIT_ALPHA6725.md
+            SMOKE_TEST_V0_2_ALPHA6_7_25_FIRST_SURGE_TRIGGER_VI.txt
+          if-no-files-found: error
