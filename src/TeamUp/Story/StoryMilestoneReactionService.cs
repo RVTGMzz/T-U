@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 9 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 13 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -219,6 +219,70 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.9.robin",
             "Wizard", "story.react.9.wizard");
 
+        Dictionary<string, string> triangulationBriefed = Stage(
+            "Abigail", "story.react.10.abigail",
+            "Alex", "story.react.10.alex",
+            "Clint", "story.react.10.clint",
+            "Demetrius", "story.react.10.demetrius",
+            "Evelyn", "story.react.10.evelyn",
+            "George", "story.react.10.george",
+            "Gus", "story.react.10.gus",
+            "Lewis", "story.react.10.lewis",
+            "Linus", "story.react.10.linus",
+            "Marlon", "story.react.10.marlon",
+            "Maru", "story.react.10.maru",
+            "Pierre", "story.react.10.pierre",
+            "Robin", "story.react.10.robin",
+            "Wizard", "story.react.10.wizard");
+
+        Dictionary<string, string> firstBearingRecorded = Stage(
+            "Abigail", "story.react.11.abigail",
+            "Alex", "story.react.11.alex",
+            "Clint", "story.react.11.clint",
+            "Demetrius", "story.react.11.demetrius",
+            "Evelyn", "story.react.11.evelyn",
+            "George", "story.react.11.george",
+            "Gus", "story.react.11.gus",
+            "Lewis", "story.react.11.lewis",
+            "Linus", "story.react.11.linus",
+            "Marlon", "story.react.11.marlon",
+            "Maru", "story.react.11.maru",
+            "Pierre", "story.react.11.pierre",
+            "Robin", "story.react.11.robin",
+            "Wizard", "story.react.11.wizard");
+
+        Dictionary<string, string> secondBearingRecorded = Stage(
+            "Abigail", "story.react.12.abigail",
+            "Alex", "story.react.12.alex",
+            "Clint", "story.react.12.clint",
+            "Demetrius", "story.react.12.demetrius",
+            "Evelyn", "story.react.12.evelyn",
+            "George", "story.react.12.george",
+            "Gus", "story.react.12.gus",
+            "Lewis", "story.react.12.lewis",
+            "Linus", "story.react.12.linus",
+            "Marlon", "story.react.12.marlon",
+            "Maru", "story.react.12.maru",
+            "Pierre", "story.react.12.pierre",
+            "Robin", "story.react.12.robin",
+            "Wizard", "story.react.12.wizard");
+
+        Dictionary<string, string> sealedCorridorTriangulated = Stage(
+            "Abigail", "story.react.13.abigail",
+            "Alex", "story.react.13.alex",
+            "Clint", "story.react.13.clint",
+            "Demetrius", "story.react.13.demetrius",
+            "Evelyn", "story.react.13.evelyn",
+            "George", "story.react.13.george",
+            "Gus", "story.react.13.gus",
+            "Lewis", "story.react.13.lewis",
+            "Linus", "story.react.13.linus",
+            "Marlon", "story.react.13.marlon",
+            "Maru", "story.react.13.maru",
+            "Pierre", "story.react.13.pierre",
+            "Robin", "story.react.13.robin",
+            "Wizard", "story.react.13.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
@@ -230,7 +294,11 @@ internal sealed class StoryMilestoneReactionService
             [6] = secondSlotUnlocked,
             [7] = oldMineArchiveLead,
             [8] = oldMineSealedRecord,
-            [9] = oldMineConnectionConfirmed
+            [9] = oldMineConnectionConfirmed,
+            [10] = triangulationBriefed,
+            [11] = firstBearingRecorded,
+            [12] = secondBearingRecorded,
+            [13] = sealedCorridorTriangulated
         };
     }
 

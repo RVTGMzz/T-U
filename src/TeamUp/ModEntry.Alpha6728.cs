@@ -71,7 +71,7 @@ public sealed partial class ModEntry
             return false;
         }
 
-        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6731(), npc.Name, out string key))
+        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6733(), npc.Name, out string key))
             return false;
 
         string text = Helper.Translation.Get(key).ToString();
@@ -146,16 +146,16 @@ public sealed partial class ModEntry
 
     private void WriteAlpha6728StoryReactionDiagnostic()
     {
-        int stage = GetStoryReactionWindowAlpha6731();
+        int stage = GetStoryReactionWindowAlpha6733();
         List<string> lines = new()
         {
-            "TEAM UP 6.7.31 - OLD MINE MILESTONE REACTIONS",
+            "TEAM UP 6.7.33 - FIELD TRIANGULATION REACTIONS",
             Origin.Describe(),
             $"Current reaction window: stage={stage} seen={MilestoneReactionsAlpha6728.GetSeenCount(Game1.player, stage)}/{MilestoneReactionsAlpha6728.GetAvailableCount(stage)}",
             $"George combat reveal flag: {IsGeorgeCombatRevealedAlpha6728()}",
             $"George pre-reveal combat lock: {IsGeorgePreRevealLockedAlpha6728("George")}",
             "George expected before the future finale reveal: observed Rank D, NON-COMBATANT, no visible combat skill, recruitment blocked.",
-            "Reaction windows: 0..6 opening/Marlon case | 7=old-mine archive lead | 8=sealed record | 9=connection confirmed / slot 3."
+            "Reaction windows: 0..9 opening/old-mine | 10=field briefing | 11=bearing A | 12=bearing B | 13=sealed corridor triangulated."
         };
 
         string diagnosticsDir = Path.Combine(Helper.DirectoryPath, "diagnostics");
