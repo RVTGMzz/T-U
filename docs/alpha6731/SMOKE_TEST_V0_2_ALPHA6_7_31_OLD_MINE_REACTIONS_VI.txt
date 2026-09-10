@@ -1,0 +1,51 @@
+TEAM UP 6.7.31 - OLD MINE MILESTONE REACTIONS
+==============================================
+
+BAN NAY CI-VERIFIED, VAN CAN LIVE TEST.
+
+CHUAN BI:
+1. Load save host.
+2. Dam bao Alpha 6.7.30 old-mine route co the debug bang teamup_old_mine.
+3. Neu can test lai tat ca reaction: teamup_story_reactions reset.
+
+A. WINDOW 7 - ARCHIVE LEAD
+1. Chay: teamup_old_mine stage 1
+2. Noi chuyen tay rong voi:
+   Abigail / Alex / Clint / Demetrius / Evelyn / George / Gus /
+   Lewis / Linus / Marlon / Maru / Pierre / Robin / Wizard
+3. Ky vong moi NPC co 1 reaction dung boi canh archive lead.
+4. Noi lai cung NPC: phai quay ve interaction binh thuong.
+
+B. WINDOW 8 - SEALED RECORD
+1. Chay: teamup_old_mine stage 2
+2. Lap lai test 14 NPC.
+3. Reaction phai nhac dung boi canh: lower workings sealed, worker line redacted, matching hooked mark.
+4. Khong replay window 7 neu window 7 bi bo qua.
+
+C. WINDOW 9 - CONNECTION CONFIRMED
+1. Chay: teamup_old_mine stage 3
+2. Lap lai test 14 NPC.
+3. Reaction phai phan anh old coal-mine connection da duoc xac nhan va doi hinh lon hon.
+4. teamup_roster_story status van phai bao story slot 3/4 neu route 6.7.30 da complete.
+
+SPOILER LOCK:
+- George van Rank D / Non-Combatant.
+- George khong recruit duoc.
+- Khong duoc lo Rank S / Last Blaster / George la historical miner.
+- Evelyn khong duoc lo postgame Rank S / The Keeper.
+
+LENH:
+teamup_story_reactions status
+teamup_story_reactions reset
+teamup_old_mine status
+teamup_old_mine stage 0
+teamup_old_mine stage 1
+teamup_old_mine stage 2
+teamup_old_mine stage 3
+teamup_roster_story status
+
+DIAGNOSTIC:
+E:\SteamLibrary\steamapps\common\Stardew Valley\Mods\Team Up\diagnostics\TeamUp_Milestone_Reactions_latest.txt
+
+NEU LOI/CRASH:
+%appdata%\StardewValley\ErrorLogs\SMAPI-latest.txt
