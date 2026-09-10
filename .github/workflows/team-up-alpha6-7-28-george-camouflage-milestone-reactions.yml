@@ -1,0 +1,55 @@
+name: Team Up v0.2.0-alpha.6.7.28 George Camouflage Milestone Reactions
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-28-george-camouflage-milestone-reactions
+    paths:
+      - 'src/TeamUp/**'
+      - 'tools/materialize_alpha6728.py'
+      - 'tools/build_alpha6728.py'
+      - '.github/workflows/team-up-alpha6-7-28-george-camouflage-milestone-reactions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: '6.0.x'
+
+      - name: Materialize Alpha 6.7.28 George/reaction source
+        run: python3 tools/materialize_alpha6728.py
+
+      - name: Build, audit and package Alpha 6.7.28
+        run: python3 tools/build_alpha6728.py
+
+      - name: Materialize verified source back to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.7.28 George camouflage + milestone reactions [skip ci]"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: Upload Alpha 6.7.28 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-28-george-camouflage-milestone-reactions
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.28_GEORGE_CAMOUFLAGE_MILESTONE_REACTIONS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.28_GEORGE_CAMOUFLAGE_MILESTONE_REACTIONS_TEST.sha256.txt
+            BUILD_LOG_ALPHA6728.txt
+            GEORGE_CAMOUFLAGE_REACTIONS_AUDIT_ALPHA6728.md
+            SMOKE_TEST_V0_2_ALPHA6_7_28_GEORGE_REACTIONS_VI.txt
+          if-no-files-found: error
