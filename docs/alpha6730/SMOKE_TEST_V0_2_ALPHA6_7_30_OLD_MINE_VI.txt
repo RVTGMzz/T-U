@@ -1,0 +1,56 @@
+TEAM UP 6.7.30 - OLD MINE CONNECTION
+=====================================
+
+TRANG THAI:
+- CI VERIFIED
+- VAN CAN LIVE TEST
+- CHUA MERGE MAIN
+
+CHUAN BI:
+1. Alpha 6.7.29 Marlon case phai xong: teamup_marlon_case status -> stage=4/4.
+2. Story roster luc nay da mo 2 slot NPC.
+3. Recruit it nhat 1 NPC thuong va de NPC o trang thai Following/Waiting cung map.
+4. Neu can reset rieng chuong moi: teamup_old_mine reset.
+
+TUYEN TEST 6.7.30:
+1. Cung dong doi vao AdventureGuild.
+   Ky vong: Marlon dua dau moi tu kho ho so, old mine stage=1/3.
+
+2. Cung dong doi vao ManorHouse.
+   Ky vong: doc duoc ho so an toan cu, thay ghi chu khu khai thac tang duoi bi niem phong, ten nhan vien bi che va dau moc trung voi bang chung Mutant; stage=2/3.
+
+3. Cung dong doi quay lai AdventureGuild.
+   Ky vong: Marlon xac nhan The Surge co lien he voi vu mo than cu khoang 30 nam truoc; stage=3/3.
+
+4. Chay: teamup_roster_story status
+   Ky vong: unlockedNpcSlots=3/4.
+
+5. Thu recruit/activate NPC thu 3 neu tong so nguoi chua cham cap 5.
+   Luu y multiplayer: Farmer online van tinh vao gioi han 5 nguoi tong cong.
+
+SPOILER SAFETY:
+- George van Rank D / Non-Combatant.
+- George van khong recruit duoc.
+- Khong duoc xuat hien Rank S / The Last Blaster / ket noi truc tiep George voi nguoi tho mo cu.
+- Evelyn khong duoc lo twist postgame.
+
+REACTIONS:
+- 6.7.30 khong them window moi.
+- He thong reaction 0..6 cua 6.7.29 duoc giu nguyen.
+
+LENH:
+teamup_old_mine status
+teamup_old_mine reset
+teamup_old_mine stage 0
+teamup_old_mine stage 1
+teamup_old_mine stage 2
+teamup_old_mine stage 3
+teamup_marlon_case status
+teamup_roster_story status
+
+CHAN DOAN:
+E:\SteamLibrary\steamapps\common\Stardew Valley\Mods\Team Up\diagnostics\TeamUp_Old_Mine_Connection_latest.txt
+
+NEU LOI/CRASH:
+Gui file:
+%appdata%\StardewValley\ErrorLogs\SMAPI-latest.txt

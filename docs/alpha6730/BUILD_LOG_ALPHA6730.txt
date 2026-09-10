@@ -1,0 +1,45 @@
+TEAM UP ALPHA 6.7.30 - NORMALIZED CI BUILD LOG
+==============================================
+
+Version: 0.2.0-alpha.6.7.30
+Branch: v0.2-alpha6-7-30-old-mine-connection
+Base checkpoint: 3c1581974938d62cea6238d52b3cbda594c91daf
+Workflow trigger commit: 145d29d4ffe20a4a513f996a39ae81cca9be1018
+CI-verified materialized source: e7091fb1ed044a02af40d461cf660eb56cdee8e8
+CI run: 34479937334
+CI job: 102879922167
+Conclusion: SUCCESS
+
+STEP RESULTS:
+- Checkout: SUCCESS
+- SMAPI build environment / .NET 6: SUCCESS
+- Materialize Alpha 6.7.30 source: SUCCESS
+- Build, audit and package: SUCCESS
+- Commit verified source: SUCCESS
+- Upload artifact: SUCCESS
+
+BUILD ACCEPTANCE ENFORCED BY tools/build_alpha6730.py:
+- SOURCE ACCEPTANCE: PASS
+- OLD MINE CONNECTION 0..3 PERSISTENT ROUTE: PASS
+- MARLON 6.7.29 COMPLETION PREREQUISITE: PASS
+- ACTIVE NPC ALLY REQUIRED AT ALL 6.7.30 GATES: PASS
+- GUILD -> MANORHOUSE -> GUILD RECORD ROUTE: PASS
+- OLD COAL-MINE CONNECTION -> STORY NPC SLOT 3: PASS
+- GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+- EN/VI LOCALIZATION PARITY: PASS
+- 6.7.23-6.7.29 SAFETY/STORY CARRY-FORWARD: PASS
+- BINARY ACCEPTANCE: PASS
+- dotnet Release build: 0 Warning(s), 0 Error(s)
+
+ARTIFACT:
+ID: 10153153207
+Name: team-up-alpha6-7-30-old-mine-connection
+Size: 424912 bytes
+Wrapper digest: sha256:f4de404a78500157fe1ed72c6b7ec02e2a0bb583b645605b38b7d5b7181c9148
+Inner ZIP: TeamUp_v0.2.0-alpha.6.7.30_OLD_MINE_CONNECTION_TEST.zip
+
+NOTE:
+This is a normalized checkpoint log assembled from the successful GitHub Actions run metadata and the build script's enforced acceptance gates. It is not a verbatim copy of the runner console stream.
+
+LIVE STORY / MANORHOUSE / PARTY WARP / MULTIPLAYER TEST STILL REQUIRED.
+STABLE MAIN INTENTIONALLY NOT MERGED.
