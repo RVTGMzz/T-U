@@ -501,5 +501,12 @@
   "story.react.6.maru": "Maru: Ba góc nhìn giúp tam giác hóa chuyển động tốt hơn nhiều. Có khi Team Up đang biến thành một dụng cụ thực địa biết cãi nhau.",
   "story.react.6.pierre": "Pierre: Hai đồng đội à? Tuyệt. Xét về thống kê thì đó là... nhiều khách cần vật tư hơn. Gì chứ? Chuẩn bị kỹ là quan trọng mà.",
   "story.react.6.robin": "Robin: Có ba người thì phân việc trước khi xuống mỏ. Trinh sát, hỗ trợ, đường lui. Ứng biến không phải kế hoạch kết cấu đâu.",
-  "story.react.6.wizard": "Wizard: Chòm sao vừa có thêm một vì tinh tú. Hãy chắc rằng hình mà các ngươi tạo thành là hình các ngươi muốn giữ lại."
+  "story.react.6.wizard": "Wizard: Chòm sao vừa có thêm một vì tinh tú. Hãy chắc rằng hình mà các ngươi tạo thành là hình các ngươi muốn giữ lại.",
+  "story.old-mine.archive-lead": "Marlon: Tôi tìm thấy thẻ mục lục của trang hồ sơ công ty bị mất. Nó dẫn tới một hồ sơ an toàn của thị trấn về một mỏ than cũ, khoảng ba mươi năm trước. Bản của Hội đã bị cắt mất. Văn phòng Lewis có thể vẫn còn sổ lưu. Dẫn theo một người. Không ai lần dấu này một mình.",
+  "story.old-mine.objective.records": "HỒ SƠ MỎ CŨ • Đến Dinh Thị trưởng cùng một đồng đội Team Up đang hoạt động và kiểm tra hồ sơ an toàn của thị trấn.",
+  "story.old-mine.sealed-record": "Phía sau mục tai nạn công khai có thêm một ghi chú: khu khai thác tầng dưới bị niêm phong sau một sự cố chất nổ. Dòng tên nhân viên đã bị bôi đen. Bên cạnh lệnh đóng mỏ là một dấu kiểm tra vẽ tay trùng với hoa văn móc trên mảnh Mutant.",
+  "story.old-mine.objective.return": "HỒ SƠ MỎ CŨ • Cùng đồng đội quay lại gặp Marlon và báo cáo về hồ sơ bị niêm phong.",
+  "story.old-mine.connection-confirmed": "Marlon: Vậy là đủ. Mutant hiện tại, vết cháy bên trong đá và hồ sơ đóng mỏ cũ đều chỉ về cùng một sự cố. The Surge đang chạm tới một mỏ than đã bị niêm phong ba mươi năm trước. Tên người thợ mỏ vẫn còn thiếu, và tôi sẽ không lấy phỏng đoán lấp vào đó. Ta theo bằng chứng, không theo huyền thoại.",
+  "story.old-mine.complete": "HỒ SƠ MỎ CŨ • Đã xác nhận mối liên hệ với mỏ than cũ.",
+  "story.roster.third-unlock": "TEAM UP • Mối liên hệ với mỏ cũ đã được xác nhận. Sức chứa đồng đội cốt truyện tăng lên {{unlocked}}/{{max}}."
 }

@@ -501,5 +501,12 @@
   "story.react.6.maru": "Maru: Three viewpoints can triangulate movement much better. Maybe Team Up is becoming a field instrument with opinions.",
   "story.react.6.pierre": "Pierre: Two companions? Excellent. Statistically that's... more customers needing supplies. What? Preparedness is important.",
   "story.react.6.robin": "Robin: With three people, assign jobs before going underground. Scout, support, exit route. Improvisation is not a structural plan.",
-  "story.react.6.wizard": "Wizard: The constellation gains another star. Be certain the pattern you form is one you intend to keep."
+  "story.react.6.wizard": "Wizard: The constellation gains another star. Be certain the pattern you form is one you intend to keep.",
+  "story.old-mine.archive-lead": "Marlon: I found the index card for the missing company page. It points to a municipal safety filing for an old coal mine, about thirty years back. The Guild copy was cut apart. Lewis's office may still have the town ledger. Take someone with you. Nobody follows this trail alone.",
+  "story.old-mine.objective.records": "OLD MINE FILE • Visit the Mayor's Manor with an active Team Up ally and check the municipal safety records.",
+  "story.old-mine.sealed-record": "Behind the public accident entry is a second notation: lower workings sealed after an explosive incident. The employee line is redacted. A hand-drawn inspection mark beside the closure order matches the hooked pattern on the Mutant shard.",
+  "story.old-mine.objective.return": "OLD MINE FILE • Return to Marlon with your ally and report the sealed record.",
+  "story.old-mine.connection-confirmed": "Marlon: That's enough. The current Mutants, the burn inside the stone, and this old closure record all point to the same incident. The Surge is touching a coal mine sealed thirty years ago. The miner's name stays missing, and I won't fill that blank with a guess. We follow evidence, not legends.",
+  "story.old-mine.complete": "OLD MINE FILE • Old coal-mine connection confirmed.",
+  "story.roster.third-unlock": "TEAM UP • The old mine connection is confirmed. Story ally capacity increased to {{unlocked}}/{{max}}."
 }
