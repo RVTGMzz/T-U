@@ -1,0 +1,24 @@
+TEAM UP 6.7.42 - LOWER WORKINGS DESCENT / THRESHOLD CROSSING
+============================================================
+
+PREP:
+- Cai build 6.7.42 va load save host.
+- teamup_entry_protocol status -> stage 4/4, ready=True.
+- teamup_surge_high status -> high=True.
+- teamup_roster_story status -> 4/4.
+- teamup_lower_descent reset.
+
+ROUTE:
+1. Vao AdventureGuild -> stage 1, Marlon giao first-descent order.
+2. Dua full operational formation toi DUNG recorded breach MineShaft -> stage 2.
+3. Giu full formation 120 tick -> stage 3, thresholdCrossed=True.
+4. Thu pha formation / warp / mo menu-dialogue truoc 120 tick -> crossing hold phai reset.
+5. O stage 3 giu full formation them 180 tick -> stage 4, hien evidence deliberate containment.
+6. Thu pha formation / warp / mo menu-dialogue truoc 180 tick -> inspection hold phai reset.
+7. Quay ve AdventureGuild -> stage 5/5, firstDescentComplete=True.
+8. Save + reload -> thresholdCrossed=True va firstDescentComplete=True van con.
+9. Khong co boss, khong new dungeon warp, khong George reveal, roster van 4/4.
+10. teamup_story_reactions status van catalog 0..30.
+
+DEBUG: teamup_lower_descent status|reset|stage 0-5
+DIAGNOSTIC: diagnostics\TeamUp_Lower_Workings_Descent_latest.txt
