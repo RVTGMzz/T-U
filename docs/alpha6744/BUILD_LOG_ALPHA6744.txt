@@ -1,0 +1,32 @@
+SOURCE ACCEPTANCE: PASS
+DEDICATED DATA/LOCATIONS LOWER WORKINGS MAP: PASS
+TMX BACK/BUILDINGS/FRONT + VANILLA MINE TILESET: PASS
+RECORDED BREACH LOCATION + PERSISTENT TILE ANCHOR: PASS
+LEGACY SAVE ONE-TIME ANCHOR CALIBRATION: PASS
+SAFE RETURN ROUTE + EARLY EMERGENCY WITHDRAWAL: PASS
+THREE-ZONE 120-TICK INTERIOR SURVEY: PASS
+HOST-AUTHORITATIVE STORY PROGRESSION: PASS
+REACTION WINDOWS 0..41: PASS
+LOWER WORKINGS INTERIOR WINDOWS 36..41: PASS (14 NPCs each)
+CURATED MILESTONE REACTIONS: PASS (584 lines/language)
+GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+EVELYN POSTGAME SPOILER BOUNDARY: PASS
+PELIPPER / MUTATION SAFETY CARRY-FORWARD: PASS
+FIVE-PEOPLE TOTAL + STORY SLOT 4 CEILING: PASS
+NO 6.7.44 BOSS / STORY MONSTER / COMBAT ESCALATION: PASS
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 604 ms).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.44', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.44.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:12.13
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.44
+ZIP: TeamUp_v0.2.0-alpha.6.7.44_LOWER_WORKINGS_INTERIOR_SURVEY_TEST.zip
+SHA256: 7cd840107a8998b09e27e83c3461262495818b58e79fb2309a432c921406ee0b

@@ -1,0 +1,41 @@
+TEAM UP 6.7.44 - DEDICATED LOWER WORKINGS / INTERIOR SURVEY
+===========================================================
+
+PREP
+1. Cai build 6.7.44 va load save bang host.
+2. teamup_lower_descent status -> firstDescentComplete=True (stage 5/5).
+3. teamup_entry_protocol status -> READY; teamup_surge_high status -> HIGH; story slots 4/4.
+4. teamup_lower_interior reset; sau do vao Adventure Guild de nhan lenh survey.
+
+MAP / ENTRY
+5. Dua full operational formation den dung MineShaft breach da ghi nhan.
+6. Save cu 6.7.43: bam Action tai vi tri breach that -> phai bao anchor calibrated mot lan, sau do vao map Lower Workings.
+7. Save moi da di qua 6.7.42 bang build nay: anchor phai duoc luu tu luc threshold crossing, khong can calibrate lai.
+8. Map phai hien binh thuong, co san/tuong/collision, khong void, khong spawn boss hay story monster.
+9. Entry tile xap xi (15,21); bam Action tai day phai rut ve dung recorded breach anchor.
+
+SURVEY
+10. Stage 2: giu full formation gan (8,9) ~120 tick -> directed cribbing clue, stage 3.
+11. Stage 3: giu full formation gan (22,8) ~120 tick -> Mutation-linked residue clue, stage 4.
+12. Stage 4: giu full formation gan (23,16) ~120 tick -> sealed pressure edge clue, stage 5.
+13. Truoc khi survey xong, co the quay entry + Action de emergency withdraw; stage hien tai phai duoc giu, sau do vao lai tiep tuc.
+14. Stage 5: quay entry + Action -> safe return; den Adventure Guild -> stage 6/6 complete.
+15. Save/reload tai cac stage 2..5 -> story state va custom location phai khoi phuc sach.
+
+MULTIPLAYER
+16. Host mo route. Farmhand tai recorded breach sau khi host da stage >=2 phai vao/ra duoc cung location.
+17. Farmhand khong duoc tu tang stage hay ghi story flag cua host. Full formation counting van adaptive theo online Farmers + NPC allies.
+
+REACTIONS
+18. teamup_story_reactions reset. teamup_lower_interior stage 1..6 -> windows 36..41.
+19. Moi supported NPC: lan noi dau co reaction, lan hai quay ve normal dialogue. Bo qua window thi reaction cu khong replay.
+20. George khong Rank S / Last Blaster / recruit; Evelyn khong postgame reveal.
+
+REGRESSION
+21. First guaranteed Mutation van kill thu 10 du dieu kien; exclusions van giu nguyen.
+22. Pelipper capture protected target / ceasefire van hoat dong.
+23. Hard cap van 5 PEOPLE tong, story NPC slots van 4/4.
+
+DEBUG: teamup_lower_interior status|reset|stage 0-6
+DEBUG: teamup_story_reactions status|reset
+DIAGNOSTIC: diagnostics\TeamUp_Lower_Workings_Interior_latest.txt
