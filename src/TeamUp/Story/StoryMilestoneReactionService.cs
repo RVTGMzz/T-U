@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 35 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 41 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -635,6 +635,102 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.35.robin",
             "Wizard", "story.react.35.wizard");
 
+        Dictionary<string, string> surveyAuthorized = Stage(
+            "Abigail", "story.react.36.abigail",
+            "Alex", "story.react.36.alex",
+            "Clint", "story.react.36.clint",
+            "Demetrius", "story.react.36.demetrius",
+            "Evelyn", "story.react.36.evelyn",
+            "George", "story.react.36.george",
+            "Gus", "story.react.36.gus",
+            "Lewis", "story.react.36.lewis",
+            "Linus", "story.react.36.linus",
+            "Marlon", "story.react.36.marlon",
+            "Maru", "story.react.36.maru",
+            "Pierre", "story.react.36.pierre",
+            "Robin", "story.react.36.robin",
+            "Wizard", "story.react.36.wizard");
+
+        Dictionary<string, string> lowerWorkingsEntered = Stage(
+            "Abigail", "story.react.37.abigail",
+            "Alex", "story.react.37.alex",
+            "Clint", "story.react.37.clint",
+            "Demetrius", "story.react.37.demetrius",
+            "Evelyn", "story.react.37.evelyn",
+            "George", "story.react.37.george",
+            "Gus", "story.react.37.gus",
+            "Lewis", "story.react.37.lewis",
+            "Linus", "story.react.37.linus",
+            "Marlon", "story.react.37.marlon",
+            "Maru", "story.react.37.maru",
+            "Pierre", "story.react.37.pierre",
+            "Robin", "story.react.37.robin",
+            "Wizard", "story.react.37.wizard");
+
+        Dictionary<string, string> cribbingSurveyed = Stage(
+            "Abigail", "story.react.38.abigail",
+            "Alex", "story.react.38.alex",
+            "Clint", "story.react.38.clint",
+            "Demetrius", "story.react.38.demetrius",
+            "Evelyn", "story.react.38.evelyn",
+            "George", "story.react.38.george",
+            "Gus", "story.react.38.gus",
+            "Lewis", "story.react.38.lewis",
+            "Linus", "story.react.38.linus",
+            "Marlon", "story.react.38.marlon",
+            "Maru", "story.react.38.maru",
+            "Pierre", "story.react.38.pierre",
+            "Robin", "story.react.38.robin",
+            "Wizard", "story.react.38.wizard");
+
+        Dictionary<string, string> mutationTraceSurveyed = Stage(
+            "Abigail", "story.react.39.abigail",
+            "Alex", "story.react.39.alex",
+            "Clint", "story.react.39.clint",
+            "Demetrius", "story.react.39.demetrius",
+            "Evelyn", "story.react.39.evelyn",
+            "George", "story.react.39.george",
+            "Gus", "story.react.39.gus",
+            "Lewis", "story.react.39.lewis",
+            "Linus", "story.react.39.linus",
+            "Marlon", "story.react.39.marlon",
+            "Maru", "story.react.39.maru",
+            "Pierre", "story.react.39.pierre",
+            "Robin", "story.react.39.robin",
+            "Wizard", "story.react.39.wizard");
+
+        Dictionary<string, string> sealedDepthSurveyed = Stage(
+            "Abigail", "story.react.40.abigail",
+            "Alex", "story.react.40.alex",
+            "Clint", "story.react.40.clint",
+            "Demetrius", "story.react.40.demetrius",
+            "Evelyn", "story.react.40.evelyn",
+            "George", "story.react.40.george",
+            "Gus", "story.react.40.gus",
+            "Lewis", "story.react.40.lewis",
+            "Linus", "story.react.40.linus",
+            "Marlon", "story.react.40.marlon",
+            "Maru", "story.react.40.maru",
+            "Pierre", "story.react.40.pierre",
+            "Robin", "story.react.40.robin",
+            "Wizard", "story.react.40.wizard");
+
+        Dictionary<string, string> interiorSurveyReported = Stage(
+            "Abigail", "story.react.41.abigail",
+            "Alex", "story.react.41.alex",
+            "Clint", "story.react.41.clint",
+            "Demetrius", "story.react.41.demetrius",
+            "Evelyn", "story.react.41.evelyn",
+            "George", "story.react.41.george",
+            "Gus", "story.react.41.gus",
+            "Lewis", "story.react.41.lewis",
+            "Linus", "story.react.41.linus",
+            "Marlon", "story.react.41.marlon",
+            "Maru", "story.react.41.maru",
+            "Pierre", "story.react.41.pierre",
+            "Robin", "story.react.41.robin",
+            "Wizard", "story.react.41.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
@@ -672,7 +768,13 @@ internal sealed class StoryMilestoneReactionService
             [32] = thresholdLineReady,
             [33] = thresholdCrossed,
             [34] = firstInteriorInspected,
-            [35] = firstDescentReported
+            [35] = firstDescentReported,
+            [36] = surveyAuthorized,
+            [37] = lowerWorkingsEntered,
+            [38] = cribbingSurveyed,
+            [39] = mutationTraceSurveyed,
+            [40] = sealedDepthSurveyed,
+            [41] = interiorSurveyReported
         };
     }
 

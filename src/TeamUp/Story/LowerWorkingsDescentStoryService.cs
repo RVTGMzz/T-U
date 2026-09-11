@@ -177,6 +177,7 @@ internal sealed class LowerWorkingsDescentStoryService
 
             _crossingTicks = 0;
             Game1.MasterPlayer.modData[ThresholdCrossedFlagKey] = "1";
+            Game1.MasterPlayer.modData[LowerWorkingsInteriorSurveyStoryService.BreachTileKey] = $"{Game1.player.TilePoint.X},{Game1.player.TilePoint.Y}";
             Show("story.descent.crossed");
             SetStage(Game1.MasterPlayer, 3, $"lower-workings-threshold-crossed:{location.NameOrUniqueName}");
             Hud("story.descent.objective.inspect");
@@ -198,6 +199,7 @@ internal sealed class LowerWorkingsDescentStoryService
         owner.modData.Remove(StageKey);
         owner.modData.Remove(ThresholdCrossedFlagKey);
         owner.modData.Remove(FirstDescentCompleteFlagKey);
+        owner.modData.Remove(LowerWorkingsInteriorSurveyStoryService.BreachTileKey);
         _stage = 0;
         _crossingTicks = 0;
         _inspectionTicks = 0;

@@ -71,7 +71,7 @@ public sealed partial class ModEntry
             return false;
         }
 
-        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6743(), npc.Name, out string key))
+        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6744(), npc.Name, out string key))
             return false;
 
         string text = Helper.Translation.Get(key).ToString();
@@ -146,16 +146,16 @@ public sealed partial class ModEntry
 
     private void WriteAlpha6728StoryReactionDiagnostic()
     {
-        int stage = GetStoryReactionWindowAlpha6743();
+        int stage = GetStoryReactionWindowAlpha6744();
         List<string> lines = new()
         {
-            "TEAM UP 6.7.43 - LOWER WORKINGS DESCENT REACTIONS",
+            "TEAM UP 6.7.44 - LOWER WORKINGS INTERIOR SURVEY + REACTIONS",
             Origin.Describe(),
             $"Current reaction window: stage={stage} seen={MilestoneReactionsAlpha6728.GetSeenCount(Game1.player, stage)}/{MilestoneReactionsAlpha6728.GetAvailableCount(stage)}",
             $"George combat reveal flag: {IsGeorgeCombatRevealedAlpha6728()}",
             $"George pre-reveal combat lock: {IsGeorgePreRevealLockedAlpha6728("George")}",
             "George expected before the future finale reveal: observed Rank D, NON-COMBATANT, no visible combat skill, recruitment blocked.",
-            "Reaction windows: 0..30 previous story | 31=descent authorized | 32=threshold line ready | 33=threshold crossed | 34=first interior inspected | 35=first descent reported."
+            "Reaction windows: 0..35 previous story | 36=interior survey authorized | 37=dedicated map entered | 38=directed cribbing surveyed | 39=Mutation trace surveyed | 40=sealed-depth edge surveyed | 41=interior survey reported."
         };
 
         string diagnosticsDir = Path.Combine(Helper.DirectoryPath, "diagnostics");
