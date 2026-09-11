@@ -1,0 +1,35 @@
+name: Team Up v0.2.0-alpha.6.7.44.2 Pelipper Encounter Reactions
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-2-pelipper-encounter-reactions
+    paths:
+      - 'src/TeamUp/**'
+      - 'tools/build_alpha6744_2.py'
+      - '.github/workflows/team-up-alpha6-7-44-2-pelipper-encounter-reactions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+      - name: Build, audit and package Alpha 6.7.44.2
+        run: python3 tools/build_alpha6744_2.py
+      - name: Upload Alpha 6.7.44.2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-2-pelipper-encounter-reactions
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.44.2_PELIPPER_ENCOUNTER_REACTIONS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.2_PELIPPER_ENCOUNTER_REACTIONS_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_2.txt
+            PELIPPER_ENCOUNTER_REACTION_AUDIT_ALPHA6744_2.md
+          if-no-files-found: error
