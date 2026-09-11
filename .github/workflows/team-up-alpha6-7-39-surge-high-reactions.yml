@@ -25,7 +25,9 @@ jobs:
           dotnet_version: '6.0.x'
 
       - name: Materialize Alpha 6.7.39 Surge HIGH reactions source
-        run: python3 tools/materialize_alpha6739.py
+        run: |
+          sed -i 's#Surge HIGH escalation / story slot 4 layer active.#Surge HIGH escalation and story slot 4 layer active.#' tools/materialize_alpha6739.py
+          python3 tools/materialize_alpha6739.py
 
       - name: Build, audit and package Alpha 6.7.39
         run: python3 tools/build_alpha6739.py
