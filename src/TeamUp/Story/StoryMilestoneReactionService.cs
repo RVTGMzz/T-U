@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 22 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 26 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -427,6 +427,70 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.22.robin",
             "Wizard", "story.react.22.wizard");
 
+        Dictionary<string, string> surgeHighBriefed = Stage(
+            "Abigail", "story.react.23.abigail",
+            "Alex", "story.react.23.alex",
+            "Clint", "story.react.23.clint",
+            "Demetrius", "story.react.23.demetrius",
+            "Evelyn", "story.react.23.evelyn",
+            "George", "story.react.23.george",
+            "Gus", "story.react.23.gus",
+            "Lewis", "story.react.23.lewis",
+            "Linus", "story.react.23.linus",
+            "Marlon", "story.react.23.marlon",
+            "Maru", "story.react.23.maru",
+            "Pierre", "story.react.23.pierre",
+            "Robin", "story.react.23.robin",
+            "Wizard", "story.react.23.wizard");
+
+        Dictionary<string, string> surgeHighReadingStarted = Stage(
+            "Abigail", "story.react.24.abigail",
+            "Alex", "story.react.24.alex",
+            "Clint", "story.react.24.clint",
+            "Demetrius", "story.react.24.demetrius",
+            "Evelyn", "story.react.24.evelyn",
+            "George", "story.react.24.george",
+            "Gus", "story.react.24.gus",
+            "Lewis", "story.react.24.lewis",
+            "Linus", "story.react.24.linus",
+            "Marlon", "story.react.24.marlon",
+            "Maru", "story.react.24.maru",
+            "Pierre", "story.react.24.pierre",
+            "Robin", "story.react.24.robin",
+            "Wizard", "story.react.24.wizard");
+
+        Dictionary<string, string> surgeHighConfirmed = Stage(
+            "Abigail", "story.react.25.abigail",
+            "Alex", "story.react.25.alex",
+            "Clint", "story.react.25.clint",
+            "Demetrius", "story.react.25.demetrius",
+            "Evelyn", "story.react.25.evelyn",
+            "George", "story.react.25.george",
+            "Gus", "story.react.25.gus",
+            "Lewis", "story.react.25.lewis",
+            "Linus", "story.react.25.linus",
+            "Marlon", "story.react.25.marlon",
+            "Maru", "story.react.25.maru",
+            "Pierre", "story.react.25.pierre",
+            "Robin", "story.react.25.robin",
+            "Wizard", "story.react.25.wizard");
+
+        Dictionary<string, string> surgeHighSlot4Authorized = Stage(
+            "Abigail", "story.react.26.abigail",
+            "Alex", "story.react.26.alex",
+            "Clint", "story.react.26.clint",
+            "Demetrius", "story.react.26.demetrius",
+            "Evelyn", "story.react.26.evelyn",
+            "George", "story.react.26.george",
+            "Gus", "story.react.26.gus",
+            "Lewis", "story.react.26.lewis",
+            "Linus", "story.react.26.linus",
+            "Marlon", "story.react.26.marlon",
+            "Maru", "story.react.26.maru",
+            "Pierre", "story.react.26.pierre",
+            "Robin", "story.react.26.robin",
+            "Wizard", "story.react.26.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
@@ -451,7 +515,11 @@ internal sealed class StoryMilestoneReactionService
             [19] = breachFaceReady,
             [20] = controlledOpeningComplete,
             [21] = firstEntryProbeComplete,
-            [22] = firstEntryReported
+            [22] = firstEntryReported,
+            [23] = surgeHighBriefed,
+            [24] = surgeHighReadingStarted,
+            [25] = surgeHighConfirmed,
+            [26] = surgeHighSlot4Authorized
         };
     }
 

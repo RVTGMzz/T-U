@@ -71,7 +71,7 @@ public sealed partial class ModEntry
             return false;
         }
 
-        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6737(), npc.Name, out string key))
+        if (!MilestoneReactionsAlpha6728.TryConsume(Game1.player, GetStoryReactionWindowAlpha6739(), npc.Name, out string key))
             return false;
 
         string text = Helper.Translation.Get(key).ToString();
@@ -146,16 +146,16 @@ public sealed partial class ModEntry
 
     private void WriteAlpha6728StoryReactionDiagnostic()
     {
-        int stage = GetStoryReactionWindowAlpha6737();
+        int stage = GetStoryReactionWindowAlpha6739();
         List<string> lines = new()
         {
-            "TEAM UP 6.7.37 - CONTROLLED BREACH REACTIONS",
+            "TEAM UP 6.7.39 - SURGE HIGH REACTIONS",
             Origin.Describe(),
             $"Current reaction window: stage={stage} seen={MilestoneReactionsAlpha6728.GetSeenCount(Game1.player, stage)}/{MilestoneReactionsAlpha6728.GetAvailableCount(stage)}",
             $"George combat reveal flag: {IsGeorgeCombatRevealedAlpha6728()}",
             $"George pre-reveal combat lock: {IsGeorgePreRevealLockedAlpha6728("George")}",
             "George expected before the future finale reveal: observed Rank D, NON-COMBATANT, no visible combat skill, recruitment blocked.",
-            "Reaction windows: 0..17 previous story | 18=breach briefing | 19=breach face ready | 20=controlled opening | 21=first-entry probe | 22=probe reported."
+            "Reaction windows: 0..22 previous story | 23=HIGH-check briefing | 24=HIGH reading started | 25=SURGE HIGH confirmed | 26=slot 4 authorized."
         };
 
         string diagnosticsDir = Path.Combine(Helper.DirectoryPath, "diagnostics");

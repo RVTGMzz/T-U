@@ -123,7 +123,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6738Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Surge HIGH escalation and story slot 4 layer active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Surge HIGH reaction layer active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
