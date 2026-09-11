@@ -1,0 +1,14 @@
+TEAM UP 6.7.39 - SURGE HIGH REACTIONS
+=====================================
+
+1. teamup_story_reactions reset.
+2. teamup_surge_high stage 1 -> reaction window 23.
+3. Talk supported NPC -> one special reaction only; second talk returns normal.
+4. stage 2 -> window 24; stage 3 -> window 25; stage 4 -> window 26.
+5. Skip an old window then advance -> stale reaction must not replay.
+6. Reactions must not change Surge HIGH stage or roster slots.
+7. At stage 3 HIGH remains true; for a clean test roster can remain 3/4 until stage 4 report.
+8. George remains Rank D / Non-Combatant / unrecruitable.
+9. Evelyn does not reveal postgame secret.
+DEBUG: teamup_story_reactions reset | status; teamup_surge_high stage 0-4
+DIAGNOSTIC: diagnostics\TeamUp_Milestone_Reactions_latest.txt
