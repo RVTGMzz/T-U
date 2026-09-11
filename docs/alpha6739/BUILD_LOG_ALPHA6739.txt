@@ -1,0 +1,29 @@
+SOURCE ACCEPTANCE: PASS
+REACTION WINDOWS 0..26: PASS
+SURGE HIGH WINDOWS 23..26: PASS (14 NPCs each)
+CURATED MILESTONE REACTIONS: PASS (374 lines/language)
+NPC INTERACTION + DIAGNOSTIC ROUTED TO 6.7.39 WINDOW RESOLVER: PASS
+SURGE HIGH 6.7.38 CARRY-FORWARD: PASS
+PERSISTENT HIGH + 180-TICK CONFIRMATION HOLD: PASS
+STORY NPC SLOT 4 AUTHORIZATION CARRY-FORWARD: PASS
+FIVE-PEOPLE TOTAL FORMATION CAP: PASS
+GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+EVELYN POSTGAME SPOILER BOUNDARY: PASS
+6.7.23-6.7.38 STORY/ROSTER/CAPTURE SAFETY CARRY-FORWARD: PASS
+LIVE ONE-SHOT DIALOGUE PACING FOR WINDOWS 23..26 STILL REQUIRED
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 698 ms).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.39', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.39.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.42
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.39
+ZIP: TeamUp_v0.2.0-alpha.6.7.39_SURGE_HIGH_REACTIONS_TEST.zip
+SHA256: 64e4ac3869619885bf3d4d5a1445dc21bb9765ddbbc814cb238b1a7264b92b08
