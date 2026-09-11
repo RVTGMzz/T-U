@@ -6,10 +6,10 @@ namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
 /// Read-only compatibility policy for Pelipper Town's low-HP capture/mercy mode.
-/// Team Up never takes ownership of Pelipper actors here. The adapter only decides whether a
-/// Pelipper combat proxy is safe to damage. It probes obvious Pelipper config/settings members
-/// when available and falls back to the user's requested 10% capture threshold if the source
-/// mod doesn't expose a stable public setting.
+/// Capture-floor protection is fail-closed: it is active only when Pelipper Town is present AND
+/// Team Up positively resolves an enabled Catch/Capture/Mercy mode. A 10% threshold is used only
+/// after that mode is confirmed on and Pelipper does not expose a stable threshold value.
+/// Shiny Emergency Hold is a separate Team Up safety state and does not imply Catch Mode is on.
 /// </summary>
 internal static class PelipperCaptureSafetyService
 {
@@ -17,25 +17,36 @@ internal static class PelipperCaptureSafetyService
     private const long ProbeIntervalMs = 2000;
 
     private static long _nextProbeAt;
-    private static bool _enabled = true;
+    private static bool _enabled;
+    private static bool _pelipperDetected;
+    private static bool _modeConfirmed;
     private static float _threshold = FallbackThreshold;
 
     public static bool IsProtected(Monster monster)
         => TryGetDamageBudget(monster, out int budget) && budget <= 0;
 
     /// <summary>
-    /// Returns true when capture-safety applies to this Pelipper combat proxy. The budget is the
-    /// most damage Team Up may deal without crossing below the configured capture threshold.
-    /// int.MaxValue means the target isn't capture-limited.
+    /// Returns true when Team Up friendly-damage safety applies to this Pelipper combat proxy.
+    /// A Shiny Emergency Hold always returns a zero budget. Otherwise this returns a capture-floor
+    /// budget only while Pelipper Town Catch/Capture/Mercy mode is positively confirmed enabled.
+    /// int.MaxValue means the target isn't currently friendly-damage limited.
     /// </summary>
     public static bool TryGetDamageBudget(Monster monster, out int budget)
     {
         budget = int.MaxValue;
         if (monster.Health <= 0 || monster.MaxHealth <= 0)
             return false;
-        // Alpha 6.6.16: capture-floor identity is the Pelipper wild/battle proxy itself, not
-        // Team Up's transient CombatTarget opt-in marker. This closes the window where a source
-        // Pokemon could land a lethal hit before Team Up's combat probe marked the target.
+
+        // Shiny Hold is deliberately independent from Pelipper Catch Mode. It is a Team Up tactical
+        // pause so the Farmer can decide what to do with a rare encounter before allies attack it.
+        if (EncounterReactionService.IsShinyEmergencyHeld(monster))
+        {
+            budget = 0;
+            return true;
+        }
+
+        // Capture-floor identity is the Pelipper wild/battle proxy itself, not Team Up's transient
+        // CombatTarget opt-in marker.
         if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
             return false;
 
@@ -57,6 +68,10 @@ internal static class PelipperCaptureSafetyService
             : requestedDamage;
     }
 
+    /// <summary>
+    /// Returns the actual Pelipper capture floor. Shiny Emergency Hold intentionally does not
+    /// participate here, so it can never create or repair an artificial 10% HP floor by itself.
+    /// </summary>
     public static bool TryGetCaptureFloor(Monster monster, out int stopAtHealth)
     {
         stopAtHealth = 0;
@@ -75,11 +90,12 @@ internal static class PelipperCaptureSafetyService
 
     /// <summary>
     /// Last-resort repair for custom friendly damage paths that directly lower Health without
-    /// crossing a patched damage entry point. This never revives a dead/removed monster; it only
-    /// restores a still-live wild Pelipper proxy to the active capture floor.
+    /// crossing a patched damage entry point. This never revives a dead/removed monster and runs
+    /// only for the positively confirmed Pelipper capture floor, never for Shiny Emergency Hold.
     /// </summary>
     public static int RepairCurrentLocationFloors(GameLocation? location)
     {
+        RefreshPolicyIfNeeded();
         if (location is null || !_enabled)
             return 0;
 
@@ -99,8 +115,47 @@ internal static class PelipperCaptureSafetyService
         return repaired;
     }
 
-    public static float CurrentThreshold => _threshold;
-    public static bool CurrentEnabled => _enabled;
+    public static float CurrentThreshold
+    {
+        get
+        {
+            RefreshPolicyIfNeeded();
+            return _threshold;
+        }
+    }
+
+    public static bool CurrentEnabled
+    {
+        get
+        {
+            RefreshPolicyIfNeeded();
+            return _enabled;
+        }
+    }
+
+    public static bool PelipperDetected
+    {
+        get
+        {
+            RefreshPolicyIfNeeded();
+            return _pelipperDetected;
+        }
+    }
+
+    public static bool ModeConfirmed
+    {
+        get
+        {
+            RefreshPolicyIfNeeded();
+            return _modeConfirmed;
+        }
+    }
+
+    public static string DescribePolicy()
+    {
+        RefreshPolicyIfNeeded();
+        return $"Pelipper capture safety: pelipper={_pelipperDetected} | modeConfirmed={_modeConfirmed} | enabled={_enabled} | threshold={_threshold:P0}";
+    }
 
     private static void RefreshPolicyIfNeeded()
     {
@@ -109,7 +164,8 @@ internal static class PelipperCaptureSafetyService
             return;
         _nextProbeAt = now + ProbeIntervalMs;
 
-        bool enabled = true;
+        bool pelipperDetected = false;
+        bool enabled = false;
         float threshold = FallbackThreshold;
         int bestModeScore = -1;
         int bestThresholdScore = -1;
@@ -123,6 +179,7 @@ internal static class PelipperCaptureSafetyService
                 continue;
             }
 
+            pelipperDetected = true;
             foreach (Type type in SafeGetTypes(assembly))
             {
                 string typeName = type.FullName ?? type.Name;
@@ -131,7 +188,9 @@ internal static class PelipperCaptureSafetyService
                     || typeName.Contains("Option", StringComparison.OrdinalIgnoreCase)
                     || typeName.Contains("ModEntry", StringComparison.OrdinalIgnoreCase)
                     || typeName.Contains("Battle", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("Combat", StringComparison.OrdinalIgnoreCase);
+                    || typeName.Contains("Combat", StringComparison.OrdinalIgnoreCase)
+                    || typeName.Contains("Capture", StringComparison.OrdinalIgnoreCase)
+                    || typeName.Contains("Catch", StringComparison.OrdinalIgnoreCase);
                 if (!likelySettingsType)
                     continue;
 
@@ -142,7 +201,9 @@ internal static class PelipperCaptureSafetyService
             }
         }
 
-        _enabled = enabled;
+        _pelipperDetected = pelipperDetected;
+        _modeConfirmed = pelipperDetected && bestModeScore >= 0;
+        _enabled = _modeConfirmed && enabled;
         _threshold = Math.Clamp(threshold, 0.01f, 0.95f);
     }
 
@@ -240,37 +301,63 @@ internal static class PelipperCaptureSafetyService
 
     private static bool TryInterpretMode(string name, object value, out bool enabled, out int score)
     {
-        enabled = true;
+        enabled = false;
         score = -1;
 
-        bool strongName = name.Contains("nonlethal")
+        bool explicitCatchToggle = name.Contains("enablecatch")
+            || name.Contains("catchenabled")
+            || name.Contains("catchingenabled")
+            || name.Contains("allowcatch")
+            || name.Contains("cancatch")
+            || name.Contains("enablecapture")
+            || name.Contains("captureenabled")
+            || name.Contains("allowcapture");
+
+        bool strongName = explicitCatchToggle
+            || name.Contains("nonlethal")
             || name.Contains("mercy")
             || (name.Contains("capture") && (name.Contains("safety") || name.Contains("mode") || name.Contains("stop")))
-            || (name.Contains("stop") && name.Contains("attack") && (name.Contains("health") || name.Contains("hp") || name.Contains("capture")))
+            || (name.Contains("catch") && (name.Contains("mode") || name.Contains("safety") || name.Contains("stop")))
+            || (name.Contains("stop") && name.Contains("attack") && (name.Contains("health") || name.Contains("hp") || name.Contains("capture") || name.Contains("catch")))
             || (name.Contains("prevent") && (name.Contains("faint") || name.Contains("ko") || name.Contains("kill")));
 
         if (value is bool boolean && strongName)
         {
             enabled = boolean;
-            score = 100;
+            score = explicitCatchToggle ? 120 : 100;
             return true;
         }
 
         if (value is Enum || value is string)
         {
             string text = Normalize(value.ToString() ?? string.Empty);
-            bool modeName = strongName || name.Contains("battlemode") || name.Contains("combatmode") || name.Contains("capturemode");
+            bool modeName = strongName
+                || name.Contains("battlemode")
+                || name.Contains("combatmode")
+                || name.Contains("capturemode")
+                || name.Contains("catchmode");
             if (!modeName)
                 return false;
 
-            if (text.Contains("nonlethal") || text.Contains("mercy") || text.Contains("capture") || text.Contains("10percent") || text == "10")
+            if (text.Contains("nonlethal")
+                || text.Contains("mercy")
+                || text.Contains("capture")
+                || text.Contains("catch")
+                || text.Contains("10percent")
+                || text == "10"
+                || text == "on"
+                || text == "enabled")
             {
                 enabled = true;
                 score = 90;
                 return true;
             }
 
-            if (text.Contains("lethal") || text.Contains("kill") || text.Contains("disabled") || text == "off")
+            if (text.Contains("lethal")
+                || text.Contains("kill")
+                || text.Contains("defeat")
+                || text.Contains("disabled")
+                || text == "off")
             {
                 enabled = false;
                 score = 90;
@@ -286,14 +373,12 @@ internal static class PelipperCaptureSafetyService
         threshold = FallbackThreshold;
         score = -1;
 
-        bool thresholdName = (name.Contains("capture") || name.Contains("mercy") || name.Contains("lowhealth") || name.Contains("stopattack"))
+        bool thresholdName = (name.Contains("capture") || name.Contains("catch") || name.Contains("mercy") || name.Contains("lowhealth") || name.Contains("stopattack"))
             && (name.Contains("threshold") || name.Contains("percent") || name.Contains("health") || name.Contains("hp"));
         if (!thresholdName)
             return false;
 
-        if (!TryConvertNumber(value, out double raw))
-            return false;
-        if (raw <= 0d)
+        if (!TryConvertNumber(value, out double raw) || raw <= 0d)
             return false;
 
         double normalized = raw > 1d ? raw / 100d : raw;
@@ -301,7 +386,7 @@ internal static class PelipperCaptureSafetyService
             return false;
 
         threshold = (float)normalized;
-        score = name.Contains("capture") ? 95 : 80;
+        score = name.Contains("capture") || name.Contains("catch") ? 95 : 80;
         return true;
     }
 
