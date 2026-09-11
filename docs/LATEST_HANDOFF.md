@@ -1,210 +1,174 @@
 # Team Up - Canonical Latest Handoff
 
-Read this file first when continuing Team Up in a new chat. For full implementation detail, then read `docs/ALPHA_6_7_44_2_PELIPPER_ENCOUNTER_REACTIONS_HANDOFF.md`.
+Read this file first when continuing Team Up. Detailed implementation notes are in `docs/ALPHA_6_7_44_3_PELIPPER_RUNTIME_HOTFIX_HANDOFF.md`.
 
 ## Current checkpoint
-- Version: `0.2.0-alpha.6.7.44.2`
-- Branch: `v0.2-alpha6-7-44-2-pelipper-encounter-reactions`
-- Base: `v0.2-alpha6-7-44-1-tmx-csv-hotfix`
-- CI-verified source SHA: `03deba20fae0bf6f763f8d7547c7eb566aea8acd`
-- Successful CI run: `34632929013`
-- Successful CI job: `103373890011`
-- Artifact ID: `10276996823`
-- Artifact name: `team-up-alpha6-7-44-2-pelipper-encounter-reactions`
-- Artifact wrapper SHA256: `91b4e45c8f4f8fa1ef85825451c70bb1faa8d34adbd2308276c254a551594446`
-- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.2_PELIPPER_ENCOUNTER_REACTIONS_TEST.zip`
-- Inner ZIP SHA256: `e05cdd1f762244cdd5a81067b9cf4636c9e10ff5fd579c42c7bdbfacf466d3be`
+- Version: `0.2.0-alpha.6.7.44.3`
+- Branch: `v0.2-alpha6-7-44-3-pelipper-runtime-hotfix`
+- Base: `v0.2-alpha6-7-44-2-pelipper-encounter-reactions`
+- Successful CI input SHA: `983210f32262e8d783000435e5458c1ba3872815`
+- CI-materialized source SHA: `2fe9ff859a2ea02383adecb35e8f85dcbecd461e`
+- Successful CI run: `34656390802`
+- Successful CI job: `103449634306`
+- Artifact ID: `10286316141`
+- Artifact name: `team-up-alpha6-7-44-3-pelipper-runtime-hotfix`
+- Artifact wrapper SHA256: `2a629e649887b155965344490f51c6cbe14008210ac9bfe2c2832e01197196dc`
+- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.3_PELIPPER_RUNTIME_HOTFIX_TEST.zip`
+- Inner ZIP SHA256: `fbea4f399fa62910322c85dbd48523413ae2260671056410a812a8a094d23ad8`
 - Compiler: `0 Warning(s)`, `0 Error(s)`
 - Main: NOT merged
-- Stable: NOT declared; live verification required
+- Stable: NOT declared
 - 6.7.45: NOT started
 
-## What 6.7.44.2 changes
-This is a compatibility / party-awareness checkpoint layered on top of the 6.7.44.1 Lower Workings TMX hotfix. It does not consume the 6.7.45 story slot.
+## Why 6.7.44.3 exists
+Live 6.7.44.2 test exposed these regressions:
+- normal Green Slime falsely triggered the `SHINY` Farmer prompt;
+- the prompt could reopen repeatedly after the Farmer answered;
+- normal Green Slime could repeatedly log as `EliteBoss` because raw HP was used as an elite heuristic;
+- Pelipper wild low-HP capture protection was disabled because Team Up waited for a universal Catch Mode boolean Pelipper does not reliably expose;
+- historical Mutation policy rejected every Pelipper wild combat proxy, so `teamup_mutation force` could find no target while Pelipper owned the combat actors.
 
-### Pelipper capture safety is now fail-closed
-Locked rule:
-- Pelipper absent -> capture floor OFF -> normal lethal combat.
-- Pelipper installed + Catch Mode OFF -> capture floor OFF -> normal lethal combat.
-- Pelipper installed + Catch Mode ON -> capture floor ON.
-- Pelipper installed but Team Up cannot positively resolve Catch Mode -> capture floor OFF.
-- The 10% fallback threshold is used only after Catch Mode has been positively confirmed ON and Pelipper does not expose a stable threshold.
+## 6.7.44.3 runtime rules
+### Pelipper capture safety
+For a genuine Pelipper wild combat proxy:
+- Pelipper presence is now the authority for Team Up mercy/capture protection.
+- A source threshold is used when Team Up can resolve one; otherwise fallback is 10%.
+- Existing damage clamps, per-tick floor repair and offensive ceasefire remain active.
+- At the protected floor Team Up should report `budget=0`, `protected=True`, `target=False`, `proxy=True`.
 
-The previous broad default-on behavior is removed.
+A Team Up Mutant is deliberately excluded from this mercy floor so it cannot become stuck at 10% HP.
 
-### Shiny Emergency Hold
-A confirmed natural Pelipper Shiny is handled separately from Catch Mode:
-- requires a Pelipper wild combat actor plus explicit Shiny runtime evidence;
-- detection intentionally fails closed rather than guessing;
-- marks the natural Shiny `Ronvotri.TeamUp/MutationExcluded=true`;
-- immediately places Team Up into HOLD FIRE against that target;
-- Team Up friendly-damage budget becomes zero;
-- Team Up removes its offensive `CombatTarget` opt-in;
-- Shiny Hold alone never creates or repairs a fake 10% HP floor.
+### Shiny detection
+Shiny requires BOTH:
+1. genuine Pelipper wild identity;
+2. authoritative current Shiny state.
 
-Farmer receives tactical choices:
-- `Engage` -> release Shiny Hold; Team Up may attack. If Catch Mode is ON, ordinary Pelipper capture-floor safety still applies later.
-- `Keep holding` -> zero Team Up friendly damage and wait.
-- `Ignore` -> leave the Shiny alone and do not target it.
+Capability/config signals such as `CanBeShiny`, Shiny chance/odds/rate/roll/eligibility are not accepted as live Shiny state.
 
-Multiplayer orders are host-authoritative.
+6.7.44.2 false Team Up Shiny markers are repaired when strict evidence is absent.
 
-Console:
-`teamup_encounter status|engage|hold|ignore`
+### Shiny prompt/reaction spam
+- Any Farmer answer makes the prompt sticky for that encounter, not only `Engage`.
+- Prompt identity no longer depends on moving tile coordinates.
+- Encounter reactions have a stable location/name/type/kind cooldown to suppress proxy-recreation log/bubble spam.
 
-### Encounter Reaction System
-Reaction priority:
-1. Shiny
-2. Mutation
-3. Elite/Boss
-4. Special
+### Elite/Boss recognition
+Raw `MaxHealth >= 300` was removed as an Elite/Boss criterion. Explicit identity/type/modData boss/elite/champion evidence is required instead.
 
-Behavior:
-- Shiny -> personality reaction + tactical HOLD FIRE.
-- Mutation -> personality/story reaction only; combat continues.
-- Elite/Boss -> personality reaction only; combat continues.
-- Special/Surge/story-tagged monster -> attention reaction only; combat continues unless separately scripted.
+### Pelipper wild Mutation
+Normal non-Shiny Pelipper wild combat proxies are now eligible for Team Up Mutation.
 
-Only one primary NPC reaction plus at most one delayed teammate reply is emitted per tracked encounter/farmer to avoid bubble spam.
+Priority:
+- confirmed natural Shiny -> excluded from Mutation;
+- owned/source-controlled companions -> excluded;
+- boss/scripted/protected/test/summon/minion/Surge exclusions remain;
+- ordinary non-Shiny Pelipper wild -> eligible.
 
-Named reactions exist for major vanilla/Team Up personalities; custom/unknown NPCs fall back to Team Up role + `EngagementStyle` personality behavior.
+On transform, a Pelipper wild Mutant gets Team Up combat targeting restored and does not use the capture mercy floor.
 
-George remains generic/gruff only. No George reveal, Rank S identity, Last Blaster reference, or historical-miner confirmation is added here.
-
-## Important Mutation truth
-6.7.44.2 does **not** yet implement the broader proposed Pelipper Mutation redesign.
-
-Current `MonsterMutationService` still historically excludes Pelipper wild/capture actors from Mutation eligibility. Therefore ordinary wild Pokemon do not yet advance the first-Mutation 10-defeat counter.
-
-Accepted future direction remains:
-- ordinary non-Shiny wild Pelipper Pokemon may become eligible natural Mutation candidates;
-- natural Shiny remains Mutation-exempt;
-- Mutated Pokemon must become combat-only, non-catchable, non-Shiny;
-- owned/companion/source/protected Pokemon remain excluded.
-
-Do not claim this is already implemented in 6.7.44.2.
+Important limitation: 6.7.44.3 does NOT yet prove/intercept Pelipper's actual Poké Ball capture path for a Mutant. Do not claim Mutants are fully non-catchable until that exact path is implemented and live-tested.
 
 ## CI acceptance
-Final successful run `34632929013` passed:
-- `CAPTURE MODE FAIL-CLOSED AUDIT: PASS`
-- `SHINY EMERGENCY HOLD AUDIT: PASS`
-- `ENCOUNTER PERSONALITY REACTION AUDIT: PASS`
-- `MULTIPLAYER SHINY ORDER AUTHORITY AUDIT: PASS`
+Run `34656390802` passed:
+- `PELIPPER WILD MERCY PRIORITY AUDIT: PASS`
+- `SHINY FALSE-POSITIVE + PROMPT SPAM AUDIT: PASS`
+- `PELIPPER WILD MUTATION ELIGIBILITY AUDIT: PASS`
 - `6.7.44.1 LOWER WORKINGS TMX HOTFIX CARRY-FORWARD: PASS`
 - `EN/VI PARITY CARRY-FORWARD: PASS`
 - `C# BUILD: PASS`
 - `ZIP CONTENT + LOWER WORKINGS TMX RE-PARSE: PASS`
-- Build `0 Warning(s)`, `0 Error(s)`.
+- `0 Warning(s)`, `0 Error(s)`.
 
-Development note only: CI runs `34632664326` and `34632832568` failed during implementation because of Stardew `modData` enumeration and an intermediate C# definite-assignment issue. Both were corrected before final run #3.
+Run #1 `34656314841` failed only because the new static audit searched too broad a region for `target.Tile.X`; the runtime materializer itself had passed. The audit was corrected before successful run #2.
 
-## 6.7.44 / 6.7.44.1 Lower Workings carried forward
-Dedicated location:
-- `Ronvotri.TeamUp_LowerWorkings`
-- Stardew 1.6 `Data/Locations`
-- vanilla `StardewValley.GameLocation`
-- `assets/LowerWorkings.tmx`
-- 32x24, vanilla `Mines/mine.png`
-- Back / Buildings / Front
-- dynamic exact return to persisted breach; no static Warp
-- 6.7.44.1 CSV row-boundary fix remains intact.
+## Lower Workings carry-forward
+6.7.44.1 TMX hotfix remains intact:
+- location `Ronvotri.TeamUp_LowerWorkings`;
+- 32x24 `assets/LowerWorkings.tmx`;
+- Back / Buildings / Front;
+- dynamic exact return to persisted breach;
+- no static TMX Warp;
+- three 120-tick clue holds at `(8,9)`, `(22,8)`, `(23,16)`;
+- early withdrawal preserves stages 2..4;
+- stage 5 secured withdrawal, then Guild report -> stage 6;
+- host-authoritative story progression and shared farmhand route.
 
-Persistent state:
-- `Ronvotri.TeamUp/Story/LowerWorkingsInteriorSurveyStage`
-- `Ronvotri.TeamUp/Story/LowerWorkingsBreachTile`
-- `Ronvotri.TeamUp/Story/LowerWorkingsInteriorEntered`
-- `Ronvotri.TeamUp/Story/LowerWorkingsInteriorSurveyComplete`
-- `Ronvotri.TeamUp/Story/LowerWorkingsSafeReturnUsed`
-- `Ronvotri.TeamUp/Story/LowerWorkingsInteriorSurveyReported`
+Story reaction windows remain 36..41 with EN/VI parity.
 
-Route/stages:
-- stage 0: Guild survey authorization after first descent + Entry Protocol READY + SURGE HIGH + full story-slot prerequisites.
-- stage 1: full adaptive formation returns to persisted breach and enters Lower Workings.
-- stage 2: directed emergency cribbing near `(8,9)`, hold 120 continuous ticks.
-- stage 3: newer Mutation-linked residue over older blast scoring near `(22,8)`, hold 120 ticks.
-- stage 4: deeper sealed-pressure edge near `(23,16)`, hold 120 ticks.
-- stage 5: survey complete; return to entry `(15,21)` and secure withdrawal to exact recorded breach.
-- stage 6: Guild report complete.
-
-Early withdrawal during stages 2..4 preserves stage. Stage 5 withdrawal records safe return. Host owns story progression; farmhands may use the shared route after host opens it without writing host story flags.
-
-Story reactions remain windows 36..41 with exact EN/VI parity. George remains ordinary veteran-mining insight only.
-
-## Lore / gameplay locks
-- SURGE HIGH confirmed.
+## Lore/gameplay locks
+- SURGE HIGH.
 - Entry Protocol READY.
 - Story NPC slots 4/4.
-- Hard formation ceiling 5 PEOPLE total including Farmers.
-- First descent complete.
-- Present Mutation/Surge activity is touching an older deliberately sealed system.
-- Historical worker remains unidentified to the player.
-- Source/entity beyond the seal remains unidentified.
-- No containment boss encounter yet.
-- George reveal remains planned 6.7.46.
-- Evelyn postgame secret remains untouched.
-- Do not introduce exact `SECTOR 17` unless explicitly designed later.
-- Pelipper remains source authority for its actors/ownership/capture runtime.
+- Hard formation cap = 5 PEOPLE including Farmers.
+- George pre-reveal stays observed Rank D, Non-Combatant, unrecruitable, no Rank S, no `The Last Blaster`, no historical-miner confirmation. Reveal remains 6.7.46.
+- Evelyn stays ordinary low Rank D healer/support in main story; secret remains postgame.
+- Historical worker and source/entity beyond the seal remain unidentified.
+- No exact `SECTOR 17` unless later explicitly designed.
+- No final boss.
+- Pelipper source ownership/render/controller authority preserved.
 - No legacy fake-hide writer.
-- Do not merge `main` until explicitly requested and runtime verified.
+- Do not merge `main` until explicitly requested.
 
 ## Mandatory live test now
-Install **6.7.44.2**, replacing the old Team Up folder. Do not install 6.7.44.1 and 6.7.44.2 together.
+Install ONLY **6.7.44.3**, replacing the old Team Up folder.
 
-### Pelipper Catch OFF
-- Pelipper installed, Catch Mode OFF.
-- Ordinary wild Pokemon must be killable to 0 HP.
-- `teamup_encounter status` should report capture safety `enabled=False`.
+### 1. Ordinary Green Slime
+- no SHINY prompt;
+- no Elite/Boss reaction solely due to HP;
+- no repeated `kind=EliteBoss target=Green Slime` log flood.
 
-### Pelipper Catch ON
-- Enable Catch Mode.
-- Ordinary wild Pokemon should stop at Pelipper's active capture floor.
-- Team Up must cease friendly attacks on the capture-protected proxy.
-- Useful commands: `teamup_capture`, `teamup_capture_proxy`, `teamup_preflight`, `teamup_encounter status`.
+### 2. Normal Pelipper wild capture floor
+Use Farmer + Team Up NPC + player Pokémon against a normal wild Pokémon.
+- Reduce it to the active capture threshold.
+- Team Up allies must stop attacking it there.
+- It must not be killed by Team Up friendly damage after entering the floor.
 
-### Real Shiny
-- With at least one following Team Up NPC, a real Pelipper Shiny should trigger NPC/HUD reaction and immediate HOLD FIRE.
-- `Hold` keeps zero Team Up damage.
-- `Ignore` leaves it alone.
-- `Engage` releases Shiny Hold.
-- Catch ON + Engage -> ordinary capture floor still applies later.
-- Catch OFF + Engage -> lethal combat is permitted.
-- Natural Shiny must remain Mutation-excluded.
+Commands:
+- `teamup_capture`
+- `teamup_capture_proxy`
+- `teamup_preflight`
+- `teamup_encounter status`
 
-Actual Pelipper Shiny live testing is mandatory because detection deliberately fails closed. A missed runtime marker should produce a missed hold, not a false positive. If missed, send SMAPI log plus `teamup_encounter status`.
+Expected protected state: `budget=0`, `protected=True`, `target=False`, `proxy=True`.
 
-### Encounter reactions
-- Mutation reaction appears, combat continues.
-- Elite/Boss reaction appears, combat continues.
-- Special/Surge/story-tagged reaction appears, combat continues.
-- No reaction bubble flood.
+### 3. Forced Mutation with Pelipper
+On a normal non-Shiny Pelipper wild target:
+- `teamup_mutation force`
+- `teamup_mutation list`
+- `teamup_mutation status`
 
-### Lower Workings
-Still verify:
-1. no `Couldn't create the 'Ronvotri.TeamUp_LowerWorkings' location`;
-2. map renders and collision works;
-3. ingress/egress returns to exact breach tile;
-4. save/quit/load while inside works;
-5. clue holds at `(8,9)`, `(22,8)`, `(23,16)` work with full formation;
-6. early withdrawal preserves stage;
-7. stage 5 withdrawal + Guild report reaches 6;
-8. host/farmhand shared access;
-9. reactions 36..41;
-10. George/Evelyn/Pelipper/Mutation regressions remain absent.
+Expected:
+- force finds/transforms the target instead of saying no eligible monster;
+- Mutant remains attackable;
+- Mutant does not stop at Pelipper's 10% mercy floor.
+
+### 4. Real Shiny
+- exactly one Shiny attention/prompt for that encounter;
+- Hold -> Team Up stops;
+- Ignore -> Team Up leaves it alone;
+- Engage -> releases Team Up Shiny hold;
+- no repeated prompt after answering;
+- natural Shiny remains Mutation-exempt.
+
+Test capture floor on a normal wild Pokémon before risking a real rare Shiny.
+
+### 5. Lower Workings gate
+Still verify custom map load, collision, exact ingress/egress, save/reload inside, all three clues, early withdrawal, stage 5 safe return, stage 6 Guild report, farmhand access, and reaction windows 36..41.
 
 ## Next target
 ### 6.7.45 - Containment Chamber Escalation Encounter
-Do not start until the Lower Workings 6.7.44.2 map/warp/save live test passes or the user explicitly waives it.
+Do NOT begin until 6.7.44.3 Pelipper runtime regressions and the Lower Workings live gate pass, unless the user explicitly waives the gate.
 
 Goals remain:
 - first major Lower Workings chamber escalation encounter;
-- stronger causal evidence linking present Mutations to the old containment event;
-- secured retreat and host authority;
+- stronger causal evidence linking current Mutations to the old containment event;
+- secure retreat and host authority;
 - immediate NPC reactions;
 - George remains anonymous/unrevealed until 6.7.46;
 - no final boss.
 
-## Detailed checkpoint handoff
-`docs/ALPHA_6_7_44_2_PELIPPER_ENCOUNTER_REACTIONS_HANDOFF.md`
+## Detailed handoff
+`docs/ALPHA_6_7_44_3_PELIPPER_RUNTIME_HOTFIX_HANDOFF.md`
 
 ## New-chat instruction
-`Tiếp tục Team Up từ docs/LATEST_HANDOFF.md trên branch v0.2-alpha6-7-44-2-pelipper-encounter-reactions. Live-test 6.7.44.2 Pelipper Catch/Shiny + Lower Workings trước khi bắt đầu 6.7.45.`
+`Tiếp tục Team Up từ docs/LATEST_HANDOFF.md trên branch v0.2-alpha6-7-44-3-pelipper-runtime-hotfix. Live-test Green Slime false Shiny/Elite, Pelipper 10% mercy, Pelipper wild Mutation và Lower Workings trước khi bắt đầu 6.7.45.`
