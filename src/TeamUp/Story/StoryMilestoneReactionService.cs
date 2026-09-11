@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 26 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 30 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -491,6 +491,70 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.26.robin",
             "Wizard", "story.react.26.wizard");
 
+        Dictionary<string, string> entryProtocolBriefed = Stage(
+            "Abigail", "story.react.27.abigail",
+            "Alex", "story.react.27.alex",
+            "Clint", "story.react.27.clint",
+            "Demetrius", "story.react.27.demetrius",
+            "Evelyn", "story.react.27.evelyn",
+            "George", "story.react.27.george",
+            "Gus", "story.react.27.gus",
+            "Lewis", "story.react.27.lewis",
+            "Linus", "story.react.27.linus",
+            "Marlon", "story.react.27.marlon",
+            "Maru", "story.react.27.maru",
+            "Pierre", "story.react.27.pierre",
+            "Robin", "story.react.27.robin",
+            "Wizard", "story.react.27.wizard");
+
+        Dictionary<string, string> entryStagingEstablished = Stage(
+            "Abigail", "story.react.28.abigail",
+            "Alex", "story.react.28.alex",
+            "Clint", "story.react.28.clint",
+            "Demetrius", "story.react.28.demetrius",
+            "Evelyn", "story.react.28.evelyn",
+            "George", "story.react.28.george",
+            "Gus", "story.react.28.gus",
+            "Lewis", "story.react.28.lewis",
+            "Linus", "story.react.28.linus",
+            "Marlon", "story.react.28.marlon",
+            "Maru", "story.react.28.maru",
+            "Pierre", "story.react.28.pierre",
+            "Robin", "story.react.28.robin",
+            "Wizard", "story.react.28.wizard");
+
+        Dictionary<string, string> entryReadinessValidated = Stage(
+            "Abigail", "story.react.29.abigail",
+            "Alex", "story.react.29.alex",
+            "Clint", "story.react.29.clint",
+            "Demetrius", "story.react.29.demetrius",
+            "Evelyn", "story.react.29.evelyn",
+            "George", "story.react.29.george",
+            "Gus", "story.react.29.gus",
+            "Lewis", "story.react.29.lewis",
+            "Linus", "story.react.29.linus",
+            "Marlon", "story.react.29.marlon",
+            "Maru", "story.react.29.maru",
+            "Pierre", "story.react.29.pierre",
+            "Robin", "story.react.29.robin",
+            "Wizard", "story.react.29.wizard");
+
+        Dictionary<string, string> entryProtocolReady = Stage(
+            "Abigail", "story.react.30.abigail",
+            "Alex", "story.react.30.alex",
+            "Clint", "story.react.30.clint",
+            "Demetrius", "story.react.30.demetrius",
+            "Evelyn", "story.react.30.evelyn",
+            "George", "story.react.30.george",
+            "Gus", "story.react.30.gus",
+            "Lewis", "story.react.30.lewis",
+            "Linus", "story.react.30.linus",
+            "Marlon", "story.react.30.marlon",
+            "Maru", "story.react.30.maru",
+            "Pierre", "story.react.30.pierre",
+            "Robin", "story.react.30.robin",
+            "Wizard", "story.react.30.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
@@ -519,7 +583,11 @@ internal sealed class StoryMilestoneReactionService
             [23] = surgeHighBriefed,
             [24] = surgeHighReadingStarted,
             [25] = surgeHighConfirmed,
-            [26] = surgeHighSlot4Authorized
+            [26] = surgeHighSlot4Authorized,
+            [27] = entryProtocolBriefed,
+            [28] = entryStagingEstablished,
+            [29] = entryReadinessValidated,
+            [30] = entryProtocolReady
         };
     }
 

@@ -124,7 +124,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6740Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. HIGH response preparation / lower-workings entry protocol layer active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Entry Protocol reaction layer active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
