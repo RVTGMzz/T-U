@@ -1,0 +1,22 @@
+TEAM UP 6.7.40 - HIGH RESPONSE PREPARATION / LOWER WORKINGS ENTRY PROTOCOL
+=======================================================================
+
+PREP:
+- Cai build 6.7.40 va load save host.
+- teamup_surge_high status -> stage 4/4, high=True.
+- teamup_roster_story status -> unlockedNpcSlots=4/4.
+- teamup_entry_protocol reset.
+
+ROUTE:
+1. Vao AdventureGuild -> briefing, stage 1.
+2. Den DUNG breach MineShaft voi FULL operational formation. Solo mac dinh: 1 Farmer + 4 NPC. Co-op 2 Farmer: 2 Farmer + 3 NPC.
+3. Khi du doi hinh -> stage 2, bat dau readiness hold.
+4. Giu nguyen 240 tick -> stage 3. Thu tach doi / warp / mo menu truoc khi du 240 tick -> bo dem phai reset.
+5. Quay ve AdventureGuild -> stage 4/4, ProtocolReady=True.
+6. Save + reload -> teamup_entry_protocol status van ready=True.
+7. Khong co roster slot moi, khong boss, khong custom map.
+8. George van Rank D / Non-Combatant / khong recruit; Evelyn khong reveal.
+9. Reaction catalog 0..26 khong thay doi.
+
+DEBUG: teamup_entry_protocol status|reset|stage 0-4
+DIAGNOSTIC: diagnostics\TeamUp_Lower_Workings_Entry_Protocol_latest.txt
