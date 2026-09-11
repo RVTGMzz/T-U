@@ -1,0 +1,16 @@
+TEAM UP 6.7.36 - CONTROLLED BREACH / FIRST ENTRY
+=================================================
+
+PRE: teamup_corridor status -> stage 4/4.
+1. teamup_breach reset.
+2. Guild voi <3 nguoi -> khong advance.
+3. Guild voi Farmer +2 NPC Team Up -> stage 1, luu breach location tu survey face 6.7.34.
+4. Vao sai MineShaft -> khong advance.
+5. Vao dung MineShaft -> stage 2.
+6. Giu du doi hinh ~180 tick -> stage 3, controlled opening. Thu tach doi/warp/menu de xac nhan hold reset.
+7. Dong dialogue, tiep tuc giu doi hinh ~120 tick -> stage 4, first-entry threshold probe.
+8. Ve Guild voi du field team -> stage 5/5.
+9. teamup_roster_story status -> van 3/4.
+10. George van Rank D / Non-Combatant / khong recruit; Evelyn khong lo secret postgame.
+DEBUG: teamup_breach status | reset | stage 0-5
+DIAGNOSTIC: diagnostics\TeamUp_Controlled_Breach_First_Entry_latest.txt
