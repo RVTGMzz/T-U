@@ -41,7 +41,7 @@ public sealed partial class ModEntry
             OnAlpha67442EncounterCommand);
 
         Monitor.Log(
-            "Team Up 6.7.44.2 Encounter Reactions enabled: Shiny Emergency Hold + personality reactions for Mutation/Elite/Special encounters.",
+            "Team Up 6.7.44.4 Encounter Reactions enabled: Shiny Emergency Hold + personality reactions for Mutation/Elite/Special encounters.",
             LogLevel.Info);
     }
 
@@ -83,8 +83,8 @@ public sealed partial class ModEntry
 
         bool vi = Helper.Translation.Locale.StartsWith("vi", StringComparison.OrdinalIgnoreCase);
         string question = vi
-            ? $"✨ SHINY: {target.Name}! Team Up đang ngừng tấn công. Lệnh của bạn?"
-            : $"✨ SHINY: {target.Name}! Team Up is holding fire. Your order?";
+            ? $"✨ SHINY: {EncounterReactionService.GetShinyDisplayName(target)}! Team Up đang ngừng tấn công. Lệnh của bạn?"
+            : $"✨ SHINY: {EncounterReactionService.GetShinyDisplayName(target)}! Team Up is holding fire. Your order?";
 
         Response[] responses =
         {
@@ -130,6 +130,8 @@ public sealed partial class ModEntry
             Order = order.ToString(),
             LocationName = farmer.currentLocation?.NameOrUniqueName ?? string.Empty,
             MonsterName = target.Name,
+            EncounterId = EncounterReactionService.GetShinyEncounterId(target),
+            DisplayName = EncounterReactionService.GetShinyDisplayName(target),
             TileX = target.Tile.X,
             TileY = target.Tile.Y
         };
@@ -155,7 +157,7 @@ public sealed partial class ModEntry
             && EncounterReactionsAlpha67442.TryApplyOrder(
                 farmer,
                 order,
-                request.MonsterName,
+                request.EncounterId,
                 new Vector2(request.TileX, request.TileY),
                 out result);
 
@@ -259,13 +261,20 @@ public sealed partial class ModEntry
     }
 
     private static string BuildShinyPromptTokenAlpha67442(GameLocation location, Monster target)
-        => $"{location.NameOrUniqueName}|{target.Name}|{target.GetType().FullName}";
+    {
+        string encounterId = EncounterReactionService.GetShinyEncounterId(target);
+        return !string.IsNullOrWhiteSpace(encounterId)
+            ? $"{location.NameOrUniqueName}|{encounterId}"
+            : $"{location.NameOrUniqueName}|{target.Name}|{target.GetType().FullName}";
+    }
 
     private sealed class ShinyOrderRequestAlpha67442
     {
         public string Order { get; set; } = nameof(ShinyTacticalOrder.Hold);
         public string LocationName { get; set; } = string.Empty;
         public string MonsterName { get; set; } = string.Empty;
+        public string EncounterId { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
         public float TileX { get; set; }
         public float TileY { get; set; }
     }

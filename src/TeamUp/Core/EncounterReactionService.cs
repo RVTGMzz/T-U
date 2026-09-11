@@ -43,6 +43,7 @@ internal sealed class EncounterReactionService
     private readonly Func<bool> _isVietnamese;
     private readonly Dictionary<Monster, Dictionary<long, HashSet<EncounterReactionKind>>> _announced = new();
     private readonly Dictionary<string, long> _reactionCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ShinyTacticalOrder> _shinyOrdersByEncounterId = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<PendingReply> _pendingReplies = new();
     private readonly HashSet<Monster> _confirmedShiny = new();
 
@@ -62,6 +63,7 @@ internal sealed class EncounterReactionService
     {
         _announced.Clear();
         _reactionCooldownUntil.Clear();
+        _shinyOrdersByEncounterId.Clear();
         _pendingReplies.Clear();
         _confirmedShiny.Clear();
     }
@@ -118,7 +120,7 @@ internal sealed class EncounterReactionService
             .FirstOrDefault();
     }
 
-    public bool TryApplyOrder(Farmer farmer, ShinyTacticalOrder order, string? expectedName, Vector2? expectedTile, out string message)
+    public bool TryApplyOrder(Farmer farmer, ShinyTacticalOrder order, string? expectedEncounterId, Vector2? expectedTile, out string message)
     {
         message = "No held Shiny encounter is available.";
         if (!Context.IsWorldReady || !Context.IsMainPlayer || farmer.currentLocation is null)
@@ -126,10 +128,13 @@ internal sealed class EncounterReactionService
 
         IEnumerable<Monster> held = farmer.currentLocation.characters
             .OfType<Monster>()
-            .Where(monster => monster.Health > 0 && IsShinyEmergencyHeld(monster));
+            .Where(monster => monster.Health > 0 && IsConfirmedShiny(monster));
 
-        if (!string.IsNullOrWhiteSpace(expectedName))
-            held = held.Where(monster => monster.Name.Equals(expectedName, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(expectedEncounterId))
+        {
+            held = held.Where(monster => GetShinyEncounterId(monster)
+                .Equals(expectedEncounterId, StringComparison.OrdinalIgnoreCase));
+        }
 
         Monster? target = expectedTile.HasValue
             ? held.OrderBy(monster => Vector2.DistanceSquared(monster.Tile, expectedTile.Value)).FirstOrDefault()
@@ -137,32 +142,20 @@ internal sealed class EncounterReactionService
         if (target is null)
             return false;
 
-        switch (order)
+        string encounterId = GetShinyEncounterId(target);
+        if (!string.IsNullOrWhiteSpace(encounterId))
+            _shinyOrdersByEncounterId[encounterId] = order;
+        ApplyShinyTacticalState(target, order);
+
+        string displayName = GetShinyDisplayName(target);
+        message = order switch
         {
-            case ShinyTacticalOrder.Engage:
-                target.modData.Remove(ShinyEmergencyHoldMarker);
-                target.modData.Remove(ShinyIgnoredMarker);
-                target.modData[ShinyEngagedMarker] = "true";
-                if (PelipperTownCompatibilityService.IsWildCombatActor(target))
-                    target.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
-                message = $"ENGAGE: Team Up may attack Shiny {target.Name}.";
-                break;
+            ShinyTacticalOrder.Engage => $"ENGAGE: Team Up may attack Shiny {displayName}.",
+            ShinyTacticalOrder.Ignore => $"IGNORE: Team Up will leave Shiny {displayName} alone.",
+            _ => $"HOLD FIRE: Team Up is waiting on Shiny {displayName}."
+        };
 
-            case ShinyTacticalOrder.Ignore:
-                target.modData[ShinyEmergencyHoldMarker] = "true";
-                target.modData[ShinyIgnoredMarker] = "true";
-                target.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
-                message = $"IGNORE: Team Up will leave Shiny {target.Name} alone.";
-                break;
-
-            default:
-                target.modData[ShinyEmergencyHoldMarker] = "true";
-                target.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
-                message = $"HOLD FIRE: Team Up is waiting on Shiny {target.Name}.";
-                break;
-        }
-
-        _monitor.Log($"[EncounterReaction] {message}", LogLevel.Info);
+        _monitor.Log($"[EncounterReaction] {message} encounter={encounterId}", LogLevel.Info);
         return true;
     }
 
@@ -171,9 +164,15 @@ internal sealed class EncounterReactionService
         Monster? held = FindNearestHeldShiny(farmer);
         string heldText = held is null
             ? "none"
-            : $"{held.Name} HP={held.Health}/{held.MaxHealth} tile={held.Tile} ignored={HasTrueModData(held, ShinyIgnoredMarker)}";
-        return $"Encounter reactions: tracked={_announced.Count} | confirmedShiny={_confirmedShiny.Count} | heldShiny={heldText} | {PelipperCaptureSafetyService.DescribePolicy()}";
+            : $"{GetShinyDisplayName(held)} proxy={held.Name} encounter={GetShinyEncounterId(held)} HP={held.Health}/{held.MaxHealth} tile={held.Tile} ignored={HasTrueModData(held, ShinyIgnoredMarker)}";
+        return $"Encounter reactions: tracked={_announced.Count} | confirmedShiny={_confirmedShiny.Count} | shinyOrders={_shinyOrdersByEncounterId.Count} | heldShiny={heldText} | {PelipperCaptureSafetyService.DescribePolicy()}";
     }
+
+    public static string GetShinyEncounterId(Monster monster)
+        => PelipperWildEncounterIdentityService.GetEncounterId(monster);
+
+    public static string GetShinyDisplayName(Monster monster)
+        => PelipperWildEncounterIdentityService.GetDisplayName(monster);
 
     private EncounterReactionKind Classify(Monster monster)
     {
@@ -197,11 +196,16 @@ internal sealed class EncounterReactionService
         if (!HasConfirmedPelipperShinyEvidence(monster))
             return false;
 
+        PelipperWildEncounterIdentityService.TryResolve(monster, out PelipperWildEncounterIdentity? identity);
         if (!IsConfirmedShiny(monster))
         {
             monster.modData[ShinyConfirmedMarker] = "true";
             monster.modData[MonsterMutationService.MutationExcludedMarker] = "true";
-            _monitor.Log($"[EncounterReaction] Confirmed Pelipper Shiny proxy: {monster.Name} at {monster.Tile}.", LogLevel.Info);
+            string displayName = identity?.DisplayName ?? GetShinyDisplayName(monster);
+            string encounterId = identity?.EncounterId ?? GetShinyEncounterId(monster);
+            _monitor.Log(
+                $"[EncounterReaction] Confirmed Pelipper Shiny source={displayName} proxy={monster.Name} encounter={encounterId} tile={monster.Tile}.",
+                LogLevel.Info);
         }
 
         _confirmedShiny.Add(monster);
@@ -212,26 +216,18 @@ internal sealed class EncounterReactionService
     {
         if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
             return false;
-        if (HasExplicitShinyEvidence(monster))
-            return true;
-        if (monster.currentLocation is not GameLocation location)
-            return false;
 
-        Rectangle proxyBounds = monster.GetBoundingBox();
-        foreach (NPC candidate in location.characters.OfType<NPC>())
+        // Source-aware rule: prefer the visible Pelipper wild Pokémon actor for encounter identity
+        // and Shiny state. The Monster proxy may legitimately be named/type'd as a vanilla monster.
+        if (PelipperWildEncounterIdentityService.TryResolve(monster, out PelipperWildEncounterIdentity? identity)
+            && !ReferenceEquals(identity.SourceActor, monster)
+            && HasExplicitShinyEvidence(identity.SourceActor))
         {
-            if (ReferenceEquals(candidate, monster)
-                || !PelipperTownCompatibilityService.LooksLikePelipperActor(candidate)
-                || !PelipperTownCompatibilityService.IsWildCombatActor(candidate))
-                continue;
-
-            bool paired = proxyBounds.Intersects(candidate.GetBoundingBox())
-                || Vector2.DistanceSquared(monster.Position, candidate.Position) <= 96f * 96f;
-            if (paired && HasExplicitShinyEvidence(candidate))
-                return true;
+            return true;
         }
 
-        return false;
+        // Some Pelipper versions may expose the current Shiny state directly on the combat proxy.
+        return HasExplicitShinyEvidence(monster);
     }
 
     private static void ClearFalseShinyState(Monster monster)
@@ -243,12 +239,45 @@ internal sealed class EncounterReactionService
         monster.modData.Remove(MonsterMutationService.MutationExcludedMarker);
     }
 
-    private static void EnsureShinyEmergencyHold(Monster monster)
+    private void EnsureShinyEmergencyHold(Monster monster)
     {
-        if (HasTrueModData(monster, ShinyEngagedMarker))
+        string encounterId = GetShinyEncounterId(monster);
+        if (!string.IsNullOrWhiteSpace(encounterId)
+            && _shinyOrdersByEncounterId.TryGetValue(encounterId, out ShinyTacticalOrder remembered))
+        {
+            ApplyShinyTacticalState(monster, remembered);
             return;
-        monster.modData[ShinyEmergencyHoldMarker] = "true";
-        monster.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
+        }
+
+        ApplyShinyTacticalState(monster, ShinyTacticalOrder.Hold);
+    }
+
+    private static void ApplyShinyTacticalState(Monster target, ShinyTacticalOrder order)
+    {
+        switch (order)
+        {
+            case ShinyTacticalOrder.Engage:
+                target.modData.Remove(ShinyEmergencyHoldMarker);
+                target.modData.Remove(ShinyIgnoredMarker);
+                target.modData[ShinyEngagedMarker] = "true";
+                if (PelipperTownCompatibilityService.IsWildCombatActor(target))
+                    target.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
+                break;
+
+            case ShinyTacticalOrder.Ignore:
+                target.modData.Remove(ShinyEngagedMarker);
+                target.modData[ShinyEmergencyHoldMarker] = "true";
+                target.modData[ShinyIgnoredMarker] = "true";
+                target.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
+                break;
+
+            default:
+                target.modData.Remove(ShinyEngagedMarker);
+                target.modData.Remove(ShinyIgnoredMarker);
+                target.modData[ShinyEmergencyHoldMarker] = "true";
+                target.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
+                break;
+        }
     }
 
     private void ShowReaction(IReadOnlyList<ActiveMember> active, Monster monster, EncounterReactionKind kind)
@@ -289,7 +318,8 @@ internal sealed class EncounterReactionService
             _pendingReplies.Enqueue(new PendingReply(second.Actor, BuildReactionLine(second.Member, kind, reply: true), Game1.ticks + 65, color));
         }
 
-        _monitor.Log($"[EncounterReaction] kind={kind} target={monster.Name} speaker={primary.Member.CharacterName} hold={IsShinyEmergencyHeld(monster)}", LogLevel.Debug);
+        string targetLabel = kind == EncounterReactionKind.Shiny ? GetShinyDisplayName(monster) : monster.Name;
+        _monitor.Log($"[EncounterReaction] kind={kind} target={targetLabel} proxy={monster.Name} speaker={primary.Member.CharacterName} hold={IsShinyEmergencyHeld(monster)}", LogLevel.Debug);
     }
 
     private void FlushReplies()
@@ -581,6 +611,12 @@ internal sealed class EncounterReactionService
     private static string BuildReactionCooldownKey(Monster monster, EncounterReactionKind kind)
     {
         string location = monster.currentLocation?.NameOrUniqueName ?? Game1.currentLocation?.NameOrUniqueName ?? "unknown";
+        if (kind == EncounterReactionKind.Shiny)
+        {
+            string encounterId = GetShinyEncounterId(monster);
+            if (!string.IsNullOrWhiteSpace(encounterId))
+                return $"{location}|{encounterId}|{kind}";
+        }
         return $"{location}|{Normalize(monster.Name ?? string.Empty)}|{Normalize(monster.GetType().FullName ?? monster.GetType().Name)}|{kind}";
     }
 
