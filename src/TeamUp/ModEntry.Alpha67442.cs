@@ -149,6 +149,7 @@ public sealed partial class ModEntry
 
     private void ApplyShinyOrderAlpha67442(Farmer farmer, ShinyOrderRequestAlpha67442 request, long responsePlayerId)
     {
+        string result = string.Empty;
         bool success = Enum.TryParse(request.Order, ignoreCase: true, out ShinyTacticalOrder order)
             && farmer.currentLocation is not null
             && farmer.currentLocation.NameOrUniqueName.Equals(request.LocationName, StringComparison.OrdinalIgnoreCase)
@@ -157,7 +158,7 @@ public sealed partial class ModEntry
                 order,
                 request.MonsterName,
                 new Vector2(request.TileX, request.TileY),
-                out string result);
+                out result);
 
         string message = success
             ? result
