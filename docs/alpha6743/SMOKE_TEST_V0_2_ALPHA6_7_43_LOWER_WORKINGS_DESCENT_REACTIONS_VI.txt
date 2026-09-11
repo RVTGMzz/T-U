@@ -1,0 +1,22 @@
+TEAM UP 6.7.43 - LOWER WORKINGS DESCENT REACTIONS
+=================================================
+
+PREP:
+- Cai build 6.7.43, load save host.
+- teamup_story_reactions reset.
+
+WINDOWS:
+1. teamup_lower_descent stage 1 -> window 31. Noi chuyen NPC ho tro 2 lan: lan 1 reaction, lan 2 normal.
+2. teamup_lower_descent stage 2 -> window 32. Lap lai one-shot test.
+3. teamup_lower_descent stage 3 -> window 33. Reaction khong duoc thay doi ThresholdCrossed.
+4. teamup_lower_descent stage 4 -> window 34. Kiem tra dialogue chi ket luan deliberate containment, khong lo danh tinh nguoi tho mo cu.
+5. teamup_lower_descent stage 5 -> window 35. Reaction khong duoc thay doi FirstDescentComplete.
+6. Bo qua mot window roi tang stage -> reaction cu khong duoc replay.
+7. George van Rank D / Non-Combatant / khong recruit; khong Last Blaster.
+8. Evelyn khong reveal postgame.
+9. teamup_story_reactions status -> catalog 0..35.
+10. teamup_lower_descent status -> stage va persistent flags chi do 6.7.42 gameplay quyet dinh.
+
+DEBUG: teamup_lower_descent status|reset|stage 0-5
+DEBUG: teamup_story_reactions status|reset
+DIAGNOSTIC: diagnostics\TeamUp_Milestone_Reactions_latest.txt
