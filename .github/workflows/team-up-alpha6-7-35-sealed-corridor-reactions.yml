@@ -1,0 +1,55 @@
+name: Team Up v0.2.0-alpha.6.7.35 Sealed Corridor Reactions
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-35-sealed-corridor-reactions
+    paths:
+      - 'src/TeamUp/**'
+      - 'tools/materialize_alpha6735.py'
+      - 'tools/build_alpha6735.py'
+      - '.github/workflows/team-up-alpha6-7-35-sealed-corridor-reactions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: '6.0.x'
+
+      - name: Materialize Alpha 6.7.35 sealed corridor reactions source
+        run: python3 tools/materialize_alpha6735.py
+
+      - name: Build, audit and package Alpha 6.7.35
+        run: python3 tools/build_alpha6735.py
+
+      - name: Commit verified source to development branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.7.35 sealed corridor reactions [skip ci]"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: Upload Alpha 6.7.35 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-35-sealed-corridor-reactions
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.35_SEALED_CORRIDOR_REACTIONS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.35_SEALED_CORRIDOR_REACTIONS_TEST.sha256.txt
+            BUILD_LOG_ALPHA6735.txt
+            SEALED_CORRIDOR_REACTIONS_AUDIT_ALPHA6735.md
+            SMOKE_TEST_V0_2_ALPHA6_7_35_SEALED_CORRIDOR_REACTIONS_VI.txt
+          if-no-files-found: error
