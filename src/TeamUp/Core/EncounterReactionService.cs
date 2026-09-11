@@ -25,14 +25,9 @@ internal enum ShinyTacticalOrder
 
 /// <summary>
 /// Alpha 6.7.44.2 encounter awareness layer.
-///
-/// Reactions are personality-flavoured attention cues. Mutation/Elite/Special encounters do not
-/// change combat rules. A positively identified Pelipper Shiny is the sole tactical exception:
-/// Team Up immediately places it under Shiny Emergency Hold, making all existing friendly-damage
-/// guards treat it as protected until the Farmer explicitly orders Engage or leaves it ignored.
-///
-/// Shiny detection fails closed. Team Up never guesses from rarity or species; it requires a
-/// Pelipper wild actor plus explicit Shiny evidence on the HP proxy or its paired visible actor.
+/// Mutation/Elite/Special encounters only generate personality reactions. A positively identified
+/// Pelipper Shiny additionally enters Shiny Emergency Hold until the Farmer gives a tactical order.
+/// Detection fails closed: Team Up requires a Pelipper wild actor plus explicit Shiny evidence.
 /// </summary>
 internal sealed class EncounterReactionService
 {
@@ -75,13 +70,9 @@ internal sealed class EncounterReactionService
             return;
 
         FlushReplies();
-
-        List<Farmer> farmers = Game1.getOnlineFarmers().ToList();
-        if (farmers.Count == 0)
-            farmers.Add(Game1.player);
-
         HashSet<Monster> aliveThisTick = new();
-        foreach (Farmer farmer in farmers)
+
+        foreach (Farmer farmer in Game1.getOnlineFarmers())
         {
             GameLocation? location = farmer.currentLocation;
             if (location is null)
@@ -141,7 +132,6 @@ internal sealed class EncounterReactionService
         Monster? target = expectedTile.HasValue
             ? held.OrderBy(monster => Vector2.DistanceSquared(monster.Tile, expectedTile.Value)).FirstOrDefault()
             : held.OrderBy(monster => Vector2.DistanceSquared(monster.Position, farmer.Position)).FirstOrDefault();
-
         if (target is null)
             return false;
 
@@ -187,13 +177,10 @@ internal sealed class EncounterReactionService
     {
         if (IsConfirmedShiny(monster) || IsConfirmedPelipperShiny(monster))
             return EncounterReactionKind.Shiny;
-
         if (MonsterMutationService.IsMutant(monster))
             return EncounterReactionKind.Mutation;
-
         if (LooksEliteOrBoss(monster))
             return EncounterReactionKind.EliteBoss;
-
         return LooksSpecial(monster) ? EncounterReactionKind.Special : EncounterReactionKind.None;
     }
 
@@ -213,9 +200,7 @@ internal sealed class EncounterReactionService
                 if (ReferenceEquals(candidate, monster)
                     || !PelipperTownCompatibilityService.LooksLikePelipperActor(candidate)
                     || !PelipperTownCompatibilityService.IsWildCombatActor(candidate))
-                {
                     continue;
-                }
 
                 bool paired = proxyBounds.Intersects(candidate.GetBoundingBox())
                     || Vector2.DistanceSquared(monster.Position, candidate.Position) <= 96f * 96f;
@@ -231,8 +216,6 @@ internal sealed class EncounterReactionService
             return false;
 
         monster.modData[ShinyConfirmedMarker] = "true";
-        // Shiny always wins over Mutation. Even if Pelipper mutation eligibility expands later,
-        // a naturally occurring Shiny remains a collectible rare encounter, never a mutation seed.
         monster.modData[MonsterMutationService.MutationExcludedMarker] = "true";
         _confirmedShiny.Add(monster);
         _monitor.Log($"[EncounterReaction] Confirmed Pelipper Shiny proxy: {monster.Name} at {monster.Tile}.", LogLevel.Info);
@@ -243,36 +226,35 @@ internal sealed class EncounterReactionService
     {
         if (HasTrueModData(monster, ShinyEngagedMarker))
             return;
-
         monster.modData[ShinyEmergencyHoldMarker] = "true";
         monster.modData.Remove(PelipperTownCompatibilityService.CombatTargetOptInKey);
     }
 
     private void ShowReaction(IReadOnlyList<ActiveMember> active, Monster monster, EncounterReactionKind kind)
     {
-        if (active.Count == 0)
+        List<ActiveMember> ordered = active
+            .OrderBy(member => ReactionPriority(member.Member, kind))
+            .ThenBy(member => Vector2.DistanceSquared(member.Actor.Position, monster.Position))
+            .ToList();
+        if (ordered.Count == 0)
             return;
 
-        List<ActiveMember> ordered = active
-            .OrderBy(member => Vector2.DistanceSquared(member.Actor.Position, monster.Position))
-            .ThenBy(member => ReactionPriority(member.Member, kind))
-            .ToList();
-
-        ActiveMember primary = ordered[0];
         Color color = ReactionColor(kind);
-        string line = BuildReactionLine(primary.Member, kind, reply: false);
-        primary.Actor.showTextAboveHead(line, color, 2, kind == EncounterReactionKind.Shiny ? 2600 : 2000, 0);
+        ActiveMember primary = ordered[0];
+        primary.Actor.showTextAboveHead(BuildReactionLine(primary.Member, kind, reply: false), color, 2,
+            kind == EncounterReactionKind.Shiny ? 2600 : 2000, 0);
 
         if (kind == EncounterReactionKind.Shiny)
+        {
             Game1.addHUDMessage(new HUDMessage(_isVietnamese()
                 ? "✨ SHINY! Team Up đã NGỪNG TẤN CÔNG và đang chờ lệnh của Farmer."
                 : "✨ SHINY! Team Up is HOLDING FIRE and waiting for the Farmer's order.", HUDMessage.newQuest_type));
+        }
 
         if (ordered.Count > 1)
         {
             ActiveMember second = ordered[1];
-            string reply = BuildReactionLine(second.Member, kind, reply: true);
-            _pendingReplies.Enqueue(new PendingReply(second.Actor, reply, Game1.ticks + 65, color));
+            _pendingReplies.Enqueue(new PendingReply(second.Actor, BuildReactionLine(second.Member, kind, reply: true), Game1.ticks + 65, color));
         }
 
         _monitor.Log($"[EncounterReaction] kind={kind} target={monster.Name} speaker={primary.Member.CharacterName} hold={IsShinyEmergencyHeld(monster)}", LogLevel.Debug);
@@ -295,11 +277,9 @@ internal sealed class EncounterReactionService
         {
             if (member.RecruiterId != recruiterId || member.State != PartyMemberState.Following || member.IsDowned || member.IsWithdrawn)
                 continue;
-
             NPC? actor = Game1.getCharacterFromName(member.CharacterName);
-            if (actor is null || !ReferenceEquals(actor.currentLocation, location))
-                continue;
-            result.Add(new ActiveMember(member, actor));
+            if (actor is not null && ReferenceEquals(actor.currentLocation, location))
+                result.Add(new ActiveMember(member, actor));
         }
         return result;
     }
@@ -315,7 +295,6 @@ internal sealed class EncounterReactionService
                 _ => 2
             };
         }
-
         return member.Role switch
         {
             PartyRole.Tank => 0,
@@ -383,7 +362,6 @@ internal sealed class EncounterReactionService
     {
         if (reply)
             return vi ? "Rõ. Cả đội giữ tay." : "Got it. Everyone hold fire.";
-
         return member.Engagement switch
         {
             EngagementStyle.Reckless or EngagementStyle.Aggressive => vi ? "Khoan! Con này hiếm đấy. Tôi chưa đánh đâu!" : "Wait! That one's rare. I'm not hitting it!",
@@ -396,7 +374,6 @@ internal sealed class EncounterReactionService
     {
         if (reply)
             return vi ? "Thấy rồi. Giữ đội hình." : "Seen. Hold formation.";
-
         string subjectVi = kind == EncounterReactionKind.EliteBoss ? "Mục tiêu mạnh" : kind == EncounterReactionKind.Mutation ? "Mutation" : "Mục tiêu đặc biệt";
         string subjectEn = kind == EncounterReactionKind.EliteBoss ? "Strong target" : kind == EncounterReactionKind.Mutation ? "Mutation" : "Special target";
         return member.Engagement switch
@@ -413,16 +390,19 @@ internal sealed class EncounterReactionService
     {
         if (monster.MaxHealth >= 300)
             return true;
-
         string identity = Normalize($"{monster.Name} {monster.GetType().FullName}");
         if (identity.Contains("boss") || identity.Contains("elite") || identity.Contains("champion"))
             return true;
 
-        return monster.modData.Any(pair =>
+        foreach (string rawKey in monster.modData.Keys)
         {
-            string key = Normalize(pair.Key);
-            return (key.Contains("boss") || key.Contains("elite") || key.Contains("champion")) && IsTruthy(pair.Value);
-        });
+            if (!monster.modData.TryGetValue(rawKey, out string? rawValue))
+                continue;
+            string key = Normalize(rawKey);
+            if ((key.Contains("boss") || key.Contains("elite") || key.Contains("champion")) && IsTruthy(rawValue))
+                return true;
+        }
+        return false;
     }
 
     private static bool LooksSpecial(Monster monster)
@@ -430,16 +410,20 @@ internal sealed class EncounterReactionService
         if (monster.modData.ContainsKey(MonsterSurgeService.SurgeMarker))
             return true;
 
-        return monster.modData.Any(pair =>
+        foreach (string rawKey in monster.modData.Keys)
         {
-            string key = Normalize(pair.Key);
+            if (!monster.modData.TryGetValue(rawKey, out string? rawValue))
+                continue;
+            string key = Normalize(rawKey);
             bool specialKey = key.Contains("specialmonster")
                 || key.Contains("storymonster")
                 || key.Contains("scripted")
                 || key.Contains("questprotected")
                 || key.Contains("storyprotected");
-            return specialKey && IsTruthy(pair.Value);
-        });
+            if (specialKey && IsTruthy(rawValue))
+                return true;
+        }
+        return false;
     }
 
     private static bool HasExplicitShinyEvidence(NPC actor)
@@ -447,11 +431,13 @@ internal sealed class EncounterReactionService
         if (Normalize(actor.Name).Contains("shiny") || Normalize(actor.displayName).Contains("shiny"))
             return true;
 
-        foreach (KeyValuePair<string, string> pair in actor.modData.Pairs)
+        foreach (string rawKey in actor.modData.Keys)
         {
-            string key = Normalize(pair.Key);
-            string value = Normalize(pair.Value);
-            if (key.Contains("shiny") && IsTruthy(pair.Value))
+            if (!actor.modData.TryGetValue(rawKey, out string? rawValue))
+                continue;
+            string key = Normalize(rawKey);
+            string value = Normalize(rawValue ?? string.Empty);
+            if (key.Contains("shiny") && IsTruthy(rawValue))
                 return true;
             if ((key.Contains("variant") || key.Contains("form") || key.Contains("appearance")) && value.Contains("shiny"))
                 return true;
@@ -460,7 +446,6 @@ internal sealed class EncounterReactionService
         if (HasShinyMember(actor.GetType(), actor))
             return true;
 
-        // Some Pelipper actors keep rarity/appearance state in one nested runtime descriptor.
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         foreach (FieldInfo field in actor.GetType().GetFields(flags))
         {
@@ -480,7 +465,6 @@ internal sealed class EncounterReactionService
             if (nested is not null && HasShinyMember(nested.GetType(), nested))
                 return true;
         }
-
         return false;
     }
 
@@ -489,20 +473,16 @@ internal sealed class EncounterReactionService
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         foreach (FieldInfo field in type.GetFields(flags))
         {
-            string name = Normalize(field.Name);
-            if (!name.Contains("shiny"))
+            if (!Normalize(field.Name).Contains("shiny"))
                 continue;
-            object? value = TryGet(() => field.GetValue(instance));
-            if (InterpretShinyValue(value))
+            if (InterpretShinyValue(TryGet(() => field.GetValue(instance))))
                 return true;
         }
         foreach (PropertyInfo property in type.GetProperties(flags))
         {
-            string name = Normalize(property.Name);
-            if (!name.Contains("shiny") || !property.CanRead || property.GetIndexParameters().Length != 0)
+            if (!property.CanRead || property.GetIndexParameters().Length != 0 || !Normalize(property.Name).Contains("shiny"))
                 continue;
-            object? value = TryGet(() => property.GetValue(instance));
-            if (InterpretShinyValue(value))
+            if (InterpretShinyValue(TryGet(() => property.GetValue(instance))))
                 return true;
         }
         return false;
@@ -518,13 +498,9 @@ internal sealed class EncounterReactionService
         return text is "true" or "yes" or "on" or "1" or "shiny" || text.Contains("shiny");
     }
 
-    private static bool LooksLikeAppearanceContainer(string normalizedName)
-        => normalizedName.Contains("pokemon")
-            || normalizedName.Contains("appearance")
-            || normalizedName.Contains("variant")
-            || normalizedName.Contains("form")
-            || normalizedName.Contains("rarity")
-            || normalizedName.Contains("spawn");
+    private static bool LooksLikeAppearanceContainer(string name)
+        => name.Contains("pokemon") || name.Contains("appearance") || name.Contains("variant")
+            || name.Contains("form") || name.Contains("rarity") || name.Contains("spawn");
 
     private bool WasAnnounced(Monster monster, long farmerId, EncounterReactionKind kind)
         => _announced.TryGetValue(monster, out Dictionary<long, HashSet<EncounterReactionKind>>? byFarmer)
@@ -554,15 +530,13 @@ internal sealed class EncounterReactionService
     }
 
     private static Color ReactionColor(EncounterReactionKind kind)
-    {
-        return kind switch
+        => kind switch
         {
             EncounterReactionKind.Shiny => new Color(255, 225, 90),
             EncounterReactionKind.Mutation => new Color(190, 105, 255),
             EncounterReactionKind.EliteBoss => new Color(255, 125, 90),
             _ => new Color(125, 210, 255)
         };
-    }
 
     private static bool HasTrueModData(NPC actor, string key)
         => actor.modData.TryGetValue(key, out string? raw) && IsTruthy(raw);
