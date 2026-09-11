@@ -20,9 +20,9 @@ namespace Ronvotri.TeamUp.Combat;
 /// Reusing the live instance preserves custom-mod AI, sprites, NetFields and constructor-only state,
 /// which is much safer than reflection-cloning arbitrary third-party monsters.
 ///
-/// Policy is mod-agnostic by default: normal custom monsters are eligible. Boss/script/event actors,
-/// Pelipper capture/companion actors, Surge spawns, mutation minions and already-mutated monsters are
-/// excluded. Cardcha's normal monsters therefore work automatically, while its test harness and any
+/// Policy is mod-agnostic by default: normal custom monsters and normal Pelipper wild combat proxies
+/// are eligible. Confirmed Shiny, owned companions, boss/script/event actors, Surge spawns, mutation
+/// minions and already-mutated monsters are excluded. Cardcha's normal monsters therefore work automatically, while its test harness and any
 /// actor explicitly tagged Boss/Scripted/MutationExcluded fail closed.
 /// </summary>
 internal sealed class MonsterMutationService
@@ -327,6 +327,12 @@ internal sealed class MonsterMutationService
         float effectiveFootprintScale = visualScaleApplied ? visualScale : 1f;
 
         monster.modData[MutantMarker] = "1";
+        if (PelipperTownCompatibilityService.IsWildCombatActor(monster))
+        {
+            // Mutated wild proxies are combat threats, not capture-floor targets. Restore Team Up
+            // targeting even if the proxy was previously removed at Pelipper's mercy threshold.
+            monster.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
+        }
         monster.modData[MutationSourceMarker] = monster.GetType().FullName ?? monster.GetType().Name;
         monster.modData[MutationScaleMarker] = effectiveFootprintScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
@@ -367,6 +373,17 @@ internal sealed class MonsterMutationService
 
     private bool IsEligible(Monster monster)
     {
+        // Repair stale false-Shiny state written by 6.7.44.2 before applying normal exclusions.
+        if (EncounterReactionService.IsConfirmedShiny(monster)
+            && !EncounterReactionService.HasConfirmedPelipperShinyEvidence(monster))
+        {
+            monster.modData.Remove(EncounterReactionService.ShinyConfirmedMarker);
+            monster.modData.Remove(EncounterReactionService.ShinyEmergencyHoldMarker);
+            monster.modData.Remove(EncounterReactionService.ShinyEngagedMarker);
+            monster.modData.Remove(EncounterReactionService.ShinyIgnoredMarker);
+            monster.modData.Remove(MutationExcludedMarker);
+        }
+
         if (IsMutant(monster)
             || IsMutationMinion(monster)
             || MonsterSurgeService.IsSurgeMonster(monster)
@@ -391,10 +408,19 @@ internal sealed class MonsterMutationService
             return false;
         }
 
-        // Pelipper wild combat actors are capture entities, not mutation candidates. Companion
-        // and proxy actors excluded from Team Up combat are also left entirely under Pelipper ownership.
-        if (PelipperTownCompatibilityService.IsWildCombatActor(monster)
-            || PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
+        // 6.7.44.3: normal Pelipper wild combat proxies are valid Mutation candidates.
+        // Confirmed Shiny always wins over Mutation. Owned/source-controlled companions remain
+        // excluded through the normal Team Up combat ownership gate.
+        bool pelipperWild = PelipperTownCompatibilityService.IsWildCombatActor(monster);
+        if (pelipperWild)
+        {
+            if (EncounterReactionService.HasConfirmedPelipperShinyEvidence(monster))
+            {
+                monster.modData[MutationExcludedMarker] = "true";
+                return false;
+            }
+        }
+        else if (PelipperTownCompatibilityService.ShouldExcludeFromTeamUpCombat(monster))
         {
             return false;
         }

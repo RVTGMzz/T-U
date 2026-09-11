@@ -103,8 +103,7 @@ public sealed partial class ModEntry
                 _ => ShinyTacticalOrder.Hold
             };
 
-            if (order == ShinyTacticalOrder.Engage)
-                ShinyPromptCooldownAlpha67442[token] = long.MaxValue;
+            ShinyPromptCooldownAlpha67442[token] = long.MaxValue;
 
             RequestShinyOrderAlpha67442(farmer, target, order);
         });
@@ -260,7 +259,7 @@ public sealed partial class ModEntry
     }
 
     private static string BuildShinyPromptTokenAlpha67442(GameLocation location, Monster target)
-        => $"{location.NameOrUniqueName}|{target.Name}|{target.Tile.X:0.##}|{target.Tile.Y:0.##}";
+        => $"{location.NameOrUniqueName}|{target.Name}|{target.GetType().FullName}";
 
     private sealed class ShinyOrderRequestAlpha67442
     {

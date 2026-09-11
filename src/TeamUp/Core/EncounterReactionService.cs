@@ -42,6 +42,7 @@ internal sealed class EncounterReactionService
     private readonly IMonitor _monitor;
     private readonly Func<bool> _isVietnamese;
     private readonly Dictionary<Monster, Dictionary<long, HashSet<EncounterReactionKind>>> _announced = new();
+    private readonly Dictionary<string, long> _reactionCooldownUntil = new(StringComparer.OrdinalIgnoreCase);
     private readonly Queue<PendingReply> _pendingReplies = new();
     private readonly HashSet<Monster> _confirmedShiny = new();
 
@@ -60,6 +61,7 @@ internal sealed class EncounterReactionService
     public void Reset()
     {
         _announced.Clear();
+        _reactionCooldownUntil.Clear();
         _pendingReplies.Clear();
         _confirmedShiny.Clear();
     }
@@ -175,7 +177,13 @@ internal sealed class EncounterReactionService
 
     private EncounterReactionKind Classify(Monster monster)
     {
-        if (IsConfirmedShiny(monster) || IsConfirmedPelipperShiny(monster))
+        // Repair 6.7.44.2 false-positive Shiny markers before they can keep a normal monster in
+        // HOLD FIRE after upgrading. The old detector accepted capability fields such as
+        // CanBeShiny/ShinyChance as if they described the current encounter.
+        if (IsConfirmedShiny(monster) && !HasConfirmedPelipperShinyEvidence(monster))
+            ClearFalseShinyState(monster);
+
+        if (IsConfirmedPelipperShiny(monster))
             return EncounterReactionKind.Shiny;
         if (MonsterMutationService.IsMutant(monster))
             return EncounterReactionKind.Mutation;
@@ -186,40 +194,53 @@ internal sealed class EncounterReactionService
 
     private bool IsConfirmedPelipperShiny(Monster monster)
     {
-        if (_confirmedShiny.Contains(monster))
-            return true;
-        if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
+        if (!HasConfirmedPelipperShinyEvidence(monster))
             return false;
 
-        bool shiny = HasExplicitShinyEvidence(monster);
-        if (!shiny && monster.currentLocation is GameLocation location)
+        if (!IsConfirmedShiny(monster))
         {
-            Rectangle proxyBounds = monster.GetBoundingBox();
-            foreach (NPC candidate in location.characters.OfType<NPC>())
-            {
-                if (ReferenceEquals(candidate, monster)
-                    || !PelipperTownCompatibilityService.LooksLikePelipperActor(candidate)
-                    || !PelipperTownCompatibilityService.IsWildCombatActor(candidate))
-                    continue;
-
-                bool paired = proxyBounds.Intersects(candidate.GetBoundingBox())
-                    || Vector2.DistanceSquared(monster.Position, candidate.Position) <= 96f * 96f;
-                if (paired && HasExplicitShinyEvidence(candidate))
-                {
-                    shiny = true;
-                    break;
-                }
-            }
+            monster.modData[ShinyConfirmedMarker] = "true";
+            monster.modData[MonsterMutationService.MutationExcludedMarker] = "true";
+            _monitor.Log($"[EncounterReaction] Confirmed Pelipper Shiny proxy: {monster.Name} at {monster.Tile}.", LogLevel.Info);
         }
 
-        if (!shiny)
+        _confirmedShiny.Add(monster);
+        return true;
+    }
+
+    public static bool HasConfirmedPelipperShinyEvidence(Monster monster)
+    {
+        if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
+            return false;
+        if (HasExplicitShinyEvidence(monster))
+            return true;
+        if (monster.currentLocation is not GameLocation location)
             return false;
 
-        monster.modData[ShinyConfirmedMarker] = "true";
-        monster.modData[MonsterMutationService.MutationExcludedMarker] = "true";
-        _confirmedShiny.Add(monster);
-        _monitor.Log($"[EncounterReaction] Confirmed Pelipper Shiny proxy: {monster.Name} at {monster.Tile}.", LogLevel.Info);
-        return true;
+        Rectangle proxyBounds = monster.GetBoundingBox();
+        foreach (NPC candidate in location.characters.OfType<NPC>())
+        {
+            if (ReferenceEquals(candidate, monster)
+                || !PelipperTownCompatibilityService.LooksLikePelipperActor(candidate)
+                || !PelipperTownCompatibilityService.IsWildCombatActor(candidate))
+                continue;
+
+            bool paired = proxyBounds.Intersects(candidate.GetBoundingBox())
+                || Vector2.DistanceSquared(monster.Position, candidate.Position) <= 96f * 96f;
+            if (paired && HasExplicitShinyEvidence(candidate))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void ClearFalseShinyState(Monster monster)
+    {
+        monster.modData.Remove(ShinyConfirmedMarker);
+        monster.modData.Remove(ShinyEmergencyHoldMarker);
+        monster.modData.Remove(ShinyEngagedMarker);
+        monster.modData.Remove(ShinyIgnoredMarker);
+        monster.modData.Remove(MonsterMutationService.MutationExcludedMarker);
     }
 
     private static void EnsureShinyEmergencyHold(Monster monster)
@@ -232,6 +253,17 @@ internal sealed class EncounterReactionService
 
     private void ShowReaction(IReadOnlyList<ActiveMember> active, Monster monster, EncounterReactionKind kind)
     {
+        string reactionKey = BuildReactionCooldownKey(monster, kind);
+        long now = Game1.ticks;
+        if (_reactionCooldownUntil.TryGetValue(reactionKey, out long until) && now < until)
+            return;
+        _reactionCooldownUntil[reactionKey] = now + 3600;
+        if (_reactionCooldownUntil.Count > 256)
+        {
+            foreach (string expired in _reactionCooldownUntil.Where(pair => pair.Value <= now).Select(pair => pair.Key).ToList())
+                _reactionCooldownUntil.Remove(expired);
+        }
+
         List<ActiveMember> ordered = active
             .OrderBy(member => ReactionPriority(member.Member, kind))
             .ThenBy(member => Vector2.DistanceSquared(member.Actor.Position, monster.Position))
@@ -388,8 +420,8 @@ internal sealed class EncounterReactionService
 
     private static bool LooksEliteOrBoss(Monster monster)
     {
-        if (monster.MaxHealth >= 300)
-            return true;
+        // Raw HP is not an elite signal. Pelipper and other combat mods legitimately scale normal
+        // proxies above 300 HP, which made ordinary Green Slimes/Pokémon look like bosses.
         string identity = Normalize($"{monster.Name} {monster.GetType().FullName}");
         if (identity.Contains("boss") || identity.Contains("elite") || identity.Contains("champion"))
             return true;
@@ -437,7 +469,7 @@ internal sealed class EncounterReactionService
                 continue;
             string key = Normalize(rawKey);
             string value = Normalize(rawValue ?? string.Empty);
-            if (key.Contains("shiny") && IsTruthy(rawValue))
+            if (IsAuthoritativeShinyKey(key) && IsTruthy(rawValue))
                 return true;
             if ((key.Contains("variant") || key.Contains("form") || key.Contains("appearance")) && value.Contains("shiny"))
                 return true;
@@ -473,19 +505,36 @@ internal sealed class EncounterReactionService
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         foreach (FieldInfo field in type.GetFields(flags))
         {
-            if (!Normalize(field.Name).Contains("shiny"))
+            if (!IsAuthoritativeShinyKey(field.Name))
                 continue;
             if (InterpretShinyValue(TryGet(() => field.GetValue(instance))))
                 return true;
         }
         foreach (PropertyInfo property in type.GetProperties(flags))
         {
-            if (!property.CanRead || property.GetIndexParameters().Length != 0 || !Normalize(property.Name).Contains("shiny"))
+            if (!property.CanRead || property.GetIndexParameters().Length != 0 || !IsAuthoritativeShinyKey(property.Name))
                 continue;
             if (InterpretShinyValue(TryGet(() => property.GetValue(instance))))
                 return true;
         }
         return false;
+    }
+
+    private static bool IsAuthoritativeShinyKey(string rawName)
+    {
+        string name = Normalize(rawName);
+        // Never confuse a capability/odds/config field with current encounter state.
+        if (name.Contains("chance") || name.Contains("odds") || name.Contains("rate")
+            || name.Contains("weight") || name.Contains("roll") || name.Contains("eligible")
+            || name.Contains("allowshiny") || name.Contains("canshiny") || name.Contains("enable shiny".Replace(" ", string.Empty)))
+            return false;
+
+        return name is "shiny" or "isshiny" or "shinyflag" or "shinyform" or "shinyvariant"
+            || name.EndsWith("isshiny", StringComparison.Ordinal)
+            || name.EndsWith("shinyflag", StringComparison.Ordinal)
+            || (name.EndsWith("shiny", StringComparison.Ordinal)
+                && !name.EndsWith("canshiny", StringComparison.Ordinal)
+                && !name.EndsWith("allowshiny", StringComparison.Ordinal));
     }
 
     private static bool InterpretShinyValue(object? value)
@@ -527,6 +576,12 @@ internal sealed class EncounterReactionService
         foreach (Monster monster in _announced.Keys.Where(monster => monster.Health <= 0 || !aliveThisTick.Contains(monster)).ToList())
             _announced.Remove(monster);
         _confirmedShiny.RemoveWhere(monster => monster.Health <= 0 || !aliveThisTick.Contains(monster));
+    }
+
+    private static string BuildReactionCooldownKey(Monster monster, EncounterReactionKind kind)
+    {
+        string location = monster.currentLocation?.NameOrUniqueName ?? Game1.currentLocation?.NameOrUniqueName ?? "unknown";
+        return $"{location}|{Normalize(monster.Name ?? string.Empty)}|{Normalize(monster.GetType().FullName ?? monster.GetType().Name)}|{kind}";
     }
 
     private static Color ReactionColor(EncounterReactionKind kind)

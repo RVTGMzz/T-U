@@ -1,4 +1,5 @@
 using System.Reflection;
+using Ronvotri.TeamUp.Combat;
 using StardewValley;
 using StardewValley.Monsters;
 
@@ -35,6 +36,10 @@ internal static class PelipperCaptureSafetyService
     {
         budget = int.MaxValue;
         if (monster.Health <= 0 || monster.MaxHealth <= 0)
+            return false;
+
+        // Mutations are combat-only Team Up threats. They must not inherit Pelipper's mercy floor.
+        if (MonsterMutationService.IsMutant(monster))
             return false;
 
         // Shiny Hold is deliberately independent from Pelipper Catch Mode. It is a Team Up tactical
@@ -76,6 +81,8 @@ internal static class PelipperCaptureSafetyService
     {
         stopAtHealth = 0;
         if (monster.Health <= 0 || monster.MaxHealth <= 0)
+            return false;
+        if (MonsterMutationService.IsMutant(monster))
             return false;
         if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
             return false;
@@ -154,7 +161,7 @@ internal static class PelipperCaptureSafetyService
     public static string DescribePolicy()
     {
         RefreshPolicyIfNeeded();
-        return $"Pelipper capture safety: pelipper={_pelipperDetected} | modeConfirmed={_modeConfirmed} | enabled={_enabled} | threshold={_threshold:P0}";
+        return $"Pelipper capture safety: pelipper={_pelipperDetected} | priority=pelipper-wild | modeHint={_modeConfirmed} | enabled={_enabled} | threshold={_threshold:P0}";
     }
 
     private static void RefreshPolicyIfNeeded()
@@ -203,7 +210,10 @@ internal static class PelipperCaptureSafetyService
 
         _pelipperDetected = pelipperDetected;
         _modeConfirmed = pelipperDetected && bestModeScore >= 0;
-        _enabled = _modeConfirmed && enabled;
+        // 6.7.44.3: Pelipper presence + genuine wild proxy is the authority. Pelipper does not
+        // expose one stable Catch-Mode toggle across current builds, so requiring one disabled
+        // mercy protection entirely. A reflected mode remains diagnostic only.
+        _enabled = pelipperDetected;
         _threshold = Math.Clamp(threshold, 0.01f, 0.95f);
     }
 
