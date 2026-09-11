@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 13 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 17 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -283,6 +283,70 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.13.robin",
             "Wizard", "story.react.13.wizard");
 
+        Dictionary<string, string> pressureSurveyBriefed = Stage(
+            "Abigail", "story.react.14.abigail",
+            "Alex", "story.react.14.alex",
+            "Clint", "story.react.14.clint",
+            "Demetrius", "story.react.14.demetrius",
+            "Evelyn", "story.react.14.evelyn",
+            "George", "story.react.14.george",
+            "Gus", "story.react.14.gus",
+            "Lewis", "story.react.14.lewis",
+            "Linus", "story.react.14.linus",
+            "Marlon", "story.react.14.marlon",
+            "Maru", "story.react.14.maru",
+            "Pierre", "story.react.14.pierre",
+            "Robin", "story.react.14.robin",
+            "Wizard", "story.react.14.wizard");
+
+        Dictionary<string, string> surveyFaceMarked = Stage(
+            "Abigail", "story.react.15.abigail",
+            "Alex", "story.react.15.alex",
+            "Clint", "story.react.15.clint",
+            "Demetrius", "story.react.15.demetrius",
+            "Evelyn", "story.react.15.evelyn",
+            "George", "story.react.15.george",
+            "Gus", "story.react.15.gus",
+            "Lewis", "story.react.15.lewis",
+            "Linus", "story.react.15.linus",
+            "Marlon", "story.react.15.marlon",
+            "Maru", "story.react.15.maru",
+            "Pierre", "story.react.15.pierre",
+            "Robin", "story.react.15.robin",
+            "Wizard", "story.react.15.wizard");
+
+        Dictionary<string, string> pressureSurveyComplete = Stage(
+            "Abigail", "story.react.16.abigail",
+            "Alex", "story.react.16.alex",
+            "Clint", "story.react.16.clint",
+            "Demetrius", "story.react.16.demetrius",
+            "Evelyn", "story.react.16.evelyn",
+            "George", "story.react.16.george",
+            "Gus", "story.react.16.gus",
+            "Lewis", "story.react.16.lewis",
+            "Linus", "story.react.16.linus",
+            "Marlon", "story.react.16.marlon",
+            "Maru", "story.react.16.maru",
+            "Pierre", "story.react.16.pierre",
+            "Robin", "story.react.16.robin",
+            "Wizard", "story.react.16.wizard");
+
+        Dictionary<string, string> sealedAccessFaceConfirmed = Stage(
+            "Abigail", "story.react.17.abigail",
+            "Alex", "story.react.17.alex",
+            "Clint", "story.react.17.clint",
+            "Demetrius", "story.react.17.demetrius",
+            "Evelyn", "story.react.17.evelyn",
+            "George", "story.react.17.george",
+            "Gus", "story.react.17.gus",
+            "Lewis", "story.react.17.lewis",
+            "Linus", "story.react.17.linus",
+            "Marlon", "story.react.17.marlon",
+            "Maru", "story.react.17.maru",
+            "Pierre", "story.react.17.pierre",
+            "Robin", "story.react.17.robin",
+            "Wizard", "story.react.17.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
@@ -298,7 +362,11 @@ internal sealed class StoryMilestoneReactionService
             [10] = triangulationBriefed,
             [11] = firstBearingRecorded,
             [12] = secondBearingRecorded,
-            [13] = sealedCorridorTriangulated
+            [13] = sealedCorridorTriangulated,
+            [14] = pressureSurveyBriefed,
+            [15] = surveyFaceMarked,
+            [16] = pressureSurveyComplete,
+            [17] = sealedAccessFaceConfirmed
         };
     }
 
