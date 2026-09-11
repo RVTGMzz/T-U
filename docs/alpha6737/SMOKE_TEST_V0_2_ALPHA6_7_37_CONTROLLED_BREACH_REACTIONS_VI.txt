@@ -1,0 +1,13 @@
+TEAM UP 6.7.37 - CONTROLLED BREACH REACTIONS
+=============================================
+
+1. teamup_story_reactions reset.
+2. teamup_breach stage 1 -> reaction window 18.
+3. Talk supported NPC -> one special reaction only; second talk returns normal.
+4. stage 2 -> window 19; stage 3 -> 20; stage 4 -> 21; stage 5 -> 22.
+5. Skip an old window then advance -> stale reaction must not replay.
+6. George remains Rank D / Non-Combatant / unrecruitable.
+7. Evelyn does not reveal postgame secret.
+8. teamup_roster_story status remains 3/4.
+DEBUG: teamup_story_reactions reset | status
+DIAGNOSTIC: diagnostics\TeamUp_Milestone_Reactions_latest.txt
