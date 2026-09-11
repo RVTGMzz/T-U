@@ -833,5 +833,18 @@
   "story.react.26.maru": "Slot mới cho ta chỗ để có phương án dự phòng: sát thương, hỗ trợ, kiểm soát và hồi phục đều có thể cùng hiện diện trong một đội.",
   "story.react.26.pierre": "Thêm đồng đội chắc tốn đồ hơn, nhưng vẫn rẻ hơn nhiều so với gửi quá ít người vào một cái hố mức HIGH.",
   "story.react.26.robin": "Với bốn slot NPC, cuối cùng mọi người có thể mang đủ chuyên môn mà không phải hy sinh các lớp an toàn cơ bản.",
-  "story.react.26.wizard": "Vòng tròn mạnh thêm một người. Nhưng đừng nhầm một vòng tròn lớn hơn với khả năng miễn nhiễm trước thứ nằm ngoài nó."
+  "story.react.26.wizard": "Vòng tròn mạnh thêm một người. Nhưng đừng nhầm một vòng tròn lớn hơn với khả năng miễn nhiễm trước thứ nằm ngoài nó.",
+  "story.entry-protocol.need-high": "Marlon sẽ chưa ban hành quy trình vào lower workings cho tới khi SURGE HIGH được xác nhận và báo cáo đầy đủ.",
+  "story.entry-protocol.need-roster": "Phản ứng cấp HIGH yêu cầu Story NPC Slot 4 được mở trước khi bắt đầu chuẩn bị tiến vào.",
+  "story.entry-protocol.missing-face": "Không còn dữ liệu về mặt breach đã ghi nhận. Hãy khôi phục checkpoint Controlled Breach trước khi chuẩn bị tiến vào.",
+  "story.entry-protocol.need-full-team": "Chuẩn bị tiến vào cần đội hình tác chiến đầy đủ theo giới hạn tối đa 5 người hiện tại. Hãy tập hợp đủ đội trước khi tiếp tục.",
+  "story.entry-protocol.wrong-shaft": "Đây không phải mặt breach đã ghi nhận. Entry Protocol phải được xác nhận đúng tại điểm tiếp cận của HIGH response.",
+  "story.entry-protocol.briefing": "Marlon: HIGH làm thay đổi luật chơi. Lần xuống tiếp theo không được tùy cơ ứng biến. Tập hợp đội hình tác chiến đầy đủ tại mặt breach. Đánh dấu điểm tập kết ở phía hầm hiện đại, một đường rút rõ ràng và một ngưỡng tuyệt đối không truy đuổi vượt qua. Nếu đội hình vỡ, hệ chống dịch chuyển hoặc áp lực tăng vọt, tất cả rút ngay. Hôm nay ta chỉ xác nhận quy trình. Chưa xuống sâu.",
+  "story.entry-protocol.objective.reach": "HIGH RESPONSE: tập hợp đội hình tác chiến đầy đủ tại mặt breach đã ghi nhận.",
+  "story.entry-protocol.staging": "Cả đội thiết lập tuyến tập kết ở phía hiện đại của mặt breach. Quân số được xác nhận, thứ tự rút lui được phân công, người chốt sau theo dõi hệ chống và một ngưỡng cấm truy đuổi được đánh dấu. Hãy giữ nguyên đội hình đầy đủ đủ lâu để chứng minh tuyến rút có thể duy trì dưới điều kiện HIGH.",
+  "story.entry-protocol.objective.hold": "ENTRY PROTOCOL: giữ đội hình đầy đủ và duy trì ổn định tuyến rút lui.",
+  "story.entry-protocol.validated": "Khoảng kiểm tra kết thúc sạch. Đội hình không vỡ, đường rút luôn thông, hệ chống ổn định và áp lực HIGH không tăng tốc trong suốt buổi diễn tập. Đội đã có quy trình tiến vào và rút lui khả thi. Quay về gặp Marlon, hôm nay không vượt sâu hơn.",
+  "story.entry-protocol.objective.return": "ENTRY PROTOCOL: diễn tập sẵn sàng hoàn tất. Quay về gặp Marlon để xin xác nhận.",
+  "story.entry-protocol.report": "Marlon: Tốt. Đội hình đầy đủ, tuyến rút cố định, ngưỡng cấm truy đuổi và điều kiện hủy nhiệm vụ đều rõ. Đó là cách tiến vào một khu vực HIGH mà không biến thận trọng thành hoảng loạn. Tôi xác nhận Lower Workings Entry Protocol READY. Nhiệm vụ sau mới được phép vượt qua ngưỡng. Không sớm hơn.",
+  "story.entry-protocol.ready": "LOWER WORKINGS ENTRY PROTOCOL • READY"
 }

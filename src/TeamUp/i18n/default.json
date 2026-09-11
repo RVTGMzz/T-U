@@ -833,5 +833,18 @@
   "story.react.26.maru": "The added slot gives us room for redundancy: damage, support, control, and recovery can all be represented in one formation.",
   "story.react.26.pierre": "An extra teammate sounds expensive in supplies, but considerably cheaper than sending too few people into a HIGH-risk hole.",
   "story.react.26.robin": "With four NPC slots available, you can finally bring enough specialization without sacrificing basic safety coverage.",
-  "story.react.26.wizard": "The circle grows stronger by one. Do not mistake a larger circle for immunity from what waits beyond it."
+  "story.react.26.wizard": "The circle grows stronger by one. Do not mistake a larger circle for immunity from what waits beyond it.",
+  "story.entry-protocol.need-high": "Marlon will not issue a lower-workings entry protocol until SURGE HIGH has been confirmed and reported.",
+  "story.entry-protocol.need-roster": "The HIGH response requires story NPC slot 4 authorization before entry preparation can begin.",
+  "story.entry-protocol.missing-face": "The recorded breach face is missing. Re-establish the controlled-breach checkpoint before preparing entry.",
+  "story.entry-protocol.need-full-team": "Entry preparation requires the full operational formation allowed by the current five-person cap. Regroup before continuing.",
+  "story.entry-protocol.wrong-shaft": "This is not the recorded breach face. The entry protocol must be validated at the exact HIGH-response access point.",
+  "story.entry-protocol.briefing": "Marlon: HIGH changes the rules. The next descent gets no improvisation. Assemble the full operational formation at the breach face. Mark a staging line on the modern side, a clear withdrawal route, and a no-pursuit threshold. If formation breaks, supports shift, or pressure spikes, everyone withdraws. Today we validate the protocol. We do not descend.",
+  "story.entry-protocol.objective.reach": "HIGH RESPONSE: assemble the full operational formation at the recorded breach face.",
+  "story.entry-protocol.staging": "The team establishes a staging line on the modern side of the breach. Headcount is confirmed, the withdrawal order is assigned, the rear anchor watches the supports, and a no-pursuit threshold is marked. Hold the complete formation long enough to prove the fallback line can stay intact under HIGH conditions.",
+  "story.entry-protocol.objective.hold": "ENTRY PROTOCOL: hold the full formation and keep the fallback line stable.",
+  "story.entry-protocol.validated": "The readiness interval closes cleanly. Formation stayed intact, the withdrawal route remained clear, the braces held steady, and the HIGH pressure did not accelerate during the drill. The team has a viable entry-and-retreat protocol. Return to Marlon without crossing deeper today.",
+  "story.entry-protocol.objective.return": "ENTRY PROTOCOL: readiness drill complete. Return to Marlon for authorization.",
+  "story.entry-protocol.report": "Marlon: Good. Full formation, fixed fallback line, no-pursuit threshold, and clear abort conditions. That is how we enter a HIGH site without turning caution into panic. I am marking the Lower Workings Entry Protocol READY. The next operation may cross the threshold. Not before then.",
+  "story.entry-protocol.ready": "LOWER WORKINGS ENTRY PROTOCOL • READY"
 }
