@@ -1,0 +1,34 @@
+SOURCE ACCEPTANCE: PASS
+LOWER WORKINGS DESCENT ROUTE 0..5: PASS
+ENTRY PROTOCOL READY + SURGE HIGH + STORY SLOT4 PREREQUISITES: PASS
+EXACT RECORDED BREACH FACE REUSED: PASS
+ADAPTIVE FULL OPERATIONAL FORMATION REUSED: PASS
+120-TICK THRESHOLD CROSSING: PASS
+PERSISTENT THRESHOLD-CROSSED STATE: PASS
+180-TICK FIRST INTERIOR INSPECTION: PASS
+PERSISTENT FIRST-DESCENT-COMPLETE STATE: PASS
+FORMATION / WARP / FREE-STATE / MENU RESET: PASS
+DELIBERATE-CONTAINMENT EVIDENCE WITHOUT HISTORICAL-WORKER IDENTITY: PASS
+REACTION WINDOWS 0..30 CARRY-FORWARD: PASS (430 lines/language)
+FIVE-PEOPLE TOTAL FORMATION CAP: PASS
+GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+EVELYN POSTGAME SPOILER BOUNDARY: PASS
+NO CUSTOM LOWER-WORKINGS MAP, FINAL BOSS OR ROSTER EXPANSION: PASS
+PELIPPER / MUTATION SAFETY CARRY-FORWARD: PASS
+LIVE THRESHOLD-CROSSING / FIRST-DESCENT PACING STILL REQUIRED
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 806 ms).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.42', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.42.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:15.98
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.42
+ZIP: TeamUp_v0.2.0-alpha.6.7.42_LOWER_WORKINGS_DESCENT_TEST.zip
+SHA256: ca4d2555db8563a5fe0794b3fbe047ee5e42f572d888187fe384447f0c254e62
