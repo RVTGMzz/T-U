@@ -19,7 +19,7 @@ internal sealed class StoryMilestoneReactionService
     public bool TryConsume(Farmer farmer, int narrativeStage, string characterName, out string translationKey)
     {
         translationKey = string.Empty;
-        if (narrativeStage < 0 || narrativeStage > 30 || string.IsNullOrWhiteSpace(characterName))
+        if (narrativeStage < 0 || narrativeStage > 35 || string.IsNullOrWhiteSpace(characterName))
             return false;
 
         if (!Reactions.TryGetValue(narrativeStage, out IReadOnlyDictionary<string, string>? stage)
@@ -555,6 +555,86 @@ internal sealed class StoryMilestoneReactionService
             "Robin", "story.react.30.robin",
             "Wizard", "story.react.30.wizard");
 
+        Dictionary<string, string> descentAuthorized = Stage(
+            "Abigail", "story.react.31.abigail",
+            "Alex", "story.react.31.alex",
+            "Clint", "story.react.31.clint",
+            "Demetrius", "story.react.31.demetrius",
+            "Evelyn", "story.react.31.evelyn",
+            "George", "story.react.31.george",
+            "Gus", "story.react.31.gus",
+            "Lewis", "story.react.31.lewis",
+            "Linus", "story.react.31.linus",
+            "Marlon", "story.react.31.marlon",
+            "Maru", "story.react.31.maru",
+            "Pierre", "story.react.31.pierre",
+            "Robin", "story.react.31.robin",
+            "Wizard", "story.react.31.wizard");
+
+        Dictionary<string, string> thresholdLineReady = Stage(
+            "Abigail", "story.react.32.abigail",
+            "Alex", "story.react.32.alex",
+            "Clint", "story.react.32.clint",
+            "Demetrius", "story.react.32.demetrius",
+            "Evelyn", "story.react.32.evelyn",
+            "George", "story.react.32.george",
+            "Gus", "story.react.32.gus",
+            "Lewis", "story.react.32.lewis",
+            "Linus", "story.react.32.linus",
+            "Marlon", "story.react.32.marlon",
+            "Maru", "story.react.32.maru",
+            "Pierre", "story.react.32.pierre",
+            "Robin", "story.react.32.robin",
+            "Wizard", "story.react.32.wizard");
+
+        Dictionary<string, string> thresholdCrossed = Stage(
+            "Abigail", "story.react.33.abigail",
+            "Alex", "story.react.33.alex",
+            "Clint", "story.react.33.clint",
+            "Demetrius", "story.react.33.demetrius",
+            "Evelyn", "story.react.33.evelyn",
+            "George", "story.react.33.george",
+            "Gus", "story.react.33.gus",
+            "Lewis", "story.react.33.lewis",
+            "Linus", "story.react.33.linus",
+            "Marlon", "story.react.33.marlon",
+            "Maru", "story.react.33.maru",
+            "Pierre", "story.react.33.pierre",
+            "Robin", "story.react.33.robin",
+            "Wizard", "story.react.33.wizard");
+
+        Dictionary<string, string> firstInteriorInspected = Stage(
+            "Abigail", "story.react.34.abigail",
+            "Alex", "story.react.34.alex",
+            "Clint", "story.react.34.clint",
+            "Demetrius", "story.react.34.demetrius",
+            "Evelyn", "story.react.34.evelyn",
+            "George", "story.react.34.george",
+            "Gus", "story.react.34.gus",
+            "Lewis", "story.react.34.lewis",
+            "Linus", "story.react.34.linus",
+            "Marlon", "story.react.34.marlon",
+            "Maru", "story.react.34.maru",
+            "Pierre", "story.react.34.pierre",
+            "Robin", "story.react.34.robin",
+            "Wizard", "story.react.34.wizard");
+
+        Dictionary<string, string> firstDescentReported = Stage(
+            "Abigail", "story.react.35.abigail",
+            "Alex", "story.react.35.alex",
+            "Clint", "story.react.35.clint",
+            "Demetrius", "story.react.35.demetrius",
+            "Evelyn", "story.react.35.evelyn",
+            "George", "story.react.35.george",
+            "Gus", "story.react.35.gus",
+            "Lewis", "story.react.35.lewis",
+            "Linus", "story.react.35.linus",
+            "Marlon", "story.react.35.marlon",
+            "Maru", "story.react.35.maru",
+            "Pierre", "story.react.35.pierre",
+            "Robin", "story.react.35.robin",
+            "Wizard", "story.react.35.wizard");
+
         return new Dictionary<int, IReadOnlyDictionary<string, string>>
         {
             [0] = firstMutant,
@@ -587,7 +667,12 @@ internal sealed class StoryMilestoneReactionService
             [27] = entryProtocolBriefed,
             [28] = entryStagingEstablished,
             [29] = entryReadinessValidated,
-            [30] = entryProtocolReady
+            [30] = entryProtocolReady,
+            [31] = descentAuthorized,
+            [32] = thresholdLineReady,
+            [33] = thresholdCrossed,
+            [34] = firstInteriorInspected,
+            [35] = firstDescentReported
         };
     }
 

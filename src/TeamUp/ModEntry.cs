@@ -125,7 +125,7 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6742Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Lower Workings descent / threshold crossing layer active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Lower Workings descent reaction layer active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
