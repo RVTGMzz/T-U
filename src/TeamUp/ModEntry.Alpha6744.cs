@@ -36,6 +36,8 @@ public sealed partial class ModEntry
             "teamup_lower_interior",
             "Lower Workings dedicated interior survey: status | reset | stage <0-6>.",
             OnAlpha6744Command);
+
+        EnsureAlpha67442EncounterReactionsRegistered();
     }
 
     private void OnAlpha6744AssetRequested(object? sender, AssetRequestedEventArgs e)
