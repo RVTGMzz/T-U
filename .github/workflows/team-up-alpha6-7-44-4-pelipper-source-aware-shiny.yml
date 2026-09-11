@@ -7,6 +7,7 @@ on:
     paths:
       - 'tools/hotfix_alpha6744_4_source_aware_shiny.py'
       - 'tools/build_alpha6744_4.py'
+      - 'tools/fix_alpha6744_4_audit_scope.py'
       - '.github/workflows/team-up-alpha6-7-44-4-pelipper-source-aware-shiny.yml'
   workflow_dispatch:
 
@@ -23,6 +24,8 @@ jobs:
           dotnet_version: 6.0.x
       - name: Apply Alpha 6.7.44.4 source-aware Shiny hotfix
         run: python3 tools/hotfix_alpha6744_4_source_aware_shiny.py
+      - name: Fix Alpha 6.7.44.4 audit scope
+        run: python3 tools/fix_alpha6744_4_audit_scope.py
       - name: Build, audit and package Alpha 6.7.44.4
         run: python3 tools/build_alpha6744_4.py
       - name: Commit verified source-aware Shiny source
