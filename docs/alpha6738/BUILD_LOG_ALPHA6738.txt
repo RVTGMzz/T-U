@@ -1,0 +1,32 @@
+SOURCE ACCEPTANCE: PASS
+SURGE HIGH ROUTE 0..4: PASS
+CONTROLLED BREACH COMPLETION PREREQUISITE: PASS
+EXACT RECORDED BREACH FACE REUSED: PASS
+THREE-PEOPLE FIELD TEAM + ACTIVE TEAM UP NPC REQUIREMENT: PASS
+180-TICK SURGE HIGH CONFIRMATION HOLD: PASS
+TEAM-BREAK / WARP / MENU HOLD RESET: PASS
+PERSISTENT SURGE HIGH FLAG: PASS
+STORY NPC SLOT 4 UNLOCKED ONLY AFTER HIGH REPORT: PASS
+FIVE-PEOPLE TOTAL FORMATION CAP: PASS
+REACTION WINDOWS 0..22 CARRY-FORWARD: PASS (318 lines/language)
+GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+EVELYN POSTGAME SPOILER BOUNDARY: PASS
+NO FINAL BOSS OR CUSTOM LOWER-WORKINGS MAP ADDED: PASS
+6.7.23-6.7.37 STORY/ROSTER/CAPTURE SAFETY CARRY-FORWARD: PASS
+LIVE SURGE HIGH / SLOT 4 PACING STILL REQUIRED
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 780 ms).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.38', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.38.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:11.60
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.38
+ZIP: TeamUp_v0.2.0-alpha.6.7.38_SURGE_HIGH_SLOT4_TEST.zip
+SHA256: 69f94a8491b42f4066e4688d553d91caa99fe8a00a05e4f5d20b56af4c7f59f3
