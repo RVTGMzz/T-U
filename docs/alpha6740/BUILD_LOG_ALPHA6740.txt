@@ -1,0 +1,33 @@
+SOURCE ACCEPTANCE: PASS
+HIGH RESPONSE ENTRY PROTOCOL ROUTE 0..4: PASS
+SURGE HIGH + SLOT4 PREREQUISITES: PASS
+EXACT RECORDED BREACH FACE REUSED: PASS
+ADAPTIVE FULL FORMATION RULE: PASS
+SOLO 1 FARMER + 4 NPC / COOP 2 FARMERS + 3 NPC MODEL: PASS
+240-TICK READINESS HOLD: PASS
+FORMATION / WARP / FREE-STATE / MENU RESET: PASS
+PERSISTENT ENTRY PROTOCOL READY FLAG: PASS
+NO ROSTER UNLOCK SIDE EFFECT: PASS
+FIVE-PEOPLE TOTAL FORMATION CAP: PASS
+REACTION WINDOWS 0..26 CARRY-FORWARD: PASS (374 lines/language)
+GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+EVELYN POSTGAME SPOILER BOUNDARY: PASS
+NO FINAL BOSS OR CUSTOM LOWER-WORKINGS MAP ADDED: PASS
+6.7.23-6.7.39 STORY/ROSTER/CAPTURE SAFETY CARRY-FORWARD: PASS
+LIVE FULL-FORMATION / READINESS PACING STILL REQUIRED
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 1.55 sec).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.40', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.40.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.20
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.40
+ZIP: TeamUp_v0.2.0-alpha.6.7.40_HIGH_RESPONSE_ENTRY_PROTOCOL_TEST.zip
+SHA256: 0dfaaf60da00c50a32ee514f62a27ee40d944b5a9e484173f786b9eeca216c69
