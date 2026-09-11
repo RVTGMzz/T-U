@@ -66,8 +66,8 @@ try:
     req("if (monster.MaxHealth >= 300)" not in reaction, "raw HP still classifies ordinary monsters as Elite/Boss")
     req("ClearFalseShinyState" in reaction, "6.7.44.2 false-Shiny state repair missing")
     req('ShinyPromptCooldownAlpha67442[token] = long.MaxValue;' in wiring, "Farmer Shiny answer is not sticky")
-    req('target.Tile.X' not in wiring.split("BuildShinyPromptTokenAlpha67442", 1)[1].split("private sealed class", 1)[0],
-        "moving Shiny proxy can still create new prompt tokens")
+    req('=> $"{location.NameOrUniqueName}|{target.Name}|{target.GetType().FullName}";' in wiring,
+        "Shiny prompt token is not stable across proxy movement")
     log("SHINY FALSE-POSITIVE + PROMPT SPAM AUDIT: PASS")
 
     # Mutation + Pelipper compatibility gate.
