@@ -765,5 +765,17 @@
   "story.react.22.maru": "Chúng ta đã có đủ dữ liệu để thiết kế bước kế tiếp cho đúng. Xung áp đó cần được theo dõi trước khi mở rộng tuyến.",
   "story.react.22.pierre": "Tuyệt vời, bí ẩn giờ có hẳn một cánh cửa được xác nhận. Tôi vẫn mong nó mãi chỉ là lý thuyết hơn.",
   "story.react.22.robin": "Bản thân khe mở còn kiểm soát được. Bài toán kỹ thuật thật sự là nguồn áp lực nằm sâu hơn bên trong.",
-  "story.react.22.wizard": "Ngưỡng cửa đã mở và dòng chảy sâu hơn đã đáp lại. Lần xuống tới sẽ cần nhiều hơn sự tò mò."
+  "story.react.22.wizard": "Ngưỡng cửa đã mở và dòng chảy sâu hơn đã đáp lại. Lần xuống tới sẽ cần nhiều hơn sự tò mò.",
+  "story.surge-high.need-team": "Kiểm tra SURGE HIGH cần một đội hiện trường ít nhất 3 người, trong đó có ít nhất 1 NPC Team Up đang hoạt động và ở cùng khu vực.",
+  "story.surge-high.missing-face": "Không còn dữ liệu về điểm breach đã ghi nhận. Hãy hoàn tất Controlled Breach / First Entry trước khi bắt đầu kiểm tra HIGH.",
+  "story.surge-high.briefing": "Marlon trải ghi chép của lần thăm dò đầu tiên cạnh sơ đồ áp lực. 'Thứ tôi không thể bỏ qua là nhịp chấn động sau khi mở khe. Ta phải biết đó chỉ là áp lực thoát ra một lần hay là phản ứng đang tiếp diễn. Đưa đội hiện trường trở lại đúng điểm breach. Không mở rộng thêm. Giữ nguyên đội hình, đọc phản ứng của thanh chống và bụi shard, rồi cho tôi một khoảng đo sạch. Nếu nhịp đó lặp lại khi đội hình ổn định, ta sẽ không còn gọi đây là một nhiễu động cục bộ nữa.'",
+  "story.surge-high.objective.reach": "Mục tiêu: đưa đội hiện trường hợp lệ trở lại đúng điểm breach đã ghi nhận. Không mở rộng khe.",
+  "story.surge-high.wrong-shaft": "Đây không phải điểm breach đã ghi nhận. Hãy quay lại MineShaft nơi đội đã thực hiện lần mở khe có kiểm soát.",
+  "story.surge-high.arrival": "Khe mở hẹp vẫn như cũ, nhưng ngưỡng phía sau không còn yên. Lớp bụi shard đen rung nhẹ thành từng nhịp hướng ra ngoài, còn các thanh chống đáp lại bằng một dao động trầm đều đặn quá mức để chỉ là đá tự lún. Giữ nguyên đội hình và duy trì phép đo sạch.",
+  "story.surge-high.objective.hold": "Giữ đội hiện trường tập trung tại điểm breach cho tới khi phép đo HIGH ổn định.",
+  "story.surge-high.confirmed": "Khoảng đo đã ổn định. Nhịp áp lực quay lại qua các thanh chống theo chuỗi lặp, bụi shard đen bật lên theo từng đợt rồi mới lắng xuống. Đây là một phản ứng kéo dài, không phải áp lực thoát ra duy nhất khi mở khe. Phân loại Team Up cập nhật: THE SURGE — HIGH. Khu vực sâu hơn đang chủ động đáp lại ngưỡng đã được mở.",
+  "story.surge-high.objective.return": "Đã xác nhận SURGE HIGH. Hãy trở lại Adventurer's Guild báo cáo cho Marlon cùng đội hiện trường.",
+  "story.surge-high.report": "Marlon đọc lại toàn bộ khoảng đo hai lần rồi kẻ một đường đậm dưới chữ HIGH. 'Ba người đủ để điều tra một bí ẩn. Nhưng không đủ cho thứ sắp tới. Từ giờ Team Up cho phép thêm một vị trí NPC trong đội hiện trường. Hãy dựng đội hình mạnh hơn trước khi chúng ta mở rộng khe đó. Ta vẫn đi theo bằng chứng, không chạy theo truyền thuyết.'",
+  "story.surge-high.slot4-unlocked": "Đã xác nhận SURGE HIGH — mở Story NPC slot 4. Giới hạn đội hình tổng cộng 5 người vẫn được giữ nguyên.",
+  "story.surge-high.complete": "Đã xác nhận SURGE HIGH. Quyền đội hình cốt truyện đã ở mức 4/4; giới hạn tổng cộng 5 người vẫn được giữ nguyên."
 }

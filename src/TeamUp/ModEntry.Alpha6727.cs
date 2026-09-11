@@ -227,7 +227,7 @@ public sealed partial class ModEntry
             $"Effective NPC ally slots now: {effective}",
             "Expected before Marlon bridge: unlockedNpcSlots=0 and recruitment blocked.",
             "Expected after Marlon bridge stage 2: unlockedNpcSlots=1 and exactly one NPC ally may be active.",
-            "Future chapters will unlock slots 2, 3, and 4. Five PEOPLE total remains the hard cap including online Farmers."
+            "Story progression can now reach the full 4/4 NPC allowance at SURGE HIGH. Five PEOPLE total remains the hard cap including online Farmers."
         };
 
         string diagnosticsDir = Path.Combine(Helper.DirectoryPath, "diagnostics");

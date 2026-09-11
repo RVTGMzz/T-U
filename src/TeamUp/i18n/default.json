@@ -765,5 +765,17 @@
   "story.react.22.maru": "We have enough data to design the next operation properly. That pulse needs monitoring before the route expands.",
   "story.react.22.pierre": "Excellent, the mystery now has a confirmed doorway. I was hoping it would remain theoretical forever.",
   "story.react.22.robin": "The breach itself is manageable. The real engineering problem is whatever pressure source lies farther in.",
-  "story.react.22.wizard": "The threshold is open, and the deeper current has answered. The next descent will require more than curiosity."
+  "story.react.22.wizard": "The threshold is open, and the deeper current has answered. The next descent will require more than curiosity.",
+  "story.surge-high.need-team": "Surge HIGH check requires a field team of at least three people with at least one active Team Up NPC ally in the same location.",
+  "story.surge-high.missing-face": "The recorded breach face is missing. Complete the controlled breach / first-entry probe before starting the HIGH check.",
+  "story.surge-high.briefing": "Marlon spreads the first-entry notes beside the pressure sketch. 'The pulse after the opening is the part I cannot dismiss. We need to know whether it was a one-time release or a sustained response. Take the field team back to the exact breach face. Do not widen it. Hold position, read the braces and shard residue, and give me a clean interval. If the pattern repeats under a stable team, we stop calling this a local disturbance.'",
+  "story.surge-high.objective.reach": "Objective: return with a valid field team to the exact recorded breach face. Do not widen the opening.",
+  "story.surge-high.wrong-shaft": "This is not the recorded breach face. Return to the MineShaft used for the controlled opening.",
+  "story.surge-high.arrival": "The narrow breach is unchanged, but the threshold is not quiet. Fine black residue trembles in tiny outward jumps while the braces answer with a low pulse too regular to be ordinary settling. Hold formation and keep the reading clean.",
+  "story.surge-high.objective.hold": "Hold the field team together at the breach face while the HIGH reading stabilizes.",
+  "story.surge-high.confirmed": "The interval holds. The pulse returns through the braces in a repeating sequence, and the black shard residue lifts with each pressure wave before settling again. The response is sustained, not a single release from the breach. Team Up classification updates: THE SURGE — HIGH. The deeper workings are now actively answering the opened threshold.",
+  "story.surge-high.objective.return": "SURGE HIGH confirmed. Return to Marlon at the Adventurer's Guild with the field team.",
+  "story.surge-high.report": "Marlon reads the stabilized interval twice, then draws a hard line beneath HIGH. 'Three people were enough to investigate a mystery. They are not enough for what comes next. From this point forward, Team Up authorizes one more NPC field slot. Build the stronger formation before we widen that breach again. We still do this by evidence, not legends.'",
+  "story.surge-high.slot4-unlocked": "SURGE HIGH confirmed — Story NPC slot 4 unlocked. The five-person total formation cap still applies.",
+  "story.surge-high.complete": "SURGE HIGH confirmed. Story roster authorization is already at 4/4; the five-person total formation cap still applies."
 }

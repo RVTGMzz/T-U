@@ -120,9 +120,10 @@ public sealed partial class ModEntry : Mod
         RegisterAlpha6732Events();
         RegisterAlpha6734Events();
         RegisterAlpha6736Events();
+        RegisterAlpha6738Events();
         RegisterAlpha6720Events();
 
-        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Controlled breach / first-entry probe layer active.", LogLevel.Info);
+        Monitor.Log($"Team Up! v{ModManifest.Version} loaded. Surge HIGH escalation and story slot 4 layer active.", LogLevel.Info);
     }
 
     private void OnStrategyCommand(string command, string[] args)
