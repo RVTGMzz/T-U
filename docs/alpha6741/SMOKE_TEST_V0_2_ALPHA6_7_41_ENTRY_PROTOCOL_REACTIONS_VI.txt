@@ -1,0 +1,21 @@
+TEAM UP 6.7.41 - ENTRY PROTOCOL REACTIONS
+=========================================
+
+PREP:
+- Cai build 6.7.41, load save host.
+- teamup_story_reactions reset.
+
+WINDOWS:
+1. teamup_entry_protocol stage 1 -> window 27. Noi chuyen NPC ho tro 2 lan: lan 1 reaction, lan 2 normal.
+2. teamup_entry_protocol stage 2 -> window 28. Lap lai one-shot test.
+3. teamup_entry_protocol stage 3 -> window 29. READY van chua duoc tu reaction.
+4. teamup_entry_protocol stage 4 -> window 30. Reaction khong duoc thay doi protocol state.
+5. Bo qua mot window roi tang stage -> reaction cu khong duoc replay.
+6. George van Rank D / Non-Combatant / khong recruit; khong Last Blaster.
+7. Evelyn khong reveal postgame.
+8. teamup_story_reactions status -> catalog 0..30.
+9. teamup_entry_protocol status -> stage va READY phai chi do 6.7.40 gameplay quyet dinh.
+
+DEBUG: teamup_entry_protocol status|reset|stage 0-4
+DEBUG: teamup_story_reactions status|reset
+DIAGNOSTIC: diagnostics\TeamUp_Milestone_Reactions_latest.txt
