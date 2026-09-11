@@ -1,0 +1,31 @@
+SOURCE ACCEPTANCE: PASS
+CONTROLLED BREACH / FIRST ENTRY ROUTE 0..5: PASS
+SEALED CORRIDOR COMPLETION PREREQUISITE: PASS
+RECORDED SURVEY FACE REUSED AS BREACH LOCATION: PASS
+THREE-PEOPLE FIELD TEAM + ACTIVE TEAM UP NPC REQUIREMENT: PASS
+180-TICK CONTROLLED OPENING HOLD: PASS
+120-TICK FIRST-ENTRY THRESHOLD PROBE HOLD: PASS
+TEAM-BREAK / WARP / MENU HOLD RESET: PASS
+REACTION WINDOWS 0..17 CARRY-FORWARD: PASS (248 lines/language)
+STORY NPC SLOT 4 REMAINS LOCKED: PASS
+GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+EVELYN POSTGAME SPOILER BOUNDARY: PASS
+NO CUSTOM LOWER-WORKINGS MAP OR BOSS CLAIMED: PASS
+6.7.23-6.7.35 STORY/ROSTER/CAPTURE SAFETY CARRY-FORWARD: PASS
+LIVE CONTROLLED-OPENING / THRESHOLD-PROBE PACING STILL REQUIRED
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 681 ms).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.36', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.36.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:13.83
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.36
+ZIP: TeamUp_v0.2.0-alpha.6.7.36_CONTROLLED_BREACH_FIRST_ENTRY_TEST.zip
+SHA256: c82671d55d78873b9f4daa04f9a7e8d7aefd4032e77b4d0f3885eedad335f10c
