@@ -1,0 +1,23 @@
+TEAM UP 6.7.38 - SURGE HIGH ESCALATION / STORY SLOT 4
+====================================================
+
+PREP:
+- Cai build 6.7.38, load save host.
+- teamup_breach status -> stage 5/5.
+- teamup_roster_story setslots 3 neu can test lai moc unlock sach.
+- teamup_surge_high reset.
+
+ROUTE:
+1. Guild + field team >=3 nguoi, >=1 Team Up NPC -> stage 1.
+2. Vao DUNG breach MineShaft da ghi -> stage 2.
+3. Giu doi hinh lien tuc 180 tick -> stage 3, HIGH=true.
+4. Thu roi map / doi shaft / thieu nguoi / mo menu truoc 180 tick -> hold phai reset.
+5. O stage 3, teamup_roster_story status van phai la 3/4.
+6. Quay ve Guild voi field team hop le -> stage 4/4, roster phai thanh 4/4.
+7. Save + reload -> teamup_surge_high status van high=True va stage 4/4.
+8. George van Rank D / Non-Combatant / khong recruit; khong Last Blaster.
+9. Reaction catalog 0..22 khong thay doi.
+10. Multiplayer: story allowance co the 4/4 nhung tong formation van toi da 5 PEOPLE.
+
+DEBUG: teamup_surge_high status|reset|stage 0-4
+DIAGNOSTIC: diagnostics\TeamUp_Surge_HIGH_Escalation_latest.txt
