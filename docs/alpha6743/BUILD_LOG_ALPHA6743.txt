@@ -1,0 +1,32 @@
+SOURCE ACCEPTANCE: PASS
+REACTION WINDOWS 0..35: PASS
+LOWER WORKINGS DESCENT WINDOWS 31..35: PASS (14 NPCs each)
+CURATED MILESTONE REACTIONS: PASS (500 lines/language)
+NPC INTERACTION + DIAGNOSTIC ROUTED TO 6.7.43 WINDOW RESOLVER: PASS
+LOWER WORKINGS DESCENT 6.7.42 CARRY-FORWARD: PASS
+120-TICK THRESHOLD CROSSING + PERSISTENT CROSSED STATE: PASS
+180-TICK FIRST INTERIOR INSPECTION + PERSISTENT COMPLETION: PASS
+ENTRY PROTOCOL READY + ADAPTIVE FULL FORMATION CARRY-FORWARD: PASS
+SURGE HIGH + STORY SLOT 4 CARRY-FORWARD: PASS
+FIVE-PEOPLE TOTAL FORMATION CAP: PASS
+GEORGE / LAST BLASTER SPOILER BOUNDARY: PASS
+EVELYN POSTGAME SPOILER BOUNDARY: PASS
+PELIPPER / MUTATION SAFETY CARRY-FORWARD: PASS
+NO COMBAT, MAP, BOSS, MONSTER, CAPTURE OR ROSTER MECHANICS CHANGED: PASS
+LIVE ONE-SHOT DIALOGUE PACING FOR WINDOWS 31..35 STILL REQUIRED
+  Determining projects to restore...
+  Restored /home/runner/work/Team-Up/Team-Up/src/TeamUp/TeamUp.csproj (in 1.04 sec).
+  TeamUp -> /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/TeamUp.dll
+  [mod build package] Handling build with options BundleExtraAssemblies: null, EnableModDeploy: true, EnableModZip: true, GameModsDir: '/home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods', IgnoreModFilePaths: null, ModDllName: 'TeamUp', ModFolderName: 'Team Up', ModZipPath: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/', ProjectDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/', ProjectVersion: '0.2.0-alpha.6.7.43', TargetDir: '/home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/'
+  [mod build package] Copying the mod files to /home/runner/.steam/steam/steamapps/common/Stardew Valley/Mods/Team Up...
+  [mod build package] Generating the release zip at /home/runner/work/Team-Up/Team-Up/src/TeamUp/bin/Release/net6.0/Team Up 0.2.0-alpha.6.7.43.zip...
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:14.80
+BINARY ACCEPTANCE: PASS
+BUILD SUCCESS - ALPHA 6.7.43
+ZIP: TeamUp_v0.2.0-alpha.6.7.43_LOWER_WORKINGS_DESCENT_REACTIONS_TEST.zip
+SHA256: 16ae5d354c9b84231a158240edf2f92f80d1279b1d500c05789a214e37e108f1
