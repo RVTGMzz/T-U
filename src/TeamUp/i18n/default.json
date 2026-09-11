@@ -902,5 +902,19 @@
   "story.react.30.maru": "All readiness checks are complete. The next dataset will come from beyond the threshold, which means our uncertainty will rise sharply again.",
   "story.react.30.pierre": "So we are officially prepared to enter the place we have spent days proving is dangerous. Somehow that is progress.",
   "story.react.30.robin": "The staging and fallback plan are approved. When the real descent starts, do not let anyone block the retreat lane with gear or bravado.",
-  "story.react.30.wizard": "The threshold may now be crossed by design rather than impulse. What lies beyond remains unnamed."
+  "story.react.30.wizard": "The threshold may now be crossed by design rather than impulse. What lies beyond remains unnamed.",
+  "story.descent.need-protocol": "Marlon: Not yet. SURGE HIGH is still active, but nobody crosses that breach until the Entry Protocol is READY and the full response roster is authorized.",
+  "story.descent.missing-face": "Marlon: The recorded breach face is missing from our field record. Re-establish the controlled-breach route before we attempt a descent.",
+  "story.descent.briefing": "Marlon: Protocol is READY. This is the first real descent, and it stays small. Full formation to the recorded breach. Cross only when the withdrawal line is stable. Nobody pursues anything beyond the first threshold zone. If the formation breaks, you come back out. We are proving we can enter and leave, not conquering the lower workings tonight.",
+  "story.descent.objective.reach": "Objective updated: assemble the full operational formation at the recorded breach face.",
+  "story.descent.wrong-shaft": "This is not the recorded controlled-breach face. Return to the exact MineShaft used by the Entry Protocol.",
+  "story.descent.need-full-team": "The first descent requires the full operational formation for the current multiplayer party size.",
+  "story.descent.threshold-ready": "The full formation locks into the staging line. The braced opening is stable, the rear anchor has the supports, and the withdrawal route is clear. The no-pursuit threshold is now in front of you. Hold formation and cross together.",
+  "story.descent.objective.cross": "Objective updated: hold the full formation through the 120-tick threshold crossing.",
+  "story.descent.crossed": "The team passes one by one through the narrow braced opening. The air beyond is colder and older, carrying coal dust that has not moved in years. Behind you, the withdrawal line remains visible. For the first time, Team Up is physically beyond the old seal.",
+  "story.descent.objective.inspect": "Objective updated: hold the threshold zone for 180 ticks and inspect only the first interior section.",
+  "story.descent.evidence": "The first interior section tells a clearer story. Old timber cribbing is not scattered by a random cave-in; it is wedged to steer a collapse across the passage. Blast cups score the rock in a deliberate fan, and charred support seams follow the closing line. Someone turned this corridor into a barrier under emergency pressure. The evidence says containment. It still does not say who did it, or what they were trying to hold back.",
+  "story.descent.objective.return": "Objective updated: withdraw along the marked line and report the first descent to Marlon.",
+  "story.descent.report": "Marlon: Good. You crossed, held the line, read the first threshold zone, and came back without chasing the unknown. The old accident story is getting harder to defend. That collapse was shaped into a seal. We now have enough to plan a dedicated lower-workings operation, but we still do not know who built the containment or what forced them to do it.",
+  "story.descent.complete": "First Lower Workings descent complete. Threshold-crossed and first-descent state saved."
 }

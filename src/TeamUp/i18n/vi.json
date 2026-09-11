@@ -902,5 +902,19 @@
   "story.react.30.maru": "Mọi kiểm tra readiness đã hoàn tất. Dữ liệu tiếp theo sẽ đến từ phía bên kia ngưỡng, đồng nghĩa mức bất định sẽ tăng mạnh trở lại.",
   "story.react.30.pierre": "Vậy là giờ chúng ta chính thức sẵn sàng đi vào nơi đã mất nhiều ngày để chứng minh là nguy hiểm. Không hiểu sao vẫn gọi là tiến triển được.",
   "story.react.30.robin": "Kế hoạch tập kết và fallback đã được duyệt. Khi chuyến xuống thật bắt đầu, đừng để ai chặn lối rút bằng đồ đạc hay sự liều lĩnh.",
-  "story.react.30.wizard": "Ngưỡng cửa giờ có thể được vượt qua bởi kế hoạch thay vì bốc đồng. Thứ phía bên kia vẫn chưa có tên."
+  "story.react.30.wizard": "Ngưỡng cửa giờ có thể được vượt qua bởi kế hoạch thay vì bốc đồng. Thứ phía bên kia vẫn chưa có tên.",
+  "story.descent.need-protocol": "Marlon: Chưa được. SURGE HIGH vẫn còn, nhưng không ai được vượt qua khe đó cho tới khi Entry Protocol ở trạng thái READY và đội phản ứng đầy đủ đã được cho phép.",
+  "story.descent.missing-face": "Marlon: Điểm breach đã ghi trước đó không còn trong hồ sơ hiện trường. Hãy xác lập lại tuyến controlled breach trước khi thử xuống sâu.",
+  "story.descent.briefing": "Marlon: Protocol đã READY. Đây là lần xuống Lower Workings thật sự đầu tiên, và ta sẽ giữ phạm vi thật nhỏ. Đưa full formation tới đúng breach face đã ghi. Chỉ vượt qua khi tuyến rút lui ổn định. Không ai được đuổi theo bất cứ thứ gì vượt quá khu threshold đầu tiên. Đội hình vỡ là rút ra ngay. Tối nay ta chứng minh mình có thể vào rồi trở ra, không phải đi chinh phục cả khu hầm dưới.",
+  "story.descent.objective.reach": "Mục tiêu mới: tập hợp full operational formation tại đúng breach face đã ghi.",
+  "story.descent.wrong-shaft": "Đây không phải controlled-breach face đã ghi. Hãy quay lại đúng MineShaft dùng trong Entry Protocol.",
+  "story.descent.need-full-team": "Lần xuống đầu tiên yêu cầu full operational formation phù hợp với số Farmer multiplayer hiện tại.",
+  "story.descent.threshold-ready": "Full formation vào đúng staging line. Khe mở đã được chống giữ ổn định, rear anchor đang canh hệ chống và tuyến rút lui đã thông. No-pursuit threshold nằm ngay phía trước. Giữ đội hình và cùng nhau vượt qua.",
+  "story.descent.objective.cross": "Mục tiêu mới: giữ full formation xuyên suốt 120 tick để vượt threshold.",
+  "story.descent.crossed": "Cả đội lần lượt lách qua khe mở hẹp đã được chống giữ. Không khí phía bên kia lạnh và cũ hơn, mang theo bụi than đã nằm yên nhiều năm. Phía sau, tuyến rút lui vẫn còn trong tầm mắt. Lần đầu tiên Team Up đã thật sự đứng bên kia lớp phong kín cũ.",
+  "story.descent.objective.inspect": "Mục tiêu mới: giữ khu threshold trong 180 tick và chỉ khảo sát phần bên trong đầu tiên.",
+  "story.descent.evidence": "Phần bên trong đầu tiên kể một câu chuyện rõ hơn. Các thanh gỗ chống cũ không hề văng ngẫu nhiên do sập hầm; chúng được chèn để hướng khối sập chắn ngang lối đi. Dấu hốc nổ xòe theo một hướng có chủ đích, còn vết cháy trên hệ chống chạy dọc theo đường phong kín. Có người đã biến hành lang này thành một bức chắn trong tình huống khẩn cấp. Bằng chứng nói rằng đây là containment có chủ ý. Nó vẫn chưa cho biết ai đã làm, hay họ đang cố giữ thứ gì ở phía sau.",
+  "story.descent.objective.return": "Mục tiêu mới: rút theo tuyến đã đánh dấu và báo cáo lần xuống đầu tiên cho Marlon.",
+  "story.descent.report": "Marlon: Tốt. Các cậu đã vượt qua, giữ được tuyến, đọc khu threshold đầu tiên và quay ra mà không đuổi theo điều chưa biết. Câu chuyện 'tai nạn công nghiệp' giờ càng khó đứng vững. Vụ sập đó đã được tạo hình thành một lớp phong kín. Ta đã có đủ dữ kiện để chuẩn bị một chiến dịch Lower Workings riêng, nhưng vẫn chưa biết ai dựng lớp containment đó hay điều gì đã buộc họ phải làm vậy.",
+  "story.descent.complete": "Lần xuống Lower Workings đầu tiên hoàn tất. Trạng thái threshold-crossed và first-descent đã được lưu."
 }
