@@ -1,0 +1,48 @@
+name: Team Up v0.2.0-alpha.6.7.44.1 TMX CSV Hotfix
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-1-tmx-csv-hotfix
+    paths:
+      - 'tools/hotfix_alpha6744_1_tmx_csv.py'
+      - 'tools/build_alpha6744_1.py'
+      - '.github/workflows/team-up-alpha6-7-44-1-tmx-csv-hotfix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+      - name: Apply Alpha 6.7.44.1 TMX CSV hotfix
+        run: python3 tools/hotfix_alpha6744_1_tmx_csv.py
+      - name: Build, validate and package Alpha 6.7.44.1
+        run: python3 tools/build_alpha6744_1.py
+      - name: Commit verified hotfix source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp
+          if git diff --cached --quiet; then
+            echo "No hotfix source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.7.44.1 TMX CSV hotfix [skip ci]"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+      - name: Upload Alpha 6.7.44.1 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-1-tmx-csv-hotfix
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.44.1_LOWER_WORKINGS_TMX_CSV_HOTFIX_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.1_LOWER_WORKINGS_TMX_CSV_HOTFIX_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_1.txt
+            LOWER_WORKINGS_TMX_CSV_HOTFIX_AUDIT_ALPHA6744_1.md
+          if-no-files-found: error
