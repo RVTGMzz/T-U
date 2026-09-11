@@ -1,0 +1,51 @@
+name: Team Up v0.2.0-alpha.6.7.38 Surge HIGH Slot 4
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-38-surge-high-slot4
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Run actions/checkout@v4
+        uses: actions/checkout@v4
+
+      - name: Run Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+
+      - name: Materialize Alpha 6.7.38 Surge HIGH / slot 4 source
+        run: python3 tools/materialize_alpha6738.py
+
+      - name: Build, audit and package Alpha 6.7.38
+        run: python3 tools/build_alpha6738.py
+
+      - name: Commit verified source to development branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TeamUp
+          if git diff --cached --quiet; then
+            echo "No materialized source diff."
+          else
+            git commit -m "chore: materialize Team Up v0.2.0-alpha.6.7.38 Surge HIGH slot 4 [skip ci]"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: Upload Alpha 6.7.38 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-38-surge-high-slot4
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.38_SURGE_HIGH_SLOT4_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.38_SURGE_HIGH_SLOT4_TEST.sha256.txt
+            BUILD_LOG_ALPHA6738.txt
+            SURGE_HIGH_SLOT4_AUDIT_ALPHA6738.md
+            SMOKE_TEST_V0_2_ALPHA6_7_38_SURGE_HIGH_SLOT4_VI.txt
+          if-no-files-found: error
