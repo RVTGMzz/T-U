@@ -616,5 +616,15 @@
   "story.react.13.maru": "Maru: Tốt. Ta có vùng mục tiêu. Trước khi vào, tôi muốn kiểm tra ổn định và cách theo dõi phía bên kia.",
   "story.react.13.pierre": "Pierre: Làm ơn nói giai đoạn tới có giấy bảo hiểm trước khi có chất nổ.",
   "story.react.13.robin": "Robin: Giờ biết hành lang ở đâu rồi, tôi có thể tính cách tiếp cận an toàn. Từ quan trọng là an toàn.",
-  "story.react.13.wizard": "Wizard: Các bạn đã tìm ra đường nối giữa lịch sử bị chôn và hiện tại. Đừng cắt nó một cách bất cẩn."
+  "story.react.13.wizard": "Wizard: Các bạn đã tìm ra đường nối giữa lịch sử bị chôn và hiện tại. Đừng cắt nó một cách bất cẩn.",
+  "story.corridor.need-team": "Marlon muốn đủ đội khảo sát: ít nhất ba người phải có mặt tại đây, trong đó có ít nhất một đồng đội Team Up đang hoạt động.",
+  "story.corridor.briefing": "Marlon: Hai đường đo đã cho ta một hành lang, chứ chưa cho ta một cánh cửa an toàn. Trước khi bất kỳ ai vung cuốc, ta phải kiểm tra ranh giới. Đưa đội khảo sát vào khu mỏ hiện tại và tiếp cận mặt tường gần vùng đã khoanh nhất. Giữ đội hình đủ lâu để đọc luồng gió, sức căng của gỗ chống và áp lực trong đá. Ta xác nhận lớp phong kín trước. Chưa phá nó.",
+  "story.corridor.objective.reach": "Mục tiêu: đưa đội khảo sát hợp lệ gồm ba người vào MineShaft và tiếp cận mặt tường nghi là lối phong kín.",
+  "story.corridor.approach-entry": "Cả đội chậm lại bên một đoạn tường đá có vẻ mới hơn phần xung quanh. Một luồng khí lạnh mảnh lách ngang qua đường vữa. Bên dưới lớp gia cố mới, vết gỗ chống cũ cắt chéo theo một góc không thuộc cấu trúc hiện tại. Khi lòng mỏ khẽ chuyển mình, khối đá đáp lại bằng một tiếng rung rỗng nông từ phía sau mặt tường.",
+  "story.corridor.objective.hold": "Giữ đội khảo sát tập trung tại đây trong khi phép đo áp lực ổn định.",
+  "story.corridor.wrong-shaft": "Đây không phải mặt tường khảo sát đã đánh dấu. Hãy quay lại MineShaft nơi phép đo tiếp cận bắt đầu.",
+  "story.corridor.pressure-survey": "Số đo dần ổn định. Luồng khí không giống một vụ sập hầm thông thường, còn đường ứng suất chạy ngang thay vì dọc theo trục mỏ đang hoạt động. Một vệt cháy hướng vào trong rất mờ bám theo đường nối của hệ chống cũ phía sau bức tường mới. Thứ nằm bên kia mặt tường này thuộc về những đường hầm cũ, và lớp phong kín vẫn đang chịu áp lực. Cả đội đã tìm thấy ranh giới mà chưa cần mở nó.",
+  "story.corridor.objective.return": "Đã hoàn tất khảo sát áp lực. Hãy đưa đội trở lại Adventurer's Guild gặp Marlon.",
+  "story.corridor.confirmed": "Marlon xem các số đo hai lần. Luồng khí, vết gỗ chống và đường ứng suất ngang đều khớp nhau. Đây chính là mặt tiếp cận bị chôn, dẫn về khu lower workings đã bị phong kín. Ông đánh dấu nó lên bản đồ rồi gấp tờ giấy lại. 'Ta đã tìm được lối tiếp cận. Không có nghĩa là ta được phép mở nó. Lần tới xuống đó, ta phải chuẩn bị cho chuyện một lớp phong kín thất bại có thể gây ra.'",
+  "story.corridor.complete": "Đã xác nhận lối tiếp cận hành lang phong kín. Mặt tường đã được đánh dấu, nhưng việc phá phong vẫn chưa bắt đầu."
 }

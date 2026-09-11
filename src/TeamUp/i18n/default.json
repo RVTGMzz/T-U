@@ -616,5 +616,15 @@
   "story.react.13.maru": "Maru: Great. We have a target zone. Before entry, I want stability checks and a way to monitor whatever is behind it.",
   "story.react.13.pierre": "Pierre: Please tell me the next phase includes insurance forms before explosives.",
   "story.react.13.robin": "Robin: Now that we know the corridor, I can think about safe access. Safe is the important word.",
-  "story.react.13.wizard": "Wizard: You have found the seam between buried history and the present. Do not cut it carelessly."
+  "story.react.13.wizard": "Wizard: You have found the seam between buried history and the present. Do not cut it carelessly.",
+  "story.corridor.need-team": "Marlon wants the full field team present: at least three people here, including one active Team Up ally.",
+  "story.corridor.briefing": "Marlon: The bearings give us a corridor, not a safe door. Before anyone swings a pick, we check the boundary. Take the field team into the modern mine and approach the face nearest our triangulated zone. Hold formation long enough to read the draft, timber strain, and stone pressure. We confirm the seal first. We do not breach it.",
+  "story.corridor.objective.reach": "Objective: take a valid three-person field team into a MineShaft and approach the suspected sealed face.",
+  "story.corridor.approach-entry": "The team slows beside a section of newer stone. A thin cold draft slips sideways through a mortar seam. Beneath the newer reinforcement, an older timber scar cuts across the wall at the wrong angle. When the mine settles, the rock answers with a shallow hollow vibration from behind the face.",
+  "story.corridor.objective.hold": "Hold the field team together here while the pressure survey stabilizes.",
+  "story.corridor.wrong-shaft": "This is not the survey face you marked. Return to the MineShaft where the approach reading began.",
+  "story.corridor.pressure-survey": "The reading settles. The draft does not behave like an ordinary cave-in, and the stress line runs laterally instead of down the active shaft. A faint inward-burn trace follows an obsolete support seam behind the newer wall. Whatever lies beyond this face belongs to older workings, and the seal is still carrying pressure. The team has found the boundary without opening it.",
+  "story.corridor.objective.return": "Pressure survey complete. Return to Marlon at the Adventurer's Guild with the field team.",
+  "story.corridor.confirmed": "Marlon studies the readings twice. The airflow, timber scar, and lateral stress all agree. This is the buried access face leading toward the sealed lower workings. He marks it on the map, then folds the page shut. 'We have the approach. That does not mean we have permission to open it. Next time we go there, we prepare for what a failed seal can do.'",
+  "story.corridor.complete": "Sealed corridor approach confirmed. The access face is mapped, but the breach has not begun."
 }
