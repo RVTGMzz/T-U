@@ -1,27 +1,40 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.Monsters;
 
 namespace Ronvotri.TeamUp.Core;
 
-/// <summary>
-/// Alpha 6.7.44.4 source-aware identity for Pelipper wild encounters.
-/// Pelipper may render a visible Pokémon NPC while combat is executed through a separate Monster
-/// proxy (often a vanilla monster type/name). Team Up must read identity/Shiny state from the source
-/// actor while applying damage/targeting state to the combat proxy.
-/// </summary>
 internal sealed record PelipperWildEncounterIdentity(
     Monster CombatProxy,
     NPC SourceActor,
     string DisplayName,
     string EncounterId);
 
+/// <summary>
+/// Source-aware identity for Pelipper wild encounters.
+/// 6.7.44.6 adds a weak per-proxy cache so normal combat ticks do not repeatedly scan every NPC
+/// and reflect every Pelipper actor. Positive pairings refresh only every few seconds; negative
+/// lookups retry quickly so a just-spawned source actor can still pair with its proxy.
+/// </summary>
 internal static class PelipperWildEncounterIdentityService
 {
     public const string SourceEncounterIdMarker = "Ronvotri.TeamUp/PelipperSourceEncounterId";
     public const string ProxyEncounterIdMarker = "Ronvotri.TeamUp/PelipperEncounterId";
     public const string ProxyDisplayNameMarker = "Ronvotri.TeamUp/PelipperDisplayName";
+
+    private const long PositiveCacheTicks = 240;
+    private const long NegativeCacheTicks = 15;
+
+    private sealed class CacheEntry
+    {
+        public PelipperWildEncounterIdentity? Identity { get; init; }
+        public long ValidUntilTick { get; init; }
+        public string LocationName { get; init; } = string.Empty;
+    }
+
+    private static readonly ConditionalWeakTable<Monster, CacheEntry> Cache = new();
 
     private static readonly string[] StableIdHints =
     {
@@ -41,8 +54,43 @@ internal static class PelipperWildEncounterIdentityService
             return false;
 
         GameLocation? location = proxy.currentLocation ?? Game1.currentLocation;
+        string locationName = location?.NameOrUniqueName ?? string.Empty;
+        long now = Game1.ticks;
+
+        if (Cache.TryGetValue(proxy, out CacheEntry? cached)
+            && cached.ValidUntilTick >= now
+            && cached.LocationName.Equals(locationName, StringComparison.OrdinalIgnoreCase))
+        {
+            if (cached.Identity is not null)
+            {
+                NPC source = cached.Identity.SourceActor;
+                if (ReferenceEquals(source, proxy)
+                    || location is null
+                    || ReferenceEquals(source.currentLocation, location))
+                {
+                    identity = cached.Identity;
+                    return true;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        Cache.Remove(proxy);
+
         if (location is null)
-            return TryResolveFromProxyMarkers(proxy, out identity);
+        {
+            bool markerResolved = TryResolveFromProxyMarkers(proxy, out identity);
+            Cache.Add(proxy, new CacheEntry
+            {
+                Identity = markerResolved ? identity : null,
+                ValidUntilTick = now + (markerResolved ? PositiveCacheTicks : NegativeCacheTicks),
+                LocationName = locationName
+            });
+            return markerResolved;
+        }
 
         Rectangle proxyBounds = proxy.GetBoundingBox();
         NPC? source = location.characters
@@ -65,7 +113,16 @@ internal static class PelipperWildEncounterIdentityService
             .FirstOrDefault();
 
         if (source is null)
-            return TryResolveFromProxyMarkers(proxy, out identity);
+        {
+            bool markerResolved = TryResolveFromProxyMarkers(proxy, out identity);
+            Cache.Add(proxy, new CacheEntry
+            {
+                Identity = markerResolved ? identity : null,
+                ValidUntilTick = now + (markerResolved ? PositiveCacheTicks : NegativeCacheTicks),
+                LocationName = locationName
+            });
+            return markerResolved;
+        }
 
         string displayName = ReadDisplayName(source);
         string encounterId = GetOrCreateEncounterId(source, location, displayName);
@@ -73,6 +130,12 @@ internal static class PelipperWildEncounterIdentityService
         proxy.modData[ProxyDisplayNameMarker] = displayName;
 
         identity = new PelipperWildEncounterIdentity(proxy, source, displayName, encounterId);
+        Cache.Add(proxy, new CacheEntry
+        {
+            Identity = identity,
+            ValidUntilTick = now + PositiveCacheTicks,
+            LocationName = locationName
+        });
         return true;
     }
 
@@ -206,7 +269,7 @@ internal static class PelipperWildEncounterIdentityService
         }
         catch
         {
-            // Optional compatibility: identity probing must fail safely.
+            // Compatibility probing must fail safely.
         }
         return false;
     }
