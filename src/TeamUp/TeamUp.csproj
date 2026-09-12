@@ -1,16 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>0.2.0-alpha.6.7.44.4</Version>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
     <AssemblyName>TeamUp</AssemblyName>
     <RootNamespace>Ronvotri.TeamUp</RootNamespace>
-    <ModFolderName>Team Up</ModFolderName>
-    <EnableHarmony>true</EnableHarmony>
+    <ProjectVersion>0.2.0-alpha.6.7.44.5</ProjectVersion>
+    <Version>$(ProjectVersion)</Version>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.1.1" />
   </ItemGroup>
 </Project>
