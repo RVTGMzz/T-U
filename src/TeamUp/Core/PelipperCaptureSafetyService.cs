@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Reflection;
 using Ronvotri.TeamUp.Combat;
 using StardewValley;
@@ -6,16 +7,21 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Read-only compatibility policy for Pelipper Town's low-HP capture/mercy mode.
-/// Capture-floor protection is fail-closed: it is active only when Pelipper Town is present AND
-/// Team Up positively resolves an enabled Catch/Capture/Mercy mode. A 10% threshold is used only
-/// after that mode is confirmed on and Pelipper does not expose a stable threshold value.
-/// Shiny Emergency Hold is a separate Team Up safety state and does not imply Catch Mode is on.
+/// Pelipper Town capture-safety compatibility.
+/// 6.7.44.6 deliberately separates Pelipper's active combat mode from capture-chance bonuses.
+/// Unknown mode fails closed. A 10% mercy floor is used only after the live mode is positively
+/// identified as Capture/Catch mode and no explicit non-lethal floor is exposed by Pelipper.
 /// </summary>
 internal static class PelipperCaptureSafetyService
 {
     private const float FallbackThreshold = 0.10f;
-    private const long ProbeIntervalMs = 2000;
+    private const long ProbeIntervalMs = 1500;
+    private const int MaxRuntimeDepth = 2;
+
+    private static readonly string[] RejectedSemanticWords =
+    {
+        "bonus", "chance", "multiplier", "rate", "accuracy", "pity", "odds", "weight", "roll"
+    };
 
     private static long _nextProbeAt;
     private static bool _enabled;
@@ -24,37 +30,27 @@ internal static class PelipperCaptureSafetyService
     private static bool _modeEnabled;
     private static float _threshold = FallbackThreshold;
     private static string _modeSource = "unresolved";
+    private static string _modeValue = "unresolved";
     private static string _thresholdSource = "inactive";
 
     public static bool IsProtected(Monster monster)
         => TryGetDamageBudget(monster, out int budget) && budget <= 0;
 
-    /// <summary>
-    /// Returns true when Team Up friendly-damage safety applies to this Pelipper combat proxy.
-    /// A Shiny Emergency Hold always returns a zero budget. Otherwise this returns a capture-floor
-    /// budget only while Pelipper Town Catch/Capture/Mercy mode is positively confirmed enabled.
-    /// int.MaxValue means the target isn't currently friendly-damage limited.
-    /// </summary>
     public static bool TryGetDamageBudget(Monster monster, out int budget)
     {
         budget = int.MaxValue;
         if (monster.Health <= 0 || monster.MaxHealth <= 0)
             return false;
-
-        // Mutations are combat-only Team Up threats. They must not inherit Pelipper's mercy floor.
         if (MonsterMutationService.IsMutant(monster))
             return false;
 
-        // Shiny Hold is deliberately independent from Pelipper Catch Mode. It is a Team Up tactical
-        // pause so the Farmer can decide what to do with a rare encounter before allies attack it.
+        // Shiny Emergency Hold is independent from Pelipper Capture mode.
         if (EncounterReactionService.IsShinyEmergencyHeld(monster))
         {
             budget = 0;
             return true;
         }
 
-        // Capture-floor identity is the Pelipper wild/battle proxy itself, not Team Up's transient
-        // CombatTarget opt-in marker.
         if (!PelipperTownCompatibilityService.IsWildCombatActor(monster))
             return false;
 
@@ -76,10 +72,6 @@ internal static class PelipperCaptureSafetyService
             : requestedDamage;
     }
 
-    /// <summary>
-    /// Returns the actual Pelipper capture floor. Shiny Emergency Hold intentionally does not
-    /// participate here, so it can never create or repair an artificial 10% HP floor by itself.
-    /// </summary>
     public static bool TryGetCaptureFloor(Monster monster, out int stopAtHealth)
     {
         stopAtHealth = 0;
@@ -98,11 +90,6 @@ internal static class PelipperCaptureSafetyService
         return true;
     }
 
-    /// <summary>
-    /// Last-resort repair for custom friendly damage paths that directly lower Health without
-    /// crossing a patched damage entry point. This never revives a dead/removed monster and runs
-    /// only for the positively confirmed Pelipper capture floor, never for Shiny Emergency Hold.
-    /// </summary>
     public static int RepairCurrentLocationFloors(GameLocation? location)
     {
         RefreshPolicyIfNeeded();
@@ -125,77 +112,20 @@ internal static class PelipperCaptureSafetyService
         return repaired;
     }
 
-    public static float CurrentThreshold
-    {
-        get
-        {
-            RefreshPolicyIfNeeded();
-            return _threshold;
-        }
-    }
-
-    public static bool CurrentEnabled
-    {
-        get
-        {
-            RefreshPolicyIfNeeded();
-            return _enabled;
-        }
-    }
-
-    public static bool PelipperDetected
-    {
-        get
-        {
-            RefreshPolicyIfNeeded();
-            return _pelipperDetected;
-        }
-    }
-
-    /// <summary>True when Team Up found an explicit Pelipper Catch/Capture/Mercy mode signal.</summary>
-    public static bool ModeConfirmed
-    {
-        get
-        {
-            RefreshPolicyIfNeeded();
-            return _modeConfirmed;
-        }
-    }
-
+    public static float CurrentThreshold { get { RefreshPolicyIfNeeded(); return _threshold; } }
+    public static bool CurrentEnabled { get { RefreshPolicyIfNeeded(); return _enabled; } }
+    public static bool PelipperDetected { get { RefreshPolicyIfNeeded(); return _pelipperDetected; } }
+    public static bool ModeConfirmed { get { RefreshPolicyIfNeeded(); return _modeConfirmed; } }
     public static bool CatchModeDetected => ModeConfirmed;
-
-    /// <summary>True only when an explicit mode signal was found and its current value is enabled.</summary>
-    public static bool CatchModeEnabled
-    {
-        get
-        {
-            RefreshPolicyIfNeeded();
-            return _modeEnabled;
-        }
-    }
-
-    public static string ModeSource
-    {
-        get
-        {
-            RefreshPolicyIfNeeded();
-            return _modeSource;
-        }
-    }
-
-    public static string ThresholdSource
-    {
-        get
-        {
-            RefreshPolicyIfNeeded();
-            return _thresholdSource;
-        }
-    }
+    public static bool CatchModeEnabled { get { RefreshPolicyIfNeeded(); return _modeEnabled; } }
+    public static string ModeSource { get { RefreshPolicyIfNeeded(); return _modeSource; } }
+    public static string ModeValue { get { RefreshPolicyIfNeeded(); return _modeValue; } }
+    public static string ThresholdSource { get { RefreshPolicyIfNeeded(); return _thresholdSource; } }
 
     public static string DescribePolicy()
     {
         RefreshPolicyIfNeeded();
-        return $"Pelipper capture safety: pelipperPresent={_pelipperDetected} | catchModeDetected={_modeConfirmed} | catchModeEnabled={_modeEnabled} | captureSafetyEnabled={_enabled} | modeSource={_modeSource} | threshold={_threshold:P0} | thresholdSource={_thresholdSource}";
+        return $"Pelipper capture safety: pelipperPresent={_pelipperDetected} | catchModeDetected={_modeConfirmed} | catchModeEnabled={_modeEnabled} | captureSafetyEnabled={_enabled} | modeValue={_modeValue} | modeSource={_modeSource} | threshold={_threshold:P0} | thresholdSource={_thresholdSource}";
     }
 
     private static void RefreshPolicyIfNeeded()
@@ -205,15 +135,33 @@ internal static class PelipperCaptureSafetyService
             return;
         _nextProbeAt = now + ProbeIntervalMs;
 
-        // Every probe begins OFF. This deliberately prevents a stale true value from surviving if
-        // Pelipper is removed, Catch Mode is turned off, or a future Pelipper build hides the mode.
         bool pelipperDetected = false;
-        bool enabled = false;
+        bool modeEnabled = false;
         float threshold = FallbackThreshold;
         int bestModeScore = -1;
         int bestThresholdScore = -1;
         string modeSource = "unresolved";
+        string modeValue = "unresolved";
         string thresholdSource = "unresolved";
+
+        // First try Pelipper-owned player state. This is cheap and avoids reflecting through the whole
+        // mod when the active battle mode is persisted in player modData.
+        if (Context.IsWorldReady)
+        {
+            foreach (Farmer farmer in Game1.getOnlineFarmers())
+            {
+                foreach (var pair in farmer.modData.Pairs)
+                {
+                    string key = Normalize(pair.Key);
+                    if (!key.Contains("pelipper"))
+                        continue;
+                    ConsiderMode(key, pair.Value, $"Farmer.modData[{pair.Key}]", ref modeEnabled,
+                        ref bestModeScore, ref modeSource, ref modeValue);
+                    ConsiderThreshold(key, pair.Value, $"Farmer.modData[{pair.Key}]", ref threshold,
+                        ref bestThresholdScore, ref thresholdSource);
+                }
+            }
+        }
 
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
@@ -225,126 +173,95 @@ internal static class PelipperCaptureSafetyService
             }
 
             pelipperDetected = true;
+            HashSet<object> visited = new(ReferenceEqualityComparer.Instance);
+
             foreach (Type type in SafeGetTypes(assembly))
             {
-                string typeName = type.FullName ?? type.Name;
-                bool likelySettingsType = typeName.Contains("Config", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("Setting", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("Option", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("ModEntry", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("Battle", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("Combat", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("Capture", StringComparison.OrdinalIgnoreCase)
-                    || typeName.Contains("Catch", StringComparison.OrdinalIgnoreCase);
-                if (!likelySettingsType)
+                string typeName = Normalize(type.FullName ?? type.Name);
+                if (!LooksLikeRuntimeType(typeName) || IsRejectedContainer(typeName))
                     continue;
 
-                ProbeMembers(type, null, isStatic: true, typeName,
-                    ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
-                    ref modeSource, ref thresholdSource);
+                ProbeMembers(type, null, isStatic: true, type.FullName ?? type.Name,
+                    ref modeEnabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                    ref modeSource, ref modeValue, ref thresholdSource);
 
-                foreach (object root in GetStaticRoots(type))
-                    ProbeRootAndSettings(root, typeName, ref enabled, ref threshold,
-                        ref bestModeScore, ref bestThresholdScore, ref modeSource, ref thresholdSource);
+                foreach (object root in GetRuntimeRoots(type))
+                    ProbeRuntimeObject(root, type.FullName ?? type.Name, depth: 0, visited,
+                        ref modeEnabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                        ref modeSource, ref modeValue, ref thresholdSource);
             }
         }
 
         _pelipperDetected = pelipperDetected;
         _modeConfirmed = pelipperDetected && bestModeScore >= 0;
-        _modeEnabled = _modeConfirmed && enabled;
-
-        // Strict 6.7.44.5 invariant: Pelipper presence alone is never enough. Unknown mode = OFF.
+        _modeEnabled = _modeConfirmed && modeEnabled;
         _enabled = _modeEnabled;
-        _threshold = Math.Clamp(bestThresholdScore >= 0 ? threshold : FallbackThreshold, 0.01f, 0.95f);
         _modeSource = _modeConfirmed ? modeSource : "unresolved";
+        _modeValue = _modeConfirmed ? modeValue : "unresolved";
+        _threshold = Math.Clamp(bestThresholdScore >= 0 ? threshold : FallbackThreshold, 0.01f, 0.95f);
         _thresholdSource = !_enabled
             ? "inactive"
             : bestThresholdScore >= 0
                 ? thresholdSource
-                : "fallback-10%-after-confirmed-catch-mode";
+                : "fallback-10%-confirmed-capture-mode";
     }
 
-    private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
-    {
-        try
-        {
-            return assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            return ex.Types.Where(type => type is not null).Cast<Type>();
-        }
-        catch
-        {
-            return Array.Empty<Type>();
-        }
-    }
-
-    private static IEnumerable<object> GetStaticRoots(Type type)
-    {
-        const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
-
-        foreach (FieldInfo field in type.GetFields(flags))
-        {
-            if (!LooksLikeRootMember(field.Name))
-                continue;
-            object? value = TryGetValue(() => field.GetValue(null));
-            if (value is not null && !IsSimple(value.GetType()))
-                yield return value;
-        }
-
-        foreach (PropertyInfo property in type.GetProperties(flags))
-        {
-            if (!property.CanRead || property.GetIndexParameters().Length != 0 || !LooksLikeRootMember(property.Name))
-                continue;
-            object? value = TryGetValue(() => property.GetValue(null));
-            if (value is not null && !IsSimple(value.GetType()))
-                yield return value;
-        }
-    }
-
-    /// <summary>
-    /// Probe the live static root itself and one settings/config/options layer below it. This stays
-    /// deliberately shallow so Team Up reads Pelipper state without walking or mutating its object graph.
-    /// </summary>
-    private static void ProbeRootAndSettings(
+    private static void ProbeRuntimeObject(
         object root,
         string sourcePrefix,
-        ref bool enabled,
+        int depth,
+        HashSet<object> visited,
+        ref bool modeEnabled,
         ref float threshold,
         ref int bestModeScore,
         ref int bestThresholdScore,
         ref string modeSource,
+        ref string modeValue,
         ref string thresholdSource)
     {
-        Type rootType = root.GetType();
-        ProbeMembers(rootType, root, isStatic: false, sourcePrefix,
-            ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
-            ref modeSource, ref thresholdSource);
+        if (depth > MaxRuntimeDepth || !visited.Add(root))
+            return;
+
+        Type type = root.GetType();
+        string typeName = Normalize(type.FullName ?? type.Name);
+        if (IsRejectedContainer(typeName))
+            return;
+
+        ProbeMembers(type, root, isStatic: false, sourcePrefix,
+            ref modeEnabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+            ref modeSource, ref modeValue, ref thresholdSource);
+
+        if (depth == MaxRuntimeDepth)
+            return;
 
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-        foreach (FieldInfo field in rootType.GetFields(flags))
+        foreach (FieldInfo field in type.GetFields(flags))
         {
-            if (!LooksLikeRootMember(field.Name))
+            string name = Normalize(field.Name);
+            if (!LooksLikeRuntimeRootMember(name) || IsRejectedContainer(name))
                 continue;
             object? nested = TryGetValue(() => field.GetValue(root));
             if (nested is null || IsSimple(nested.GetType()))
                 continue;
-            ProbeMembers(nested.GetType(), nested, isStatic: false, $"{sourcePrefix}.{field.Name}",
-                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
-                ref modeSource, ref thresholdSource);
+            ProbeRuntimeObject(nested, $"{sourcePrefix}.{field.Name}", depth + 1, visited,
+                ref modeEnabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                ref modeSource, ref modeValue, ref thresholdSource);
         }
 
-        foreach (PropertyInfo property in rootType.GetProperties(flags))
+        foreach (PropertyInfo property in type.GetProperties(flags))
         {
-            if (!property.CanRead || property.GetIndexParameters().Length != 0 || !LooksLikeRootMember(property.Name))
+            string name = Normalize(property.Name);
+            if (!property.CanRead || property.GetIndexParameters().Length != 0
+                || !LooksLikeRuntimeRootMember(name) || IsRejectedContainer(name))
+            {
                 continue;
+            }
             object? nested = TryGetValue(() => property.GetValue(root));
             if (nested is null || IsSimple(nested.GetType()))
                 continue;
-            ProbeMembers(nested.GetType(), nested, isStatic: false, $"{sourcePrefix}.{property.Name}",
-                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
-                ref modeSource, ref thresholdSource);
+            ProbeRuntimeObject(nested, $"{sourcePrefix}.{property.Name}", depth + 1, visited,
+                ref modeEnabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                ref modeSource, ref modeValue, ref thresholdSource);
         }
     }
 
@@ -353,11 +270,12 @@ internal static class PelipperCaptureSafetyService
         object? instance,
         bool isStatic,
         string sourcePrefix,
-        ref bool enabled,
+        ref bool modeEnabled,
         ref float threshold,
         ref int bestModeScore,
         ref int bestThresholdScore,
         ref string modeSource,
+        ref string modeValue,
         ref string thresholdSource)
     {
         BindingFlags flags = (isStatic ? BindingFlags.Static : BindingFlags.Instance)
@@ -366,9 +284,10 @@ internal static class PelipperCaptureSafetyService
         foreach (FieldInfo field in type.GetFields(flags))
         {
             object? value = TryGetValue(() => field.GetValue(instance));
-            Consider(field.Name, value, $"{sourcePrefix}.{field.Name}",
-                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
-                ref modeSource, ref thresholdSource);
+            ConsiderMode(field.Name, value, $"{sourcePrefix}.{field.Name}", ref modeEnabled,
+                ref bestModeScore, ref modeSource, ref modeValue);
+            ConsiderThreshold(field.Name, value, $"{sourcePrefix}.{field.Name}", ref threshold,
+                ref bestThresholdScore, ref thresholdSource);
         }
 
         foreach (PropertyInfo property in type.GetProperties(flags))
@@ -376,132 +295,163 @@ internal static class PelipperCaptureSafetyService
             if (!property.CanRead || property.GetIndexParameters().Length != 0)
                 continue;
             object? value = TryGetValue(() => property.GetValue(instance));
-            Consider(property.Name, value, $"{sourcePrefix}.{property.Name}",
-                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
-                ref modeSource, ref thresholdSource);
+            ConsiderMode(property.Name, value, $"{sourcePrefix}.{property.Name}", ref modeEnabled,
+                ref bestModeScore, ref modeSource, ref modeValue);
+            ConsiderThreshold(property.Name, value, $"{sourcePrefix}.{property.Name}", ref threshold,
+                ref bestThresholdScore, ref thresholdSource);
         }
     }
 
-    private static void Consider(
-        string memberName,
+    private static void ConsiderMode(
+        string rawName,
         object? value,
         string source,
         ref bool enabled,
-        ref float threshold,
-        ref int bestModeScore,
-        ref int bestThresholdScore,
-        ref string modeSource,
-        ref string thresholdSource)
+        ref int bestScore,
+        ref string bestSource,
+        ref string bestValue)
     {
         if (value is null)
             return;
 
-        string name = Normalize(memberName);
-        if (TryInterpretMode(name, value, out bool modeEnabled, out int modeScore) && modeScore > bestModeScore)
+        string name = Normalize(rawName);
+        if (ContainsRejectedSemantic(name))
+            return;
+
+        bool booleanMode = name.Contains("iscapturemode") || name.Contains("capturemodeactive")
+            || name.Contains("iscatchmode") || name.Contains("catchmodeactive") || name.Contains("mercyactive");
+        if (booleanMode && value is bool boolean)
         {
-            enabled = modeEnabled;
-            bestModeScore = modeScore;
-            modeSource = source;
+            const int score = 150;
+            if (score > bestScore)
+            {
+                enabled = boolean;
+                bestScore = score;
+                bestSource = source;
+                bestValue = boolean ? "capture" : "not-capture";
+            }
+            return;
         }
 
-        if (TryInterpretThreshold(name, value, out float candidateThreshold, out int thresholdScore)
-            && thresholdScore > bestThresholdScore)
+        bool modeName = name.Contains("combatmode") || name.Contains("battlemode")
+            || name.Contains("currentmode") || name.Contains("activemode")
+            || name.Contains("behaviormode") || name.Contains("partymode")
+            || name.Contains("pokemonmode") || name.Contains("pokémonmode");
+        if (!modeName || (value is not string && !value.GetType().IsEnum))
+            return;
+
+        string text = Normalize(value.ToString() ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        bool? capture = text switch
         {
-            threshold = candidateThreshold;
-            bestThresholdScore = thresholdScore;
-            thresholdSource = source;
-        }
+            "capture" or "capturemode" or "catch" or "catchmode" or "capturing" => true,
+            "defensive" or "defense" or "aggressive" or "peaceful" or "passive" or "normal" => false,
+            _ => text.Contains("capture") || text.Contains("catch") ? true
+                : text.Contains("defens") || text.Contains("aggress") || text.Contains("peace") ? false
+                : null
+        };
+        if (!capture.HasValue)
+            return;
+
+        int score = name.Contains("combatmode") || name.Contains("battlemode") ? 140 : 120;
+        if (score <= bestScore)
+            return;
+
+        enabled = capture.Value;
+        bestScore = score;
+        bestSource = source;
+        bestValue = value.ToString() ?? text;
     }
 
-    private static bool TryInterpretMode(string name, object value, out bool enabled, out int score)
+    private static void ConsiderThreshold(
+        string rawName,
+        object? value,
+        string source,
+        ref float threshold,
+        ref int bestScore,
+        ref string bestSource)
     {
-        enabled = false;
-        score = -1;
+        if (value is null)
+            return;
 
-        bool explicitCatchToggle = name.Contains("enablecatch")
-            || name.Contains("catchenabled")
-            || name.Contains("catchingenabled")
-            || name.Contains("allowcatch")
-            || name.Contains("cancatch")
-            || name.Contains("enablecapture")
-            || name.Contains("captureenabled")
-            || name.Contains("allowcapture");
+        string name = Normalize(rawName);
+        if (ContainsRejectedSemantic(name))
+            return;
 
-        bool strongName = explicitCatchToggle
-            || name.Contains("nonlethal")
-            || name.Contains("mercy")
-            || (name.Contains("capture") && (name.Contains("safety") || name.Contains("mode") || name.Contains("stop")))
-            || (name.Contains("catch") && (name.Contains("mode") || name.Contains("safety") || name.Contains("stop")))
-            || (name.Contains("stop") && name.Contains("attack") && (name.Contains("health") || name.Contains("hp") || name.Contains("capture") || name.Contains("catch")))
-            || (name.Contains("prevent") && (name.Contains("faint") || name.Contains("ko") || name.Contains("kill")));
-
-        if (value is bool boolean && strongName)
-        {
-            enabled = boolean;
-            score = explicitCatchToggle ? 120 : 100;
-            return true;
-        }
-
-        if (value is Enum || value is string)
-        {
-            string text = Normalize(value.ToString() ?? string.Empty);
-            bool modeName = strongName
-                || name.Contains("battlemode")
-                || name.Contains("combatmode")
-                || name.Contains("capturemode")
-                || name.Contains("catchmode");
-            if (!modeName)
-                return false;
-
-            if (text.Contains("nonlethal")
-                || text.Contains("mercy")
-                || text.Contains("capture")
-                || text.Contains("catch")
-                || text.Contains("10percent")
-                || text == "10"
-                || text == "on"
-                || text == "enabled")
-            {
-                enabled = true;
-                score = 90;
-                return true;
-            }
-
-            if (text.Contains("lethal")
-                || text.Contains("kill")
-                || text.Contains("defeat")
-                || text.Contains("disabled")
-                || text == "off")
-            {
-                enabled = false;
-                score = 90;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool TryInterpretThreshold(string name, object value, out float threshold, out int score)
-    {
-        threshold = FallbackThreshold;
-        score = -1;
-
-        bool thresholdName = (name.Contains("capture") || name.Contains("catch") || name.Contains("mercy") || name.Contains("lowhealth") || name.Contains("stopattack"))
-            && (name.Contains("threshold") || name.Contains("percent") || name.Contains("health") || name.Contains("hp"));
-        if (!thresholdName)
-            return false;
-
-        if (!TryConvertNumber(value, out double raw) || raw <= 0d)
-            return false;
+        bool explicitFloor = name.Contains("capturefloor") || name.Contains("catchfloor")
+            || name.Contains("mercyhealth") || name.Contains("mercyhp")
+            || name.Contains("stopattackhealth") || name.Contains("stopattackhp")
+            || name.Contains("nonlethalhealth") || name.Contains("nonlethalhp");
+        bool thresholdLike = explicitFloor
+            || ((name.Contains("mercy") || name.Contains("stopattack") || name.Contains("nonlethal"))
+                && (name.Contains("threshold") || name.Contains("percent") || name.Contains("health") || name.Contains("hp")));
+        if (!thresholdLike || !TryConvertNumber(value, out double raw) || raw <= 0d)
+            return;
 
         double normalized = raw > 1d ? raw / 100d : raw;
-        if (normalized < 0.01d || normalized > 0.95d)
-            return false;
+        if (normalized < 0.01d || normalized > 0.50d)
+            return;
+
+        int score = explicitFloor ? 140 : 110;
+        if (score <= bestScore)
+            return;
 
         threshold = (float)normalized;
-        score = name.Contains("capture") || name.Contains("catch") ? 95 : 80;
-        return true;
+        bestScore = score;
+        bestSource = source;
+    }
+
+    private static IEnumerable<object> GetRuntimeRoots(Type type)
+    {
+        const BindingFlags flags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+        foreach (FieldInfo field in type.GetFields(flags))
+        {
+            string name = Normalize(field.Name);
+            if (!LooksLikeRuntimeRootMember(name) || IsRejectedContainer(name))
+                continue;
+            object? value = TryGetValue(() => field.GetValue(null));
+            if (value is not null && !IsSimple(value.GetType()))
+                yield return value;
+        }
+        foreach (PropertyInfo property in type.GetProperties(flags))
+        {
+            string name = Normalize(property.Name);
+            if (!property.CanRead || property.GetIndexParameters().Length != 0
+                || !LooksLikeRuntimeRootMember(name) || IsRejectedContainer(name))
+            {
+                continue;
+            }
+            object? value = TryGetValue(() => property.GetValue(null));
+            if (value is not null && !IsSimple(value.GetType()))
+                yield return value;
+        }
+    }
+
+    private static bool LooksLikeRuntimeType(string name)
+        => name.Contains("modentry") || name.Contains("runtime") || name.Contains("combat")
+            || name.Contains("battle") || name.Contains("companion") || name.Contains("party")
+            || name.Contains("manager") || name.Contains("controller");
+
+    private static bool LooksLikeRuntimeRootMember(string name)
+        => name.Contains("instance") || name.Contains("runtime") || name.Contains("combat")
+            || name.Contains("battle") || name.Contains("companion") || name.Contains("party")
+            || name.Contains("manager") || name.Contains("controller") || name.Contains("state")
+            || name == "mod" || name.EndsWith("modentry", StringComparison.Ordinal);
+
+    private static bool IsRejectedContainer(string name)
+        => name.Contains("config") || name.Contains("setting") || name.Contains("option")
+            || name.Contains("gmcm") || name.Contains("menu");
+
+    private static bool ContainsRejectedSemantic(string name)
+        => RejectedSemanticWords.Any(name.Contains);
+
+    private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
+    {
+        try { return assembly.GetTypes(); }
+        catch (ReflectionTypeLoadException ex) { return ex.Types.Where(type => type is not null).Cast<Type>(); }
+        catch { return Array.Empty<Type>(); }
     }
 
     private static bool TryConvertNumber(object value, out double number)
@@ -526,22 +476,7 @@ internal static class PelipperCaptureSafetyService
                         System.Globalization.CultureInfo.InvariantCulture, out number);
             }
         }
-        catch
-        {
-            number = 0d;
-            return false;
-        }
-    }
-
-    private static bool LooksLikeRootMember(string name)
-    {
-        string normalized = Normalize(name);
-        return normalized.Contains("config")
-            || normalized.Contains("setting")
-            || normalized.Contains("option")
-            || normalized.Contains("instance")
-            || normalized == "mod"
-            || normalized.EndsWith("modentry", StringComparison.Ordinal);
+        catch { number = 0d; return false; }
     }
 
     private static bool IsSimple(Type type)
