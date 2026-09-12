@@ -38,6 +38,7 @@ public sealed partial class ModEntry
             OnAlpha6744Command);
 
         EnsureAlpha67442EncounterReactionsRegistered();
+        RegisterAlpha67446RuntimeFixes();
     }
 
     private void OnAlpha6744AssetRequested(object? sender, AssetRequestedEventArgs e)
