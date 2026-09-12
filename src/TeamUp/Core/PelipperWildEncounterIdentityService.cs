@@ -14,9 +14,9 @@ internal sealed record PelipperWildEncounterIdentity(
 
 /// <summary>
 /// Source-aware identity for Pelipper wild encounters.
-/// 6.7.44.6 adds a weak per-proxy cache so normal combat ticks do not repeatedly scan every NPC
-/// and reflect every Pelipper actor. Positive pairings refresh only every few seconds; negative
-/// lookups retry quickly so a just-spawned source actor can still pair with its proxy.
+/// 6.7.44.6 prefers Pelipper's own WildEncounterId shared by source/proxy, then uses a conservative
+/// spatial fallback only when no stable ID exists. This prevents dense wild populations from
+/// transferring Shiny/HOLD state between neighboring Pokemon.
 /// </summary>
 internal static class PelipperWildEncounterIdentityService
 {
@@ -33,6 +33,13 @@ internal static class PelipperWildEncounterIdentityService
         public long ValidUntilTick { get; init; }
         public string LocationName { get; init; } = string.Empty;
     }
+
+    private sealed record SourceCandidate(
+        NPC Actor,
+        float Distance,
+        bool Intersects,
+        bool IsProxy,
+        string? WildEncounterId);
 
     private static readonly ConditionalWeakTable<Monster, CacheEntry> Cache = new();
 
@@ -56,72 +63,97 @@ internal static class PelipperWildEncounterIdentityService
         GameLocation? location = proxy.currentLocation ?? Game1.currentLocation;
         string locationName = location?.NameOrUniqueName ?? string.Empty;
         long now = Game1.ticks;
+        string? proxyWildEncounterId = TryReadPelipperWildEncounterId(proxy);
 
         if (Cache.TryGetValue(proxy, out CacheEntry? cached)
             && cached.ValidUntilTick >= now
             && cached.LocationName.Equals(locationName, StringComparison.OrdinalIgnoreCase))
         {
-            if (cached.Identity is not null)
-            {
-                NPC cachedSource = cached.Identity.SourceActor;
-                if (ReferenceEquals(cachedSource, proxy)
-                    || location is null
-                    || ReferenceEquals(cachedSource.currentLocation, location))
-                {
-                    identity = cached.Identity;
-                    return true;
-                }
-            }
-            else
-            {
+            if (cached.Identity is null)
                 return false;
+
+            NPC cachedSource = cached.Identity.SourceActor;
+            string? cachedSourceWildId = ReferenceEquals(cachedSource, proxy)
+                ? proxyWildEncounterId
+                : TryReadPelipperWildEncounterId(cachedSource);
+            bool sourceStillHere = ReferenceEquals(cachedSource, proxy)
+                || location is null
+                || ReferenceEquals(cachedSource.currentLocation, location);
+            bool stableIdsAgree = string.IsNullOrWhiteSpace(proxyWildEncounterId)
+                || string.IsNullOrWhiteSpace(cachedSourceWildId)
+                || proxyWildEncounterId.Equals(cachedSourceWildId, StringComparison.OrdinalIgnoreCase);
+            bool shouldUpgradeFallbackId = !string.IsNullOrWhiteSpace(proxyWildEncounterId)
+                && !string.IsNullOrWhiteSpace(cachedSourceWildId)
+                && cached.Identity.EncounterId.StartsWith("teamup:", StringComparison.OrdinalIgnoreCase);
+
+            if (sourceStillHere && stableIdsAgree && !shouldUpgradeFallbackId)
+            {
+                identity = cached.Identity;
+                return true;
             }
         }
 
         Cache.Remove(proxy);
 
         if (location is null)
-        {
-            bool markerResolved = TryResolveFromProxyMarkers(proxy, out identity);
-            Cache.Add(proxy, new CacheEntry
-            {
-                Identity = markerResolved ? identity : null,
-                ValidUntilTick = now + (markerResolved ? PositiveCacheTicks : NegativeCacheTicks),
-                LocationName = locationName
-            });
-            return markerResolved;
-        }
+            return CacheMarkerFallback(proxy, locationName, now, out identity);
 
         Rectangle proxyBounds = proxy.GetBoundingBox();
-        NPC? source = location.characters
+        List<SourceCandidate> candidates = location.characters
             .OfType<NPC>()
             .Where(candidate => !ReferenceEquals(candidate, proxy))
             .Where(PelipperTownCompatibilityService.LooksLikePelipperActor)
             .Where(PelipperTownCompatibilityService.IsWildCombatActor)
-            .Select(candidate => new
-            {
-                Actor = candidate,
-                Distance = Vector2.DistanceSquared(candidate.Position, proxy.Position),
-                Intersects = proxyBounds.Intersects(candidate.GetBoundingBox()),
-                ProxyPenalty = candidate is Monster && HasTrueModData(candidate, PelipperTownCompatibilityService.WildCombatProxyKey)
-                    ? 100000000f
-                    : 0f
-            })
+            .Select(candidate => new SourceCandidate(
+                candidate,
+                Vector2.DistanceSquared(candidate.Position, proxy.Position),
+                proxyBounds.Intersects(candidate.GetBoundingBox()),
+                candidate is Monster && HasTrueModData(candidate, PelipperTownCompatibilityService.WildCombatProxyKey),
+                TryReadPelipperWildEncounterId(candidate)))
             .Where(item => item.Intersects || item.Distance <= 128f * 128f)
-            .OrderBy(item => item.ProxyPenalty + (item.Intersects ? -1000000f : 0f) + item.Distance)
-            .Select(item => item.Actor)
-            .FirstOrDefault();
+            .ToList();
 
-        if (source is null)
+        NPC? source = null;
+
+        // Pelipper 1.2.0 exposes a stable WildEncounterId on runtime actors. When the proxy has one,
+        // matching that ID is mandatory. Never fall back to a merely nearby Pokemon with another ID.
+        if (!string.IsNullOrWhiteSpace(proxyWildEncounterId))
         {
-            bool markerResolved = TryResolveFromProxyMarkers(proxy, out identity);
-            Cache.Add(proxy, new CacheEntry
+            source = candidates
+                .Where(item => !item.IsProxy)
+                .Where(item => !string.IsNullOrWhiteSpace(item.WildEncounterId)
+                    && item.WildEncounterId!.Equals(proxyWildEncounterId, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(item => item.Intersects ? 0 : 1)
+                .ThenBy(item => item.Distance)
+                .Select(item => item.Actor)
+                .FirstOrDefault();
+
+            if (source is null)
             {
-                Identity = markerResolved ? identity : null,
-                ValidUntilTick = now + (markerResolved ? PositiveCacheTicks : NegativeCacheTicks),
-                LocationName = locationName
-            });
-            return markerResolved;
+                CacheNegative(proxy, locationName, now);
+                return false;
+            }
+        }
+        else
+        {
+            // Legacy/fallback path: exact-overlap is acceptable. Pure proximity is accepted only
+            // when exactly one non-proxy wild actor is nearby. Ambiguous scenes fail closed.
+            List<SourceCandidate> visible = candidates.Where(item => !item.IsProxy).ToList();
+            List<SourceCandidate> intersecting = visible.Where(item => item.Intersects).OrderBy(item => item.Distance).ToList();
+            if (intersecting.Count == 1)
+                source = intersecting[0].Actor;
+            else if (intersecting.Count > 1)
+            {
+                CacheNegative(proxy, locationName, now);
+                return false;
+            }
+            else if (visible.Count == 1)
+                source = visible[0].Actor;
+            else
+            {
+                CacheNegative(proxy, locationName, now);
+                return false;
+            }
         }
 
         string displayName = ReadDisplayName(source);
@@ -141,20 +173,43 @@ internal static class PelipperWildEncounterIdentityService
 
     public static string GetEncounterId(Monster proxy)
     {
-        if (proxy.modData.TryGetValue(ProxyEncounterIdMarker, out string? stored) && !string.IsNullOrWhiteSpace(stored))
-            return stored;
-        return TryResolve(proxy, out PelipperWildEncounterIdentity? identity)
-            ? identity.EncounterId
+        if (TryResolve(proxy, out PelipperWildEncounterIdentity? identity))
+            return identity.EncounterId;
+        return proxy.modData.TryGetValue(ProxyEncounterIdMarker, out string? stored) && !string.IsNullOrWhiteSpace(stored)
+            ? stored
             : string.Empty;
     }
 
     public static string GetDisplayName(Monster proxy)
     {
-        if (proxy.modData.TryGetValue(ProxyDisplayNameMarker, out string? stored) && !string.IsNullOrWhiteSpace(stored))
-            return stored;
         if (TryResolve(proxy, out PelipperWildEncounterIdentity? identity))
             return identity.DisplayName;
+        if (proxy.modData.TryGetValue(ProxyDisplayNameMarker, out string? stored) && !string.IsNullOrWhiteSpace(stored))
+            return stored;
         return CleanDisplayName(string.IsNullOrWhiteSpace(proxy.displayName) ? proxy.Name : proxy.displayName);
+    }
+
+    private static bool CacheMarkerFallback(Monster proxy, string locationName, long now, out PelipperWildEncounterIdentity identity)
+    {
+        bool markerResolved = TryResolveFromProxyMarkers(proxy, out identity);
+        Cache.Add(proxy, new CacheEntry
+        {
+            Identity = markerResolved ? identity : null,
+            ValidUntilTick = now + (markerResolved ? PositiveCacheTicks : NegativeCacheTicks),
+            LocationName = locationName
+        });
+        return markerResolved;
+    }
+
+    private static void CacheNegative(Monster proxy, string locationName, long now)
+    {
+        Cache.Remove(proxy);
+        Cache.Add(proxy, new CacheEntry
+        {
+            Identity = null,
+            ValidUntilTick = now + NegativeCacheTicks,
+            LocationName = locationName
+        });
     }
 
     private static bool TryResolveFromProxyMarkers(Monster proxy, out PelipperWildEncounterIdentity identity)
@@ -176,6 +231,17 @@ internal static class PelipperWildEncounterIdentityService
 
     private static string GetOrCreateEncounterId(NPC source, GameLocation location, string displayName)
     {
+        // Prefer Pelipper's own ID even if Team Up created a temporary fallback ID during the first
+        // frames of spawn construction. This upgrades the encounter identity as soon as Pelipper
+        // finishes publishing its runtime metadata.
+        string? pelipperWildId = TryReadPelipperWildEncounterId(source);
+        if (!string.IsNullOrWhiteSpace(pelipperWildId))
+        {
+            string canonical = $"pelipper:{location.NameOrUniqueName}:wild:{pelipperWildId}";
+            source.modData[SourceEncounterIdMarker] = canonical;
+            return canonical;
+        }
+
         if (source.modData.TryGetValue(SourceEncounterIdMarker, out string? stored) && !string.IsNullOrWhiteSpace(stored))
             return stored;
 
@@ -188,11 +254,39 @@ internal static class PelipperWildEncounterIdentityService
         return encounterId;
     }
 
+    private static string? TryReadPelipperWildEncounterId(NPC actor)
+    {
+        foreach (var pair in actor.modData.Pairs)
+        {
+            string key = Normalize(pair.Key);
+            if ((key.Contains("pelipper") && key.Contains("wildencounterid"))
+                || key.EndsWith("wildencounterid", StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrWhiteSpace(pair.Value))
+                    return pair.Value.Trim();
+            }
+        }
+
+        foreach (string hint in new[] { "WildEncounterId", "WildEncounterID" })
+        {
+            if (TryReadMember(actor, hint, out object? value)
+                && value is not null
+                && !string.IsNullOrWhiteSpace(value.ToString()))
+            {
+                return value.ToString()!.Trim();
+            }
+        }
+
+        return null;
+    }
+
     private static string? ReadStableSourceId(NPC source)
     {
         foreach (var pair in source.modData.Pairs)
         {
             string key = Normalize(pair.Key);
+            if (key.Contains("ronvotriteamup"))
+                continue;
             bool stableKey = key.Contains("uniqueid") || key.Contains("guid")
                 || key.Contains("encounterid") || key.Contains("spawnid") || key.Contains("instanceid");
             if (stableKey && !string.IsNullOrWhiteSpace(pair.Value))
