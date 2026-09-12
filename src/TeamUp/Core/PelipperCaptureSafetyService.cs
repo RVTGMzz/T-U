@@ -21,7 +21,10 @@ internal static class PelipperCaptureSafetyService
     private static bool _enabled;
     private static bool _pelipperDetected;
     private static bool _modeConfirmed;
+    private static bool _modeEnabled;
     private static float _threshold = FallbackThreshold;
+    private static string _modeSource = "unresolved";
+    private static string _thresholdSource = "inactive";
 
     public static bool IsProtected(Monster monster)
         => TryGetDamageBudget(monster, out int budget) && budget <= 0;
@@ -149,6 +152,7 @@ internal static class PelipperCaptureSafetyService
         }
     }
 
+    /// <summary>True when Team Up found an explicit Pelipper Catch/Capture/Mercy mode signal.</summary>
     public static bool ModeConfirmed
     {
         get
@@ -158,10 +162,40 @@ internal static class PelipperCaptureSafetyService
         }
     }
 
+    public static bool CatchModeDetected => ModeConfirmed;
+
+    /// <summary>True only when an explicit mode signal was found and its current value is enabled.</summary>
+    public static bool CatchModeEnabled
+    {
+        get
+        {
+            RefreshPolicyIfNeeded();
+            return _modeEnabled;
+        }
+    }
+
+    public static string ModeSource
+    {
+        get
+        {
+            RefreshPolicyIfNeeded();
+            return _modeSource;
+        }
+    }
+
+    public static string ThresholdSource
+    {
+        get
+        {
+            RefreshPolicyIfNeeded();
+            return _thresholdSource;
+        }
+    }
+
     public static string DescribePolicy()
     {
         RefreshPolicyIfNeeded();
-        return $"Pelipper capture safety: pelipper={_pelipperDetected} | priority=pelipper-wild | modeHint={_modeConfirmed} | enabled={_enabled} | threshold={_threshold:P0}";
+        return $"Pelipper capture safety: pelipperPresent={_pelipperDetected} | catchModeDetected={_modeConfirmed} | catchModeEnabled={_modeEnabled} | captureSafetyEnabled={_enabled} | modeSource={_modeSource} | threshold={_threshold:P0} | thresholdSource={_thresholdSource}";
     }
 
     private static void RefreshPolicyIfNeeded()
@@ -171,11 +205,15 @@ internal static class PelipperCaptureSafetyService
             return;
         _nextProbeAt = now + ProbeIntervalMs;
 
+        // Every probe begins OFF. This deliberately prevents a stale true value from surviving if
+        // Pelipper is removed, Catch Mode is turned off, or a future Pelipper build hides the mode.
         bool pelipperDetected = false;
         bool enabled = false;
         float threshold = FallbackThreshold;
         int bestModeScore = -1;
         int bestThresholdScore = -1;
+        string modeSource = "unresolved";
+        string thresholdSource = "unresolved";
 
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
@@ -201,20 +239,29 @@ internal static class PelipperCaptureSafetyService
                 if (!likelySettingsType)
                     continue;
 
-                ProbeMembers(type, null, isStatic: true, ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore);
+                ProbeMembers(type, null, isStatic: true, typeName,
+                    ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                    ref modeSource, ref thresholdSource);
 
                 foreach (object root in GetStaticRoots(type))
-                    ProbeMembers(root.GetType(), root, isStatic: false, ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore);
+                    ProbeRootAndSettings(root, typeName, ref enabled, ref threshold,
+                        ref bestModeScore, ref bestThresholdScore, ref modeSource, ref thresholdSource);
             }
         }
 
         _pelipperDetected = pelipperDetected;
         _modeConfirmed = pelipperDetected && bestModeScore >= 0;
-        // 6.7.44.3: Pelipper presence + genuine wild proxy is the authority. Pelipper does not
-        // expose one stable Catch-Mode toggle across current builds, so requiring one disabled
-        // mercy protection entirely. A reflected mode remains diagnostic only.
-        _enabled = pelipperDetected;
-        _threshold = Math.Clamp(threshold, 0.01f, 0.95f);
+        _modeEnabled = _modeConfirmed && enabled;
+
+        // Strict 6.7.44.5 invariant: Pelipper presence alone is never enough. Unknown mode = OFF.
+        _enabled = _modeEnabled;
+        _threshold = Math.Clamp(bestThresholdScore >= 0 ? threshold : FallbackThreshold, 0.01f, 0.95f);
+        _modeSource = _modeConfirmed ? modeSource : "unresolved";
+        _thresholdSource = !_enabled
+            ? "inactive"
+            : bestThresholdScore >= 0
+                ? thresholdSource
+                : "fallback-10%-after-confirmed-catch-mode";
     }
 
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
@@ -256,14 +303,62 @@ internal static class PelipperCaptureSafetyService
         }
     }
 
+    /// <summary>
+    /// Probe the live static root itself and one settings/config/options layer below it. This stays
+    /// deliberately shallow so Team Up reads Pelipper state without walking or mutating its object graph.
+    /// </summary>
+    private static void ProbeRootAndSettings(
+        object root,
+        string sourcePrefix,
+        ref bool enabled,
+        ref float threshold,
+        ref int bestModeScore,
+        ref int bestThresholdScore,
+        ref string modeSource,
+        ref string thresholdSource)
+    {
+        Type rootType = root.GetType();
+        ProbeMembers(rootType, root, isStatic: false, sourcePrefix,
+            ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+            ref modeSource, ref thresholdSource);
+
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        foreach (FieldInfo field in rootType.GetFields(flags))
+        {
+            if (!LooksLikeRootMember(field.Name))
+                continue;
+            object? nested = TryGetValue(() => field.GetValue(root));
+            if (nested is null || IsSimple(nested.GetType()))
+                continue;
+            ProbeMembers(nested.GetType(), nested, isStatic: false, $"{sourcePrefix}.{field.Name}",
+                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                ref modeSource, ref thresholdSource);
+        }
+
+        foreach (PropertyInfo property in rootType.GetProperties(flags))
+        {
+            if (!property.CanRead || property.GetIndexParameters().Length != 0 || !LooksLikeRootMember(property.Name))
+                continue;
+            object? nested = TryGetValue(() => property.GetValue(root));
+            if (nested is null || IsSimple(nested.GetType()))
+                continue;
+            ProbeMembers(nested.GetType(), nested, isStatic: false, $"{sourcePrefix}.{property.Name}",
+                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                ref modeSource, ref thresholdSource);
+        }
+    }
+
     private static void ProbeMembers(
         Type type,
         object? instance,
         bool isStatic,
+        string sourcePrefix,
         ref bool enabled,
         ref float threshold,
         ref int bestModeScore,
-        ref int bestThresholdScore)
+        ref int bestThresholdScore,
+        ref string modeSource,
+        ref string thresholdSource)
     {
         BindingFlags flags = (isStatic ? BindingFlags.Static : BindingFlags.Instance)
             | BindingFlags.Public | BindingFlags.NonPublic;
@@ -271,7 +366,9 @@ internal static class PelipperCaptureSafetyService
         foreach (FieldInfo field in type.GetFields(flags))
         {
             object? value = TryGetValue(() => field.GetValue(instance));
-            Consider(field.Name, value, ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore);
+            Consider(field.Name, value, $"{sourcePrefix}.{field.Name}",
+                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                ref modeSource, ref thresholdSource);
         }
 
         foreach (PropertyInfo property in type.GetProperties(flags))
@@ -279,17 +376,22 @@ internal static class PelipperCaptureSafetyService
             if (!property.CanRead || property.GetIndexParameters().Length != 0)
                 continue;
             object? value = TryGetValue(() => property.GetValue(instance));
-            Consider(property.Name, value, ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore);
+            Consider(property.Name, value, $"{sourcePrefix}.{property.Name}",
+                ref enabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
+                ref modeSource, ref thresholdSource);
         }
     }
 
     private static void Consider(
         string memberName,
         object? value,
+        string source,
         ref bool enabled,
         ref float threshold,
         ref int bestModeScore,
-        ref int bestThresholdScore)
+        ref int bestThresholdScore,
+        ref string modeSource,
+        ref string thresholdSource)
     {
         if (value is null)
             return;
@@ -299,6 +401,7 @@ internal static class PelipperCaptureSafetyService
         {
             enabled = modeEnabled;
             bestModeScore = modeScore;
+            modeSource = source;
         }
 
         if (TryInterpretThreshold(name, value, out float candidateThreshold, out int thresholdScore)
@@ -306,6 +409,7 @@ internal static class PelipperCaptureSafetyService
         {
             threshold = candidateThreshold;
             bestThresholdScore = thresholdScore;
+            thresholdSource = source;
         }
     }
 
