@@ -63,10 +63,10 @@ internal static class PelipperWildEncounterIdentityService
         {
             if (cached.Identity is not null)
             {
-                NPC source = cached.Identity.SourceActor;
-                if (ReferenceEquals(source, proxy)
+                NPC cachedSource = cached.Identity.SourceActor;
+                if (ReferenceEquals(cachedSource, proxy)
                     || location is null
-                    || ReferenceEquals(source.currentLocation, location))
+                    || ReferenceEquals(cachedSource.currentLocation, location))
                 {
                     identity = cached.Identity;
                     return true;
