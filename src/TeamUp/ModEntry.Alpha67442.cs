@@ -212,6 +212,7 @@ public sealed partial class ModEntry
         if (action == "status")
         {
             Monitor.Log(EncounterReactionsAlpha67442.Describe(Game1.player), LogLevel.Info);
+            Monitor.Log(PelipperCaptureSafetyService.DescribePolicy(), LogLevel.Info);
             return;
         }
 
