@@ -1,6 +1,6 @@
-using System.Collections;
 using System.Reflection;
 using Ronvotri.TeamUp.Combat;
+using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Monsters;
 
@@ -44,7 +44,6 @@ internal static class PelipperCaptureSafetyService
         if (MonsterMutationService.IsMutant(monster))
             return false;
 
-        // Shiny Emergency Hold is independent from Pelipper Capture mode.
         if (EncounterReactionService.IsShinyEmergencyHeld(monster))
         {
             budget = 0;
@@ -144,8 +143,6 @@ internal static class PelipperCaptureSafetyService
         string modeValue = "unresolved";
         string thresholdSource = "unresolved";
 
-        // First try Pelipper-owned player state. This is cheap and avoids reflecting through the whole
-        // mod when the active battle mode is persisted in player modData.
         if (Context.IsWorldReady)
         {
             foreach (Farmer farmer in Game1.getOnlineFarmers())
@@ -186,7 +183,7 @@ internal static class PelipperCaptureSafetyService
                     ref modeSource, ref modeValue, ref thresholdSource);
 
                 foreach (object root in GetRuntimeRoots(type))
-                    ProbeRuntimeObject(root, type.FullName ?? type.Name, depth: 0, visited,
+                    ProbeRuntimeObject(root, type.FullName ?? type.Name, 0, visited,
                         ref modeEnabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
                         ref modeSource, ref modeValue, ref thresholdSource);
             }
@@ -227,7 +224,7 @@ internal static class PelipperCaptureSafetyService
         if (IsRejectedContainer(typeName))
             return;
 
-        ProbeMembers(type, root, isStatic: false, sourcePrefix,
+        ProbeMembers(type, root, false, sourcePrefix,
             ref modeEnabled, ref threshold, ref bestModeScore, ref bestThresholdScore,
             ref modeSource, ref modeValue, ref thresholdSource);
 
@@ -322,11 +319,11 @@ internal static class PelipperCaptureSafetyService
             || name.Contains("iscatchmode") || name.Contains("catchmodeactive") || name.Contains("mercyactive");
         if (booleanMode && value is bool boolean)
         {
-            const int score = 150;
-            if (score > bestScore)
+            const int boolScore = 150;
+            if (boolScore > bestScore)
             {
                 enabled = boolean;
-                bestScore = score;
+                bestScore = boolScore;
                 bestSource = source;
                 bestValue = boolean ? "capture" : "not-capture";
             }
@@ -355,12 +352,12 @@ internal static class PelipperCaptureSafetyService
         if (!capture.HasValue)
             return;
 
-        int score = name.Contains("combatmode") || name.Contains("battlemode") ? 140 : 120;
-        if (score <= bestScore)
+        int modeScore = name.Contains("combatmode") || name.Contains("battlemode") ? 140 : 120;
+        if (modeScore <= bestScore)
             return;
 
         enabled = capture.Value;
-        bestScore = score;
+        bestScore = modeScore;
         bestSource = source;
         bestValue = value.ToString() ?? text;
     }
@@ -394,12 +391,12 @@ internal static class PelipperCaptureSafetyService
         if (normalized < 0.01d || normalized > 0.50d)
             return;
 
-        int score = explicitFloor ? 140 : 110;
-        if (score <= bestScore)
+        int floorScore = explicitFloor ? 140 : 110;
+        if (floorScore <= bestScore)
             return;
 
         threshold = (float)normalized;
-        bestScore = score;
+        bestScore = floorScore;
         bestSource = source;
     }
 
