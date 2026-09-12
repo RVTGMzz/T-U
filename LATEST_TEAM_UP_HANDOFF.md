@@ -1,257 +1,154 @@
-# Team Up handoff: 0.2.0-alpha.6.7.44.6
+# Team Up handoff: 0.2.0-alpha.6.7.44.7
 
 ## Source of truth
 
-- Branch: `v0.2-alpha6-7-44-6-pelipper-runtime-performance`
-- Version: `0.2.0-alpha.6.7.44.6`
-- CI-verified source commit: `ff7457e9840a272e721f2faef50390cad2060755`
+- Branch: `v0.2-alpha6-7-44-7-active-teammate-gift-guard`
+- Version: `0.2.0-alpha.6.7.44.7`
+- CI-verified build commit: `f9472bd9e49781dc2fb5ac37e403294e89843327`
+- Workflow run: `34696610701`
+- Job: `103561070750`
+- Artifact ID: `10299335336`
+- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.7_ACTIVE_TEAMMATE_GIFT_GUARD_TEST.zip`
+- Test ZIP SHA256: `016d49854fd322325429270be7ab067ae6116acf160613922fe41598c1a59816`
+- Build result: PASS, 0 warnings / 0 errors.
 - `main` is not merged.
 - 6.7.45 story work has NOT started.
-- This is a live-test candidate, not stable.
+- This remains a live-test candidate, not stable.
 
-## Live findings that triggered 6.7.44.6
+## Live findings carried into 6.7.44.7
 
-The user's 6.7.44.5 SMAPI log proved source-aware Shiny handling is working in game:
+### Shiny
 
-- Team Up resolved real Pelipper source names such as `Sentret` and `Exeggcute` while the combat proxy remained `Green Slime`.
-- Shiny reaction logged `hold=True` and the user confirmed the full party actually stopped attacking.
-- Therefore source-aware Shiny detection + Shiny Emergency Hold are LIVE PROVEN at least in this test environment.
+The user reports Shiny handling is acceptable for now. Keep the current source-aware Shiny Emergency Hold behavior intact. Do not redesign it while the Pelipper runtime gates below are still being tested.
 
-The same log exposed three remaining regressions:
+6.7.44.6 pairing rule remains:
 
-1. Capture safety interpreted `EnableCaptureTechniqueBonuses` as Catch Mode and `WildEncounterLowHealthCatchBonus=25%` as an HP floor. Those are capture-bonus settings, not the live combat mode / mercy floor.
-2. Many Pelipper wild defeats produced no Mutation/SurgeStory telemetry. The existing Mutation system only intercepted `Monster.deathAnimation`, while Pelipper's proxy lifecycle can bypass that path.
-3. Performance degraded heavily with many wild Pokemon. 6.7.44.4 source-aware encounter discovery performed repeated source/proxy scanning and Shiny reflection on a full 60Hz update path.
-4. At least one ordinary Pelipper wild proxy still produced a generic `EliteBoss` reaction.
-
-No Team Up crash/exception was found in that log.
-
-## Implemented in 6.7.44.6
-
-### 1. Real Pelipper combat-mode detection
-
-`PelipperCaptureSafetyService` no longer treats capture-bonus configuration as mode truth.
-
-Rejected semantics include:
-
-- bonus
-- chance
-- multiplier
-- rate
-- accuracy
-- pity
-- odds
-- weight
-- roll
-
-Config/settings/menu containers are not accepted as live combat-mode authority.
-
-Team Up now looks for high-confidence runtime/player state such as `CombatMode`, `BattleMode`, `CurrentMode`, `ActiveMode`, `BehaviorMode`, equivalent enum/string state, or an explicit `IsCaptureMode`-style boolean.
-
-Policy remains fail-closed:
-
-- mode unresolved -> capture safety OFF
-- Defensive/Aggressive/Peaceful/other non-capture mode -> OFF
-- Capture/Catch mode positively resolved -> ON
-- 10% fallback floor is allowed only after Capture mode is confirmed ON
-- a numeric Pelipper field is accepted as an HP floor only when it has explicit mercy/non-lethal/stop-attack semantics
-- capture bonus/chance/multiplier values are never an HP floor
-
-Diagnostics now include `modeValue`, `modeSource`, threshold and threshold source.
-
-### 2. Source/proxy identity cache
-
-`PelipperWildEncounterIdentityService` now uses a weak per-proxy cache:
-
-- positive source/proxy pairing: 240 ticks
-- negative lookup retry: 15 ticks
-
-This keeps source-aware identity while avoiding repeated full NPC scans every combat tick.
-
-### 3. Encounter discovery throttled from 60Hz to 20Hz
-
-The old `OnAlpha67442UpdateTicking` full-rate discovery handler is replaced by a 3-tick pulse.
-
-- expensive discovery/classification runs about 20 times/sec instead of 60
-- confirmed Shiny HOLD state remains stored on the combat proxy, so CombatService still sees HOLD FIRE continuously between discovery pulses
-- expected worst added Shiny discovery latency is roughly 50ms at 60 TPS
-
-### 4. Shiny reflection cache
-
-`Alpha67446PelipperRuntimeService` caches expensive `HasExplicitShinyEvidence` reflection:
-
-- positive Shiny result: 3600 ticks
-- negative result: 120 ticks
-
-This preserves source-aware Shiny detection while sharply reducing repeated reflection under dense Pelipper wild populations.
-
-### 5. Pelipper pre-lethal Mutation bridge
-
-6.7.44.6 patches loaded `Monster.takeDamage` implementations whose first argument is damage.
-
-For a genuine Pelipper wild combat proxy, only when the incoming hit can be lethal:
-
-- owned/companion actors remain excluded by the existing eligibility policy
-- confirmed Shiny is excluded
-- existing Mutant/minion is excluded
-- Team Up invokes the existing Mutation/Surge story roll BEFORE Pelipper can remove the proxy
-- if the Mutation succeeds, the lethal damage argument is changed to zero so the same hit does not instantly kill the newly transformed Mutant
-- if compatibility interception fails, Pelipper's native damage path continues normally
-
-The original `Monster.deathAnimation` Mutation hook remains for vanilla/other mods.
-
-Runtime testing must verify Pelipper does not subsequently produce a duplicate death-path roll after a failed pre-lethal roll.
-
-### 6. Ordinary Pelipper proxy Elite/Boss guard
-
-A generic Pelipper wild combat proxy is no longer treated as Elite/Boss solely because generic proxy metadata contains boss/elite-like semantics.
-
-Trade-off: a Pelipper-specific real wild boss represented only through generic proxy metadata could be suppressed by this conservative hotfix. This requires later explicit Pelipper boss identity support if such encounters need Team Up boss reactions.
-
-### 7. New runtime diagnostic
-
-Command:
-
-`teamup_pelipper_runtime`
-
-Reports:
-
-- 6.7.44.6 runtime hooks/cache state
-- live Pelipper capture-mode policy
-- Mutation counters/status
-- latest Mutation telemetry
-
-Existing commands remain:
-
-- `teamup_encounter status`
-- `teamup_mutation status`
-- `teamup_mutation list`
-- `teamup_mutation force`
-
-## CI / package verification
-
-- Workflow: `Team Up v0.2.0-alpha.6.7.44.6 Pelipper Runtime Performance`
-- Successful run: `34686942790`
-- Job: `103535463049`
-- CI head: `ff7457e9840a272e721f2faef50390cad2060755`
-- Result: PASS
-- C# build: 0 warnings / 0 errors
-- Artifact ID: `10296097130`
-- Artifact: `team-up-alpha6-7-44-6-pelipper-runtime-performance`
-- Artifact-wrapper SHA256: `6cd74223c46d0f6bb8942663c459efb24744c426d51350b09a1fdaf1898107fe`
-- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.6_PELIPPER_RUNTIME_PERFORMANCE_TEST.zip`
-- Test ZIP SHA256: `d4e003715b5a03886d20beaa3c8fcb3d2e91dc1eb5b7911fe36efbb722757f27`
-
-Audits PASS:
-
-1. version + build environment
-2. real Pelipper combat-mode / bonus rejection
-3. encounter performance guards
-4. Pelipper pre-lethal Mutation + Elite guard
-5. source-aware Shiny carry-forward
-6. Lower Workings + EN/VI carry-forward
-7. C# build
-8. ZIP content
-
-## Runtime acceptance required
-
-Do NOT call 6.7.44.6 stable until the following live tests pass.
-
-### Performance
-
-Go to a Pelipper-dense Farm/Forest with an active Team Up party.
-
-Expected: the severe lag seen on 6.7.44.5 should be materially reduced while Shiny Hold still triggers promptly.
-
-### Pelipper combat mode
-
-Run `teamup_pelipper_runtime` or `teamup_encounter status` outside Capture mode.
-
-Expected:
-
-- `modeSource` must NOT be `EnableCaptureTechniqueBonuses`
-- threshold source must NOT be `WildEncounterLowHealthCatchBonus`
-- if non-capture mode is resolved, `catchModeEnabled=False`, `captureSafetyEnabled=False`
-- if mode cannot be resolved, safety remains OFF by design
-
-Switch Pelipper to `Bắt giữ` / Capture mode, wait >1.5 seconds, run the diagnostic again.
-
-Expected:
-
-- mode value resolves to Capture/Catch or equivalent
-- `catchModeEnabled=True`
-- `captureSafetyEnabled=True`
-- threshold should normally be fallback 10% unless Pelipper exposes a real mercy-floor field
-
-### Normal wild capture floor
-
-Only while actual Capture mode is ON, Team Up should stop friendly damage around the mercy floor. Outside Capture mode, normal wild Pokemon can be defeated normally.
+- Prefer Pelipper `WildEncounterId` shared by visible source Pokemon and combat proxy.
+- If stable IDs are present but mismatch, fail closed. Do not guess by proximity.
+- Spatial fallback is allowed only for legacy/no-ID cases and must fail closed when ambiguous.
 
 ### Mutation
 
-Use `teamup_mutation status` before/after several Pelipper wild defeats.
+The user defeated roughly 10 Pelipper wild Pokemon without seeing a natural Mutation.
 
-Important story lock: before first Surge activation, the first 9 eligible lethal defeats are intended to suppress random Mutation while counting toward the forced first Mutation; the 10th eligible defeat forces the first Mutation.
+This alone does NOT prove a bug at the current default 5% chance: the probability of zero successes in ten independent 5% rolls is about 59.9%.
 
-With the 6.7.44.6 pre-lethal bridge, Pelipper wild kills should now begin advancing Mutation/Surge telemetry. `teamup_mutation force` should still work for a nearby eligible non-Shiny wild target.
+However, previous builds did have a real Pelipper lifecycle problem, so 6.7.44.7 adds explicit bridge telemetry rather than relying on visual luck.
 
-### Elite regression
+`teamup_mutation status` now prints both the core Mutation counters and:
 
-Ordinary Pelipper wild Pokemon must not emit `kind=EliteBoss target=Green Slime`.
+`Pelipper mutation bridge: damageCalls=... | wildDamageCalls=... | lethalCandidates=... | mutationAttempts=... | mutationIntercepts=... | duplicateSuppressed=... | shinyLethalExcluded=... | last=...`
 
-### Shiny regression
+Interpretation for live tests:
 
-Real Shiny must still:
+- `wildDamageCalls=0` while fighting Pelipper wild Pokemon: the bridge is not recognizing the combat proxy.
+- `wildDamageCalls>0` but `lethalCandidates=0` after actual defeats: the pre-lethal detector is missing Pelipper's lethal path.
+- `lethalCandidates>0` and `mutationAttempts>0` but core `rolls=0`: the target reached the bridge but failed Mutation eligibility inside `MonsterMutationService`.
+- `mutationAttempts` and core `rolls` both rise while `mutations=0`: the system is rolling and the result can legitimately be RNG/story suppression.
+- `mutationIntercepts>0`: a lethal Pelipper hit successfully transformed the live proxy into a Mutant and the lethal hit was cancelled.
+- `teamup_mutation force` should immediately transform the nearest eligible normal non-Shiny hostile and is the fastest eligibility sanity test. It does not by itself prove the natural pre-lethal hook.
 
-- resolve the Pokemon's real display name, not `Green Slime`
-- enter HOLD FIRE
-- block Team Up friendly damage
-- preserve Farmer Engage/Hold/Ignore order by encounter ID
-- remain Mutation-excluded
-- work even when Capture mode is OFF
+The 6.7.44.6 pre-lethal hook remains active and duplicate same-tick lethal calls are suppressed.
 
-## Combat balance design lock
+### Performance / lag
 
-Future Team Up combat balance must preserve room for character leveling, equipment and build progression.
+6.7.44.6 introduced:
 
-- Base NPC damage should be modest: useful, but not capable of replacing the Farmer or deleting same-tier encounters immediately.
-- Raw damage growth by character level should be slow, roughly 3-5% per level as an initial design target rather than large 10-20% jumps.
-- A meaningful part of late-game power should come from gear, skill ranks, passives, traits and party synergy.
-- Strong signature skills should rely on cooldowns/conditions instead of constant burst spam.
-- Additional active party members should eventually use mild diminishing party-DPS scaling so a full party does not scale linearly into room deletion.
-- Ordinary NPCs should not routinely one-shot enemies of comparable tier unless a deep build or conditional signature action explicitly earns it.
-- Do not prematurely inflate base damage before the equipment/build system is mature.
+- weak per-proxy source/identity cache;
+- positive/negative cache windows;
+- cached Shiny reflection evidence;
+- encounter discovery throttled from 60Hz to 20Hz;
+- encounter-ID pairing to reduce repeated/ambiguous scans.
 
-A later dedicated balance pass should audit base damage, skill multipliers and party-size scaling before expanding the gear system.
+The user has not yet explicitly confirmed that combat lag is gone. Treat performance as a pending runtime gate, not a completed fix.
 
-## Roster note
+## New in 6.7.44.7: active teammate gift guard
 
-The previous user-facing roster breakdown counted about 110 combat-profile characters across vanilla, SVE, RSV, MiMi and Sudoku. Current runtime startup reports `Alpha 6.7.4 roster integrity PASS: 111 profile row(s)`.
+User design lock: do not allow accidental vanilla gifting to an NPC while that NPC is actively deployed in Team Up.
 
-Do not hard-lock the public roster count at 110 until a later roster audit reconciles the extra profile row. Pelipper Pokemon are still compatibility/companion actors, not counted as human NPC combat-profile rows.
+Implemented policy:
 
-## Mutant capture limitation
+- If Farmer is holding an object and presses the Action button while facing their own Team Up member in `Following` or `Waiting`, Team Up suppresses the vanilla action.
+- The held item is NOT removed or modified.
+- Friendship is NOT changed.
+- A short HUD message explains that gifts cannot be given while the NPC is active in Team Up.
+- Inactive roster members retain normal vanilla gifting.
+- Empty-hand interaction remains available for Team Up member menus/dialogue.
+- Keyboard/controller Action inputs use the same guard.
 
-Do NOT claim a Pelipper Mutant is fully non-catchable yet.
+Live acceptance matrix:
 
-6.7.44.6 ensures Mutants bypass Team Up's mercy floor, but the exact Pelipper Poke Ball capture path has not yet been intercepted/proven. Full Mutant non-catchability remains separate compatibility work.
+1. Active `Following` member + held gift + Action -> gift blocked, item count unchanged.
+2. Active `Waiting` member + held gift + Action -> gift blocked, item count unchanged.
+3. Inactive roster member + held gift + Action -> vanilla gifting still works.
+4. Active member + empty hand -> normal Team Up interaction/menu still works.
+
+## Pelipper capture / Shiny policy carried forward
+
+- Do not treat `EnableCaptureTechniqueBonuses` as Catch Mode.
+- Do not treat `WildEncounterLowHealthCatchBonus` or any bonus/chance/rate/multiplier/technique setting as an HP floor.
+- Capture safety is fail-closed unless an actual Catch/Capture/Mercy combat mode is positively identified as enabled.
+- 10% fallback may be used only after a real capture mode is confirmed.
+- Shiny Emergency Hold is independent from capture mode.
+- Mutants never inherit the Pelipper mercy/capture floor.
+- Owned/companion Pokemon remain excluded from normal wild Mutation behavior.
+
+## NPC damage/progression design lock
+
+Do not let base NPC damage erase the later RPG progression systems.
+
+- Base NPC damage should be useful but moderate.
+- Level damage growth should remain modest; current design target is roughly 3-5% per level rather than large jumps.
+- A meaningful share of late power should come from equipment, skill ranks, traits and party synergy.
+- Ordinary NPCs should not routinely one-shot equal-tier enemies.
+- Avoid linear party-DPS snowball as roster size grows; consider diminishing returns / encounter scaling rather than huge per-NPC base numbers.
+- Preserve room for future gear/build/specialization systems before tuning late-game numbers upward.
+
+## Current roster source truth
+
+Current hand-crafted combat-profile coverage is approximately 110 characters:
+
+- Stardew Valley vanilla: 30
+- Stardew Valley Expanded: 24
+- Ridgeside Village: 54
+- Cardcha: MiMi
+- Hey! You're Cursed!: Sudoku
+
+Pelipper Pokemon are compatibility/companion/wild actors, not counted as NPC roster profiles. East Scarp does not yet have a completed hand-crafted Team Up roster.
 
 ## Lower Workings gate
 
-The Lower Workings 6.7.44.1 runtime gate remains required. Do not start 6.7.45 until Lower Workings runtime acceptance and the 6.7.44.6 Pelipper regression gate pass, unless the user explicitly waives a gate.
+6.7.44.1 Lower Workings map/runtime acceptance remains separate. Do not start 6.7.45 until the Pelipper runtime regressions and Lower Workings gate pass, unless the user explicitly waives the gate.
 
-## Story locks carried forward
+Lower Workings source locks remain:
 
-- George remains observed Rank D / Non-Combatant before the planned 6.7.46 reveal. No Rank S, no `The Last Blaster`, no explicit historical miner identity.
-- Evelyn's postgame secret remains untouched; main-story presentation stays ordinary low Rank D healer/support.
-- No exact `SECTOR 17` unless explicitly designed later.
+- dedicated `Ronvotri.TeamUp_LowerWorkings` location;
+- 32x24 TMX with Back / Buildings / Front;
+- persisted breach return;
+- three 120-tick survey clues;
+- host-authoritative story writes;
+- safe withdrawal behavior preserved.
+
+## Story / gameplay locks carried forward
+
+- George before 6.7.46 remains observed Rank D / Non-Combatant / unrecruitable. No Rank S, no `The Last Blaster`, no explicit historical miner identity.
+- Evelyn main story remains ordinary low Rank D healer/support; secret reveal remains postgame only.
+- Do not introduce exact `SECTOR 17` unless explicitly designed later.
 - Story NPC slots remain 4/4.
 - Hard formation cap remains 5 PEOPLE including Farmers.
 - Entry Protocol READY + SURGE HIGH prerequisites remain unchanged.
-- No final boss.
-- Pelipper source ownership/render/controller authority must remain intact.
-- 6.7.45 remains reserved for the Containment Chamber Escalation Encounter after runtime gates pass.
+- No final boss yet.
+- Pelipper source ownership/render/controller authority is preserved.
+- 6.7.45 remains reserved for the Containment Chamber Escalation Encounter.
 
-## Next-chat instruction
+## Next live-test instruction
 
-Continue Team Up from `LATEST_TEAM_UP_HANDOFF.md` on branch `v0.2-alpha6-7-44-6-pelipper-runtime-performance`. Live-test 6.7.44.6 performance, real Pelipper Capture mode detection/10% mercy, Pelipper pre-lethal Mutation telemetry, ordinary wild Elite regression, Shiny regression and Lower Workings before starting 6.7.45.
+Use the 6.7.44.7 test ZIP. On a fresh game session:
+
+1. Verify active-teammate gift blocking and inactive-member normal gifting.
+2. Run `teamup_mutation status` once before fighting.
+3. Defeat at least several normal non-Shiny Pelipper wild Pokemon.
+4. Run `teamup_mutation status` again and preserve the full lines for core `rolls/mutations` plus the Pelipper bridge counters.
+5. Run `teamup_mutation force` once on a normal non-Shiny wild Pokemon as an eligibility sanity test.
+6. Observe whether the previous combat lag is materially reduced.
+7. Leave Shiny behavior unchanged unless a new concrete regression is observed.
