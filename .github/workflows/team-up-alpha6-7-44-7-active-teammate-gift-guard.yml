@@ -1,0 +1,47 @@
+name: Team Up v0.2.0-alpha.6.7.44.7 Active Teammate Gift Guard
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-7-active-teammate-gift-guard
+    paths:
+      - 'src/TeamUp/Core/PelipperCaptureSafetyService.cs'
+      - 'src/TeamUp/Core/PelipperWildEncounterIdentityService.cs'
+      - 'src/TeamUp/Core/Alpha67446PelipperRuntimeService.cs'
+      - 'src/TeamUp/Core/EncounterReactionService.cs'
+      - 'src/TeamUp/Combat/MonsterMutationService.cs'
+      - 'src/TeamUp/ModEntry.Alpha6719.cs'
+      - 'src/TeamUp/ModEntry.Alpha6744.cs'
+      - 'src/TeamUp/ModEntry.Alpha67442.cs'
+      - 'src/TeamUp/ModEntry.Alpha67446.cs'
+      - 'src/TeamUp/TeamUp.csproj'
+      - 'src/TeamUp/manifest.json'
+      - 'src/TeamUp/assets/**'
+      - 'src/TeamUp/i18n/**'
+      - 'tools/build_alpha6744_7.py'
+      - '.github/workflows/team-up-alpha6-7-44-7-active-teammate-gift-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+      - name: Build, audit and package Alpha 6.7.44.7
+        run: python3 tools/build_alpha6744_7.py
+      - name: Upload Alpha 6.7.44.7 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-7-active-teammate-gift-guard
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.44.7_ACTIVE_TEAMMATE_GIFT_GUARD_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.7_ACTIVE_TEAMMATE_GIFT_GUARD_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_7.txt
+            ACTIVE_TEAMMATE_GIFT_GUARD_AUDIT_ALPHA6744_7.md
+          if-no-files-found: error
