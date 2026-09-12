@@ -14,6 +14,7 @@ namespace Ronvotri.TeamUp.Core;
 /// Keeps source-aware Shiny safety while removing repeated reflection work, suppresses ordinary
 /// Pelipper proxy Elite/Boss false positives, and gives Pelipper lethal damage a pre-death Mutation
 /// interception point because its wild proxy lifecycle may bypass Monster.deathAnimation.
+/// 6.7.44.7 adds explicit bridge telemetry so live tests can distinguish bad RNG from a missed hook.
 /// </summary>
 internal sealed class Alpha67446PelipperRuntimeService
 {
@@ -36,9 +37,20 @@ internal sealed class Alpha67446PelipperRuntimeService
         "TryMutate",
         BindingFlags.Instance | BindingFlags.NonPublic);
 
+    private static Alpha67446PelipperRuntimeService? ActiveInstance { get; set; }
+
     private readonly IMonitor _monitor;
     private readonly Harmony _harmony;
     private readonly HashSet<MethodBase> _damageHooks = new();
+
+    private long _damageCalls;
+    private long _wildDamageCalls;
+    private long _lethalCandidates;
+    private long _mutationAttempts;
+    private long _mutationIntercepts;
+    private long _duplicateSuppressed;
+    private long _shinyLethalExcluded;
+    private string _lastLethalLine = "none";
 
     public int PatchedDamageMethodCount => _damageHooks.Count;
 
@@ -46,6 +58,7 @@ internal sealed class Alpha67446PelipperRuntimeService
     {
         _monitor = monitor;
         _harmony = new Harmony($"{uniqueId}.Alpha67446PelipperRuntime");
+        ActiveInstance = this;
         ApplyShinyEvidenceCachePatch();
         ApplyEliteFalsePositivePatch();
         ApplyPelipperPreLethalHooks();
@@ -53,6 +66,21 @@ internal sealed class Alpha67446PelipperRuntimeService
 
     public string Describe()
         => $"6.7.44.6 Pelipper runtime: damageHooks={_damageHooks.Count} | identityCache=weak-per-proxy | shinyReflectionCache=enabled | eliteProxyGuard=enabled | preLethalMutation=enabled";
+
+    public string DescribeMutationBridge()
+        => $"Pelipper mutation bridge: damageCalls={_damageCalls} | wildDamageCalls={_wildDamageCalls} | lethalCandidates={_lethalCandidates} | mutationAttempts={_mutationAttempts} | mutationIntercepts={_mutationIntercepts} | duplicateSuppressed={_duplicateSuppressed} | shinyLethalExcluded={_shinyLethalExcluded} | last={_lastLethalLine}";
+
+    public void ResetMutationBridgeTelemetry()
+    {
+        _damageCalls = 0;
+        _wildDamageCalls = 0;
+        _lethalCandidates = 0;
+        _mutationAttempts = 0;
+        _mutationIntercepts = 0;
+        _duplicateSuppressed = 0;
+        _shinyLethalExcluded = 0;
+        _lastLethalLine = "reset";
+    }
 
     private void ApplyShinyEvidenceCachePatch()
     {
@@ -88,8 +116,6 @@ internal sealed class Alpha67446PelipperRuntimeService
     private static void ShinyEvidencePostfix(NPC actor, ref bool __result)
     {
         ShinyEvidenceCache.Remove(actor);
-        // A positive Shiny state is immutable for that spawn. Negative evidence is refreshed every
-        // two seconds so a just-created Pelipper actor still gets a short stabilization window.
         ShinyEvidenceCache.Add(actor, new ShinyCacheEntry
         {
             Result = __result,
@@ -118,9 +144,6 @@ internal sealed class Alpha67446PelipperRuntimeService
         if (!__result || !PelipperTownCompatibilityService.IsWildCombatActor(monster))
             return;
 
-        // Pelipper's ordinary wild combat proxy can carry generic metadata whose key happens to
-        // contain Boss/Elite. Do not turn that proxy metadata into a Team Up boss reaction.
-        // Explicit Team Up Mutation/Boss story actors are handled before this classifier.
         __result = false;
     }
 
@@ -169,50 +192,85 @@ internal sealed class Alpha67446PelipperRuntimeService
 
     private static void PelipperPreLethalPrefix(Monster __instance, object[] __args)
     {
+        Alpha67446PelipperRuntimeService? runtime = ActiveInstance;
+        if (runtime is not null)
+            runtime._damageCalls++;
+
         if (!Context.IsWorldReady || !Context.IsMainPlayer || __instance.Health <= 0
             || __args.Length == 0 || __args[0] is not int incoming || incoming <= 0)
         {
             return;
         }
 
-        if (!PelipperTownCompatibilityService.IsWildCombatActor(__instance)
-            || MonsterMutationService.IsMutant(__instance)
-            || MonsterMutationService.IsMutationMinion(__instance)
-            || EncounterReactionService.IsConfirmedShiny(__instance))
+        if (!PelipperTownCompatibilityService.IsWildCombatActor(__instance))
+            return;
+
+        if (runtime is not null)
+            runtime._wildDamageCalls++;
+
+        if (MonsterMutationService.IsMutant(__instance)
+            || MonsterMutationService.IsMutationMinion(__instance))
         {
             return;
         }
 
-        // Only intercept a hit which can actually finish the current proxy. This makes the hook
-        // effectively free during normal chip damage and gives the existing Mutation story/roll
-        // exactly the lifecycle point Pelipper's proxy removal was bypassing.
         if (incoming < __instance.Health)
             return;
 
+        if (runtime is not null)
+            runtime._lethalCandidates++;
+
+        if (EncounterReactionService.IsConfirmedShiny(__instance))
+        {
+            if (runtime is not null)
+            {
+                runtime._shinyLethalExcluded++;
+                runtime._lastLethalLine = $"shiny-excluded:{EncounterReactionService.GetShinyDisplayName(__instance)} HP={__instance.Health} incoming={incoming}";
+            }
+            return;
+        }
+
         LethalAttemptEntry stamp = LethalAttemptCache.GetOrCreateValue(__instance);
         if (stamp.Tick == Game1.ticks)
+        {
+            if (runtime is not null)
+                runtime._duplicateSuppressed++;
             return;
+        }
         stamp.Tick = Game1.ticks;
         __instance.modData[PreLethalMarker] = Game1.ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         MonsterMutationService? service = MonsterMutationService.ActiveInstance;
         if (service is null || TryMutateMethod is null)
+        {
+            if (runtime is not null)
+                runtime._lastLethalLine = $"bridge-unavailable:{__instance.Name} HP={__instance.Health} incoming={incoming}";
             return;
+        }
+
+        if (runtime is not null)
+            runtime._mutationAttempts++;
 
         try
         {
             MarlonInvestigationStoryService.ActiveInstance?.ObserveMonsterDeath(__instance);
             bool mutated = TryMutateMethod.Invoke(service, new object[] { __instance, false }) is true;
+            if (runtime is not null)
+            {
+                runtime._lastLethalLine = $"{(mutated ? "MUTATED" : "roll-no-mutation")}:{__instance.Name} HP={__instance.Health} incoming={incoming} tick={Game1.ticks}";
+                if (mutated)
+                    runtime._mutationIntercepts++;
+            }
+
             if (!mutated)
                 return;
 
-            // The lethal hit became the mutation trigger. Do not immediately apply that same lethal
-            // damage to the freshly transformed Mutant.
             __args[0] = 0;
         }
-        catch
+        catch (Exception ex)
         {
-            // Compatibility path must never break Pelipper's own damage lifecycle.
+            if (runtime is not null)
+                runtime._lastLethalLine = $"bridge-error:{ex.GetType().Name}:{ex.Message}";
         }
     }
 
