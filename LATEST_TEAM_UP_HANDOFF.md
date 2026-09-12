@@ -1,82 +1,95 @@
-# Team Up handoff: 0.2.0-alpha.6.7.44.4
+# Team Up handoff: 0.2.0-alpha.6.7.44.5
 
 ## Source of truth
 
-- Branch: `v0.2-alpha6-7-44-4-pelipper-source-aware-shiny`
-- Version: `0.2.0-alpha.6.7.44.4`
-- Source head before this handoff: `e48e4299d85b5c981e0e0382c01b95eeb591147b`
-- `main` is not merged and this build is not declared stable.
+- Branch: `v0.2-alpha6-7-44-5-pelipper-catchmode-gate`
+- Version: `0.2.0-alpha.6.7.44.5`
+- Verified source/build commit: `f420e025f00b56a1cc94fb1ea1c93459038228fa`
+- `main` is not merged. This build is a live-test candidate, not stable.
 
-## Implemented in 6.7.44.4
+## Implemented in 6.7.44.5
 
-### Pelipper source-aware wild identity
+### Strict Pelipper Catch Mode gate
 
-`PelipperWildEncounterIdentityService` resolves the visible Pelipper wild Pokemon source actor separately from its Monster combat proxy. Team Up stores encounter identity/display metadata on the proxy while leaving Pelipper source ownership/render/controller authority intact.
+`PelipperCaptureSafetyService` now fails closed:
 
-### Source-aware Shiny detection
+- Pelipper absent -> capture safety OFF.
+- Pelipper + Catch Mode false -> OFF.
+- Pelipper + mode unknown/unresolved -> OFF.
+- Pelipper + Catch Mode positively confirmed true -> ON.
+- 10% fallback threshold is allowed only after mode is confirmed ON.
+- Every policy refresh begins disabled, preventing stale true state.
+- Mutants never inherit Pelipper mercy/capture-floor protection.
 
-`EncounterReactionService` checks explicit Shiny evidence on the resolved Pelipper source actor first, with proxy evidence as a compatibility fallback. Detection is fail-closed and old false-positive Team Up Shiny markers are cleared when explicit evidence is no longer present.
+### Shiny Emergency Hold remains independent
 
-### Shiny Emergency Hold
+A confirmed Shiny can still trigger Team Up HOLD FIRE regardless of Catch Mode state. Shiny Hold blocks Team Up friendly damage but does not create or repair an artificial 10% capture floor.
 
-A confirmed Pelipper Shiny has highest encounter priority. Team Up places the proxy into HOLD FIRE before reaction dialogue, removes Team Up combat targeting, blocks Team Up friendly damage through the existing damage-budget safety path, and waits for Farmer tactical input. ENGAGE/IGNORE/HOLD state is remembered by encounter ID.
+### Diagnostics
 
-Shiny Hold is intentionally independent from Pelipper Catch Mode. A Shiny may trigger HOLD even when Catch Mode is disabled.
+`teamup_encounter status` now reports encounter state plus:
 
-### Encounter reactions
+- Pelipper presence
+- Catch Mode detected
+- Catch Mode enabled
+- capture safety enabled
+- mode source
+- threshold
+- threshold source
 
-Shiny, Mutation, Elite/Boss and Special encounters can trigger personality-aware teammate reactions. Shiny additionally gets the tactical HOLD behavior. Reactions are throttled so the party does not produce a wall of dialogue.
+### Build hygiene
 
-## IMPORTANT blocker discovered before 6.7.44.5
+- Harmony reference enabled through `Pathoschild.Stardew.ModBuildConfig` via `<EnableHarmony>true</EnableHarmony>`.
+- C# language pinned to 13.0 so compiler keyword changes do not silently break legacy bridge source.
+- Manifest materialized at `0.2.0-alpha.6.7.44.5`.
 
-`PelipperCaptureSafetyService` is not yet strict enough for the user's Catch Mode rule.
+## CI / package verification
 
-The intended rule is:
+- Workflow: `Team Up v0.2.0-alpha.6.7.44.5 Pelipper Catch Mode Gate`
+- Run: `34662578869`
+- Job: `103467948066`
+- Head: `f420e025f00b56a1cc94fb1ea1c93459038228fa`
+- Result: PASS
+- C# build: 0 warnings / 0 errors
+- Artifact ID: `10288091017`
+- Artifact: `team-up-alpha6-7-44-5-pelipper-catchmode-gate`
+- Wrapper SHA256: `4d7db6c74fb57a3d3da86a28a753a8fa375c50b81f22dd3b1bc629b9cb3981e1`
+- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.5_PELIPPER_CATCHMODE_GATE_TEST.zip`
+- Test ZIP SHA256: `721220d57063d66f8444527a2a2e1985be275ee2d741c9daaf0c16e49bbdf23f`
 
-- Pelipper absent -> capture floor OFF -> normal combat.
-- Pelipper present + Catch Mode OFF -> capture floor OFF -> normal combat to 0 HP.
-- Pelipper present + Catch Mode ON -> capture floor ON -> Team Up respects Pelipper's capture/mercy threshold.
-- Catch Mode unknown/unresolved -> OFF, never fail-open.
-- A 10% fallback threshold is allowed only after Catch Mode is positively confirmed ON.
+Audits PASS:
 
-Current 6.7.44.4 source still ends policy refresh with `_enabled = pelipperDetected;`. Therefore Pelipper presence alone can enable the capture floor even when a reflected Catch Mode is false or unresolved. `ModeConfirmed` is diagnostic only in this branch.
+1. version
+2. strict Catch Mode gate
+3. Shiny/Mutant separation
+4. runtime diagnostic wiring
+5. source-aware Shiny carry-forward
+6. Lower Workings + EN/VI carry-forward
+7. build
+8. ZIP/TMX re-parse
 
-This is a compatibility blocker, not a completed feature. It must be fixed in the next hotfix branch before treating capture-floor behavior as accepted.
+## Runtime acceptance still required
 
-## Runtime acceptance status
+Do NOT call this stable or runtime-proven until live Stardew/Pelipper tests pass.
 
-Source structure is verified in-repo. Live Stardew/Pelipper runtime acceptance is still required for:
+Catch Mode live matrix:
 
-1. normal wild Pokemon source/proxy identity,
-2. natural Shiny detection without false positives,
-3. immediate Shiny HOLD before Team Up damage,
-4. ENGAGE/HOLD/IGNORE behavior,
-5. no duplicate source/proxy ownership or render state,
-6. Mutation/Shiny priority,
-7. multiplayer authority behavior.
+1. Pelipper absent -> `captureSafetyEnabled=False`; normal monsters die normally.
+2. Pelipper installed + Catch Mode OFF -> `catchModeDetected=True`, `catchModeEnabled=False`, `captureSafetyEnabled=False`; wild Pokemon can reach 0 HP normally.
+3. Pelipper installed + Catch Mode ON -> `catchModeDetected=True`, `catchModeEnabled=True`, `captureSafetyEnabled=True`; Team Up stops at Pelipper threshold.
+4. Toggle ON -> OFF, wait >2 seconds -> policy refreshes OFF; no stale capture floor.
+5. Mode unresolved/unknown -> `catchModeDetected=False`, `captureSafetyEnabled=False`.
+6. With Catch Mode OFF, natural Shiny still triggers Shiny Emergency Hold.
+7. Normal non-Shiny wild with Catch Mode OFF gets normal combat behavior.
+8. Mutated Pokemon never receives Pelipper capture-floor protection.
+9. Owned/companion Pokemon remain excluded from mutation/capture-target behavior.
+10. No duplicate Pelipper source/proxy/render/controller state.
 
-Do not describe those as live-proven until an actual game test passes.
+Use `teamup_encounter status` during each live test and preserve the SMAPI log if any state is wrong.
 
-## Next branch
+## Lower Workings gate
 
-Create from this handoff commit:
-
-`v0.2-alpha6-7-44-5-pelipper-catchmode-gate`
-
-Target version:
-
-`0.2.0-alpha.6.7.44.5`
-
-Scope is compatibility/safety only:
-
-1. make Pelipper capture-floor policy fail-closed,
-2. positively resolve actual Catch Mode state from Pelipper runtime/config surfaces already present in source,
-3. reset stale enabled state when mode becomes false/unknown,
-4. expose diagnostics for `PelipperPresent`, `CatchModeDetected`, `CaptureSafetyEnabled`, threshold and threshold source,
-5. keep Shiny Emergency Hold independent from Catch Mode,
-6. preserve Pelipper source ownership/render/controller authority.
-
-Do not start 6.7.45 story work in this branch.
+6.7.44.1 map runtime gate is still separate and still needs the agreed live checks. Do not start 6.7.45 until Lower Workings runtime acceptance passes or the user explicitly waives it.
 
 ## Story locks carried forward
 
@@ -86,4 +99,5 @@ Do not start 6.7.45 story work in this branch.
 - Story NPC slots remain 4/4. Hard formation cap remains 5 people including Farmers.
 - Entry Protocol READY + SURGE HIGH prerequisites remain unchanged.
 - No final boss.
-- 6.7.45 remains reserved for the Containment Chamber Escalation Encounter after the Lower Workings runtime gate is accepted or explicitly waived.
+- Pelipper source ownership/render/controller authority is preserved.
+- 6.7.45 remains reserved for the Containment Chamber Escalation Encounter.
