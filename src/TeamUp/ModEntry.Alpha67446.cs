@@ -13,6 +13,7 @@ public sealed partial class ModEntry
     private Alpha67449PelipperSourceProbeService PelipperSourceProbeAlpha67449 { get; set; } = null!;
     private Alpha674410PelipperSpeciesPairingService PelipperSpeciesPairingAlpha674410 { get; set; } = null!;
     private Alpha674411PelipperDualHpProbeService PelipperDualHpProbeAlpha674411 { get; set; } = null!;
+    private Alpha674412PelipperModDataHpBindingService PelipperModDataHpBindingAlpha674412 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -28,17 +29,20 @@ public sealed partial class ModEntry
         // forced transform still fails. It is diagnostic and cached by runtime type pair.
         PelipperDualHpProbeAlpha674411 = new Alpha674411PelipperDualHpProbeService(Monitor);
 
-        // 6.7.44.8 patches the source-aware damage path at highest Harmony priority. Keep this
-        // registration before the 6.7.44.6 proxy telemetry layer so source HP can cancel a true
-        // Pelipper lethal hit before the old sentinel-HP heuristic sees it.
+        // 6.7.44.8 owns the source-aware Mutation engine. 6.7.44.12 patches its HP resolver before
+        // the service begins handling combat so Pelipper 1.2.0's authoritative WildCurrentHealth /
+        // WildMaxHealth modData is used instead of the 1,000,000-HP technical proxy sentinel.
         PelipperSourceMutationAlpha67448 = new Alpha67448PelipperSourceMutationService(
             Monitor,
             ModManifest.UniqueID,
             () => Config.MutationHealthMultiplier);
+        PelipperModDataHpBindingAlpha674412 = new Alpha674412PelipperModDataHpBindingService(
+            Monitor,
+            ModManifest.UniqueID);
         PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
 
-        // 6.7.44.9 legacy failure-only source probe remains available. 6.7.44.11 supplements it with
-        // a deterministic dual source+proxy dump after failed force attempts.
+        // 6.7.44.9 legacy failure-only source probe remains available. Once the 6.7.44.12 modData
+        // binding resolves HP successfully this probe should stay cold.
         PelipperSourceProbeAlpha67449 = new Alpha67449PelipperSourceProbeService(Monitor, ModManifest.UniqueID);
 
         // 6.7.44.4 ran the full source-aware identity + reflection classifier every simulation tick.
@@ -59,12 +63,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.11 Pelipper runtime diagnostics: status.",
+            "6.7.44.12 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.11 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"legacy pre-lethal bridge ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} hooks), source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), dual source/proxy HP probe, active-teammate gift guard.",
+            $"Team Up 6.7.44.12 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper WildCurrentHealth/WildMaxHealth modData binding, dual source/proxy HP probe, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -85,6 +89,7 @@ public sealed partial class ModEntry
 
         PelipperRuntimeAlpha67446.ResetMutationBridgeTelemetry();
         PelipperSourceMutationAlpha67448.ResetTelemetry();
+        PelipperModDataHpBindingAlpha674412.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -141,6 +146,7 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperRuntimeAlpha67446.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSpeciesPairingAlpha674410.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperModDataHpBindingAlpha674412.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
         Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
