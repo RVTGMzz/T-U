@@ -1,7 +1,9 @@
 using Ronvotri.TeamUp.Combat;
+using Ronvotri.TeamUp.Core;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Monsters;
 
 namespace Ronvotri.TeamUp;
 
@@ -73,6 +75,8 @@ public sealed partial class ModEntry
                     Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
                 if (PelipperSourceProbeAlpha67449 is not null)
                     Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
+                if (PelipperDualHpProbeAlpha674411 is not null)
+                    Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
                 if (PelipperRuntimeAlpha67446 is not null)
                     Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
                 Monitor.Log(MutationAlpha6719.LastMutationLine, LogLevel.Info);
@@ -84,11 +88,23 @@ public sealed partial class ModEntry
                 return;
 
             case "force":
-                // Capture the exact eligible target display name before the generic service runs.
-                // Pelipper's hidden combat actor is often named Green Slime; user-facing text must
-                // always prefer the Pokemon-facing display name and never expose the proxy identity.
                 string? displayName = PelipperSourceProbeAlpha67449?.CaptureForceTargetDisplayName();
                 bool transformed = MutationAlpha6719.ForceNearestEligible(out string rawResult);
+
+                // 6.7.44.11: a rejected Pelipper force must produce a deterministic source+proxy HP
+                // dump immediately. This no longer relies on a second Harmony postfix firing later.
+                if (!transformed && Context.IsWorldReady && Game1.currentLocation is not null)
+                {
+                    Monster? probeTarget = Game1.currentLocation.characters
+                        .OfType<Monster>()
+                        .Where(monster => monster.Health > 0)
+                        .Where(PelipperTownCompatibilityService.IsWildCombatActor)
+                        .OrderBy(monster => Microsoft.Xna.Framework.Vector2.DistanceSquared(monster.Position, Game1.player.Position))
+                        .FirstOrDefault();
+                    if (probeTarget is not null)
+                        Alpha674411PelipperDualHpProbeService.ProbeNow(probeTarget);
+                }
+
                 string result = LocalizeMutationForceResult(transformed, rawResult, displayName);
                 Monitor.Log(result, LogLevel.Info);
                 if (Context.IsWorldReady)
