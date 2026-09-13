@@ -67,6 +67,8 @@ public sealed partial class ModEntry
         {
             case "status":
                 Monitor.Log(MutationAlpha6719.Describe(), LogLevel.Info);
+                if (PelipperSourceMutationAlpha67448 is not null)
+                    Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
                 if (PelipperRuntimeAlpha67446 is not null)
                     Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
                 Monitor.Log(MutationAlpha6719.LastMutationLine, LogLevel.Info);
