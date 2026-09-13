@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using StardewModdingAPI;
 using StardewValley;
@@ -6,22 +7,29 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// 6.7.44.10 late identity fallback for Pelipper 1.2.0 wild encounters.
-/// Some combat proxies expose the correct Pokemon display name (for example "Wild Clauncher")
-/// but no usable shared WildEncounterId once combat is underway. The normal identity resolver then
-/// fails if source/proxy positions have separated or several wild actors are nearby.
-///
-/// This patch runs only after the canonical resolver fails. It pairs by exact normalized species
-/// name and accepts the match only when it is unique, or when exactly one same-species source actor
-/// intersects the proxy. Ambiguous duplicate-species scenes still fail closed.
+/// Late identity fallback for Pelipper 1.2.0 wild encounters.
+/// 6.7.44.11 adds a proxy-instance cache so a successful species pairing is reused instead of
+/// rescanning the entire location repeatedly. Ambiguous duplicate-species scenes still fail closed.
 /// </summary>
 internal sealed class Alpha674410PelipperSpeciesPairingService
 {
+    private sealed class CachedPair
+    {
+        public NPC Source { get; init; } = null!;
+        public string DisplayName { get; init; } = string.Empty;
+        public string EncounterId { get; init; } = string.Empty;
+        public string LocationName { get; init; } = string.Empty;
+        public string NormalizedSpecies { get; init; } = string.Empty;
+    }
+
     private readonly IMonitor _monitor;
     private readonly Harmony _harmony;
+    private readonly ConditionalWeakTable<Monster, CachedPair> _cache = new();
 
     private long _attempts;
     private long _resolved;
+    private long _cacheHits;
+    private long _cacheInvalidated;
     private long _ambiguous;
     private long _noMatch;
     private string _last = "reset";
@@ -37,7 +45,7 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
         var method = AccessTools.Method(typeof(PelipperWildEncounterIdentityService), nameof(PelipperWildEncounterIdentityService.TryResolve));
         if (method is null)
         {
-            _monitor.Log("6.7.44.10 species pairing skipped: Pelipper identity resolver not found.", LogLevel.Warn);
+            _monitor.Log("6.7.44.11 species pairing skipped: Pelipper identity resolver not found.", LogLevel.Warn);
             return;
         }
 
@@ -50,14 +58,56 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
     }
 
     public string Describe()
-        => $"Pelipper species pairing: attempts={_attempts} | resolved={_resolved} | ambiguous={_ambiguous} | noMatch={_noMatch} | last={_last}";
+        => $"Pelipper species pairing: attempts={_attempts} | resolved={_resolved} | cacheHits={_cacheHits} | cacheInvalidated={_cacheInvalidated} | ambiguous={_ambiguous} | noMatch={_noMatch} | last={_last}";
 
     private static void TryResolvePostfix(Monster proxy, ref PelipperWildEncounterIdentity identity, ref bool __result)
     {
         if (__result || Active is null)
             return;
 
+        if (Active.TryUseCachedPair(proxy, out identity))
+        {
+            __result = true;
+            return;
+        }
+
         Active.TryLatePair(proxy, out identity, out __result);
+    }
+
+    private bool TryUseCachedPair(Monster proxy, out PelipperWildEncounterIdentity identity)
+    {
+        identity = null!;
+        if (!_cache.TryGetValue(proxy, out CachedPair? cached))
+            return false;
+
+        GameLocation? location = proxy.currentLocation ?? Game1.currentLocation;
+        string locationName = location?.NameOrUniqueName ?? string.Empty;
+        string proxyRaw = string.IsNullOrWhiteSpace(proxy.displayName) ? proxy.Name : proxy.displayName;
+        string proxySpecies = NormalizeSpecies(proxyRaw);
+        bool sourceStillPresent = location is not null
+            && location.characters.OfType<NPC>().Any(actor => ReferenceEquals(actor, cached.Source));
+        bool valid = location is not null
+            && cached.LocationName.Equals(locationName, StringComparison.OrdinalIgnoreCase)
+            && sourceStillPresent
+            && ReferenceEquals(cached.Source.currentLocation, location)
+            && cached.NormalizedSpecies.Equals(proxySpecies, StringComparison.Ordinal)
+            && PelipperTownCompatibilityService.LooksLikePelipperActor(cached.Source)
+            && PelipperTownCompatibilityService.IsWildCombatActor(cached.Source)
+            && !IsKnownCombatProxy(cached.Source);
+
+        if (!valid)
+        {
+            _cache.Remove(proxy);
+            _cacheInvalidated++;
+            return false;
+        }
+
+        proxy.modData[PelipperWildEncounterIdentityService.ProxyEncounterIdMarker] = cached.EncounterId;
+        proxy.modData[PelipperWildEncounterIdentityService.ProxyDisplayNameMarker] = cached.DisplayName;
+        identity = new PelipperWildEncounterIdentity(proxy, cached.Source, cached.DisplayName, cached.EncounterId);
+        _cacheHits++;
+        _last = $"cache-hit species={cached.DisplayName} sourceType={cached.Source.GetType().FullName ?? cached.Source.GetType().Name}";
+        return true;
     }
 
     private void TryLatePair(Monster proxy, out PelipperWildEncounterIdentity identity, out bool resolved)
@@ -90,7 +140,7 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
             return;
         }
 
-        var sameSpecies = location.characters
+        List<NPC> sameSpecies = location.characters
             .OfType<NPC>()
             .Where(candidate => !ReferenceEquals(candidate, proxy))
             .Where(PelipperTownCompatibilityService.LooksLikePelipperActor)
@@ -101,14 +151,10 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
 
         NPC? source = null;
         if (sameSpecies.Count == 1)
-        {
             source = sameSpecies[0];
-        }
         else if (sameSpecies.Count > 1)
         {
-            var intersecting = sameSpecies
-                .Where(candidate => proxy.GetBoundingBox().Intersects(candidate.GetBoundingBox()))
-                .ToList();
+            List<NPC> intersecting = sameSpecies.Where(candidate => proxy.GetBoundingBox().Intersects(candidate.GetBoundingBox())).ToList();
             if (intersecting.Count == 1)
                 source = intersecting[0];
         }
@@ -123,16 +169,7 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
             else
             {
                 _noMatch++;
-                string visible = string.Join(",", location.characters
-                    .OfType<NPC>()
-                    .Where(candidate => !ReferenceEquals(candidate, proxy))
-                    .Where(PelipperTownCompatibilityService.LooksLikePelipperActor)
-                    .Where(PelipperTownCompatibilityService.IsWildCombatActor)
-                    .Where(candidate => !IsKnownCombatProxy(candidate))
-                    .Select(candidate => CleanSpecies(string.IsNullOrWhiteSpace(candidate.displayName) ? candidate.Name : candidate.displayName))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Take(12));
-                _last = $"no-species-match proxyDisplay={proxyRaw} species={CleanSpecies(proxyRaw)} visible=[{visible}]";
+                _last = $"no-species-match proxyDisplay={proxyRaw} species={CleanSpecies(proxyRaw)}";
             }
             return;
         }
@@ -147,7 +184,18 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
         resolved = true;
         _resolved++;
         _last = $"paired species={displayName} sourceType={source.GetType().FullName ?? source.GetType().Name} proxy={proxy.Name} encounter={encounterId}";
-        _monitor.Log($"[PelipperSpeciesPairing] {_last}", LogLevel.Debug);
+
+        _cache.Remove(proxy);
+        _cache.Add(proxy, new CachedPair
+        {
+            Source = source,
+            DisplayName = displayName,
+            EncounterId = encounterId,
+            LocationName = location.NameOrUniqueName,
+            NormalizedSpecies = proxySpecies
+        });
+
+        // No per-pair log: live 6.7.44.10 proved it can flood SMAPI and amplify hitching.
     }
 
     private static bool IsKnownCombatProxy(NPC actor)
@@ -159,18 +207,15 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
     {
         if (source.modData.TryGetValue(PelipperWildEncounterIdentityService.SourceEncounterIdMarker, out string? existing)
             && !string.IsNullOrWhiteSpace(existing))
-        {
             return existing;
-        }
 
         foreach (var pair in source.modData.Pairs)
         {
             string key = NormalizeToken(pair.Key);
-            if ((key.Contains("pelipper") && key.Contains("wildencounterid"))
-                || key.EndsWith("wildencounterid", StringComparison.Ordinal))
+            if (((key.Contains("pelipper") && key.Contains("wildencounterid")) || key.EndsWith("wildencounterid", StringComparison.Ordinal))
+                && !string.IsNullOrWhiteSpace(pair.Value))
             {
-                if (!string.IsNullOrWhiteSpace(pair.Value))
-                    return $"pelipper:{location.NameOrUniqueName}:wild:{pair.Value.Trim()}";
+                return $"pelipper:{location.NameOrUniqueName}:wild:{pair.Value.Trim()}";
             }
         }
 
