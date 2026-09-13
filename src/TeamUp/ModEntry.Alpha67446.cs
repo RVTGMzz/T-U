@@ -14,6 +14,8 @@ public sealed partial class ModEntry
     private Alpha674410PelipperSpeciesPairingService PelipperSpeciesPairingAlpha674410 { get; set; } = null!;
     private Alpha674411PelipperDualHpProbeService PelipperDualHpProbeAlpha674411 { get; set; } = null!;
     private Alpha674412PelipperModDataHpBindingService PelipperModDataHpBindingAlpha674412 { get; set; } = null!;
+    private Alpha674413PelipperVisibleMutationService PelipperVisibleMutationAlpha674413 { get; set; } = null!;
+    private Alpha674413MutationMinionSpawnService MutationMinionSpawnAlpha674413 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -29,9 +31,8 @@ public sealed partial class ModEntry
         // forced transform still fails. It is diagnostic and cached by runtime type pair.
         PelipperDualHpProbeAlpha674411 = new Alpha674411PelipperDualHpProbeService(Monitor);
 
-        // 6.7.44.8 owns the source-aware Mutation engine. 6.7.44.12 patches its HP resolver before
-        // the service begins handling combat so Pelipper 1.2.0's authoritative WildCurrentHealth /
-        // WildMaxHealth modData is used instead of the 1,000,000-HP technical proxy sentinel.
+        // 6.7.44.8 owns the source-aware Mutation engine. 6.7.44.12 binds Pelipper 1.2.0's
+        // authoritative WildCurrentHealth/WildMaxHealth proxy modData into that engine.
         PelipperSourceMutationAlpha67448 = new Alpha67448PelipperSourceMutationService(
             Monitor,
             ModManifest.UniqueID,
@@ -39,10 +40,24 @@ public sealed partial class ModEntry
         PelipperModDataHpBindingAlpha674412 = new Alpha674412PelipperModDataHpBindingService(
             Monitor,
             ModManifest.UniqueID);
+
+        // 6.7.44.13 mirrors Mutation visual scale onto the visible PokemonNpc and restores it when
+        // the wild encounter ends. The generic proxy scale remains harmless compatibility state.
+        PelipperVisibleMutationAlpha674413 = new Alpha674413PelipperVisibleMutationService(
+            Monitor,
+            ModManifest.UniqueID,
+            () => Config.MutationVisualScaleMultiplier);
+
+        // 6.7.44.13 keeps the existing strict minion placement first, then adds a conservative
+        // relaxed fallback for farms/custom maps where CollisionMask.All rejects every candidate.
+        MutationMinionSpawnAlpha674413 = new Alpha674413MutationMinionSpawnService(
+            Monitor,
+            ModManifest.UniqueID);
+
         PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
 
-        // 6.7.44.9 legacy failure-only source probe remains available. Once the 6.7.44.12 modData
-        // binding resolves HP successfully this probe should stay cold.
+        // 6.7.44.9 legacy failure-only source probe remains available. With the 6.7.44.12 modData
+        // binding resolving HP successfully this probe should stay cold.
         PelipperSourceProbeAlpha67449 = new Alpha67449PelipperSourceProbeService(Monitor, ModManifest.UniqueID);
 
         // 6.7.44.4 ran the full source-aware identity + reflection classifier every simulation tick.
@@ -63,12 +78,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.12 Pelipper runtime diagnostics: status.",
+            "6.7.44.13 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.12 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper WildCurrentHealth/WildMaxHealth modData binding, dual source/proxy HP probe, active-teammate gift guard.",
+            $"Team Up 6.7.44.13 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Pokemon Mutation scale, relaxed minion spawn fallback, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -80,6 +95,7 @@ public sealed partial class ModEntry
             return;
 
         EncounterReactionsAlpha67442.Update(Party.Members);
+        PelipperVisibleMutationAlpha674413.Update();
     }
 
     private void OnAlpha67447SaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -90,6 +106,8 @@ public sealed partial class ModEntry
         PelipperRuntimeAlpha67446.ResetMutationBridgeTelemetry();
         PelipperSourceMutationAlpha67448.ResetTelemetry();
         PelipperModDataHpBindingAlpha674412.ResetTelemetry();
+        PelipperVisibleMutationAlpha674413.ResetTelemetry();
+        MutationMinionSpawnAlpha674413.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -147,6 +165,8 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperSpeciesPairingAlpha674410.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
         Monitor.Log(PelipperModDataHpBindingAlpha674412.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperVisibleMutationAlpha674413.Describe(), LogLevel.Info);
+        Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
         Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
