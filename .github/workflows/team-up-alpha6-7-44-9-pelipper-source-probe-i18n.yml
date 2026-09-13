@@ -1,0 +1,44 @@
+name: Team Up v0.2.0-alpha.6.7.44.9 Pelipper Source Probe + Localization
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-9-pelipper-source-probe-i18n
+    paths:
+      - 'src/TeamUp/Core/Alpha67449PelipperSourceProbeService.cs'
+      - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
+      - 'src/TeamUp/Core/PelipperWildEncounterIdentityService.cs'
+      - 'src/TeamUp/Combat/MonsterMutationService.cs'
+      - 'src/TeamUp/ModEntry.Alpha6719.cs'
+      - 'src/TeamUp/ModEntry.Alpha67446.cs'
+      - 'src/TeamUp/TeamUp.csproj'
+      - 'src/TeamUp/manifest.json'
+      - 'src/TeamUp/assets/**'
+      - 'src/TeamUp/i18n/**'
+      - 'tools/build_alpha6744_9.py'
+      - '.github/workflows/team-up-alpha6-7-44-9-pelipper-source-probe-i18n.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+      - name: Build, audit and package Alpha 6.7.44.9
+        run: python3 tools/build_alpha6744_9.py
+      - name: Upload Alpha 6.7.44.9 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-9-pelipper-source-probe-i18n
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.44.9_PELIPPER_SOURCE_PROBE_I18N_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.9_PELIPPER_SOURCE_PROBE_I18N_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_9.txt
+            PELIPPER_SOURCE_PROBE_AUDIT_ALPHA6744_9.md
+          if-no-files-found: error
