@@ -1,46 +1,50 @@
-# Team Up handoff: 0.2.0-alpha.6.7.44.12
+# Team Up handoff: 0.2.0-alpha.6.7.44.13
 
 Canonical latest: `docs/LATEST_HANDOFF.md`
-Detailed notes: `docs/ALPHA_6_7_44_12_PELIPPER_MODDATA_HP_BINDING_HANDOFF.md`
+Detailed notes: `docs/ALPHA_6_7_44_13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_HANDOFF.md`
 
-- Branch: `v0.2-alpha6-7-44-12-pelipper-moddata-hp-binding`
-- CI SHA: `c79916d0718c567975fd028f9b0f17f674cda015`
-- Run: `34753394198`
-- Job: `103713602860`
-- Artifact ID: `10316283846`
-- ZIP SHA256: `83f80afa3acd28c33aa50287b0ba454ad6be5ba77715e6e69be26b9484927912`
+- Branch: `v0.2-alpha6-7-44-13-pelipper-visible-scale-minion-spawn`
+- CI SHA: `c989c6407ac70ad799ffc5b06cbaac90c9717272`
+- Run: `34778989370`
+- Job: `103782389584`
+- Artifact ID: `10324089476`
+- Artifact wrapper SHA256: `ac0369fb12e2d249d918eeae10f5252a9d1705157674b551b955b354d8e49562`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.zip`
+- ZIP SHA256: `9e3c2fb4975c2944f915d38fb39e5002311178b31dfc3e66b40b30779cdfbd64`
 - Build: PASS, 0 warnings / 0 errors
 - main not merged
 - 6.7.45 not started
 
-## Live acceptance on 6.7.44.12
-Forced Pelipper Mutation now succeeds on a normal wild Seadra.
+## Live truth from 6.7.44.12
+Pelipper Mutation core is live-confirmed: forced Mutation succeeds, `WildCurrentHealth/WildMaxHealth` binding resolves and writes correctly, source HP resolution has no failures, and natural lethal events now increment Mutation rolls.
 
-Observed live telemetry:
-- `Mutation: rolls=2 | mutations=1 | active=1`
-- `Pelipper SOURCE mutation: sourceDamageCalls=16 | hpResolved=16 | hpUnresolved=0 | sourceLethalCandidates=2 | mutationAttempts=2 | transformBlocked=0 | forceTransforms=1`
-- `Pelipper modData HP binding: resolved=19 | writes=1 | invalid=0 | fallbacks=0`
-- last source mutation: `mutated source=Seadra hp=160/160 logicalHP=480 bars=3 extraLives=2 via=PelipperProxyModData.WildCurrentHealth/PelipperProxyModData.WildMaxHealth force=True`
+Two remaining live failures were reproduced:
+- visible Pokemon source did NOT become x3 larger even though generic telemetry said `scaleApplied=True`; that scale was only on the hidden combat proxy;
+- minion waves requested 3-4 minions but spawned 0 with all candidates `safeRejected`, both on a custom map and on Farm.
 
-This proves:
-- Pelipper authoritative wild HP is correctly bound from `Griff.PelipperTown/WildCurrentHealth` + `WildMaxHealth` on the combat proxy modData;
-- the hidden `Monster.Health/MaxHealth=1000000` sentinel is no longer used as Pokemon HP;
-- forced Mutation transforms the real Pelipper encounter successfully;
-- natural lethal events now reach the Mutation roll path. `rolls=2` is natural-roll telemetry because forced transforms do not increment `_rolls`; both natural rolls simply missed 5% in this test;
-- old source HP reflection probes stayed cold after the correct binding was active.
+## 6.7.44.13
+New `Alpha674413PelipperVisibleMutationService` applies the configured Mutation scale to the paired visible `PelipperTown.PokemonNpc`, preferring `_visualScaleMultiplier`, and restores the original value when the wild Mutant encounter ends or changes role. It reapplies at the existing 20Hz runtime pulse if Pelipper overwrites presentation state.
 
-## Remaining runtime gates before declaring the Pelipper Mutation path complete
-1. HPx3 phase behavior still needs live verification. Current mutant has `bars=3`, `extraLives=2`, but `phaseGuards=0` because no mutant phase was depleted during the captured status.
-2. Minion spawning is not yet accepted. The forced Seadra requested 3 minions but logged `spawned=0/3`, `safeRejected=3`. Diagnose safe-spawn rejection on custom locations before calling minions complete.
-3. Confirm the visible Pokemon source actually shows the intended Mutation presentation (aura and desired visual scale). `auraDraws` is active; generic `scaleApplied=True` may refer to the hidden combat proxy and should not be assumed to scale the visible PokemonNpc until observed in-game.
-4. Performance remains a live gate, but current pairing telemetry is healthy: `resolved=4`, `cacheHits=901`, `cacheInvalidated=0`. High cache hits are expected reuse, not repeated full-map pairing scans.
+New `Alpha674413MutationMinionSpawnService` preserves the original strict safe-spawn pass and only adds a fallback when that pass fails. The fallback still requires an on-map/passable tile, no placed object or terrain feature, and safe distance from Farmer/all characters, but drops the over-broad `CollisionMask.All` rejection.
+
+New status lines:
+- `Pelipper visible Mutation: tracked=... | applied=... | reapplied=... | restored=... | failed=... | last=...`
+- `Mutation minion spawn fallback: attempts=... | resolved=... | rejected=... | last=...`
+
+## Next live test
+On a normal non-Shiny Pelipper wild Pokemon:
+1. `teamup_mutation force`
+2. visually confirm the actual Pokemon sprite becomes ~x3 larger;
+3. verify at least one minion can spawn on Farm/custom map;
+4. run `teamup_mutation status` and return the new visible-scale/minion-fallback lines plus source Mutation/HP binding and final MutationTelemetry;
+5. continue the HPx3 phase test by depleting one real HP bar and verify `phaseGuards` + HP-binding writes increase.
 
 Carry-forward locks:
 - current Shiny behavior remains frozen as accepted unless a concrete regression appears;
 - Shiny remains Mutation-excluded;
 - active Following/Waiting teammates cannot receive held-item vanilla gifts;
 - pair cache/performance safeguards remain enabled;
-- NPC base damage progression remains moderate with slow level growth;
-- Lower Workings remains unchanged and still gates 6.7.45.
-
-Next live test: attack the active Seadra mutant until one HP bar is depleted, then run `teamup_mutation status`. Expected: `phaseGuards` increments and `Pelipper modData HP binding writes` increases as `WildCurrentHealth` is restored. Also report whether the visible Seadra is actually enlarged and whether combat feels lag-free. Minion `safeRejected=3` will be handled as a separate runtime fix if it reproduces.
+- never use hidden Green Slime 1,000,000 sentinel HP as Pokemon HP;
+- Pelipper retains controller/render/ownership authority;
+- Lower Workings remains unchanged and still gates 6.7.45;
+- do not claim Mutants fully non-catchable until the actual Pelipper ball-capture path is intercepted and live-tested.
