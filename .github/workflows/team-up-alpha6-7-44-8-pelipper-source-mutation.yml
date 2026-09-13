@@ -1,0 +1,48 @@
+name: Team Up v0.2.0-alpha.6.7.44.8 Pelipper Source Mutation
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-8-pelipper-source-mutation
+    paths:
+      - 'src/TeamUp/Core/PelipperCaptureSafetyService.cs'
+      - 'src/TeamUp/Core/PelipperWildEncounterIdentityService.cs'
+      - 'src/TeamUp/Core/Alpha67446PelipperRuntimeService.cs'
+      - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
+      - 'src/TeamUp/Core/EncounterReactionService.cs'
+      - 'src/TeamUp/Combat/MonsterMutationService.cs'
+      - 'src/TeamUp/ModEntry.Alpha6719.cs'
+      - 'src/TeamUp/ModEntry.Alpha6744.cs'
+      - 'src/TeamUp/ModEntry.Alpha67442.cs'
+      - 'src/TeamUp/ModEntry.Alpha67446.cs'
+      - 'src/TeamUp/TeamUp.csproj'
+      - 'src/TeamUp/manifest.json'
+      - 'src/TeamUp/assets/**'
+      - 'src/TeamUp/i18n/**'
+      - 'tools/build_alpha6744_8.py'
+      - '.github/workflows/team-up-alpha6-7-44-8-pelipper-source-mutation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+      - name: Build, audit and package Alpha 6.7.44.8
+        run: python3 tools/build_alpha6744_8.py
+      - name: Upload Alpha 6.7.44.8 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-8-pelipper-source-mutation
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.44.8_PELIPPER_SOURCE_MUTATION_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.8_PELIPPER_SOURCE_MUTATION_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_8.txt
+            PELIPPER_SOURCE_MUTATION_AUDIT_ALPHA6744_8.md
+          if-no-files-found: error
