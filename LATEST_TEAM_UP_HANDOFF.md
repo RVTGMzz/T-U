@@ -1,54 +1,20 @@
-# Team Up handoff: 0.2.0-alpha.6.7.44.11
+# Team Up handoff: 0.2.0-alpha.6.7.44.12
 
 Canonical latest: `docs/LATEST_HANDOFF.md`
-Detailed current notes: `docs/ALPHA_6_7_44_11_PELIPPER_PAIR_CACHE_DUAL_PROBE_HANDOFF.md`
+Detailed notes: `docs/ALPHA_6_7_44_12_PELIPPER_MODDATA_HP_BINDING_HANDOFF.md`
 
-## Source of truth
-- Branch: `v0.2-alpha6-7-44-11-pelipper-pair-cache-dual-probe`
-- Version: `0.2.0-alpha.6.7.44.11`
-- CI input SHA: `027da2bc8291973f9fd1ded78fa0a91d9a09ad3e`
-- Run: `34750488830`
-- Job: `103706056038`
-- Artifact ID: `10315770465`
-- Artifact wrapper SHA256: `60b0713ea63d68fb2f6d1b8af57f2489fe586073d262098cf0f31262db4b01c8`
-- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.11_PELIPPER_PAIR_CACHE_DUAL_PROBE_TEST.zip`
-- Test ZIP SHA256: `e8fe33602e64b9bd344b62f83def4df5a055968736813033c97f49dae4fb6afa`
+- Branch: `v0.2-alpha6-7-44-12-pelipper-moddata-hp-binding`
+- CI SHA: `c79916d0718c567975fd028f9b0f17f674cda015`
+- Run: `34753394198`
+- Job: `103713602860`
+- Artifact ID: `10316283846`
+- ZIP SHA256: `83f80afa3acd28c33aa50287b0ba454ad6be5ba77715e6e69be26b9484927912`
 - Build: PASS, 0 warnings / 0 errors
-- `main` not merged
+- main not merged
 - 6.7.45 not started
 
-## Live truth
-6.7.44.10 successfully paired many Pelipper combat proxies to visible `PelipperTown.PokemonNpc` sources by exact species, proving the source actor exists. It also recalculated/logged the same pairings repeatedly and still rejected forced Mutation.
+Live 6.7.44.11 proved Pelipper authoritative wild HP is `Griff.PelipperTown/WildCurrentHealth` and `Griff.PelipperTown/WildMaxHealth` on the combat proxy modData. `Monster.Health/MaxHealth=1000000` is technical proxy state only.
 
-## 6.7.44.11
-- successful species pairs are cached by proxy instance and validated before reuse;
-- per-pair log spam is removed;
-- pairing status adds `cacheHits` and `cacheInvalidated`;
-- a rejected force deterministically probes both visible source and hidden proxy, including numeric candidates, nested state, relevant modData and member names;
-- dual probe is cached by source/proxy runtime type pair and remains cold-path only;
-- Mutation remains fail-closed until real writable Pokemon HP/state ownership is proven.
+6.7.44.12 binds those exact HP keys into source-aware Mutation while preserving Pelipper controller authority. Pair cache, current Shiny behavior, active-teammate gift guard, performance safeguards, NPC progression lock and Lower Workings remain carried forward.
 
-## Locked carry-forward
-- Shiny behavior stays as currently accepted; Shiny remains Mutation-excluded.
-- Active Following/Waiting teammates cannot receive held-item vanilla gifts.
-- Encounter discovery stays 20Hz; performance remains a live gate.
-- Never treat Green Slime sentinel HP as Pokemon HP.
-- Lower Workings remains unchanged and still gates 6.7.45.
-- NPC base damage remains moderate with slow level scaling to preserve future gear/skill/build progression.
-
-## Next live test
-Run on a normal non-Shiny Pelipper wild Pokemon:
-
-`teamup_mutation force`
-
-then:
-
-`teamup_mutation status`
-
-Return:
-- `Pelipper species pairing: ...`
-- `Pelipper SOURCE mutation: ...`
-- `Pelipper SOURCE HP probe: ...`
-- `Pelipper dual HP probe: ...`
-
-Expected: no repeated pairing flood; `cacheHits` increases; if force still rejects, `Pelipper dual HP probe: runs>=1` exposes the exact source/proxy layout for the next binding.
+Next: run `teamup_mutation force`, then `teamup_mutation status`, and return the `Pelipper modData HP binding`, `Pelipper SOURCE mutation`, and `Mutation` lines.
