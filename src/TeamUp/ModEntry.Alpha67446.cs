@@ -12,16 +12,21 @@ public sealed partial class ModEntry
     private Alpha67448PelipperSourceMutationService PelipperSourceMutationAlpha67448 { get; set; } = null!;
     private Alpha67449PelipperSourceProbeService PelipperSourceProbeAlpha67449 { get; set; } = null!;
     private Alpha674410PelipperSpeciesPairingService PelipperSpeciesPairingAlpha674410 { get; set; } = null!;
+    private Alpha674411PelipperDualHpProbeService PelipperDualHpProbeAlpha674411 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
-        // 6.7.44.10 must patch identity resolution before the source-aware Mutation layer starts.
-        // Pelipper 1.2.0 can keep the correct Pokemon name on the hidden proxy while source/proxy
-        // positions separate during combat. The late pairing fallback safely reconnects a unique
-        // same-species visible wild actor without guessing across duplicate species.
+        // 6.7.44.10 reconnects a unique same-species visible PokemonNpc when Pelipper's hidden
+        // combat proxy keeps the Pokemon display name but stable IDs/positions no longer line up.
+        // 6.7.44.11 adds a proxy-instance cache inside this service so the location is not rescanned
+        // every time another subsystem asks for the same encounter identity.
         PelipperSpeciesPairingAlpha674410 = new Alpha674410PelipperSpeciesPairingService(
             Monitor,
             ModManifest.UniqueID);
+
+        // 6.7.44.11 cold-path dual probe inspects both visible source and hidden proxy only after a
+        // forced transform still fails. It is diagnostic and cached by runtime type pair.
+        PelipperDualHpProbeAlpha674411 = new Alpha674411PelipperDualHpProbeService(Monitor);
 
         // 6.7.44.8 patches the source-aware damage path at highest Harmony priority. Keep this
         // registration before the 6.7.44.6 proxy telemetry layer so source HP can cancel a true
@@ -32,9 +37,8 @@ public sealed partial class ModEntry
             () => Config.MutationHealthMultiplier);
         PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
 
-        // 6.7.44.9 probes only unresolved source-HP layouts. It is intentionally registered after
-        // the 6.7.44.8 resolver so the postfix sees only genuine resolver failures and stays cold in
-        // normal combat once Pelipper's HP layout is understood.
+        // 6.7.44.9 legacy failure-only source probe remains available. 6.7.44.11 supplements it with
+        // a deterministic dual source+proxy dump after failed force attempts.
         PelipperSourceProbeAlpha67449 = new Alpha67449PelipperSourceProbeService(Monitor, ModManifest.UniqueID);
 
         // 6.7.44.4 ran the full source-aware identity + reflection classifier every simulation tick.
@@ -55,12 +59,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.10 Pelipper runtime diagnostics: status.",
+            "6.7.44.11 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.10 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, unique-species source pairing fallback, Elite proxy guard, "
-            + $"legacy pre-lethal bridge ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} hooks), source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), unresolved source-HP probe, active-teammate gift guard.",
+            $"Team Up 6.7.44.11 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"legacy pre-lethal bridge ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} hooks), source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), dual source/proxy HP probe, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -113,8 +117,6 @@ public sealed partial class ModEntry
         if (member is null || member.State is not (PartyMemberState.Following or PartyMemberState.Waiting))
             return;
 
-        // Suppress before vanilla NPC interaction can turn the held object into a gift.
-        // Do not remove or mutate the item: the Farmer keeps exactly what they were holding.
         Helper.Input.Suppress(e.Button);
         RecruitHintNpcName = null;
 
@@ -140,6 +142,7 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperSpeciesPairingAlpha674410.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
         Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
         Monitor.Log(PelipperCaptureSafetyService.DescribePolicy(), LogLevel.Info);
         Monitor.Log(MutationAlpha6719.Describe(), LogLevel.Info);
