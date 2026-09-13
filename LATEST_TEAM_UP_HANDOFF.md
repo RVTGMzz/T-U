@@ -1,234 +1,182 @@
-# Team Up handoff: 0.2.0-alpha.6.7.44.8
+# Team Up handoff: 0.2.0-alpha.6.7.44.9
 
 ## Source of truth
 
-- Branch: `v0.2-alpha6-7-44-8-pelipper-source-mutation`
-- Version: `0.2.0-alpha.6.7.44.8`
-- CI-verified build commit: `d34b957462b91ab1d74ebf43ac0c30e6fe9d9a61`
-- Workflow run: `34736568380`
-- Job: `103668940210`
-- Artifact ID: `10310853662`
-- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.8_PELIPPER_SOURCE_MUTATION_TEST.zip`
-- Test ZIP SHA256: `bc253c80c1022fd8d3c31e3e8a8b52c8ae9e3628f027a1108942b7284facdf01`
+- Branch: `v0.2-alpha6-7-44-9-pelipper-source-probe-i18n`
+- Version: `0.2.0-alpha.6.7.44.9`
+- CI-verified build commit: `4c975a31c0fb06c7c23b74f6c96c4fd5c1262ed4`
+- Workflow run: `34737578822`
+- Job: `103671569428`
+- Artifact ID: `10311014522`
+- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.9_PELIPPER_SOURCE_PROBE_I18N_TEST.zip`
+- Test ZIP SHA256: `d2b0d3e27591c2d4e70cfc359d74167d49412af74d32ba7dc90e5f5f3eda67e6`
 - Build result: PASS, 0 warnings / 0 errors.
-- `main` is not merged.
+- `main` is NOT merged.
 - 6.7.45 story work has NOT started.
-- This is a live-test candidate, not stable.
+- This remains a live-test/diagnostic candidate, not stable.
 
-## Live finding that triggered 6.7.44.8
+## Live finding that triggered 6.7.44.9
 
-6.7.44.7 telemetry ended the RNG ambiguity.
+User tested 6.7.44.8 with `teamup_mutation force` and got:
 
-The user fought Pelipper wild Pokemon and then reported:
+`Force mutation was rejected for Green Slime.`
 
-`Mutation: ... rolls=0 | mutations=0 ...`
+Status then showed:
 
-`Pelipper mutation bridge: damageCalls=542 | wildDamageCalls=542 | lethalCandidates=0 | mutationAttempts=0 | mutationIntercepts=0 ...`
+`Pelipper SOURCE mutation: ... transformBlocked=1 ... last=transform-blocked sourceHP-unresolved proxy=Green Slime force=True`
 
-This proves the old pre-lethal bridge recognized Pelipper wild combat proxies and saw their damage calls, but never considered any hit lethal. Therefore the natural 5% Mutation roll never ran at all.
+This proves 6.7.44.8 correctly FAILS CLOSED instead of mutating Pelipper's hidden Green Slime sentinel HP, but its source HP resolver still does not understand Pelipper 1.2.0's actual visible-Pokemon HP layout.
 
-The user also ran `teamup_mutation force`. It produced:
+The user also correctly flagged two UX bugs:
 
-- `MUTATION DETECTED`
-- target name `Green Slime`
-- `Forced mutation: Green Slime -> HP 2000000/2000000.`
+1. force result was hard-coded English while the game locale is Vietnamese;
+2. rejected-force text leaked the hidden combat proxy name `Green Slime` instead of the visible Pokemon identity.
 
-The visible Pokemon did not meaningfully look mutated afterward.
+## New in 6.7.44.9
 
-Diagnosis:
-
-- Pelipper wild encounters have a visible Pokemon source actor plus a hidden `Monster` combat proxy.
-- The proxy can be named `Green Slime` and uses a large technical/sentinel HP pool.
-- 6.7.44.6/7 incorrectly used `incoming >= proxy.Health` for lethal detection.
-- Generic Mutation also scaled the sentinel proxy HP and proxy visuals, causing the misleading 2,000,000 HP Green Slime result.
-- The visible source Pokemon is the correct identity/HP/visual actor for Pelipper Mutation presentation.
-
-## New in 6.7.44.8: source-aware Pelipper Mutation
+### Source HP failure probe
 
 New service:
 
-`src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs`
+`src/TeamUp/Core/Alpha67449PelipperSourceProbeService.cs`
 
-### Source HP is now the lethal truth
+It patches `Alpha67448PelipperSourceMutationService.TryResolveSourceHealth` with a failure-only postfix.
 
-The new bridge:
+Rules:
 
-1. identifies the Pelipper wild combat proxy;
-2. pairs it to the visible source Pokemon through `PelipperWildEncounterIdentityService` / stable `WildEncounterId` when available;
-3. conservatively resolves a writable source HP + max HP member using cached runtime reflection;
-4. compares incoming damage against the SOURCE Pokemon current HP;
-5. enters the existing `MonsterMutationService.TryMutate` roll only for a real source-lethal candidate.
+- probe runs ONLY when the existing source HP resolver returns false;
+- expensive member inspection is cached by source runtime Type;
+- normal resolved combat does not continuously scan reflection members;
+- probe keeps 6.7.44.8 fail-closed behavior intact;
+- it never invents an HP value and never falls back to Green Slime sentinel HP.
 
-The new Harmony damage prefix uses `Priority.First`, so it runs before the legacy proxy-sentinel hook.
+Probe output is available through `teamup_mutation status` and `teamup_pelipper_runtime`:
 
-If source HP cannot be resolved, the Pelipper Mutation path fails closed and reports telemetry. It must NOT fall back to mutating sentinel Green Slime HP.
+`Pelipper SOURCE HP probe: runs=... | cached=... | last=source=<Pokemon> type=<runtime type> encounter=<id> candidates=[...] members=[...]`
 
-### Existing Mutation engine remains authoritative
+The important live-test payload is `candidates=[...]` plus `members=[...]`. It should reveal Pelipper 1.2.0's actual source actor member shape so the next fix can bind to real HP without guessing.
 
-The source bridge still calls the existing private `MonsterMutationService.TryMutate` path, so these systems remain centralized:
+### Force result localization and source name
 
-- Enabled flag / Mutation chance;
-- Surge story directives;
-- core `rolls` / `mutations` telemetry;
-- stat scaling;
-- Mutation markers;
-- minion-wave spawning;
-- normal non-Pelipper Mutation behavior.
+`teamup_mutation force` now captures the exact nearest eligible target using the same private `MonsterMutationService.IsEligible` decision used by core force logic.
 
-### Preserve Pelipper controller authority
+For Pelipper wild targets it resolves the paired source Pokemon display name before force runs.
 
-For Pelipper targets only, the generic Mutation engine temporarily receives the real source Pokemon HP so it calculates sensible logical Mutation HP.
+User-facing result is locale-aware:
 
-Immediately afterward Team Up restores:
+Vietnamese examples:
 
-- original technical proxy `Health`;
-- original technical proxy `MaxHealth`;
-- original proxy Scale;
-- original proxy name/display name.
+- `Đã cưỡng chế đột biến: <Pokemon>.`
+- `Không thể cưỡng chế đột biến cho <Pokemon>.`
+- `Không có quái thường hợp lệ gần đây để cưỡng chế đột biến.`
 
-The hidden proxy Mutation footprint is neutralized to scale 1.
+English equivalents remain available under non-Vietnamese locales.
 
-Do NOT permanently replace Pelipper's sentinel proxy HP with Pokemon HP. Pelipper remains authoritative over its source/proxy runtime controller.
+Do not expose `Green Slime` in force HUD/log text when a paired source Pokemon identity is available.
 
-### HPx3 becomes source-Pokemon phases
+This hotfix deliberately does NOT edit the large i18n JSON catalogs for this single diagnostic command; it follows the active SMAPI locale through `Helper.Translation.Locale` and preserves existing EN/VI catalog parity.
 
-For Pelipper Mutation, the configured health multiplier is represented as source-Pokemon HP phases instead of inflating the hidden proxy sentinel.
+## Mutation truth carried forward
 
-Default HPx3 behavior:
+6.7.44.7 live telemetry proved old proxy-lethal logic was wrong:
 
-- Mutation begins: source Pokemon restored to a full real HP bar;
-- first lethal after Mutation: damage is cancelled, source HP restored to full, one extra phase consumed;
-- second lethal: same, final extra phase consumed;
-- third lethal: allowed through to Pelipper normally.
+- `wildDamageCalls=542`
+- `lethalCandidates=0`
+- core `rolls=0`
 
-This approximates three real Pokemon HP bars while preserving Pelipper's own max-HP/controller data.
+Pelipper's hidden combat proxy can use sentinel/technical HP and must NOT be used as real Pokemon lethal truth.
 
-Markers:
+6.7.44.8 source-aware Mutation remains authoritative for Pelipper:
 
-- `Ronvotri.TeamUp/PelipperSourceMutant`
-- `Ronvotri.TeamUp/PelipperMutantExtraLives`
-- `Ronvotri.TeamUp/PelipperMutantLogicalMaxHp`
-- `Ronvotri.TeamUp/PelipperSourceHpAccessor`
+- pair visible source Pokemon and combat proxy through stable encounter identity;
+- source Pokemon identity/HP/visual actor is the intended Mutation truth;
+- hidden Green Slime remains Pelipper's combat/controller authority;
+- proxy sentinel HP is restored/preserved and must not be permanently scaled;
+- HP multiplier is represented as source-Pokemon phases after a successful source-aware Mutation;
+- source aura is drawn around the visible Pokemon;
+- Shiny wins over Mutation;
+- owned/companion Pokemon remain excluded.
 
-### Visible Mutation presentation
+Until the source HP member is positively resolved in live Pelipper 1.2.0, transforms remain fail-closed.
 
-Mutation aura now draws around `identity.SourceActor.GetBoundingBox()` for Pelipper mutants rather than around the hidden Green Slime proxy.
+## Shiny, gifting, performance and capture locks
 
-Force output is source-aware. Expected form:
+Shiny:
 
-`Forced mutation: <Pokemon> -> source HP X/X, HPx3 (3 phase(s)).`
+- user currently considers Shiny handling acceptable;
+- preserve source-aware Pokemon name, Emergency Hold and Mutation exclusion;
+- prefer exact Pelipper `WildEncounterId`; ambiguous fallback fails closed.
 
-The generic Mutation message temporarily receives the source Pokemon name so `MUTATION DETECTED` should identify the actual Pokemon instead of `Green Slime`.
+Active teammate gifting:
 
-The visible Pokemon sprite itself is NOT permanently scale-mutated in 6.7.44.8. This is intentional: blindly writing Pelipper renderer scale could leak into captured/owned Pokemon state. For this live gate, source aura + correct Pokemon identity + real HP phases + minions are the safe visible Mutation proof.
-
-## New source Mutation telemetry
-
-`teamup_mutation status` now prints the core Mutation line, the new source bridge line, the legacy proxy bridge line, then the core last-Mutation line.
-
-New line:
-
-`Pelipper SOURCE mutation: sourceDamageCalls=... | hpResolved=... | hpUnresolved=... | sourceLethalCandidates=... | mutationAttempts=... | mutationIntercepts=... | shinyExcluded=... | duplicateSuppressed=... | phaseGuards=... | finalLethalPasses=... | transformBlocked=... | forceTransforms=... | auraDraws=... | damageHooks=... | last=...`
-
-Interpretation:
-
-- `sourceDamageCalls > 0`, `hpResolved > 0`: source Pokemon HP is being found correctly.
-- `hpUnresolved > 0` with no `hpResolved`: reflection still does not know Pelipper's source HP member. Preserve the full status line for the next compatibility fix.
-- `sourceLethalCandidates > 0`: source-HP lethal detection is alive.
-- `mutationAttempts > 0` and core `rolls > 0`: the natural Mutation RNG is truly running.
-- `mutationIntercepts > 0`: a natural source-lethal hit successfully became a Mutation.
-- `phaseGuards > 0`: a mutated Pokemon consumed an extra HP phase and survived a lethal hit.
-- `finalLethalPasses > 0`: all extra Mutation phases were spent and the final lethal hit was allowed through.
-- `transformBlocked > 0`: source HP could not be safely resolved for a transform.
-- `auraDraws > 0`: the visible Pokemon source is receiving the Mutation aura.
-
-## Shiny policy remains frozen for this hotfix
-
-The user explicitly reports current Shiny handling is acceptable for now.
-
-Keep intact:
-
-- source-aware Shiny identification;
-- real Pokemon display name rather than Green Slime;
-- Shiny Emergency Hold;
-- Shiny exclusion from Mutation;
-- stable `WildEncounterId` pairing when available;
-- fail-closed ambiguous fallback.
-
-Do not redesign Shiny unless a new concrete regression is observed.
-
-## Active teammate gift guard carried forward
-
-User design lock from 6.7.44.7:
-
-- own active Team Up member in `Following` or `Waiting` + held object + Action => suppress vanilla gift;
-- item remains in inventory/hand;
-- friendship is unchanged;
-- short HUD warning is shown;
+- own Team Up member in `Following` or `Waiting` + held item + Action -> vanilla gift blocked;
+- item is not consumed and friendship is unchanged;
 - inactive roster members remain normally giftable;
-- empty-hand Team Up interaction remains available.
-
-## Pelipper performance / capture policy carried forward
+- empty-hand interaction remains available.
 
 Performance carry-forward:
 
-- weak per-proxy source/identity cache;
-- positive/negative cache windows;
-- cached Shiny reflection evidence;
-- encounter discovery at 20Hz instead of 60Hz;
-- encounter-ID pairing to avoid repeated ambiguous scans.
+- source/proxy identity cache;
+- Shiny reflection cache;
+- encounter discovery 20Hz instead of 60Hz;
+- stable encounter-ID pairing.
 
-The user has not explicitly confirmed the old combat lag is fully gone. Performance remains a live gate.
+User has not yet explicitly confirmed the old combat lag is fully gone. Keep performance as a pending live gate.
 
-Capture carry-forward:
+Capture:
 
-- do not treat capture bonus/chance/rate/multiplier settings as Catch Mode;
-- capture safety remains fail-closed unless a real Catch/Capture/Mercy combat mode is positively identified;
-- Shiny Emergency Hold is independent of capture mode;
-- Mutants do not inherit Team Up's Pelipper mercy/capture floor;
-- owned/companion Pokemon remain excluded from normal wild Mutation behavior.
+- never interpret capture bonus/chance/rate/multiplier settings as Catch Mode or HP floor;
+- capture safety fails closed unless real Catch/Capture/Mercy combat mode is positively identified;
+- Shiny Hold is independent from Catch Mode;
+- Mutants do not inherit the mercy/capture floor.
+
+## NPC progression lock
+
+- base NPC damage remains moderate;
+- level damage growth target roughly 3-5% per level;
+- preserve large power budget for future equipment, skill ranks, traits and party synergy;
+- ordinary NPCs should not routinely one-shot equal-tier enemies.
+
+## Current roster source truth
+
+Approximate hand-crafted combat profile coverage: 110 characters.
+
+- Stardew Valley vanilla: 30
+- Stardew Valley Expanded: 24
+- Ridgeside Village: 54
+- Cardcha: MiMi
+- Hey! You're Cursed!: Sudoku
+
+Pelipper Pokemon are compatibility actors, not counted as NPC profiles. East Scarp does not yet have a completed hand-crafted roster.
 
 ## Lower Workings / story locks
 
-Do not start 6.7.45 until Pelipper Mutation runtime and Lower Workings gates pass unless the user explicitly waives the gate.
+Do not start 6.7.45 until Pelipper runtime regressions and Lower Workings gates pass unless the user explicitly waives the gate.
 
-Lower Workings source locks remain:
+Carry forward:
 
-- dedicated `Ronvotri.TeamUp_LowerWorkings` location;
-- 32x24 TMX, Back / Buildings / Front;
+- `Ronvotri.TeamUp_LowerWorkings`, 32x24 TMX, Back/Buildings/Front;
 - persisted breach return;
 - three 120-tick survey clues;
-- host-authoritative story writes;
-- safe withdrawal behavior preserved.
-
-Story locks:
-
-- George before 6.7.46 remains observed Rank D / Non-Combatant / unrecruitable. No Rank S, no `The Last Blaster`, no explicit historical miner identity.
-- Evelyn main story remains ordinary low Rank D healer/support; secret reveal remains postgame only.
-- Do not introduce exact `SECTOR 17` unless explicitly designed later.
-- Story NPC slots remain 4/4.
-- Hard formation cap remains 5 PEOPLE including Farmers.
-- Entry Protocol READY + SURGE HIGH prerequisites remain unchanged.
-- No final boss yet.
-- Pelipper source ownership/render/controller authority is preserved.
-- 6.7.45 remains reserved for the Containment Chamber Escalation Encounter.
+- host-authoritative writes and safe withdrawal;
+- Story NPC slots 4/4;
+- hard formation cap 5 PEOPLE including Farmers;
+- Entry Protocol READY + SURGE HIGH prerequisites;
+- George pre-6.7.46 = observed Rank D / Non-Combatant / unrecruitable;
+- Evelyn main story remains ordinary low Rank D healer/support;
+- no exact `SECTOR 17` and no final boss yet;
+- 6.7.45 remains reserved for Containment Chamber Escalation Encounter.
 
 ## Next live-test instruction
 
-Use the 6.7.44.8 test ZIP on a fresh game session.
+Use 6.7.44.9 on a fresh game session.
 
-1. Find a normal non-Shiny Pelipper wild Pokemon.
-2. Run `teamup_mutation force` once.
-   - It should name the actual Pokemon, not Green Slime.
-   - It should not show 2,000,000/2,000,000 proxy HP.
-   - A visible pulsing Mutation aura should surround the Pokemon.
-   - Minions should appear from the existing Mutation system.
-3. Run `teamup_mutation status` and preserve the full new `Pelipper SOURCE mutation:` line.
-4. For the natural path, defeat several normal non-Shiny Pelipper wild Pokemon.
-5. Run `teamup_mutation status` again.
-   - `sourceLethalCandidates` should rise.
-   - core `rolls` should rise with eligible defeats.
-   - A natural success should increase `mutationIntercepts`.
-6. If a Mutation appears, continue fighting it long enough to verify `phaseGuards` rises before `finalLethalPasses`.
-7. Reconfirm Shiny still holds correctly and the active-teammate gift guard still works.
-8. Observe combat performance/lag.
+1. Stand near a normal non-Shiny Pelipper wild Pokemon.
+2. Run `teamup_mutation force`.
+3. Confirm the HUD/log is Vietnamese and names the actual Pokemon instead of `Green Slime`.
+4. Run `teamup_mutation status` immediately afterward.
+5. Copy the complete line beginning `Pelipper SOURCE HP probe:` plus the `Pelipper SOURCE mutation:` line.
+6. If force unexpectedly succeeds, continue fighting that Mutation and also report aura/phases/minions behavior.
+7. Preserve current Shiny behavior, gift guard and note whether combat lag is materially reduced.
+
+The next compatibility change should be based on the real probe member paths from this live test, not another guessed HP field name.
