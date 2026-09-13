@@ -1,16 +1,13 @@
-name: Team Up v0.2.0-alpha.6.7.44.11 Pelipper Pair Cache + Dual HP Probe
+name: Team Up v0.2.0-alpha.6.7.44.12 Pelipper modData HP Binding
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-11-pelipper-pair-cache-dual-probe
+      - v0.2-alpha6-7-44-12-pelipper-moddata-hp-binding
     paths:
+      - 'src/TeamUp/Core/Alpha674412PelipperModDataHpBindingService.cs'
       - 'src/TeamUp/Core/Alpha674410PelipperSpeciesPairingService.cs'
-      - 'src/TeamUp/Core/Alpha674411PelipperDualHpProbeService.cs'
-      - 'src/TeamUp/Core/Alpha67449PelipperSourceProbeService.cs'
       - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
-      - 'src/TeamUp/Core/PelipperWildEncounterIdentityService.cs'
-      - 'src/TeamUp/Combat/MonsterMutationService.cs'
       - 'src/TeamUp/ModEntry.Alpha6719.cs'
       - 'src/TeamUp/ModEntry.Alpha67446.cs'
       - 'src/TeamUp/TeamUp.csproj'
@@ -32,15 +29,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.11
+      - name: Build, audit and package Alpha 6.7.44.12
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.11 artifact
+      - name: Upload Alpha 6.7.44.12 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe
+          name: team-up-alpha6-7-44-12-pelipper-moddata-hp-binding
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.11_PELIPPER_PAIR_CACHE_DUAL_PROBE_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.11_PELIPPER_PAIR_CACHE_DUAL_PROBE_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_11.txt
-            PELIPPER_PAIR_CACHE_DUAL_PROBE_AUDIT_ALPHA6744_11.md
+            release/TeamUp_v0.2.0-alpha.6.7.44.12_PELIPPER_MODDATA_HP_BINDING_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.12_PELIPPER_MODDATA_HP_BINDING_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_12.txt
           if-no-files-found: error
