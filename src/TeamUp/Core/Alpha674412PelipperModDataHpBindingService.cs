@@ -25,7 +25,7 @@ internal sealed class Alpha674412PelipperModDataHpBindingService
 
     private sealed class ProxyRef
     {
-        public required Monster Proxy { get; init; }
+        public Monster Proxy { get; init; } = null!;
     }
 
     private static Alpha674412PelipperModDataHpBindingService? Active { get; set; }
