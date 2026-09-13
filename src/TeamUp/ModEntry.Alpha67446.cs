@@ -11,9 +11,18 @@ public sealed partial class ModEntry
     private Alpha67446PelipperRuntimeService PelipperRuntimeAlpha67446 { get; set; } = null!;
     private Alpha67448PelipperSourceMutationService PelipperSourceMutationAlpha67448 { get; set; } = null!;
     private Alpha67449PelipperSourceProbeService PelipperSourceProbeAlpha67449 { get; set; } = null!;
+    private Alpha674410PelipperSpeciesPairingService PelipperSpeciesPairingAlpha674410 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
+        // 6.7.44.10 must patch identity resolution before the source-aware Mutation layer starts.
+        // Pelipper 1.2.0 can keep the correct Pokemon name on the hidden proxy while source/proxy
+        // positions separate during combat. The late pairing fallback safely reconnects a unique
+        // same-species visible wild actor without guessing across duplicate species.
+        PelipperSpeciesPairingAlpha674410 = new Alpha674410PelipperSpeciesPairingService(
+            Monitor,
+            ModManifest.UniqueID);
+
         // 6.7.44.8 patches the source-aware damage path at highest Harmony priority. Keep this
         // registration before the 6.7.44.6 proxy telemetry layer so source HP can cancel a true
         // Pelipper lethal hit before the old sentinel-HP heuristic sees it.
@@ -46,11 +55,11 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.9 Pelipper runtime diagnostics: status.",
+            "6.7.44.10 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.9 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, Elite proxy guard, "
+            $"Team Up 6.7.44.10 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, unique-species source pairing fallback, Elite proxy guard, "
             + $"legacy pre-lethal bridge ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} hooks), source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), unresolved source-HP probe, active-teammate gift guard.",
             LogLevel.Info);
     }
@@ -128,6 +137,7 @@ public sealed partial class ModEntry
         }
 
         Monitor.Log(PelipperRuntimeAlpha67446.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperSpeciesPairingAlpha674410.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
