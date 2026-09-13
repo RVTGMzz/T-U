@@ -73,6 +73,8 @@ public sealed partial class ModEntry
                     Monitor.Log(PelipperSpeciesPairingAlpha674410.Describe(), LogLevel.Info);
                 if (PelipperSourceMutationAlpha67448 is not null)
                     Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
+                if (PelipperModDataHpBindingAlpha674412 is not null)
+                    Monitor.Log(PelipperModDataHpBindingAlpha674412.Describe(), LogLevel.Info);
                 if (PelipperSourceProbeAlpha67449 is not null)
                     Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
                 if (PelipperDualHpProbeAlpha674411 is not null)
@@ -91,8 +93,8 @@ public sealed partial class ModEntry
                 string? displayName = PelipperSourceProbeAlpha67449?.CaptureForceTargetDisplayName();
                 bool transformed = MutationAlpha6719.ForceNearestEligible(out string rawResult);
 
-                // 6.7.44.11: a rejected Pelipper force must produce a deterministic source+proxy HP
-                // dump immediately. This no longer relies on a second Harmony postfix firing later.
+                // Keep the 6.7.44.11 dual probe as a cold diagnostic fallback. If 6.7.44.12 binds
+                // WildCurrentHealth/WildMaxHealth correctly this path should no longer run.
                 if (!transformed && Context.IsWorldReady && Game1.currentLocation is not null)
                 {
                     Monster? probeTarget = Game1.currentLocation.characters
