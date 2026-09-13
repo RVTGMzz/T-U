@@ -1,13 +1,16 @@
-name: Team Up v0.2.0-alpha.6.7.44.12 Pelipper modData HP Binding
+name: Team Up v0.2.0-alpha.6.7.44.13 Pelipper Visible Scale + Minion Spawn
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-12-pelipper-moddata-hp-binding
+      - v0.2-alpha6-7-44-13-pelipper-visible-scale-minion-spawn
     paths:
+      - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
+      - 'src/TeamUp/Core/Alpha674413MutationMinionSpawnService.cs'
       - 'src/TeamUp/Core/Alpha674412PelipperModDataHpBindingService.cs'
       - 'src/TeamUp/Core/Alpha674410PelipperSpeciesPairingService.cs'
       - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
+      - 'src/TeamUp/Combat/MonsterMutationService.cs'
       - 'src/TeamUp/ModEntry.Alpha6719.cs'
       - 'src/TeamUp/ModEntry.Alpha67446.cs'
       - 'src/TeamUp/TeamUp.csproj'
@@ -29,14 +32,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.12
+      - name: Build, audit and package Alpha 6.7.44.13
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.12 artifact
+      - name: Upload Alpha 6.7.44.13 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-12-pelipper-moddata-hp-binding
+          name: team-up-alpha6-7-44-13-pelipper-visible-scale-minion-spawn
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.12_PELIPPER_MODDATA_HP_BINDING_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.12_PELIPPER_MODDATA_HP_BINDING_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_12.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_13.txt
           if-no-files-found: error
