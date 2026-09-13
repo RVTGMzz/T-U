@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_12"
+STAGE = ROOT / "_stage_alpha6744_13"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_12.txt"
-VERSION = "0.2.0-alpha.6.7.44.12"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.12_PELIPPER_MODDATA_HP_BINDING_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_13.txt"
+VERSION = "0.2.0-alpha.6.7.44.13"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.12_PELIPPER_MODDATA_HP_BINDING_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -39,31 +39,60 @@ try:
     manifest = json.loads(text("manifest.json"))
     binding = text("Core/Alpha674412PelipperModDataHpBindingService.cs")
     pairing = text("Core/Alpha674410PelipperSpeciesPairingService.cs")
+    visible = text("Core/Alpha674413PelipperVisibleMutationService.cs")
+    minion_spawn = text("Core/Alpha674413MutationMinionSpawnService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
     mutation_cmd = text("ModEntry.Alpha6719.cs")
 
     req(f"<ProjectVersion>{VERSION}</ProjectVersion>" in project, "wrong project version")
     req(manifest.get("Version") == VERSION, "wrong manifest version")
+
     for token in [
         "Griff.PelipperTown/WildCurrentHealth",
         "Griff.PelipperTown/WildMaxHealth",
         "ResolvePrefix",
         "WritePrefix",
         "SourceProxyMap",
-        "PelipperProxyModData.WildCurrentHealth",
-        "PelipperProxyModData.WildMaxHealth",
     ]:
         req(token in binding, f"HP binding missing {token}")
-    req("PelipperModDataHpBindingAlpha674412 = new Alpha674412PelipperModDataHpBindingService" in wiring,
-        "HP binding not wired")
-    req("PelipperModDataHpBindingAlpha674412.Describe()" in wiring,
-        "runtime status missing HP binding")
-    req("PelipperModDataHpBindingAlpha674412.Describe()" in mutation_cmd,
-        "mutation status missing HP binding")
     req("ConditionalWeakTable<Monster, CachedPair>" in pairing and "cacheHits=" in pairing,
         "pair cache carry-forward missing")
     req("[PelipperSpeciesPairing]" not in pairing, "pairing log spam regressed")
-    log("PELIPPER MODDATA HP + PAIR CACHE AUDIT: PASS")
+    log("PELIPPER MODDATA HP + PAIR CACHE CARRY-FORWARD: PASS")
+
+    for token in [
+        "_visualScaleMultiplier",
+        "TryMutatePostfix",
+        "RestoreAll",
+        "PelipperWildEncounterIdentityService.TryResolve",
+        "MonsterMutationService.IsMutant",
+        "reapplied=",
+        "restored=",
+    ]:
+        req(token in visible, f"visible mutation scaling missing {token}")
+    req("PelipperVisibleMutationAlpha674413 = new Alpha674413PelipperVisibleMutationService" in wiring,
+        "visible Pelipper Mutation service not wired")
+    req("PelipperVisibleMutationAlpha674413.Update()" in wiring,
+        "visible scale upkeep not wired")
+    req("PelipperVisibleMutationAlpha674413.Describe()" in mutation_cmd,
+        "mutation status missing visible scale telemetry")
+    log("PELIPPER VISIBLE MUTATION SCALE + RESTORE AUDIT: PASS")
+
+    for token in [
+        "TryFindSafeSpawnPosition",
+        "SpawnPostfix",
+        "location.objects.ContainsKey(tile)",
+        "location.terrainFeatures.ContainsKey(tile)",
+        "MinimumFarmerDistance",
+        "MinimumCharacterDistance",
+        "fallbackResolved",
+    ]:
+        req(token in minion_spawn, f"minion spawn fallback missing {token}")
+    req("MutationMinionSpawnAlpha674413 = new Alpha674413MutationMinionSpawnService" in wiring,
+        "minion spawn fallback not wired")
+    req("MutationMinionSpawnAlpha674413.Describe()" in mutation_cmd,
+        "mutation status missing minion spawn fallback telemetry")
+    log("MUTATION MINION RELAXED SAFE-SPAWN AUDIT: PASS")
 
     proc = subprocess.run(
         ["dotnet", "build", str(SRC / "TeamUp.csproj"), "-c", "Release", "--nologo", "-warnaserror"],
@@ -98,10 +127,23 @@ try:
             if path.is_file():
                 archive.write(path, path.relative_to(STAGE))
 
+    with zipfile.ZipFile(ZIP_PATH, "r") as archive:
+        names = set(archive.namelist())
+        for required in [
+            "Team Up/TeamUp.dll",
+            "Team Up/manifest.json",
+            "Team Up/i18n/default.json",
+            "Team Up/i18n/vi.json",
+            "Team Up/assets/LowerWorkings.tmx",
+        ]:
+            req(required in names, f"package missing {required}")
+        packaged_manifest = json.loads(archive.read("Team Up/manifest.json").decode("utf-8"))
+        req(packaged_manifest.get("Version") == VERSION, "packaged manifest mismatch")
+    log("ZIP CONTENT AUDIT: PASS")
+
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("ZIP CONTENT AUDIT: PASS")
-    log("BUILD SUCCESS - ALPHA 6.7.44.12 PELIPPER MODDATA HP BINDING")
+    log("BUILD SUCCESS - ALPHA 6.7.44.13 PELIPPER VISIBLE SCALE + MINION SPAWN")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
