@@ -83,7 +83,8 @@ try:
     req("Đã cưỡng chế đột biến" in mutation_cmd, "Vietnamese success-force text missing")
     req("CleanMutationTargetName" in mutation_cmd, "Wild/Shiny user-facing prefix cleanup missing")
     req('new[] { "Wild ", "Shiny " }' in mutation_cmd, "target prefix cleanup policy missing")
-    req("Green Slime" not in mutation_cmd, "Green Slime leaked into mutation command UI")
+    req('"Green Slime"' not in mutation_cmd, "hard-coded Green Slime runtime literal leaked into mutation command UI")
+    req("Force mutation was rejected for Green Slime." not in mutation_cmd, "old hard-coded Green Slime rejection leaked into command")
     log("FORCE TARGET EN/VI + DISPLAY CLEANUP AUDIT: PASS")
 
     req("PartyMemberState.Following or PartyMemberState.Waiting" in wiring, "gift guard active-state rule regressed")
