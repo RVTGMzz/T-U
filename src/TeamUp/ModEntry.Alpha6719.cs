@@ -67,6 +67,8 @@ public sealed partial class ModEntry
         {
             case "status":
                 Monitor.Log(MutationAlpha6719.Describe(), LogLevel.Info);
+                if (PelipperSpeciesPairingAlpha674410 is not null)
+                    Monitor.Log(PelipperSpeciesPairingAlpha674410.Describe(), LogLevel.Info);
                 if (PelipperSourceMutationAlpha67448 is not null)
                     Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
                 if (PelipperSourceProbeAlpha67449 is not null)
@@ -84,7 +86,7 @@ public sealed partial class ModEntry
             case "force":
                 // Capture the exact eligible target display name before the generic service runs.
                 // Pelipper's hidden combat actor is often named Green Slime; user-facing text must
-                // always prefer the paired visible Pokemon source name when that identity exists.
+                // always prefer the Pokemon-facing display name and never expose the proxy identity.
                 string? displayName = PelipperSourceProbeAlpha67449?.CaptureForceTargetDisplayName();
                 bool transformed = MutationAlpha6719.ForceNearestEligible(out string rawResult);
                 string result = LocalizeMutationForceResult(transformed, rawResult, displayName);
@@ -114,7 +116,7 @@ public sealed partial class ModEntry
                 : "No eligible normal hostile is nearby for a forced mutation.";
         }
 
-        string targetName = string.IsNullOrWhiteSpace(displayName) ? "mục tiêu" : displayName.Trim();
+        string targetName = CleanMutationTargetName(string.IsNullOrWhiteSpace(displayName) ? "mục tiêu" : displayName.Trim());
         if (transformed)
         {
             return vi
@@ -125,5 +127,23 @@ public sealed partial class ModEntry
         return vi
             ? $"Không thể cưỡng chế đột biến cho {targetName}."
             : $"Forced mutation was rejected for {targetName}.";
+    }
+
+    private static string CleanMutationTargetName(string raw)
+    {
+        string value = raw.Trim();
+        bool changed;
+        do
+        {
+            changed = false;
+            foreach (string prefix in new[] { "Wild ", "Shiny " })
+            {
+                if (!value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                value = value[prefix.Length..].Trim();
+                changed = true;
+            }
+        } while (changed && value.Length > 0);
+        return string.IsNullOrWhiteSpace(value) ? "Pokémon" : value;
     }
 }
