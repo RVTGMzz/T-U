@@ -1,47 +1,43 @@
-# Team Up handoff: 0.2.0-alpha.6.7.44.10
+# Team Up handoff: 0.2.0-alpha.6.7.44.11
 
-Canonical detailed handoff: `docs/ALPHA_6_7_44_10_PELIPPER_SPECIES_PAIRING_PROBE_HANDOFF.md`
-Canonical latest pointer: `docs/LATEST_HANDOFF.md`
+Canonical latest: `docs/LATEST_HANDOFF.md`
+Detailed current notes: `docs/ALPHA_6_7_44_11_PELIPPER_PAIR_CACHE_DUAL_PROBE_HANDOFF.md`
 
 ## Source of truth
-- Branch: `v0.2-alpha6-7-44-10-pelipper-species-pairing-probe`
-- Version: `0.2.0-alpha.6.7.44.10`
-- CI input SHA: `671384cae203fb9486b8b10b6b81841aad9aa5de`
-- Successful workflow run: `34746045289`
-- Job: `103694070503`
-- Artifact ID: `10314790062`
-- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.10_PELIPPER_SPECIES_PAIRING_PROBE_TEST.zip`
-- Test ZIP SHA256: `7ba49566fa9350ac594f37d339ad57dfa330dc15c21404abdc3f8f5f39b48642`
+- Branch: `v0.2-alpha6-7-44-11-pelipper-pair-cache-dual-probe`
+- Version: `0.2.0-alpha.6.7.44.11`
+- CI input SHA: `027da2bc8291973f9fd1ded78fa0a91d9a09ad3e`
+- Run: `34750488830`
+- Job: `103706056038`
+- Artifact ID: `10315770465`
+- Artifact wrapper SHA256: `60b0713ea63d68fb2f6d1b8af57f2489fe586073d262098cf0f31262db4b01c8`
+- Test ZIP: `TeamUp_v0.2.0-alpha.6.7.44.11_PELIPPER_PAIR_CACHE_DUAL_PROBE_TEST.zip`
+- Test ZIP SHA256: `e8fe33602e64b9bd344b62f83def4df5a055968736813033c97f49dae4fb6afa`
 - Build: PASS, 0 warnings / 0 errors
 - `main` not merged
 - 6.7.45 not started
 
-## Current Pelipper runtime diagnosis
-6.7.44.9 live status proved the source-HP probe was blocked one layer earlier:
+## Live truth
+6.7.44.10 successfully paired many Pelipper combat proxies to visible `PelipperTown.PokemonNpc` sources by exact species, proving the source actor exists. It also recalculated/logged the same pairings repeatedly and still rejected forced Mutation.
 
-`Pelipper SOURCE HP probe: runs=0 | cached=0 | last=identity-unresolved proxy=Green Slime`
+## 6.7.44.11
+- successful species pairs are cached by proxy instance and validated before reuse;
+- per-pair log spam is removed;
+- pairing status adds `cacheHits` and `cacheInvalidated`;
+- a rejected force deterministically probes both visible source and hidden proxy, including numeric candidates, nested state, relevant modData and member names;
+- dual probe is cached by source/proxy runtime type pair and remains cold-path only;
+- Mutation remains fail-closed until real writable Pokemon HP/state ownership is proven.
 
-The force command still knew `Wild Clauncher` from the combat proxy display name. Historical Pelipper logs confirm wild encounters are created as a visible NPC plus a separate combat proxy, so the active failure is late source/proxy pairing rather than absence of a source actor.
-
-## 6.7.44.10
-Adds `Alpha674410PelipperSpeciesPairingService` as a conservative late fallback after normal identity resolution fails.
-
-It pairs only by an exact normalized species name and only when the visible source is unambiguous. Duplicate-species scenes fail closed unless exactly one same-species source intersects the proxy.
-
-New telemetry:
-
-`Pelipper species pairing: attempts=... | resolved=... | ambiguous=... | noMatch=... | last=...`
-
-The 6.7.44.9 HP probe remains active. If source pairing now succeeds but HP is still unknown, expect `Pelipper SOURCE HP probe: runs>0` with source runtime `type`, `candidates`, and `members`.
-
-Mutation still fails closed until real source HP is proven. Never mutate the hidden Green Slime sentinel HP.
-
-`teamup_mutation force` remains Vietnamese under VI locale and now cleans `Wild ` / `Shiny ` from user-facing target names.
+## Locked carry-forward
+- Shiny behavior stays as currently accepted; Shiny remains Mutation-excluded.
+- Active Following/Waiting teammates cannot receive held-item vanilla gifts.
+- Encounter discovery stays 20Hz; performance remains a live gate.
+- Never treat Green Slime sentinel HP as Pokemon HP.
+- Lower Workings remains unchanged and still gates 6.7.45.
+- NPC base damage remains moderate with slow level scaling to preserve future gear/skill/build progression.
 
 ## Next live test
-Use a normal non-Shiny Pelipper wild Pokemon, preferably a species unique in the current location.
-
-Run:
+Run on a normal non-Shiny Pelipper wild Pokemon:
 
 `teamup_mutation force`
 
@@ -49,9 +45,10 @@ then:
 
 `teamup_mutation status`
 
-Return these three full lines:
+Return:
 - `Pelipper species pairing: ...`
 - `Pelipper SOURCE mutation: ...`
 - `Pelipper SOURCE HP probe: ...`
+- `Pelipper dual HP probe: ...`
 
-Do not test forced Mutation on a Shiny. Do not start 6.7.45 until this runtime gate and Lower Workings runtime gate pass unless explicitly waived.
+Expected: no repeated pairing flood; `cacheHits` increases; if force still rejects, `Pelipper dual HP probe: runs>=1` exposes the exact source/proxy layout for the next binding.
