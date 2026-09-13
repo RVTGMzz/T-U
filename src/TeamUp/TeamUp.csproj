@@ -6,7 +6,7 @@
     <LangVersion>13.0</LangVersion>
     <AssemblyName>TeamUp</AssemblyName>
     <RootNamespace>Ronvotri.TeamUp</RootNamespace>
-    <ProjectVersion>0.2.0-alpha.6.7.44.11</ProjectVersion>
+    <ProjectVersion>0.2.0-alpha.6.7.44.12</ProjectVersion>
     <Version>$(ProjectVersion)</Version>
     <EnableHarmony>true</EnableHarmony>
   </PropertyGroup>
