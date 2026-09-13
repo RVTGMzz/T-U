@@ -9,9 +9,17 @@ public sealed partial class ModEntry
 {
     private const int EncounterDiscoveryPulseTicksAlpha67446 = 3;
     private Alpha67446PelipperRuntimeService PelipperRuntimeAlpha67446 { get; set; } = null!;
+    private Alpha67448PelipperSourceMutationService PelipperSourceMutationAlpha67448 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
+        // 6.7.44.8 patches the source-aware damage path at highest Harmony priority. Keep this
+        // registration before the 6.7.44.6 proxy telemetry layer so source HP can cancel a true
+        // Pelipper lethal hit before the old sentinel-HP heuristic sees it.
+        PelipperSourceMutationAlpha67448 = new Alpha67448PelipperSourceMutationService(
+            Monitor,
+            ModManifest.UniqueID,
+            () => Config.MutationHealthMultiplier);
         PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
 
         // 6.7.44.4 ran the full source-aware identity + reflection classifier every simulation tick.
@@ -26,13 +34,18 @@ public sealed partial class ModEntry
         Helper.Events.Input.ButtonPressed += OnAlpha67447GiftGuardButtonPressed;
         Helper.Events.GameLoop.SaveLoaded += OnAlpha67447SaveLoaded;
 
+        // 6.7.44.8 draws Mutation feedback around the visible Pelipper Pokemon source rather than
+        // the hidden Green Slime combat proxy.
+        Helper.Events.Display.RenderedWorld += OnAlpha67448RenderedWorld;
+
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.6+ Pelipper runtime diagnostics: status.",
+            "6.7.44.8 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.7 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, Elite proxy guard, pre-lethal Mutation ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} damage hooks), active-teammate gift guard.",
+            $"Team Up 6.7.44.8 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, Elite proxy guard, "
+            + $"legacy pre-lethal bridge ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} hooks), source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -48,8 +61,21 @@ public sealed partial class ModEntry
 
     private void OnAlpha67447SaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
-        if (Context.IsMainPlayer)
-            PelipperRuntimeAlpha67446.ResetMutationBridgeTelemetry();
+        if (!Context.IsMainPlayer)
+            return;
+
+        PelipperRuntimeAlpha67446.ResetMutationBridgeTelemetry();
+        PelipperSourceMutationAlpha67448.ResetTelemetry();
+    }
+
+    private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
+    {
+        if (!Context.IsWorldReady || Game1.eventUp)
+            return;
+        if (Game1.activeClickableMenu is not null && !Game1.dialogueUp)
+            return;
+
+        PelipperSourceMutationAlpha67448.DrawSourceAuras(e.SpriteBatch);
     }
 
     private void OnAlpha67447GiftGuardButtonPressed(object? sender, ButtonPressedEventArgs e)
@@ -96,6 +122,7 @@ public sealed partial class ModEntry
         }
 
         Monitor.Log(PelipperRuntimeAlpha67446.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
         Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
         Monitor.Log(PelipperCaptureSafetyService.DescribePolicy(), LogLevel.Info);
         Monitor.Log(MutationAlpha6719.Describe(), LogLevel.Info);
