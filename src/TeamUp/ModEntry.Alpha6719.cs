@@ -69,6 +69,8 @@ public sealed partial class ModEntry
                 Monitor.Log(MutationAlpha6719.Describe(), LogLevel.Info);
                 if (PelipperSourceMutationAlpha67448 is not null)
                     Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
+                if (PelipperSourceProbeAlpha67449 is not null)
+                    Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
                 if (PelipperRuntimeAlpha67446 is not null)
                     Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
                 Monitor.Log(MutationAlpha6719.LastMutationLine, LogLevel.Info);
@@ -80,7 +82,12 @@ public sealed partial class ModEntry
                 return;
 
             case "force":
-                MutationAlpha6719.ForceNearestEligible(out string result);
+                // Capture the exact eligible target display name before the generic service runs.
+                // Pelipper's hidden combat actor is often named Green Slime; user-facing text must
+                // always prefer the paired visible Pokemon source name when that identity exists.
+                string? displayName = PelipperSourceProbeAlpha67449?.CaptureForceTargetDisplayName();
+                bool transformed = MutationAlpha6719.ForceNearestEligible(out string rawResult);
+                string result = LocalizeMutationForceResult(transformed, rawResult, displayName);
                 Monitor.Log(result, LogLevel.Info);
                 if (Context.IsWorldReady)
                     Game1.showGlobalMessage(result);
@@ -90,5 +97,33 @@ public sealed partial class ModEntry
                 Monitor.Log("Usage: teamup_mutation <status|list|force>", LogLevel.Info);
                 return;
         }
+    }
+
+    private string LocalizeMutationForceResult(bool transformed, string rawResult, string? displayName)
+    {
+        bool vi = Helper.Translation.Locale.StartsWith("vi", StringComparison.OrdinalIgnoreCase);
+
+        if (!Context.IsWorldReady || rawResult.StartsWith("Load a save", StringComparison.OrdinalIgnoreCase))
+            return vi ? "Hãy tải save trước khi thử cưỡng chế đột biến." : "Load a save before forcing a mutation.";
+
+        if (string.IsNullOrWhiteSpace(displayName)
+            && rawResult.StartsWith("No eligible", StringComparison.OrdinalIgnoreCase))
+        {
+            return vi
+                ? "Không có quái thường hợp lệ gần đây để cưỡng chế đột biến."
+                : "No eligible normal hostile is nearby for a forced mutation.";
+        }
+
+        string targetName = string.IsNullOrWhiteSpace(displayName) ? "mục tiêu" : displayName.Trim();
+        if (transformed)
+        {
+            return vi
+                ? $"Đã cưỡng chế đột biến: {targetName}."
+                : $"Forced mutation: {targetName}.";
+        }
+
+        return vi
+            ? $"Không thể cưỡng chế đột biến cho {targetName}."
+            : $"Forced mutation was rejected for {targetName}.";
     }
 }
