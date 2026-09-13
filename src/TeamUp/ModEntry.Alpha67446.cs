@@ -10,6 +10,7 @@ public sealed partial class ModEntry
     private const int EncounterDiscoveryPulseTicksAlpha67446 = 3;
     private Alpha67446PelipperRuntimeService PelipperRuntimeAlpha67446 { get; set; } = null!;
     private Alpha67448PelipperSourceMutationService PelipperSourceMutationAlpha67448 { get; set; } = null!;
+    private Alpha67449PelipperSourceProbeService PelipperSourceProbeAlpha67449 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -21,6 +22,11 @@ public sealed partial class ModEntry
             ModManifest.UniqueID,
             () => Config.MutationHealthMultiplier);
         PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
+
+        // 6.7.44.9 probes only unresolved source-HP layouts. It is intentionally registered after
+        // the 6.7.44.8 resolver so the postfix sees only genuine resolver failures and stays cold in
+        // normal combat once Pelipper's HP layout is understood.
+        PelipperSourceProbeAlpha67449 = new Alpha67449PelipperSourceProbeService(Monitor, ModManifest.UniqueID);
 
         // 6.7.44.4 ran the full source-aware identity + reflection classifier every simulation tick.
         // With many Pelipper wild actors this became O(monsters * actors) at 60Hz. Replace only that
@@ -40,12 +46,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.8 Pelipper runtime diagnostics: status.",
+            "6.7.44.9 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.8 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, Elite proxy guard, "
-            + $"legacy pre-lethal bridge ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} hooks), source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), active-teammate gift guard.",
+            $"Team Up 6.7.44.9 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, Elite proxy guard, "
+            + $"legacy pre-lethal bridge ({PelipperRuntimeAlpha67446.PatchedDamageMethodCount} hooks), source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), unresolved source-HP probe, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -123,6 +129,7 @@ public sealed partial class ModEntry
 
         Monitor.Log(PelipperRuntimeAlpha67446.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperRuntimeAlpha67446.DescribeMutationBridge(), LogLevel.Info);
         Monitor.Log(PelipperCaptureSafetyService.DescribePolicy(), LogLevel.Info);
         Monitor.Log(MutationAlpha6719.Describe(), LogLevel.Info);
