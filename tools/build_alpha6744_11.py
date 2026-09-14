@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_14"
+STAGE = ROOT / "_stage_alpha6744_15"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_14.txt"
-VERSION = "0.2.0-alpha.6.7.44.14"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_15.txt"
+VERSION = "0.2.0-alpha.6.7.44.15"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -74,43 +74,42 @@ try:
         req(token in visible, f"x2 visible mutation scaling missing {token}")
     req("MutationVisualScaleMultiplier { get; set; } = 2f" in config,
         "new-config mutation visual scale is not x2")
-    req("PelipperVisibleMutationAlpha674413 = new Alpha674413PelipperVisibleMutationService" in wiring,
-        "visible Pelipper Mutation service not wired")
-    req("PelipperVisibleMutationAlpha674413.Update()" in wiring,
-        "visible scale upkeep not wired")
-    req("PelipperVisibleMutationAlpha674413.Describe()" in mutation_cmd,
-        "mutation status missing visible scale telemetry")
     log("PELIPPER VISIBLE MUTATION X2 CAP + RESTORE AUDIT: PASS")
 
-    # Keep the 6.7.44.13 fallback for generic/non-Pelipper minions. 6.7.44.14 suppresses only
-    # Pelipper mutant waves and replaces them with x3 loot.
     for token in [
         "TryFindSafeSpawnPosition",
         "SpawnPostfix",
-        "fallbackResolved",
+        "BuildSpawnOffsets",
+        "radius <= 8",
+        "pelipperSourceAnchors",
+        "PelipperWildEncounterIdentityService.TryResolve",
+        "location.objects.ContainsKey(tile)",
+        "IsBlockingTerrainFeature",
+        "minions=2-4",
     ]:
-        req(token in minion_spawn, f"generic minion fallback carry-forward missing {token}")
-    log("GENERIC MUTATION MINION FALLBACK CARRY-FORWARD: PASS")
+        req(token in minion_spawn, f"2-4 minion spawn fix missing {token}")
+    req("SpawnMinionWavePrefix" not in reward, "minion suppression must be removed")
+    req("minions=2-4" in reward, "reward telemetry does not preserve minions")
+    log("MUTATION 2-4 MINION RESTORE + WIDE-SPAWN AUDIT: PASS")
 
     for token in [
-        "PelipperLootMultiplier = 3",
-        "LootMultiplierMarker",
-        "TryMutatePostfix",
-        "SpawnMinionWavePrefix",
+        "MutantLootMultiplier = 3",
+        "Ronvotri.TeamUp/MutantLootMultiplier",
+        "scope=all-mutants",
+        "MonsterMutationService.IsMutant(__0)",
         "monsterDrop",
         "MonsterDropPostfix",
         "__originalMethod.Invoke(__instance, __args)",
-        "minionWavesSuppressed",
         "extraDropPasses",
     ]:
-        req(token in reward, f"Pelipper x3 loot reward missing {token}")
+        req(token in reward, f"global x3 Mutant reward missing {token}")
+    req("PelipperTownCompatibilityService.IsWildCombatActor(monster)\n            ||" not in reward,
+        "reward still gates loot to Pelipper")
     req("PelipperMutantRewardAlpha674414 = new Alpha674414PelipperMutantRewardService" in wiring,
-        "Pelipper reward service not wired")
+        "global Mutant reward service not wired")
     req("PelipperMutantRewardAlpha674414.Describe()" in mutation_cmd,
-        "mutation status missing Pelipper reward telemetry")
-    req("PelipperMutantRewardAlpha674414.ResetTelemetry()" in wiring,
-        "Pelipper reward telemetry not reset on save load")
-    log("PELIPPER MINIONS-OFF + LOOT-X3 REWARD AUDIT: PASS")
+        "mutation status missing global Mutant reward telemetry")
+    log("GLOBAL MUTANT LOOT-X3 AUDIT: PASS")
 
     proc = subprocess.run(
         ["dotnet", "build", str(SRC / "TeamUp.csproj"), "-c", "Release", "--nologo", "-warnaserror"],
@@ -161,7 +160,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.14 PELIPPER X2 + LOOT X3")
+    log("BUILD SUCCESS - ALPHA 6.7.44.15 MUTANT MINIONS + GLOBAL LOOT X3")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
