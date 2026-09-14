@@ -8,25 +8,17 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Alpha 6.7.44.13: the strict minion spawn probe can reject every nearby tile on custom maps and
-/// farms because CollisionMask.All treats harmless map/runtime occupancy as blocking. Preserve the
-/// strict pass first, then provide a conservative fallback that still requires map passability,
-/// no placed object/terrain feature, and clear distance from the Farmer and all characters.
+/// Alpha 6.7.44.15: keep the intended 2-4 Mutation minions, but make fallback placement robust on
+/// Pelipper/custom/Farm locations. The strict vanilla-style pass still runs first. If it rejects all
+/// candidates, this layer anchors Pelipper waves on the visible Pokemon source, searches a wider ring,
+/// allows harmless terrain such as grass, and still rejects off-map/impassable/object/occupied tiles.
 /// </summary>
 internal sealed class Alpha674413MutationMinionSpawnService
 {
-    private static readonly Point[] SpawnOffsets =
-    {
-        new(2, 0), new(-2, 0), new(0, 2), new(0, -2),
-        new(2, 2), new(-2, 2), new(2, -2), new(-2, -2),
-        new(3, 0), new(-3, 0), new(0, 3), new(0, -3),
-        new(3, 1), new(-3, 1), new(3, -1), new(-3, -1),
-        new(1, 3), new(-1, 3), new(1, -3), new(-1, -3),
-        new(4, 0), new(-4, 0), new(0, 4), new(0, -4)
-    };
+    private static readonly Point[] SpawnOffsets = BuildSpawnOffsets();
 
-    private const float MinimumFarmerDistance = 96f;
-    private const float MinimumCharacterDistance = 48f;
+    private const float MinimumFarmerDistance = 80f;
+    private const float MinimumCharacterDistance = 40f;
 
     private static Alpha674413MutationMinionSpawnService? Active;
 
@@ -35,18 +27,20 @@ internal sealed class Alpha674413MutationMinionSpawnService
     private long _fallbackAttempts;
     private long _fallbackResolved;
     private long _fallbackRejected;
+    private long _pelipperSourceAnchors;
+    private long _tilesScanned;
     private string _last = "reset";
 
     public Alpha674413MutationMinionSpawnService(IMonitor monitor, string uniqueId)
     {
         _monitor = monitor;
-        _harmony = new Harmony($"{uniqueId}.Alpha674413MutationMinionSpawn");
+        _harmony = new Harmony($"{uniqueId}.Alpha674415MutationMinionSpawn");
         Active = this;
 
         var method = AccessTools.Method(typeof(MonsterMutationService), "TryFindSafeSpawnPosition");
         if (method is null)
         {
-            _monitor.Log("6.7.44.13 minion spawn fallback unavailable: TryFindSafeSpawnPosition not found.", LogLevel.Warn);
+            _monitor.Log("6.7.44.15 minion spawn fallback unavailable: TryFindSafeSpawnPosition not found.", LogLevel.Warn);
             return;
         }
 
@@ -56,17 +50,20 @@ internal sealed class Alpha674413MutationMinionSpawnService
             {
                 priority = Priority.Last
             });
-        _monitor.Log("Team Up 6.7.44.13 Mutation minion relaxed spawn fallback enabled.", LogLevel.Info);
+        _monitor.Log("Team Up 6.7.44.15 Mutation 2-4 minion wide-ring spawn fallback enabled.", LogLevel.Info);
     }
 
     public string Describe()
-        => $"Mutation minion spawn fallback: attempts={_fallbackAttempts} | resolved={_fallbackResolved} | rejected={_fallbackRejected} | last={_last}";
+        => $"Mutation minion spawn fallback: minions=2-4 | attempts={_fallbackAttempts} | resolved={_fallbackResolved} | rejected={_fallbackRejected} | "
+            + $"pelipperSourceAnchors={_pelipperSourceAnchors} | tilesScanned={_tilesScanned} | last={_last}";
 
     public void ResetTelemetry()
     {
         _fallbackAttempts = 0;
         _fallbackResolved = 0;
         _fallbackRejected = 0;
+        _pelipperSourceAnchors = 0;
+        _tilesScanned = 0;
         _last = "reset";
     }
 
@@ -77,30 +74,50 @@ internal sealed class Alpha674413MutationMinionSpawnService
             return;
 
         service._fallbackAttempts++;
-        if (!TryFindRelaxed(__0, __1, __2, out Vector2 position))
+
+        Vector2 anchorPosition = __1.Position;
+        string anchorLabel = __1.Name;
+        if (PelipperTownCompatibilityService.IsWildCombatActor(__1)
+            && PelipperWildEncounterIdentityService.TryResolve(__1, out PelipperWildEncounterIdentity identity)
+            && !ReferenceEquals(identity.SourceActor, __1)
+            && ReferenceEquals(identity.SourceActor.currentLocation, __0))
+        {
+            anchorPosition = identity.SourceActor.Position;
+            anchorLabel = identity.DisplayName;
+            service._pelipperSourceAnchors++;
+        }
+
+        if (!TryFindRelaxed(__0, __1, anchorPosition, __2, service, out Vector2 position))
         {
             service._fallbackRejected++;
-            service._last = $"rejected location={__0.NameOrUniqueName} anchor={__1.Name}";
+            service._last = $"rejected location={__0.NameOrUniqueName} anchor={anchorLabel} searched={SpawnOffsets.Length}";
             return;
         }
 
         __3 = position;
         __result = true;
         service._fallbackResolved++;
-        service._last = $"resolved location={__0.NameOrUniqueName} tile={(int)(position.X / 64f)},{(int)(position.Y / 64f)}";
+        service._last = $"resolved location={__0.NameOrUniqueName} anchor={anchorLabel} tile={(int)(position.X / 64f)},{(int)(position.Y / 64f)}";
     }
 
-    private static bool TryFindRelaxed(GameLocation location, Monster anchor, int seed, out Vector2 position)
+    private static bool TryFindRelaxed(
+        GameLocation location,
+        Monster anchor,
+        Vector2 anchorPosition,
+        int seed,
+        Alpha674413MutationMinionSpawnService service,
+        out Vector2 position)
     {
-        int sourceTileX = (int)Math.Floor((anchor.Position.X + 32f) / 64f);
-        int sourceTileY = (int)Math.Floor((anchor.Position.Y + 32f) / 64f);
-        int start = Math.Abs(seed * 11 + sourceTileX * 5 + sourceTileY * 7) % SpawnOffsets.Length;
+        int sourceTileX = (int)Math.Floor((anchorPosition.X + 32f) / 64f);
+        int sourceTileY = (int)Math.Floor((anchorPosition.Y + 32f) / 64f);
+        int start = Math.Abs(seed * 17 + sourceTileX * 5 + sourceTileY * 11) % SpawnOffsets.Length;
 
         for (int attempt = 0; attempt < SpawnOffsets.Length; attempt++)
         {
             Point offset = SpawnOffsets[(start + attempt) % SpawnOffsets.Length];
             int tileX = sourceTileX + offset.X;
             int tileY = sourceTileY + offset.Y;
+            service._tilesScanned++;
             if (tileX < 0 || tileY < 0)
                 continue;
 
@@ -109,8 +126,16 @@ internal sealed class Alpha674413MutationMinionSpawnService
             {
                 if (!location.isTileOnMap(tile) || !location.isTilePassable(tile))
                     continue;
-                if (location.objects.ContainsKey(tile) || location.terrainFeatures.ContainsKey(tile))
+                if (location.objects.ContainsKey(tile))
                     continue;
+
+                // Grass and similar harmless TerrainFeatures are allowed here. Trees remain blocked.
+                if (location.terrainFeatures.TryGetValue(tile, out var terrain)
+                    && terrain is not null
+                    && IsBlockingTerrainFeature(terrain.GetType().Name))
+                {
+                    continue;
+                }
             }
             catch
             {
@@ -135,5 +160,30 @@ internal sealed class Alpha674413MutationMinionSpawnService
 
         position = Vector2.Zero;
         return false;
+    }
+
+    private static bool IsBlockingTerrainFeature(string typeName)
+        => typeName.Contains("Tree", StringComparison.OrdinalIgnoreCase)
+            || typeName.Contains("Bush", StringComparison.OrdinalIgnoreCase)
+            || typeName.Contains("Stump", StringComparison.OrdinalIgnoreCase)
+            || typeName.Contains("Log", StringComparison.OrdinalIgnoreCase);
+
+    private static Point[] BuildSpawnOffsets()
+    {
+        List<Point> result = new();
+        for (int radius = 2; radius <= 8; radius++)
+        {
+            for (int x = -radius; x <= radius; x++)
+            {
+                result.Add(new Point(x, -radius));
+                result.Add(new Point(x, radius));
+            }
+            for (int y = -radius + 1; y <= radius - 1; y++)
+            {
+                result.Add(new Point(-radius, y));
+                result.Add(new Point(radius, y));
+            }
+        }
+        return result.Distinct().ToArray();
     }
 }
