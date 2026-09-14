@@ -17,23 +17,16 @@ public sealed partial class ModEntry
     private Alpha674413PelipperVisibleMutationService PelipperVisibleMutationAlpha674413 { get; set; } = null!;
     private Alpha674413MutationMinionSpawnService MutationMinionSpawnAlpha674413 { get; set; } = null!;
     private Alpha674414PelipperMutantRewardService PelipperMutantRewardAlpha674414 { get; set; } = null!;
+    private Alpha674416MutationLeaderMinionPolicyService MutationLeaderMinionPolicyAlpha674416 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
-        // 6.7.44.10 reconnects a unique same-species visible PokemonNpc when Pelipper's hidden
-        // combat proxy keeps the Pokemon display name but stable IDs/positions no longer line up.
-        // 6.7.44.11 adds a proxy-instance cache inside this service so the location is not rescanned
-        // every time another subsystem asks for the same encounter identity.
         PelipperSpeciesPairingAlpha674410 = new Alpha674410PelipperSpeciesPairingService(
             Monitor,
             ModManifest.UniqueID);
 
-        // 6.7.44.11 cold-path dual probe inspects both visible source and hidden proxy only after a
-        // forced transform still fails. It is diagnostic and cached by runtime type pair.
         PelipperDualHpProbeAlpha674411 = new Alpha674411PelipperDualHpProbeService(Monitor);
 
-        // 6.7.44.8 owns the source-aware Mutation engine. 6.7.44.12 binds Pelipper 1.2.0's
-        // authoritative WildCurrentHealth/WildMaxHealth proxy modData into that engine.
         PelipperSourceMutationAlpha67448 = new Alpha67448PelipperSourceMutationService(
             Monitor,
             ModManifest.UniqueID,
@@ -42,56 +35,44 @@ public sealed partial class ModEntry
             Monitor,
             ModManifest.UniqueID);
 
-        // 6.7.44.13 mirrors Mutation visual scale onto the visible PokemonNpc and restores it when
-        // the wild encounter ends. 6.7.44.14 caps that visible multiplier at x2.
         PelipperVisibleMutationAlpha674413 = new Alpha674413PelipperVisibleMutationService(
             Monitor,
             ModManifest.UniqueID,
             () => Config.MutationVisualScaleMultiplier);
 
-        // 6.7.44.15 preserves the intended 2-4 minions for every Mutant. If the original strict
-        // placement fails, the fallback searches a wider ring and anchors Pelipper waves on the
-        // visible Pokemon instead of the hidden combat proxy.
         MutationMinionSpawnAlpha674413 = new Alpha674413MutationMinionSpawnService(
             Monitor,
             ModManifest.UniqueID);
 
-        // 6.7.44.15 gives every Team Up Mutant x3 native loot passes when finally defeated.
-        // This is global Mutation behavior, not Pelipper-only, and it does not suppress minions.
         PelipperMutantRewardAlpha674414 = new Alpha674414PelipperMutantRewardService(
             Monitor,
             ModManifest.UniqueID);
 
-        PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
+        // 6.7.44.16 design lock: exactly one Mutant leader, while all 2-4 followers stay ordinary
+        // hostile minions. Only the leader can carry the global x3 Mutant reward marker.
+        MutationLeaderMinionPolicyAlpha674416 = new Alpha674416MutationLeaderMinionPolicyService(
+            Monitor,
+            ModManifest.UniqueID);
 
-        // 6.7.44.9 legacy failure-only source probe remains available. With the 6.7.44.12 modData
-        // binding resolving HP successfully this probe should stay cold.
+        PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
         PelipperSourceProbeAlpha67449 = new Alpha67449PelipperSourceProbeService(Monitor, ModManifest.UniqueID);
 
-        // 6.7.44.4 ran the full source-aware identity + reflection classifier every simulation tick.
-        // With many Pelipper wild actors this became O(monsters * actors) at 60Hz. Replace only that
-        // discovery handler with a 20Hz pulse. Confirmed Shiny hold state itself remains persistent in
-        // modData between pulses, so CombatService continues to see HOLD FIRE on every combat tick.
         Helper.Events.GameLoop.UpdateTicking -= OnAlpha67442UpdateTicking;
         Helper.Events.GameLoop.UpdateTicking += OnAlpha67446EncounterUpdateTicking;
 
-        // 6.7.44.7 quality-of-life safety: an active Team Up member must not consume the Farmer's
-        // held object as a vanilla gift during combat. Inactive roster members retain normal gifting.
         Helper.Events.Input.ButtonPressed += OnAlpha67447GiftGuardButtonPressed;
         Helper.Events.GameLoop.SaveLoaded += OnAlpha67447SaveLoaded;
 
-        // 6.7.44.8 draws Mutation feedback around the visible Pelipper Pokemon source rather than
-        // the hidden Green Slime combat proxy.
         Helper.Events.Display.RenderedWorld += OnAlpha67448RenderedWorld;
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.15 Pelipper runtime diagnostics: status.",
+            "6.7.44.16 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.15 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, restored 2-4 Mutant minions, global Mutant loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.16 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 normal hostile Mutant minions, global leader loot x3, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -117,6 +98,7 @@ public sealed partial class ModEntry
         PelipperVisibleMutationAlpha674413.ResetTelemetry();
         MutationMinionSpawnAlpha674413.ResetTelemetry();
         PelipperMutantRewardAlpha674414.ResetTelemetry();
+        MutationLeaderMinionPolicyAlpha674416.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -176,6 +158,7 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperModDataHpBindingAlpha674412.Describe(), LogLevel.Info);
         Monitor.Log(PelipperVisibleMutationAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperMutantRewardAlpha674414.Describe(), LogLevel.Info);
+        Monitor.Log(MutationLeaderMinionPolicyAlpha674416.Describe(), LogLevel.Info);
         Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
