@@ -48,8 +48,9 @@ public sealed partial class ModEntry
             Monitor,
             ModManifest.UniqueID);
 
-        // 6.7.44.16 design lock: exactly one Mutant leader, while all 2-4 followers stay ordinary
-        // hostile minions. Only the leader can carry the global x3 Mutant reward marker.
+        // 6.7.44.16: exactly one Mutant leader, while all 2-4 followers stay ordinary hostile minions.
+        // 6.7.44.17: Pelipper followers stay on Team Up's lightweight one-actor path rather than
+        // materializing extra Pelipper PokemonNpc + combat-proxy encounter pairs.
         MutationLeaderMinionPolicyAlpha674416 = new Alpha674416MutationLeaderMinionPolicyService(
             Monitor,
             ModManifest.UniqueID);
@@ -67,12 +68,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.16 Pelipper runtime diagnostics: status.",
+            "6.7.44.17 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.16 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 normal hostile Mutant minions, global leader loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.17 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 normal hostile minions, lightweight one-actor Pelipper minions, global leader loot x3, active-teammate gift guard.",
             LogLevel.Info);
     }
 
