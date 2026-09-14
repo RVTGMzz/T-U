@@ -1,44 +1,37 @@
 # Team Up - Canonical Latest Handoff
 
-Current detailed handoff: `docs/ALPHA_6_7_44_15_MUTANT_MINIONS_GLOBAL_LOOT_X3_HANDOFF.md`.
+Current detailed handoff: `docs/ALPHA_6_7_44_16_MUTANT_LEADER_NORMAL_MINIONS_HANDOFF.md`.
 
 ## Current checkpoint
-- Version: `0.2.0-alpha.6.7.44.15`
-- Branch: `v0.2-alpha6-7-44-15-mutant-minions-global-loot-x3`
-- CI SHA: `61fe5b59811ea6cfe3cd95da3f3cf201665f1b9b`
-- Run: `34863995611`
-- Job: `104043116358`
-- Artifact ID: `10356535462`
-- Artifact wrapper SHA256: `00f38c9f0cd199568ae64508e0fef18686ea2fc284c33160566ed3f1997e768b`
-- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.zip`
-- Inner ZIP SHA256: `a44958d0bd1053d83cea9fd0b6e07ac0db9694870d20c43f50db886013c805ad`
+- Version: `0.2.0-alpha.6.7.44.16`
+- Branch: `v0.2-alpha6-7-44-16-mutant-leader-minion-hostility`
+- CI SHA: `8ab6f7105e505ec47a63f6dd93f77251e7c4fdc5`
+- Run: `34901111167`
+- Job: `104167024063`
+- Artifact ID: `10370307939`
+- Artifact wrapper SHA256: `bf313a16b2496c56c5ef2c820e506b9b6439eb8017585993558148cf030c24c4`
+- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.zip`
+- Inner ZIP SHA256: `5074ee09ee439a0b94ec30bc1ae95d997c6da9236cbcf820eaac6941b3e46dbc`
 - Build: PASS, 0 warnings / 0 errors
 - Main: NOT merged
 - 6.7.45: NOT started
 
-## Live truth
-Pelipper Mutation core, real HP binding and natural Mutation rolls are working. Visible Pelipper Mutant scaling works, but x3 was too large; x2 is the current visual lock.
+## Mutation design
+A Mutation encounter is one Mutant leader plus 2-4 ordinary hostile minions. Only the leader receives Mutation combat bonuses and x3 loot. Followers are explicitly kept non-Mutant, mutation-excluded, and stripped of any accidental x3 reward marker. The minion factory prefers the original runtime monster type when it can safely recreate it, otherwise it uses the ordinary hostile fallback.
 
-The 2-4 minion wave is part of the Mutation design. A previous 6.7.44.14 interpretation temporarily suppressed Pelipper minions after live `spawned=0/N`; that was incorrect and is reverted in 6.7.44.15.
+Pelipper visible Mutants remain capped at x2 size. Global x3 loot applies to Mutant leaders regardless of vanilla/custom/Pelipper origin. Minions retain their existing loot policy and never receive the Mutant x3 bonus.
 
-## 6.7.44.15
-- Restores 2-4 minions for every Mutant, including Pelipper.
-- Wider minion fallback uses the visible Pokemon source as Pelipper anchor, searches radius 2 through 8, permits harmless terrain such as grass, and retains map/passability/object/occupancy gates.
-- Globalizes x3 loot to every main Mutant, not only Pelipper.
-- x3 loot repeats the native Stardew `monsterDrop` pass two extra times with recursion protection.
-- Mutation minions stay loot-suppressed by default.
-- Pelipper visible scale remains capped at x2.
-
-CI gates passed:
+## CI gates passed
 - PELIPPER MODDATA HP + PAIR CACHE CARRY-FORWARD
 - PELIPPER VISIBLE MUTATION X2 CAP + RESTORE
-- MUTATION 2-4 MINION RESTORE + WIDE-SPAWN
-- GLOBAL MUTANT LOOT-X3
-- C# BUILD, 0 warnings / 0 errors
+- MUTATION 2-4 MINION WIDE-SPAWN CARRY-FORWARD
+- MUTANT LEADER + NORMAL HOSTILE MINION POLICY
+- GLOBAL LEADER-ONLY MUTANT LOOT-X3
+- C# BUILD: 0 warnings / 0 errors
 - ZIP CONTENT AUDIT
 
 ## Next live test
-Force a normal non-Shiny Pelipper Mutant. Confirm x2 visible size and verify 2-4 minions actually appear. Then fight through all three HP phases, kill the main Mutant, and run `teamup_mutation status`. Expected reward telemetry: `dropCalls>=1`, `extraDropPasses=2`, `errors=0`. Also test one vanilla/custom non-Pelipper Mutant to confirm the same x3 reward applies globally.
+Force a normal non-Shiny Mutation. Confirm 2-4 followers spawn, leader and followers attack the player/party, followers remain normal size/state, and `teamup_mutation status` reports `leadersMarked>=1`, `minionsNormalized>0`, and `hostileReady>0`. Kill the leader through all HP phases and verify x3 leader reward telemetry. Test both Pelipper and one non-Pelipper Mutant.
 
 ## Carry-forward locks
 - Current Shiny behavior stays frozen as accepted unless a concrete regression appears.
