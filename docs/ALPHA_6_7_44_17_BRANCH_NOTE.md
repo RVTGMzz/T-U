@@ -1,0 +1,1 @@
+This branch was superseded before release by `v0.2-alpha6-7-44-17-lightweight-minions` after live feedback changed the priority from capture lock to lower-overhead Mutation minions. Do not use this branch as the 6.7.44.17 release checkpoint.
