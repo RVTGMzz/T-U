@@ -49,6 +49,7 @@ public sealed partial class ModEntry
         PelipperVisibleMutationAlpha674413?.ResetTelemetry();
         MutationMinionSpawnAlpha674413?.ResetTelemetry();
         PelipperMutantRewardAlpha674414?.ResetTelemetry();
+        MutationLeaderMinionPolicyAlpha674416?.ResetTelemetry();
     }
 
     private void OnAlpha6719UpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -84,6 +85,8 @@ public sealed partial class ModEntry
                     Monitor.Log(PelipperVisibleMutationAlpha674413.Describe(), LogLevel.Info);
                 if (PelipperMutantRewardAlpha674414 is not null)
                     Monitor.Log(PelipperMutantRewardAlpha674414.Describe(), LogLevel.Info);
+                if (MutationLeaderMinionPolicyAlpha674416 is not null)
+                    Monitor.Log(MutationLeaderMinionPolicyAlpha674416.Describe(), LogLevel.Info);
                 if (MutationMinionSpawnAlpha674413 is not null)
                     Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
                 if (PelipperSourceProbeAlpha67449 is not null)
@@ -104,8 +107,6 @@ public sealed partial class ModEntry
                 string? displayName = PelipperSourceProbeAlpha67449?.CaptureForceTargetDisplayName();
                 bool transformed = MutationAlpha6719.ForceNearestEligible(out string rawResult);
 
-                // Keep the 6.7.44.11 dual probe as a cold diagnostic fallback. If 6.7.44.12 binds
-                // WildCurrentHealth/WildMaxHealth correctly this path should no longer run.
                 if (!transformed && Context.IsWorldReady && Game1.currentLocation is not null)
                 {
                     Monster? probeTarget = Game1.currentLocation.characters
