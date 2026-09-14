@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_16"
+STAGE = ROOT / "_stage_alpha6744_17"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_16.txt"
-VERSION = "0.2.0-alpha.6.7.44.16"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_17.txt"
+VERSION = "0.2.0-alpha.6.7.44.17"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -122,6 +122,27 @@ try:
     log("MUTANT LEADER + NORMAL HOSTILE MINION POLICY AUDIT: PASS")
 
     for token in [
+        "PelipperLightweightMinionMarker",
+        "PelipperLeaderSpeciesMarker",
+        "PelipperLightweightSpawned",
+        "PelipperNativeSpawnAvoided",
+        "PelipperTownCompatibilityService.IsWildCombatActor(source)",
+        "pelipper-lightweight-teamup",
+        "CreateFallback(position, baseMaxHealth, baseDamage, baseSpeed)",
+    ]:
+        req(token in factory, f"lightweight Pelipper minion policy missing {token}")
+    req("if (PelipperTownCompatibilityService.IsWildCombatActor(source))" in factory,
+        "Pelipper lightweight fast path missing")
+    req(factory.index("if (PelipperTownCompatibilityService.IsWildCombatActor(source))")
+        < factory.index("TryCreateSameRuntimeType(source"),
+        "Pelipper fast path must run before same-runtime-type reflection construction")
+    req("pelipperLightweight=" in leader_minion and "nativePelipperSpawnsAvoided=" in leader_minion,
+        "lightweight Pelipper telemetry missing")
+    req("lightweight one-actor Pelipper minions" in wiring,
+        "runtime log does not advertise lightweight Pelipper minions")
+    log("PELIPPER LIGHTWEIGHT ONE-ACTOR MINION POLICY: PASS")
+
+    for token in [
         "MutantLootMultiplier = 3",
         "Ronvotri.TeamUp/MutantLootMultiplier",
         "scope=all-mutants",
@@ -183,7 +204,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.16 MUTANT LEADER + NORMAL HOSTILE MINIONS")
+    log("BUILD SUCCESS - ALPHA 6.7.44.17 LIGHTWEIGHT MUTATION MINIONS")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
