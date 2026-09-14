@@ -1,43 +1,36 @@
-# Team Up handoff: 0.2.0-alpha.6.7.44.13
+# Team Up handoff: 0.2.0-alpha.6.7.44.14
 
 Canonical latest: `docs/LATEST_HANDOFF.md`
-Detailed notes: `docs/ALPHA_6_7_44_13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_HANDOFF.md`
+Detailed notes: `docs/ALPHA_6_7_44_14_PELIPPER_X2_LOOT_X3_HANDOFF.md`
 
-- Branch: `v0.2-alpha6-7-44-13-pelipper-visible-scale-minion-spawn`
-- CI SHA: `c989c6407ac70ad799ffc5b06cbaac90c9717272`
-- Run: `34778989370`
-- Job: `103782389584`
-- Artifact ID: `10324089476`
-- Artifact wrapper SHA256: `ac0369fb12e2d249d918eeae10f5252a9d1705157674b551b955b354d8e49562`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.zip`
-- ZIP SHA256: `9e3c2fb4975c2944f915d38fb39e5002311178b31dfc3e66b40b30779cdfbd64`
+- Branch: `v0.2-alpha6-7-44-14-pelipper-x2-loot-x3`
+- CI SHA: `96811b01800b2eeaf1a7a3247899818d74a791b1`
+- Run: `34862316701`
+- Job: `104037413329`
+- Artifact ID: `10355521041`
+- Artifact wrapper SHA256: `9c0985f806bce5fc87ab98104c44b785064650a01530b73c92e09827332c9c96`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.zip`
+- ZIP SHA256: `8f81c20f34305dc3ceaa5f2823b7fd046ae04a05004a51170b25a7d06bf08b8b`
 - Build: PASS, 0 warnings / 0 errors
 - main not merged
 - 6.7.45 not started
 
-## Live truth from 6.7.44.12
-Pelipper Mutation core is live-confirmed: forced Mutation succeeds, `WildCurrentHealth/WildMaxHealth` binding resolves and writes correctly, source HP resolution has no failures, and natural lethal events now increment Mutation rolls.
+## Live truth from 6.7.44.13
+Pelipper Mutation core and visible source scaling both work. Fidough visibly scaled from 1->3, proving source presentation is writable, but x3 is too large. Pelipper minion spawning still failed 0/4 with all fallback candidates rejected.
 
-Two remaining live failures were reproduced:
-- visible Pokemon source did NOT become x3 larger even though generic telemetry said `scaleApplied=True`; that scale was only on the hidden combat proxy;
-- minion waves requested 3-4 minions but spawned 0 with all candidates `safeRejected`, both on a custom map and on Farm.
-
-## 6.7.44.13
-New `Alpha674413PelipperVisibleMutationService` applies the configured Mutation scale to the paired visible `PelipperTown.PokemonNpc`, preferring `_visualScaleMultiplier`, and restores the original value when the wild Mutant encounter ends or changes role. It reapplies at the existing 20Hz runtime pulse if Pelipper overwrites presentation state.
-
-New `Alpha674413MutationMinionSpawnService` preserves the original strict safe-spawn pass and only adds a fallback when that pass fails. The fallback still requires an on-map/passable tile, no placed object or terrain feature, and safe distance from Farmer/all characters, but drops the over-broad `CollisionMask.All` rejection.
-
-New status lines:
-- `Pelipper visible Mutation: tracked=... | applied=... | reapplied=... | restored=... | failed=... | last=...`
-- `Mutation minion spawn fallback: attempts=... | resolved=... | rejected=... | last=...`
+## 6.7.44.14
+- Visible Pelipper Mutant scale is capped at x2, including old configs that still request x3. New configs default to x2.
+- Pelipper Mutants temporarily suppress the unreliable 2-4 minion wave. Generic/non-Pelipper Mutation minions are unchanged.
+- Successful Pelipper Mutants are marked for loot x3.
+- At final death, Team Up currently attempts x3 reward by repeating the native Stardew `monsterDrop` pass two extra times with recursion protection. This still requires live validation on Pelipper final death.
+- `teamup_mutation status` adds `Pelipper Mutant reward: lootX3 | minions=off | marked=... | minionWavesSuppressed=... | dropHooks=... | dropCalls=... | extraDropPasses=... | errors=... | last=...`.
 
 ## Next live test
-On a normal non-Shiny Pelipper wild Pokemon:
-1. `teamup_mutation force`
-2. visually confirm the actual Pokemon sprite becomes ~x3 larger;
-3. verify at least one minion can spawn on Farm/custom map;
-4. run `teamup_mutation status` and return the new visible-scale/minion-fallback lines plus source Mutation/HP binding and final MutationTelemetry;
-5. continue the HPx3 phase test by depleting one real HP bar and verify `phaseGuards` + HP-binding writes increase.
+1. `teamup_mutation force` on a normal non-Shiny Pelipper Pokemon.
+2. Confirm visible size is about x2.
+3. Confirm no Pelipper minions appear; `minionWavesSuppressed` should rise.
+4. Fight through all HPx3 phases. First two depleted bars should increment `phaseGuards`; final bar should end encounter.
+5. After final death, run status. Expected for accepted x3 reward: `dropCalls>=1`, `extraDropPasses=2`, `errors=0`, plus visibly increased loot. If `dropCalls=0`, Pelipper uses a different drop path and the reward hook must be moved there.
 
 Carry-forward locks:
 - current Shiny behavior remains frozen as accepted unless a concrete regression appears;
