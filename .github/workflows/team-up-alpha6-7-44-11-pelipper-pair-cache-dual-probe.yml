@@ -1,9 +1,9 @@
-name: Team Up v0.2.0-alpha.6.7.44.14 Pelipper x2 + Loot x3
+name: Team Up v0.2.0-alpha.6.7.44.15 Mutant Minions + Global Loot x3
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-14-pelipper-x2-loot-x3
+      - v0.2-alpha6-7-44-15-mutant-minions-global-loot-x3
     paths:
       - 'src/TeamUp/Core/Alpha674414PelipperMutantRewardService.cs'
       - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
@@ -34,14 +34,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.14
+      - name: Build, audit and package Alpha 6.7.44.15
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.14 artifact
+      - name: Upload Alpha 6.7.44.15 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-14-pelipper-x2-loot-x3
+          name: team-up-alpha6-7-44-15-mutant-minions-global-loot-x3
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_14.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_15.txt
           if-no-files-found: error
