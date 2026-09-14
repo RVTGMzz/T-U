@@ -16,6 +16,7 @@ public sealed partial class ModEntry
     private Alpha674412PelipperModDataHpBindingService PelipperModDataHpBindingAlpha674412 { get; set; } = null!;
     private Alpha674413PelipperVisibleMutationService PelipperVisibleMutationAlpha674413 { get; set; } = null!;
     private Alpha674413MutationMinionSpawnService MutationMinionSpawnAlpha674413 { get; set; } = null!;
+    private Alpha674414PelipperMutantRewardService PelipperMutantRewardAlpha674414 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -42,15 +43,20 @@ public sealed partial class ModEntry
             ModManifest.UniqueID);
 
         // 6.7.44.13 mirrors Mutation visual scale onto the visible PokemonNpc and restores it when
-        // the wild encounter ends. The generic proxy scale remains harmless compatibility state.
+        // the wild encounter ends. 6.7.44.14 caps that visible multiplier at x2.
         PelipperVisibleMutationAlpha674413 = new Alpha674413PelipperVisibleMutationService(
             Monitor,
             ModManifest.UniqueID,
             () => Config.MutationVisualScaleMultiplier);
 
-        // 6.7.44.13 keeps the existing strict minion placement first, then adds a conservative
-        // relaxed fallback for farms/custom maps where CollisionMask.All rejects every candidate.
+        // 6.7.44.13 fallback remains available for generic/non-Pelipper Mutation minions.
         MutationMinionSpawnAlpha674413 = new Alpha674413MutationMinionSpawnService(
+            Monitor,
+            ModManifest.UniqueID);
+
+        // 6.7.44.14 temporarily suppresses Pelipper's unreliable 2-4 minion wave and compensates
+        // the harder three-phase Mutant with x3 native loot passes when it is finally slain.
+        PelipperMutantRewardAlpha674414 = new Alpha674414PelipperMutantRewardService(
             Monitor,
             ModManifest.UniqueID);
 
@@ -78,12 +84,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.13 Pelipper runtime diagnostics: status.",
+            "6.7.44.14 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.13 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Pokemon Mutation scale, relaxed minion spawn fallback, active-teammate gift guard.",
+            $"Team Up 6.7.44.14 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, Pelipper minions temporarily off + loot x3, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -108,6 +114,7 @@ public sealed partial class ModEntry
         PelipperModDataHpBindingAlpha674412.ResetTelemetry();
         PelipperVisibleMutationAlpha674413.ResetTelemetry();
         MutationMinionSpawnAlpha674413.ResetTelemetry();
+        PelipperMutantRewardAlpha674414.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -166,6 +173,7 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
         Monitor.Log(PelipperModDataHpBindingAlpha674412.Describe(), LogLevel.Info);
         Monitor.Log(PelipperVisibleMutationAlpha674413.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperMutantRewardAlpha674414.Describe(), LogLevel.Info);
         Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
