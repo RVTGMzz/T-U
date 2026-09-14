@@ -18,6 +18,7 @@ public sealed partial class ModEntry
     private Alpha674413MutationMinionSpawnService MutationMinionSpawnAlpha674413 { get; set; } = null!;
     private Alpha674414PelipperMutantRewardService PelipperMutantRewardAlpha674414 { get; set; } = null!;
     private Alpha674416MutationLeaderMinionPolicyService MutationLeaderMinionPolicyAlpha674416 { get; set; } = null!;
+    private Alpha674417MutationCaptureLockService MutationCaptureLockAlpha674417 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -54,6 +55,13 @@ public sealed partial class ModEntry
             Monitor,
             ModManifest.UniqueID);
 
+        // 6.7.44.17 design lock: Mutant leader and temporary Mutation minions are never catchable.
+        // Natural non-Mutant Pelipper wild Pokemon keep the source mod's normal capture behavior.
+        MutationCaptureLockAlpha674417 = new Alpha674417MutationCaptureLockService(
+            Monitor,
+            ModManifest.UniqueID,
+            () => Helper.Translation.Locale.StartsWith("vi", StringComparison.OrdinalIgnoreCase));
+
         PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
         PelipperSourceProbeAlpha67449 = new Alpha67449PelipperSourceProbeService(Monitor, ModManifest.UniqueID);
 
@@ -67,12 +75,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.16 Pelipper runtime diagnostics: status.",
+            "6.7.44.17 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.16 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 normal hostile Mutant minions, global leader loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.17 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 normal hostile Mutant minions, global leader loot x3, Mutant capture lock ({MutationCaptureLockAlpha674417.PatchedCaptureMethodCount} Pelipper hooks), active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -99,6 +107,7 @@ public sealed partial class ModEntry
         MutationMinionSpawnAlpha674413.ResetTelemetry();
         PelipperMutantRewardAlpha674414.ResetTelemetry();
         MutationLeaderMinionPolicyAlpha674416.ResetTelemetry();
+        MutationCaptureLockAlpha674417.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -159,6 +168,7 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperVisibleMutationAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperMutantRewardAlpha674414.Describe(), LogLevel.Info);
         Monitor.Log(MutationLeaderMinionPolicyAlpha674416.Describe(), LogLevel.Info);
+        Monitor.Log(MutationCaptureLockAlpha674417.Describe(), LogLevel.Info);
         Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
