@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Xna.Framework;
+using Ronvotri.TeamUp.Core;
 using StardewValley.Monsters;
 
 namespace Ronvotri.TeamUp.Combat;
@@ -12,18 +13,31 @@ namespace Ronvotri.TeamUp.Combat;
 /// accept only a position-only constructor, or a position + recognized level/difficulty integer.
 /// Unknown custom constructor shapes fail closed to the existing GreenSlime fallback instead of
 /// reflection-cloning NetFields or invoking arbitrary constructors with fabricated arguments.
+///
+/// Alpha 6.7.44.17 performance lock: Pelipper wild Mutation followers never instantiate another
+/// Pelipper runtime type. A full Pelipper wild encounter owns both a visible PokemonNpc and hidden
+/// combat proxy plus encounter metadata/pairing/runtime bookkeeping. Mutation only needs temporary
+/// hostile followers, so Pelipper leaders use one lightweight Team Up GreenSlime combat actor per
+/// follower. This deliberately trades native Pokemon capture/render semantics for lower runtime cost.
 /// </summary>
 internal static class MonsterMutationMinionFactory
 {
+    public const string PelipperLightweightMinionMarker = "Ronvotri.TeamUp/PelipperLightweightMutationMinion";
+    public const string PelipperLeaderSpeciesMarker = "Ronvotri.TeamUp/PelipperLeaderSpecies";
+
     public static int SameTypeSpawned { get; private set; }
     public static int FallbackSpawned { get; private set; }
     public static int SameTypeFailures { get; private set; }
+    public static int PelipperLightweightSpawned { get; private set; }
+    public static int PelipperNativeSpawnAvoided { get; private set; }
 
     public static void ResetTelemetry()
     {
         SameTypeSpawned = 0;
         FallbackSpawned = 0;
         SameTypeFailures = 0;
+        PelipperLightweightSpawned = 0;
+        PelipperNativeSpawnAvoided = 0;
     }
 
     public static Monster Create(
@@ -34,6 +48,28 @@ internal static class MonsterMutationMinionFactory
         int baseSpeed,
         out string mode)
     {
+        // Pelipper Mutation followers intentionally do NOT use source.GetType() construction.
+        // Creating another native Pelipper combat actor can cause the source mod to materialize or
+        // expect a paired PokemonNpc/WildEncounterId. The lightweight Team Up actor is one object,
+        // temporary, ordinary, hostile, and does not participate in Pelipper capture/pairing logic.
+        if (PelipperTownCompatibilityService.IsWildCombatActor(source))
+        {
+            Monster lightweight = CreateFallback(position, baseMaxHealth, baseDamage, baseSpeed);
+            lightweight.modData[PelipperLightweightMinionMarker] = "1";
+
+            if (PelipperWildEncounterIdentityService.TryResolve(source, out PelipperWildEncounterIdentity identity)
+                && !string.IsNullOrWhiteSpace(identity.DisplayName))
+            {
+                lightweight.modData[PelipperLeaderSpeciesMarker] = identity.DisplayName;
+            }
+
+            FallbackSpawned++;
+            PelipperLightweightSpawned++;
+            PelipperNativeSpawnAvoided++;
+            mode = "pelipper-lightweight-teamup";
+            return lightweight;
+        }
+
         if (TryCreateSameRuntimeType(source, position, baseMaxHealth, out Monster? sameType) && sameType is not null)
         {
             NormalizeNormalStats(sameType, baseMaxHealth, baseDamage, baseSpeed);
@@ -43,11 +79,17 @@ internal static class MonsterMutationMinionFactory
         }
 
         SameTypeFailures++;
+        Monster fallback = CreateFallback(position, baseMaxHealth, baseDamage, baseSpeed);
+        FallbackSpawned++;
+        mode = "green-slime-fallback";
+        return fallback;
+    }
+
+    private static Monster CreateFallback(Vector2 position, int baseMaxHealth, int baseDamage, int baseSpeed)
+    {
         int mineLevel = Math.Clamp(20 + Math.Max(1, baseMaxHealth) / 3, 20, 100);
         var fallback = new GreenSlime(position, mineLevel);
         NormalizeNormalStats(fallback, baseMaxHealth, baseDamage, baseSpeed);
-        FallbackSpawned++;
-        mode = "green-slime-fallback";
         return fallback;
     }
 
