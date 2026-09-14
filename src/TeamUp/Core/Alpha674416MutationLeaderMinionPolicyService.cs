@@ -105,6 +105,7 @@ internal sealed class Alpha674416MutationLeaderMinionPolicyService
         _lootMarkersStripped = 0;
         _sameTypeSeen = 0;
         _fallbackSeen = 0;
+        MonsterMutationMinionFactory.ResetTelemetry();
         _last = "reset";
     }
 
