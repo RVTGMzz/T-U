@@ -12,11 +12,13 @@ namespace Ronvotri.TeamUp.Core;
 /// does not affect the Pokemon sprite the player actually sees. Mirror Mutation scale onto the
 /// paired PokemonNpc source and restore its original presentation scale as soon as the encounter
 /// stops being an active wild Mutant.
+/// Alpha 6.7.44.14 caps the visible Pelipper multiplier at x2 after live x3 feedback proved too large.
 /// </summary>
 internal sealed class Alpha674413PelipperVisibleMutationService
 {
     private const string WildRoleKey = "Griff.PelipperTown/PokemonNpcRole/v1";
     private const string WildRoleValue = "WildEncounter";
+    private const float PelipperVisibleScaleCap = 2f;
 
     private sealed class VisualState
     {
@@ -66,11 +68,11 @@ internal sealed class Alpha674413PelipperVisibleMutationService
                 priority = Priority.Last
             });
 
-        _monitor.Log("Team Up 6.7.44.13 visible Pelipper Mutation scaling enabled.", LogLevel.Info);
+        _monitor.Log("Team Up 6.7.44.14 visible Pelipper Mutation scaling enabled with x2 cap.", LogLevel.Info);
     }
 
     public string Describe()
-        => $"Pelipper visible Mutation: tracked={_tracked.Count} | applied={_applied} | reapplied={_reapplied} | restored={_restored} | failed={_failed} | last={_last}";
+        => $"Pelipper visible Mutation: cap=x{PelipperVisibleScaleCap:0.##} | tracked={_tracked.Count} | applied={_applied} | reapplied={_reapplied} | restored={_restored} | failed={_failed} | last={_last}";
 
     public void ResetTelemetry()
     {
@@ -138,7 +140,8 @@ internal sealed class Alpha674413PelipperVisibleMutationService
         if (service._tracked.ContainsKey(source))
             return;
 
-        float multiplier = Math.Clamp(service._visualScaleMultiplier(), 1f, 5f);
+        float configured = Math.Clamp(service._visualScaleMultiplier(), 1f, 5f);
+        float multiplier = Math.Min(configured, PelipperVisibleScaleCap);
         if (multiplier <= 1.001f)
         {
             service._last = $"scale-skipped source={identity.DisplayName} multiplier={multiplier:0.###}";
@@ -167,7 +170,7 @@ internal sealed class Alpha674413PelipperVisibleMutationService
                 DisplayName = identity.DisplayName
             };
             service._applied++;
-            service._last = $"scaled source={identity.DisplayName} member={member} {original:0.###}->{applied:0.###} force={__1}";
+            service._last = $"scaled source={identity.DisplayName} member={member} {original:0.###}->{applied:0.###} configured={configured:0.###} cap={PelipperVisibleScaleCap:0.###} force={__1}";
             return;
         }
 
