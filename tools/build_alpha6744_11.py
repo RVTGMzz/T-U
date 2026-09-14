@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_13"
+STAGE = ROOT / "_stage_alpha6744_14"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_13.txt"
-VERSION = "0.2.0-alpha.6.7.44.13"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_14.txt"
+VERSION = "0.2.0-alpha.6.7.44.14"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.13_PELIPPER_VISIBLE_SCALE_MINION_SPAWN_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -37,10 +37,12 @@ def text(rel: str) -> str:
 try:
     project = text("TeamUp.csproj")
     manifest = json.loads(text("manifest.json"))
+    config = text("ModConfig.cs")
     binding = text("Core/Alpha674412PelipperModDataHpBindingService.cs")
     pairing = text("Core/Alpha674410PelipperSpeciesPairingService.cs")
     visible = text("Core/Alpha674413PelipperVisibleMutationService.cs")
     minion_spawn = text("Core/Alpha674413MutationMinionSpawnService.cs")
+    reward = text("Core/Alpha674414PelipperMutantRewardService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
     mutation_cmd = text("ModEntry.Alpha6719.cs")
 
@@ -61,38 +63,54 @@ try:
     log("PELIPPER MODDATA HP + PAIR CACHE CARRY-FORWARD: PASS")
 
     for token in [
-        "_visualScaleMultiplier",
+        "PelipperVisibleScaleCap = 2f",
+        "Math.Min(configured, PelipperVisibleScaleCap)",
         "TryMutatePostfix",
         "RestoreAll",
         "PelipperWildEncounterIdentityService.TryResolve",
         "MonsterMutationService.IsMutant",
-        "reapplied=",
-        "restored=",
+        "cap=x",
     ]:
-        req(token in visible, f"visible mutation scaling missing {token}")
+        req(token in visible, f"x2 visible mutation scaling missing {token}")
+    req("MutationVisualScaleMultiplier { get; set; } = 2f" in config,
+        "new-config mutation visual scale is not x2")
     req("PelipperVisibleMutationAlpha674413 = new Alpha674413PelipperVisibleMutationService" in wiring,
         "visible Pelipper Mutation service not wired")
     req("PelipperVisibleMutationAlpha674413.Update()" in wiring,
         "visible scale upkeep not wired")
     req("PelipperVisibleMutationAlpha674413.Describe()" in mutation_cmd,
         "mutation status missing visible scale telemetry")
-    log("PELIPPER VISIBLE MUTATION SCALE + RESTORE AUDIT: PASS")
+    log("PELIPPER VISIBLE MUTATION X2 CAP + RESTORE AUDIT: PASS")
 
+    # Keep the 6.7.44.13 fallback for generic/non-Pelipper minions. 6.7.44.14 suppresses only
+    # Pelipper mutant waves and replaces them with x3 loot.
     for token in [
         "TryFindSafeSpawnPosition",
         "SpawnPostfix",
-        "location.objects.ContainsKey(tile)",
-        "location.terrainFeatures.ContainsKey(tile)",
-        "MinimumFarmerDistance",
-        "MinimumCharacterDistance",
         "fallbackResolved",
     ]:
-        req(token in minion_spawn, f"minion spawn fallback missing {token}")
-    req("MutationMinionSpawnAlpha674413 = new Alpha674413MutationMinionSpawnService" in wiring,
-        "minion spawn fallback not wired")
-    req("MutationMinionSpawnAlpha674413.Describe()" in mutation_cmd,
-        "mutation status missing minion spawn fallback telemetry")
-    log("MUTATION MINION RELAXED SAFE-SPAWN AUDIT: PASS")
+        req(token in minion_spawn, f"generic minion fallback carry-forward missing {token}")
+    log("GENERIC MUTATION MINION FALLBACK CARRY-FORWARD: PASS")
+
+    for token in [
+        "PelipperLootMultiplier = 3",
+        "LootMultiplierMarker",
+        "TryMutatePostfix",
+        "SpawnMinionWavePrefix",
+        "monsterDrop",
+        "MonsterDropPostfix",
+        "__originalMethod.Invoke(__instance, __args)",
+        "minionWavesSuppressed",
+        "extraDropPasses",
+    ]:
+        req(token in reward, f"Pelipper x3 loot reward missing {token}")
+    req("PelipperMutantRewardAlpha674414 = new Alpha674414PelipperMutantRewardService" in wiring,
+        "Pelipper reward service not wired")
+    req("PelipperMutantRewardAlpha674414.Describe()" in mutation_cmd,
+        "mutation status missing Pelipper reward telemetry")
+    req("PelipperMutantRewardAlpha674414.ResetTelemetry()" in wiring,
+        "Pelipper reward telemetry not reset on save load")
+    log("PELIPPER MINIONS-OFF + LOOT-X3 REWARD AUDIT: PASS")
 
     proc = subprocess.run(
         ["dotnet", "build", str(SRC / "TeamUp.csproj"), "-c", "Release", "--nologo", "-warnaserror"],
@@ -143,7 +161,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.13 PELIPPER VISIBLE SCALE + MINION SPAWN")
+    log("BUILD SUCCESS - ALPHA 6.7.44.14 PELIPPER X2 + LOOT X3")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
