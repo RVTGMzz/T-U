@@ -8,15 +8,14 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Alpha 6.7.44.14: Pelipper Mutants temporarily trade the unreliable 2-4 minion wave for x3 loot.
-/// Rather than fabricating items, Team Up repeats Stardew's native monsterDrop pass two extra times
-/// for the same slain Pelipper Mutant. This preserves the source game's / other mods' actual drop
-/// generation while keeping the reward scoped to Pelipper wild Mutants only.
+/// Alpha 6.7.44.15: every Team Up Mutant keeps its 2-4 minion wave and earns x3 native loot
+/// when finally defeated. Team Up does not fabricate reward items; it repeats Stardew's actual
+/// monsterDrop pass two extra times for the same Mutant so vanilla/custom drop logic remains authoritative.
 /// </summary>
 internal sealed class Alpha674414PelipperMutantRewardService
 {
-    public const string LootMultiplierMarker = "Ronvotri.TeamUp/PelipperMutantLootMultiplier";
-    public const int PelipperLootMultiplier = 3;
+    public const string LootMultiplierMarker = "Ronvotri.TeamUp/MutantLootMultiplier";
+    public const int MutantLootMultiplier = 3;
 
     [ThreadStatic]
     private static bool _reentry;
@@ -28,7 +27,6 @@ internal sealed class Alpha674414PelipperMutantRewardService
     private readonly HashSet<MethodBase> _dropHooks = new();
 
     private long _markedMutants;
-    private long _minionWavesSuppressed;
     private long _dropCalls;
     private long _extraDropPasses;
     private long _errors;
@@ -39,96 +37,56 @@ internal sealed class Alpha674414PelipperMutantRewardService
     public Alpha674414PelipperMutantRewardService(IMonitor monitor, string uniqueId)
     {
         _monitor = monitor;
-        _harmony = new Harmony($"{uniqueId}.Alpha674414PelipperMutantReward");
+        _harmony = new Harmony($"{uniqueId}.Alpha674415GlobalMutantReward");
         Active = this;
 
-        ApplyMutationRewardHooks();
+        ApplyMutationRewardHook();
         ApplyDropHooks();
 
         _monitor.Log(
-            $"Team Up 6.7.44.14 Pelipper Mutant reward enabled: loot x{PelipperLootMultiplier}, Pelipper minion wave temporarily suppressed; patched {_dropHooks.Count} monsterDrop method(s).",
+            $"Team Up 6.7.44.15 global Mutant reward enabled: all Mutants keep 2-4 minions and receive loot x{MutantLootMultiplier}; patched {_dropHooks.Count} monsterDrop method(s).",
             LogLevel.Info);
     }
 
     public string Describe()
-        => $"Pelipper Mutant reward: lootX{PelipperLootMultiplier} | minions=off | marked={_markedMutants} | minionWavesSuppressed={_minionWavesSuppressed} | "
+        => $"Mutant reward: lootX{MutantLootMultiplier} | minions=2-4 | scope=all-mutants | marked={_markedMutants} | "
             + $"dropHooks={_dropHooks.Count} | dropCalls={_dropCalls} | extraDropPasses={_extraDropPasses} | errors={_errors} | last={_last}";
 
     public void ResetTelemetry()
     {
         _markedMutants = 0;
-        _minionWavesSuppressed = 0;
         _dropCalls = 0;
         _extraDropPasses = 0;
         _errors = 0;
         _last = "reset";
     }
 
-    private void ApplyMutationRewardHooks()
+    private void ApplyMutationRewardHook()
     {
         MethodInfo? tryMutate = AccessTools.Method(typeof(MonsterMutationService), "TryMutate");
-        if (tryMutate is not null)
+        if (tryMutate is null)
         {
-            _harmony.Patch(
-                tryMutate,
-                postfix: new HarmonyMethod(typeof(Alpha674414PelipperMutantRewardService), nameof(TryMutatePostfix))
-                {
-                    priority = Priority.Last
-                });
-        }
-        else
-        {
-            _monitor.Log("6.7.44.14 Pelipper loot marker unavailable: TryMutate not found.", LogLevel.Warn);
+            _monitor.Log("6.7.44.15 global Mutant loot marker unavailable: TryMutate not found.", LogLevel.Warn);
+            return;
         }
 
-        MethodInfo? spawnWave = AccessTools.Method(typeof(MonsterMutationService), "SpawnMinionWave");
-        if (spawnWave is not null)
-        {
-            _harmony.Patch(
-                spawnWave,
-                prefix: new HarmonyMethod(typeof(Alpha674414PelipperMutantRewardService), nameof(SpawnMinionWavePrefix))
-                {
-                    priority = Priority.First
-                });
-        }
-        else
-        {
-            _monitor.Log("6.7.44.14 Pelipper minion suppression unavailable: SpawnMinionWave not found.", LogLevel.Warn);
-        }
+        _harmony.Patch(
+            tryMutate,
+            postfix: new HarmonyMethod(typeof(Alpha674414PelipperMutantRewardService), nameof(TryMutatePostfix))
+            {
+                priority = Priority.Last
+            });
     }
 
     private static void TryMutatePostfix(Monster __0, bool __result)
     {
         Alpha674414PelipperMutantRewardService? service = Active;
-        if (service is null || !__result || !Context.IsWorldReady)
-            return;
-        if (!PelipperTownCompatibilityService.IsWildCombatActor(__0) || !MonsterMutationService.IsMutant(__0))
+        if (service is null || !__result || !Context.IsWorldReady || !MonsterMutationService.IsMutant(__0))
             return;
 
-        __0.modData[LootMultiplierMarker] = PelipperLootMultiplier.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        __0.modData[LootMultiplierMarker] = MutantLootMultiplier.ToString(System.Globalization.CultureInfo.InvariantCulture);
         service._markedMutants++;
-        string name = ReadDisplayName(__0);
-        service._last = $"marked source={name} lootX{PelipperLootMultiplier} minions=off";
-    }
-
-    private static bool SpawnMinionWavePrefix(object __0)
-    {
-        Alpha674414PelipperMutantRewardService? service = Active;
-        if (service is null || !Context.IsWorldReady)
-            return true;
-
-        Monster? mutant = TryReadMember(__0, "Mutant") as Monster;
-        if (mutant is null
-            || !MonsterMutationService.IsMutant(mutant)
-            || !PelipperTownCompatibilityService.IsWildCombatActor(mutant)
-            || !mutant.modData.ContainsKey(LootMultiplierMarker))
-        {
-            return true;
-        }
-
-        service._minionWavesSuppressed++;
-        service._last = $"suppressed-minions source={ReadDisplayName(mutant)} reward=lootX{PelipperLootMultiplier}";
-        return false;
+        service._last = $"marked source={ReadDisplayName(__0)} lootX{MutantLootMultiplier} minions=2-4";
     }
 
     private void ApplyDropHooks()
@@ -169,7 +127,7 @@ internal sealed class Alpha674414PelipperMutantRewardService
                     }
                     catch (Exception ex)
                     {
-                        _monitor.Log($"6.7.44.14 loot hook skipped {type.FullName}.{method.Name}: {ex.GetType().Name}: {ex.Message}", LogLevel.Trace);
+                        _monitor.Log($"6.7.44.15 loot hook skipped {type.FullName}.{method.Name}: {ex.GetType().Name}: {ex.Message}", LogLevel.Trace);
                     }
                 }
             }
@@ -185,7 +143,6 @@ internal sealed class Alpha674414PelipperMutantRewardService
         Monster? monster = __args.OfType<Monster>().FirstOrDefault();
         if (monster is null
             || !MonsterMutationService.IsMutant(monster)
-            || !PelipperTownCompatibilityService.IsWildCombatActor(monster)
             || !monster.modData.TryGetValue(LootMultiplierMarker, out string? raw)
             || !int.TryParse(raw, out int multiplier)
             || multiplier <= 1)
@@ -193,7 +150,7 @@ internal sealed class Alpha674414PelipperMutantRewardService
             return;
         }
 
-        int cappedMultiplier = Math.Clamp(multiplier, 1, PelipperLootMultiplier);
+        int cappedMultiplier = Math.Clamp(multiplier, 1, MutantLootMultiplier);
         service._dropCalls++;
 
         try
@@ -213,7 +170,7 @@ internal sealed class Alpha674414PelipperMutantRewardService
         {
             service._errors++;
             service._last = $"drop-repeat-failed {ex.GetType().Name}: {ex.InnerException?.Message ?? ex.Message}";
-            service._monitor.Log($"6.7.44.14 Pelipper Mutant x3 loot failed safely: {ex}", LogLevel.Warn);
+            service._monitor.Log($"6.7.44.15 Mutant x3 loot failed safely: {ex}", LogLevel.Warn);
         }
         finally
         {
@@ -223,34 +180,14 @@ internal sealed class Alpha674414PelipperMutantRewardService
 
     private static string ReadDisplayName(Monster monster)
     {
-        if (monster.modData.TryGetValue("Ronvotri.TeamUp/PelipperDisplayName", out string? display)
-            && !string.IsNullOrWhiteSpace(display))
+        if (PelipperTownCompatibilityService.IsWildCombatActor(monster)
+            && PelipperWildEncounterIdentityService.TryResolve(monster, out PelipperWildEncounterIdentity identity)
+            && !string.IsNullOrWhiteSpace(identity.DisplayName))
         {
-            return display;
+            return identity.DisplayName;
         }
-        return string.IsNullOrWhiteSpace(monster.displayName) ? monster.Name : monster.displayName;
-    }
 
-    private static object? TryReadMember(object target, string name)
-    {
-        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
-        for (Type? type = target.GetType(); type is not null; type = type.BaseType)
-        {
-            try
-            {
-                FieldInfo? field = type.GetField(name, flags | BindingFlags.DeclaredOnly);
-                if (field is not null)
-                    return field.GetValue(target);
-                PropertyInfo? property = type.GetProperty(name, flags | BindingFlags.DeclaredOnly);
-                if (property is not null && property.CanRead && property.GetIndexParameters().Length == 0)
-                    return property.GetValue(target);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-        return null;
+        return string.IsNullOrWhiteSpace(monster.displayName) ? monster.Name : monster.displayName;
     }
 
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
