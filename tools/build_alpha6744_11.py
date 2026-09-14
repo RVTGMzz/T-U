@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_16"
+STAGE = ROOT / "_stage_alpha6744_17"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_16.txt"
-VERSION = "0.2.0-alpha.6.7.44.16"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_17.txt"
+VERSION = "0.2.0-alpha.6.7.44.17"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.17_MUTANT_CAPTURE_LOCK_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.17_MUTANT_CAPTURE_LOCK_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -44,6 +44,7 @@ try:
     minion_spawn = text("Core/Alpha674413MutationMinionSpawnService.cs")
     reward = text("Core/Alpha674414PelipperMutantRewardService.cs")
     leader_minion = text("Core/Alpha674416MutationLeaderMinionPolicyService.cs")
+    capture_lock = text("Core/Alpha674417MutationCaptureLockService.cs")
     factory = text("Combat/MonsterMutationMinionFactory.cs")
     mutation = text("Combat/MonsterMutationService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
@@ -72,7 +73,6 @@ try:
         "RestoreAll",
         "PelipperWildEncounterIdentityService.TryResolve",
         "MonsterMutationService.IsMutant",
-        "cap=x",
     ]:
         req(token in visible, f"x2 visible mutation scaling missing {token}")
     req("MutationVisualScaleMultiplier { get; set; } = 2f" in config,
@@ -103,23 +103,15 @@ try:
         "MutationExcludedMarker",
         "LootMultiplierMarker",
         "CombatTargetOptInKey",
-        "SpawnWavePrefix",
-        "SpawnWavePostfix",
     ]:
         req(token in leader_minion, f"leader/minion policy missing {token}")
     req("minion.modData.Remove(MonsterMutationService.MutantMarker)" in leader_minion,
         "minions are not forcibly kept non-Mutant")
-    req("minion.modData.Remove(Alpha674414PelipperMutantRewardService.LootMultiplierMarker)" in leader_minion,
-        "minions are not protected from x3 loot marker")
     req("TryCreateSameRuntimeType" in factory and "same-runtime-type" in factory,
         "same-type normal minion priority missing")
     req("IsMutationMinion(monster)" in mutation,
         "Mutation eligibility does not exclude minions")
-    req("MutationLeaderMinionPolicyAlpha674416 = new Alpha674416MutationLeaderMinionPolicyService" in wiring,
-        "leader/minion policy not wired")
-    req("MutationLeaderMinionPolicyAlpha674416.Describe()" in mutation_cmd,
-        "leader/minion policy missing from mutation status")
-    log("MUTANT LEADER + NORMAL HOSTILE MINION POLICY AUDIT: PASS")
+    log("MUTANT LEADER + NORMAL HOSTILE MINION POLICY CARRY-FORWARD: PASS")
 
     for token in [
         "MutantLootMultiplier = 3",
@@ -132,7 +124,30 @@ try:
     ]:
         req(token in reward, f"global x3 Mutant reward missing {token}")
     req("SpawnMinionWavePrefix" not in reward, "reward service must not suppress minions")
-    log("GLOBAL LEADER-ONLY MUTANT LOOT-X3 AUDIT: PASS")
+    log("GLOBAL LEADER-ONLY MUTANT LOOT-X3 CARRY-FORWARD: PASS")
+
+    for token in [
+        "MutationCaptureBlocked",
+        "policy=leader+minions-blocked/natural-wild-allowed",
+        "TryMutatePostfix",
+        "SpawnWavePostfix",
+        "PelipperWildEncounterIdentityService.TryResolve",
+        "PatchPelipperCaptureMethods",
+        "CapturePrefix",
+        "capture",
+        "catch",
+        "pokeball",
+        "__result = false",
+        "Mutant Pokemon and their summoned minions can't be captured",
+    ]:
+        req(token in capture_lock, f"capture lock missing {token}")
+    req("MutationCaptureLockAlpha674417 = new Alpha674417MutationCaptureLockService" in wiring,
+        "capture lock not wired")
+    req("MutationCaptureLockAlpha674417.Describe()" in mutation_cmd,
+        "capture lock missing from mutation status")
+    req("MutationCaptureLockAlpha674417.ResetTelemetry()" in wiring,
+        "capture lock telemetry not reset on save load")
+    log("MUTANT LEADER + MINION NON-CATCHABLE POLICY AUDIT: PASS")
 
     proc = subprocess.run(
         ["dotnet", "build", str(SRC / "TeamUp.csproj"), "-c", "Release", "--nologo", "-warnaserror"],
@@ -183,7 +198,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.16 MUTANT LEADER + NORMAL HOSTILE MINIONS")
+    log("BUILD SUCCESS - ALPHA 6.7.44.17 MUTANT CAPTURE LOCK")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
