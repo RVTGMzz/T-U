@@ -67,17 +67,16 @@ public sealed class ModConfig
 
     public float MutationStatMultiplier { get; set; } = 2f;
 
-    // Alpha 6.7.44.14: live Pelipper testing showed x3 is too visually large.
-    // New configs default to x2; the Pelipper visible bridge also caps old x3 configs to x2.
+    // Live Pelipper testing showed x3 is too visually large. New configs default to x2;
+    // the Pelipper visible bridge also caps older x3 configs to x2.
     public float MutationVisualScaleMultiplier { get; set; } = 2f;
 
     public int MutationMinionMin { get; set; } = 2;
 
     public int MutationMinionMax { get; set; } = 4;
 
-    // Mutation minions are reward-suppressed by default to avoid turning a 5% danger event
-    // into an economy multiplier. The mutant itself still drops its normal loot when finally slain.
-    // Pelipper Mutants temporarily suppress their unreliable minion wave in 6.7.44.14 and use x3 loot instead.
+    // Every Mutant keeps the intended 2-4 minion wave. Minion rewards stay suppressed by default;
+    // the main Mutant itself gets the global x3 native-drop reward in 6.7.44.15.
     public bool MutationMinionsDropLoot { get; set; } = false;
 
     // Alpha 6.6.0: party-wide tactical posture. This is config-backed so changing strategy
