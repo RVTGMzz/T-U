@@ -1,33 +1,44 @@
 # Team Up - Canonical Latest Handoff
 
-Current detailed handoff: `docs/ALPHA_6_7_44_14_PELIPPER_X2_LOOT_X3_HANDOFF.md`.
+Current detailed handoff: `docs/ALPHA_6_7_44_15_MUTANT_MINIONS_GLOBAL_LOOT_X3_HANDOFF.md`.
 
 ## Current checkpoint
-- Version: `0.2.0-alpha.6.7.44.14`
-- Branch: `v0.2-alpha6-7-44-14-pelipper-x2-loot-x3`
-- CI SHA: `96811b01800b2eeaf1a7a3247899818d74a791b1`
-- Run: `34862316701`
-- Job: `104037413329`
-- Artifact ID: `10355521041`
-- Artifact wrapper SHA256: `9c0985f806bce5fc87ab98104c44b785064650a01530b73c92e09827332c9c96`
-- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.14_PELIPPER_X2_LOOT_X3_TEST.zip`
-- Inner ZIP SHA256: `8f81c20f34305dc3ceaa5f2823b7fd046ae04a05004a51170b25a7d06bf08b8b`
+- Version: `0.2.0-alpha.6.7.44.15`
+- Branch: `v0.2-alpha6-7-44-15-mutant-minions-global-loot-x3`
+- CI SHA: `61fe5b59811ea6cfe3cd95da3f3cf201665f1b9b`
+- Run: `34863995611`
+- Job: `104043116358`
+- Artifact ID: `10356535462`
+- Artifact wrapper SHA256: `00f38c9f0cd199568ae64508e0fef18686ea2fc284c33160566ed3f1997e768b`
+- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.zip`
+- Inner ZIP SHA256: `a44958d0bd1053d83cea9fd0b6e07ac0db9694870d20c43f50db886013c805ad`
 - Build: PASS, 0 warnings / 0 errors
 - Main: NOT merged
 - 6.7.45: NOT started
 
 ## Live truth
-6.7.44.12/13 live-confirmed the Pelipper Mutation core, authoritative proxy-modData HP binding, natural-roll path, and visible PokemonNpc scaling. Live Fidough showed the x3 source scale is functional but visually too large. Pelipper minions still failed 0/4 even with the relaxed fallback.
+Pelipper Mutation core, real HP binding and natural Mutation rolls are working. Visible Pelipper Mutant scaling works, but x3 was too large; x2 is the current visual lock.
 
-## 6.7.44.14
-- Visible Pelipper Mutation scale is hard-capped at x2; new configs also default to x2.
-- Pelipper Mutants temporarily disable their unreliable 2-4 minion wave. Generic/non-Pelipper Mutation minion behavior remains unchanged.
-- Pelipper Mutants receive temporary x3 loot compensation.
-- The current x3 implementation repeats Stardew's native `GameLocation.monsterDrop` pass two extra times for the same marked Pelipper Mutant, protected against recursive Harmony re-entry.
-- This reward is not accepted until live final-death telemetry proves `dropCalls>=1`, `extraDropPasses=2`, `errors=0` and visible additional drops. `dropCalls=0` means Pelipper bypasses Stardew's native drop path and requires a Pelipper-specific reward hook.
+The 2-4 minion wave is part of the Mutation design. A previous 6.7.44.14 interpretation temporarily suppressed Pelipper minions after live `spawned=0/N`; that was incorrect and is reverted in 6.7.44.15.
+
+## 6.7.44.15
+- Restores 2-4 minions for every Mutant, including Pelipper.
+- Wider minion fallback uses the visible Pokemon source as Pelipper anchor, searches radius 2 through 8, permits harmless terrain such as grass, and retains map/passability/object/occupancy gates.
+- Globalizes x3 loot to every main Mutant, not only Pelipper.
+- x3 loot repeats the native Stardew `monsterDrop` pass two extra times with recursion protection.
+- Mutation minions stay loot-suppressed by default.
+- Pelipper visible scale remains capped at x2.
+
+CI gates passed:
+- PELIPPER MODDATA HP + PAIR CACHE CARRY-FORWARD
+- PELIPPER VISIBLE MUTATION X2 CAP + RESTORE
+- MUTATION 2-4 MINION RESTORE + WIDE-SPAWN
+- GLOBAL MUTANT LOOT-X3
+- C# BUILD, 0 warnings / 0 errors
+- ZIP CONTENT AUDIT
 
 ## Next live test
-Run `teamup_mutation force` on a normal non-Shiny Pelipper Pokemon. Confirm x2 visual size and no 2-4 Pelipper minions. Fight through all three HP phases, then after final death run `teamup_mutation status`. Verify `phaseGuards` advanced on the first two bars and `Pelipper Mutant reward` reports a successful x3 native-drop path.
+Force a normal non-Shiny Pelipper Mutant. Confirm x2 visible size and verify 2-4 minions actually appear. Then fight through all three HP phases, kill the main Mutant, and run `teamup_mutation status`. Expected reward telemetry: `dropCalls>=1`, `extraDropPasses=2`, `errors=0`. Also test one vanilla/custom non-Pelipper Mutant to confirm the same x3 reward applies globally.
 
 ## Carry-forward locks
 - Current Shiny behavior stays frozen as accepted unless a concrete regression appears.
