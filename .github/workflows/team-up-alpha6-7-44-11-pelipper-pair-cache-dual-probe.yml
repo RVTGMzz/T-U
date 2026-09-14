@@ -1,16 +1,18 @@
-name: Team Up v0.2.0-alpha.6.7.44.15 Mutant Minions + Global Loot x3
+name: Team Up v0.2.0-alpha.6.7.44.16 Mutant Leader + Normal Hostile Minions
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-15-mutant-minions-global-loot-x3
+      - v0.2-alpha6-7-44-16-mutant-leader-minion-hostility
     paths:
+      - 'src/TeamUp/Core/Alpha674416MutationLeaderMinionPolicyService.cs'
       - 'src/TeamUp/Core/Alpha674414PelipperMutantRewardService.cs'
       - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
       - 'src/TeamUp/Core/Alpha674413MutationMinionSpawnService.cs'
       - 'src/TeamUp/Core/Alpha674412PelipperModDataHpBindingService.cs'
       - 'src/TeamUp/Core/Alpha674410PelipperSpeciesPairingService.cs'
       - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
+      - 'src/TeamUp/Combat/MonsterMutationMinionFactory.cs'
       - 'src/TeamUp/Combat/MonsterMutationService.cs'
       - 'src/TeamUp/ModConfig.cs'
       - 'src/TeamUp/ModEntry.Alpha6719.cs'
@@ -34,14 +36,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.15
+      - name: Build, audit and package Alpha 6.7.44.16
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.15 artifact
+      - name: Upload Alpha 6.7.44.16 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-15-mutant-minions-global-loot-x3
+          name: team-up-alpha6-7-44-16-mutant-leader-normal-minions
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_15.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_16.txt
           if-no-files-found: error
