@@ -6,12 +6,12 @@
     <LangVersion>13.0</LangVersion>
     <AssemblyName>TeamUp</AssemblyName>
     <RootNamespace>Ronvotri.TeamUp</RootNamespace>
-    <ProjectVersion>0.2.0-alpha.6.7.44.16</ProjectVersion>
+    <ProjectVersion>0.2.0-alpha.6.7.44.17</ProjectVersion>
     <Version>$(ProjectVersion)</Version>
     <EnableHarmony>true</EnableHarmony>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.1.1" />
+    <PackageReference Include="Pathoschild.StardewModBuildConfig" Version="4.1.1" />
   </ItemGroup>
 </Project>
