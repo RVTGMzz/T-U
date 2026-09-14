@@ -27,6 +27,8 @@ internal sealed class Alpha674414PelipperMutantRewardService
     private readonly Harmony _harmony;
     private readonly HashSet<MethodBase> _dropHooks = new();
 
+    private long _markedMutants;
+    private long _minionWavesSuppressed;
     private long _dropCalls;
     private long _extraDropPasses;
     private long _errors;
@@ -39,6 +41,8 @@ internal sealed class Alpha674414PelipperMutantRewardService
         _monitor = monitor;
         _harmony = new Harmony($"{uniqueId}.Alpha674414PelipperMutantReward");
         Active = this;
+
+        ApplyMutationRewardHooks();
         ApplyDropHooks();
 
         _monitor.Log(
@@ -47,14 +51,84 @@ internal sealed class Alpha674414PelipperMutantRewardService
     }
 
     public string Describe()
-        => $"Pelipper Mutant reward: lootX{PelipperLootMultiplier} | minions=off | dropHooks={_dropHooks.Count} | dropCalls={_dropCalls} | extraDropPasses={_extraDropPasses} | errors={_errors} | last={_last}";
+        => $"Pelipper Mutant reward: lootX{PelipperLootMultiplier} | minions=off | marked={_markedMutants} | minionWavesSuppressed={_minionWavesSuppressed} | "
+            + $"dropHooks={_dropHooks.Count} | dropCalls={_dropCalls} | extraDropPasses={_extraDropPasses} | errors={_errors} | last={_last}";
 
     public void ResetTelemetry()
     {
+        _markedMutants = 0;
+        _minionWavesSuppressed = 0;
         _dropCalls = 0;
         _extraDropPasses = 0;
         _errors = 0;
         _last = "reset";
+    }
+
+    private void ApplyMutationRewardHooks()
+    {
+        MethodInfo? tryMutate = AccessTools.Method(typeof(MonsterMutationService), "TryMutate");
+        if (tryMutate is not null)
+        {
+            _harmony.Patch(
+                tryMutate,
+                postfix: new HarmonyMethod(typeof(Alpha674414PelipperMutantRewardService), nameof(TryMutatePostfix))
+                {
+                    priority = Priority.Last
+                });
+        }
+        else
+        {
+            _monitor.Log("6.7.44.14 Pelipper loot marker unavailable: TryMutate not found.", LogLevel.Warn);
+        }
+
+        MethodInfo? spawnWave = AccessTools.Method(typeof(MonsterMutationService), "SpawnMinionWave");
+        if (spawnWave is not null)
+        {
+            _harmony.Patch(
+                spawnWave,
+                prefix: new HarmonyMethod(typeof(Alpha674414PelipperMutantRewardService), nameof(SpawnMinionWavePrefix))
+                {
+                    priority = Priority.First
+                });
+        }
+        else
+        {
+            _monitor.Log("6.7.44.14 Pelipper minion suppression unavailable: SpawnMinionWave not found.", LogLevel.Warn);
+        }
+    }
+
+    private static void TryMutatePostfix(Monster __0, bool __result)
+    {
+        Alpha674414PelipperMutantRewardService? service = Active;
+        if (service is null || !__result || !Context.IsWorldReady)
+            return;
+        if (!PelipperTownCompatibilityService.IsWildCombatActor(__0) || !MonsterMutationService.IsMutant(__0))
+            return;
+
+        __0.modData[LootMultiplierMarker] = PelipperLootMultiplier.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        service._markedMutants++;
+        string name = ReadDisplayName(__0);
+        service._last = $"marked source={name} lootX{PelipperLootMultiplier} minions=off";
+    }
+
+    private static bool SpawnMinionWavePrefix(object __0)
+    {
+        Alpha674414PelipperMutantRewardService? service = Active;
+        if (service is null || !Context.IsWorldReady)
+            return true;
+
+        Monster? mutant = TryReadMember(__0, "Mutant") as Monster;
+        if (mutant is null
+            || !MonsterMutationService.IsMutant(mutant)
+            || !PelipperTownCompatibilityService.IsWildCombatActor(mutant)
+            || !mutant.modData.ContainsKey(LootMultiplierMarker))
+        {
+            return true;
+        }
+
+        service._minionWavesSuppressed++;
+        service._last = $"suppressed-minions source={ReadDisplayName(mutant)} reward=lootX{PelipperLootMultiplier}";
+        return false;
     }
 
     private void ApplyDropHooks()
@@ -133,11 +207,7 @@ internal sealed class Alpha674414PelipperMutantRewardService
             }
 
             service._extraDropPasses += extra;
-            string name = monster.modData.TryGetValue("Ronvotri.TeamUp/PelipperDisplayName", out string? display)
-                && !string.IsNullOrWhiteSpace(display)
-                    ? display
-                    : monster.Name;
-            service._last = $"rewarded source={name} nativeDropPasses={1 + extra}";
+            service._last = $"rewarded source={ReadDisplayName(monster)} nativeDropPasses={1 + extra}";
         }
         catch (Exception ex)
         {
@@ -149,6 +219,38 @@ internal sealed class Alpha674414PelipperMutantRewardService
         {
             _reentry = false;
         }
+    }
+
+    private static string ReadDisplayName(Monster monster)
+    {
+        if (monster.modData.TryGetValue("Ronvotri.TeamUp/PelipperDisplayName", out string? display)
+            && !string.IsNullOrWhiteSpace(display))
+        {
+            return display;
+        }
+        return string.IsNullOrWhiteSpace(monster.displayName) ? monster.Name : monster.displayName;
+    }
+
+    private static object? TryReadMember(object target, string name)
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
+        for (Type? type = target.GetType(); type is not null; type = type.BaseType)
+        {
+            try
+            {
+                FieldInfo? field = type.GetField(name, flags | BindingFlags.DeclaredOnly);
+                if (field is not null)
+                    return field.GetValue(target);
+                PropertyInfo? property = type.GetProperty(name, flags | BindingFlags.DeclaredOnly);
+                if (property is not null && property.CanRead && property.GetIndexParameters().Length == 0)
+                    return property.GetValue(target);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static IEnumerable<Type> SafeGetTypes(Assembly assembly)
