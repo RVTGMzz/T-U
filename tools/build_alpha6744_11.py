@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_15"
+STAGE = ROOT / "_stage_alpha6744_16"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_15.txt"
-VERSION = "0.2.0-alpha.6.7.44.15"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_16.txt"
+VERSION = "0.2.0-alpha.6.7.44.16"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.15_MUTANT_MINIONS_GLOBAL_LOOT_X3_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -43,6 +43,9 @@ try:
     visible = text("Core/Alpha674413PelipperVisibleMutationService.cs")
     minion_spawn = text("Core/Alpha674413MutationMinionSpawnService.cs")
     reward = text("Core/Alpha674414PelipperMutantRewardService.cs")
+    leader_minion = text("Core/Alpha674416MutationLeaderMinionPolicyService.cs")
+    factory = text("Combat/MonsterMutationMinionFactory.cs")
+    mutation = text("Combat/MonsterMutationService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
     mutation_cmd = text("ModEntry.Alpha6719.cs")
 
@@ -83,33 +86,53 @@ try:
         "radius <= 8",
         "pelipperSourceAnchors",
         "PelipperWildEncounterIdentityService.TryResolve",
-        "location.objects.ContainsKey(tile)",
-        "IsBlockingTerrainFeature",
         "minions=2-4",
     ]:
         req(token in minion_spawn, f"2-4 minion spawn fix missing {token}")
-    req("SpawnMinionWavePrefix" not in reward, "minion suppression must be removed")
-    req("minions=2-4" in reward, "reward telemetry does not preserve minions")
-    log("MUTATION 2-4 MINION RESTORE + WIDE-SPAWN AUDIT: PASS")
+    req("MutationMinionMin { get; set; } = 2" in config and "MutationMinionMax { get; set; } = 4" in config,
+        "2-4 minion config changed")
+    log("MUTATION 2-4 MINION WIDE-SPAWN CARRY-FORWARD: PASS")
+
+    for token in [
+        "MutantLeaderMarker",
+        "NormalHostileMinionMarker",
+        "leader=Mutant",
+        "minions=normal-hostile",
+        "leaderLoot=x3",
+        "minionLootBonus=none",
+        "MutationExcludedMarker",
+        "LootMultiplierMarker",
+        "CombatTargetOptInKey",
+        "SpawnWavePrefix",
+        "SpawnWavePostfix",
+    ]:
+        req(token in leader_minion, f"leader/minion policy missing {token}")
+    req("minion.modData.Remove(MonsterMutationService.MutantMarker)" in leader_minion,
+        "minions are not forcibly kept non-Mutant")
+    req("minion.modData.Remove(Alpha674414PelipperMutantRewardService.LootMultiplierMarker)" in leader_minion,
+        "minions are not protected from x3 loot marker")
+    req("TryCreateSameRuntimeType" in factory and "same-runtime-type" in factory,
+        "same-type normal minion priority missing")
+    req("IsMutationMinion(monster)" in mutation,
+        "Mutation eligibility does not exclude minions")
+    req("MutationLeaderMinionPolicyAlpha674416 = new Alpha674416MutationLeaderMinionPolicyService" in wiring,
+        "leader/minion policy not wired")
+    req("MutationLeaderMinionPolicyAlpha674416.Describe()" in mutation_cmd,
+        "leader/minion policy missing from mutation status")
+    log("MUTANT LEADER + NORMAL HOSTILE MINION POLICY AUDIT: PASS")
 
     for token in [
         "MutantLootMultiplier = 3",
         "Ronvotri.TeamUp/MutantLootMultiplier",
         "scope=all-mutants",
-        "MonsterMutationService.IsMutant(__0)",
         "monsterDrop",
         "MonsterDropPostfix",
         "__originalMethod.Invoke(__instance, __args)",
         "extraDropPasses",
     ]:
         req(token in reward, f"global x3 Mutant reward missing {token}")
-    req("PelipperTownCompatibilityService.IsWildCombatActor(monster)\n            ||" not in reward,
-        "reward still gates loot to Pelipper")
-    req("PelipperMutantRewardAlpha674414 = new Alpha674414PelipperMutantRewardService" in wiring,
-        "global Mutant reward service not wired")
-    req("PelipperMutantRewardAlpha674414.Describe()" in mutation_cmd,
-        "mutation status missing global Mutant reward telemetry")
-    log("GLOBAL MUTANT LOOT-X3 AUDIT: PASS")
+    req("SpawnMinionWavePrefix" not in reward, "reward service must not suppress minions")
+    log("GLOBAL LEADER-ONLY MUTANT LOOT-X3 AUDIT: PASS")
 
     proc = subprocess.run(
         ["dotnet", "build", str(SRC / "TeamUp.csproj"), "-c", "Release", "--nologo", "-warnaserror"],
@@ -160,7 +183,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.15 MUTANT MINIONS + GLOBAL LOOT X3")
+    log("BUILD SUCCESS - ALPHA 6.7.44.16 MUTANT LEADER + NORMAL HOSTILE MINIONS")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
