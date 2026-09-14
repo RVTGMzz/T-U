@@ -49,13 +49,15 @@ public sealed partial class ModEntry
             ModManifest.UniqueID,
             () => Config.MutationVisualScaleMultiplier);
 
-        // 6.7.44.13 fallback remains available for generic/non-Pelipper Mutation minions.
+        // 6.7.44.15 preserves the intended 2-4 minions for every Mutant. If the original strict
+        // placement fails, the fallback searches a wider ring and anchors Pelipper waves on the
+        // visible Pokemon instead of the hidden combat proxy.
         MutationMinionSpawnAlpha674413 = new Alpha674413MutationMinionSpawnService(
             Monitor,
             ModManifest.UniqueID);
 
-        // 6.7.44.14 temporarily suppresses Pelipper's unreliable 2-4 minion wave and compensates
-        // the harder three-phase Mutant with x3 native loot passes when it is finally slain.
+        // 6.7.44.15 gives every Team Up Mutant x3 native loot passes when finally defeated.
+        // This is global Mutation behavior, not Pelipper-only, and it does not suppress minions.
         PelipperMutantRewardAlpha674414 = new Alpha674414PelipperMutantRewardService(
             Monitor,
             ModManifest.UniqueID);
@@ -84,12 +86,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.14 Pelipper runtime diagnostics: status.",
+            "6.7.44.15 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.14 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, Pelipper minions temporarily off + loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.15 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, restored 2-4 Mutant minions, global Mutant loot x3, active-teammate gift guard.",
             LogLevel.Info);
     }
 
