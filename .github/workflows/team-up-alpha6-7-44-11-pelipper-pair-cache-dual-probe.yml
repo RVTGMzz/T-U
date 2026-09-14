@@ -1,10 +1,11 @@
-name: Team Up v0.2.0-alpha.6.7.44.16 Mutant Leader + Normal Hostile Minions
+name: Team Up v0.2.0-alpha.6.7.44.17 Mutant Capture Lock
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-16-mutant-leader-minion-hostility
+      - v0.2-alpha6-7-44-17-mutant-capture-lock
     paths:
+      - 'src/TeamUp/Core/Alpha674417MutationCaptureLockService.cs'
       - 'src/TeamUp/Core/Alpha674416MutationLeaderMinionPolicyService.cs'
       - 'src/TeamUp/Core/Alpha674414PelipperMutantRewardService.cs'
       - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
@@ -36,14 +37,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.16
+      - name: Build, audit and package Alpha 6.7.44.17
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.16 artifact
+      - name: Upload Alpha 6.7.44.17 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-16-mutant-leader-normal-minions
+          name: team-up-alpha6-7-44-17-mutant-capture-lock
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.16_MUTANT_LEADER_NORMAL_MINIONS_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_16.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.17_MUTANT_CAPTURE_LOCK_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.17_MUTANT_CAPTURE_LOCK_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_17.txt
           if-no-files-found: error
