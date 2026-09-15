@@ -1,11 +1,12 @@
-# 6.7.44.22 Pelipper Mutation pack steering gate
-name: Team Up v0.2.0-alpha.6.7.44.22 Pelipper Pack Steering
+# 6.7.44.23 Pelipper Mutant leader smoothing gate
+name: Team Up v0.2.0-alpha.6.7.44.23 Mutant Leader Smoothing
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-22-pelipper-pack-steering
+      - v0.2-alpha6-7-44-23-mutant-leader-smoothing
     paths:
+      - 'src/TeamUp/Core/Alpha674423PelipperMutantLeaderSmoothingService.cs'
       - 'src/TeamUp/Core/Alpha674422PelipperMutationSteeringService.cs'
       - 'src/TeamUp/Core/Alpha674421PelipperMutationHostilityService.cs'
       - 'src/TeamUp/Core/Alpha674420MutationAggroService.cs'
@@ -42,14 +43,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.22
+      - name: Build, audit and package Alpha 6.7.44.23
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.22 artifact
+      - name: Upload Alpha 6.7.44.23 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-22-pelipper-pack-steering
+          name: team-up-alpha6-7-44-23-mutant-leader-smoothing
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.22_PELIPPER_PACK_STEERING_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.22_PELIPPER_PACK_STEERING_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_22.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_23.txt
           if-no-files-found: error
