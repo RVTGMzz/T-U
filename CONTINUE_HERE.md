@@ -1,10 +1,10 @@
 # Continue Team Up Here
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.22**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.23**
 
 Development branch:
 
-`v0.2-alpha6-7-44-22-pelipper-pack-steering`
+`v0.2-alpha6-7-44-23-mutant-leader-smoothing`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -13,17 +13,17 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_23_MUTANT_LEADER_SMOOTHING_HANDOFF.md`
 
 ## Verified build checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.22`
-- CI source SHA: `1921deff08d397cca6c867fcce35f5b184c68c1c`
-- CI run: `34991407821`
-- CI job: `104456710100`
-- Artifact ID: `10405981878`
-- Wrapper SHA256: `60b24fdb084fc687da548569e390546fed627330219ab2cc0b55a13f6f90529b`
-- Inner ZIP SHA256: `51c5422cb6c456e9946290c9c65090f4b4438aae9dfbd9fa76cb2d2a260e6432`
+- Version: `0.2.0-alpha.6.7.44.23`
+- CI source SHA: `2c8f132527cf06aa2d17a82875d7b6f4f46750b4`
+- CI run: `34996106050`
+- CI job: `104472621463`
+- Artifact ID: `10407443067`
+- Wrapper SHA256: `f27e09e980708d06a91c1e74bbd7a5094b92a2637aa405916fd5df8b8a283080`
+- Inner ZIP SHA256: `d95ed6f2a48447ec967032b38b08c2b30632547ecc3fc02351278981fec1efac`
 - Build: PASS, 0 warnings, 0 errors
 
 Docs-only commits after the CI source SHA are expected.
@@ -34,23 +34,25 @@ Docs-only commits after the CI source SHA are expected.
 
 6.7.44.20 proved generic Monster pursuit flags are insufficient for Pelipper wild Pokemon.
 
-6.7.44.21 proved a Team Up-owned movement layer can make Pelipper Mutation Pokemon chase Farmer, but the tile PathFindController approach is not acceptable: small followers can block the x2 leader, and passive/gentle species move in an unnatural grid-like way.
+6.7.44.21 proved Team Up-owned chase works but tile pathing was visually bad.
 
-## 6.7.44.22 fix
+6.7.44.22 live test proved the followers now attack Farmer. The remaining failure is specifically the Mutant leader: it only attacks at very close range and visibly jitters / moves unlike a normal Pokemon.
 
-`Alpha674422PelipperMutationSteeringService` supersedes the 6.7.44.21 runtime chase implementation.
+## 6.7.44.23 fix
 
-It keeps the real visible Pokemon, real hidden proxy and native capture identity, but uses low-level NPC movement plus pack steering:
+`Alpha674423PelipperMutantLeaderSmoothingService` supersedes the 6.7.44.22 runtime steering instance while preserving its successful follower pack behavior.
 
-- followers approach a small ring around Farmer;
-- pack separation reduces stacking;
-- minions strongly yield to the large Mutant leader;
-- leader gets right-of-way;
-- hidden proxy cannot physically block its source Pokemon;
-- blocked actors use short alternating sidesteps;
-- contact damage still uses the real proxy as damager.
+Leader-specific changes:
 
-6.7.44.21 remains in source history but is NOT instantiated at runtime in 6.7.44.22.
+- no follower separation is applied to the leader;
+- `source.Halt()` clears Pelipper passive movement/velocity before each leader chase step;
+- short direction hysteresis reduces rapid cardinal axis flips;
+- leader holds a stable melee band instead of trying to overlap Farmer;
+- leader melee reach is extended to visually match the x2 Mutant scale;
+- followers retain pack separation, leader clearance and blocked sidesteps;
+- real source/proxy pair and native capture identity remain intact.
+
+6.7.44.22 remains in source history but is NOT instantiated at runtime in 6.7.44.23.
 
 ## Immediate runtime test
 
@@ -60,13 +62,13 @@ Keep Pelipper Spawn Commands OFF and run:
 teamup_mutation force
 ```
 
-Prefer one small species and one large/gentle species when practical. Do not attack first. Verify:
+Do not attack first. Verify:
 
-- leader reaches Farmer instead of getting trapped behind followers;
-- followers spread rather than stack;
-- movement is less grid-like/erratic;
-- contact damages Farmer;
-- native same-species spawn and capture remain intact.
+- followers still attack normally;
+- Mutant leader approaches smoothly without the previous jitter;
+- leader stops near Farmer instead of trying to occupy the same pixels;
+- leader can damage Farmer from noticeably farther away;
+- native spawn/capture behavior remains intact.
 
 Then:
 
@@ -74,7 +76,9 @@ Then:
 teamup_mutation status
 ```
 
-Expected steering telemetry: `leaderMoves>0`, `minionMoves>0`, `separation>0` when the pack closes, `leaderClearance>0` when followers approach the leader, usually `proxySyncs>0`, and ideally `identityMisses=0`. `sidesteps` may stay 0 on open ground, but should rise after a genuine block.
+Expected new steering line: `Pelipper Mutation steering: leader-smooth-reach`.
+
+Inspect `leaderMoves`, `minionMoves`, `leaderReachHits`, `leaderRangeHolds`, `leaderHaltResets`, `leaderDirectionChanges`, `leaderDirectionLocks`, `proxySyncs`, `contactDamageCalls`, and ideally `identityMisses=0`.
 
 ## Mutation contract
 
@@ -84,7 +88,7 @@ Leader keeps HP x3, stat x2, visible Pelipper x2 cap, aura and global native loo
 
 ## Remaining gates before 6.7.45
 
-- 6.7.44.22 pack steering live-pass;
+- 6.7.44.23 leader smoothing/reach live-pass;
 - follower native capture recheck;
 - all three Pelipper HP phases;
 - final global x3 leader loot;
@@ -96,4 +100,4 @@ Do not start 6.7.45 unless the user explicitly waives remaining gates.
 
 ## Fresh-chat resume prompt
 
-`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-22-pelipper-pack-steering. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md. Current verified code SHA là 1921deff08d397cca6c867fcce35f5b184c68c1c, run 34991407821. 6.7.44.21 live-proved Team Up chase works nhưng PathFindController làm leader x2 dễ bị đệ chặn và Pokemon hiền di chuyển grid-like kỳ lạ. 6.7.44.22 bỏ runtime PathFindController, dùng low-level NPC movement + pack separation + leader right-of-way + blocked sidestep, vẫn giữ real source/proxy/native capture. Ưu tiên live-test locomotion nhỏ/lớn, contact damage + capture, sau đó 3 HP phases, x3 loot, vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi chủ động waive.`
+`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-23-mutant-leader-smoothing. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_23_MUTANT_LEADER_SMOOTHING_HANDOFF.md. Current verified code SHA là 2c8f132527cf06aa2d17a82875d7b6f4f46750b4, run 34996106050. 6.7.44.22 live-proved follower Pelipper Mutation đã tấn công được, nhưng Mutant leader chỉ đánh khi rất gần và movement bị giật. 6.7.44.23 giữ follower pack steering, bỏ separation trên leader, Halt() movement state trước chase, thêm direction hysteresis, stable melee band và extended x2 melee reach. Ưu tiên live-test leader smooth/reach + capture, sau đó 3 HP phases, x3 loot, vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi chủ động waive.`
