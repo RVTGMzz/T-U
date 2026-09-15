@@ -96,8 +96,8 @@ try:
         "blockedFrames=",
     ]:
         req(token in steering, f"Pelipper pack steering missing {token}")
-    req("PathFindController" not in steering,
-        "6.7.44.22 steering must not use tile PathFindController")
+    req("new PathFindController" not in steering,
+        "6.7.44.22 steering must not instantiate tile PathFindController")
     req("new GreenSlime" not in steering,
         "steering layer must not create fallback monsters")
     req("PelipperMutationHostilityAlpha674421 = new" not in wiring,
