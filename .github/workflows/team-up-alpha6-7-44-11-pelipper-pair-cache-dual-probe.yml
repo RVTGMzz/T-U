@@ -1,11 +1,12 @@
-# 6.7.44.21 Pelipper Mutation hostility gate
-name: Team Up v0.2.0-alpha.6.7.44.21 Pelipper Mutation Hostility
+# 6.7.44.22 Pelipper Mutation pack steering gate
+name: Team Up v0.2.0-alpha.6.7.44.22 Pelipper Pack Steering
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-21-pelipper-mutation-hostility
+      - v0.2-alpha6-7-44-22-pelipper-pack-steering
     paths:
+      - 'src/TeamUp/Core/Alpha674422PelipperMutationSteeringService.cs'
       - 'src/TeamUp/Core/Alpha674421PelipperMutationHostilityService.cs'
       - 'src/TeamUp/Core/Alpha674420MutationAggroService.cs'
       - 'src/TeamUp/Core/Alpha674419PelipperSpawnCommandGateService.cs'
@@ -41,14 +42,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.21
+      - name: Build, audit and package Alpha 6.7.44.22
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.21 artifact
+      - name: Upload Alpha 6.7.44.22 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-21-pelipper-mutation-hostility
+          name: team-up-alpha6-7-44-22-pelipper-pack-steering
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_21.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.22_PELIPPER_PACK_STEERING_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.22_PELIPPER_PACK_STEERING_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_22.txt
           if-no-files-found: error
