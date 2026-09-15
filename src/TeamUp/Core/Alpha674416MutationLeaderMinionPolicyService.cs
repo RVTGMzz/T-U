@@ -8,15 +8,15 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Alpha 6.7.44.16 design lock:
+/// Mutation encounter policy:
 /// - the transformed monster is the single Mutant leader;
 /// - its 2-4 followers are ordinary hostile monsters, never Mutants;
 /// - only the leader is eligible for the global x3 Mutant reward;
-/// - minions remain valid Team Up combat targets and retain their normal AI/stats.
+/// - minions remain valid Team Up combat targets and retain their ordinary/native behavior.
 ///
-/// Alpha 6.7.44.17 performance lock: Pelipper leaders use Team Up lightweight temporary minions
-/// instead of asking Pelipper Town to create complete source/proxy wild encounters. Non-Pelipper
-/// leaders still prefer same-runtime-type minions whenever safe.
+/// Alpha 6.7.44.18 source-native lock: followers must correspond to the creature that existed before
+/// Mutation. Pelipper followers are genuine native wild encounters so Pelipper keeps capture/runtime
+/// authority. Vanilla/custom followers require an exact safe runtime type. No unrelated Slime fallback.
 /// </summary>
 internal sealed class Alpha674416MutationLeaderMinionPolicyService
 {
@@ -84,17 +84,18 @@ internal sealed class Alpha674416MutationLeaderMinionPolicyService
         }
 
         _monitor.Log(
-            "Team Up 6.7.44.17 Mutation leader/minion policy enabled: one Mutant leader + 2-4 ordinary hostile minions; only leader gets x3 loot; Pelipper minions use lightweight Team Up actors.",
+            "Team Up 6.7.44.18 Mutation leader/minion policy enabled: one Mutant leader + 2-4 source-equivalent ordinary hostile minions; only leader gets x3 loot; no unrelated fallback creature.",
             LogLevel.Info);
     }
 
     public string Describe()
-        => $"Mutation leader/minion policy: leader=Mutant | minions=normal-hostile | leaderLoot=x3 | minionLootBonus=none | "
+        => $"Mutation leader/minion policy: leader=Mutant | minions=source-equivalent-normal-hostile | leaderLoot=x3 | minionLootBonus=none | "
             + $"leadersMarked={_leadersMarked} | minionsNormalized={_minionsNormalized} | hostileReady={_hostileReady} | "
             + $"mutationGuards={_mutationGuards} | lootMarkersStripped={_lootMarkersStripped} | "
-            + $"sameType={_sameTypeSeen} | fallback={_fallbackSeen} | "
-            + $"pelipperLightweight={MonsterMutationMinionFactory.PelipperLightweightSpawned} | "
-            + $"nativePelipperSpawnsAvoided={MonsterMutationMinionFactory.PelipperNativeSpawnAvoided} | last={_last}";
+            + $"sameRuntimeObserved={_sameTypeSeen} | nonSameRuntimeObserved={_fallbackSeen} | "
+            + $"pelipperNative={Alpha674418NativeMutationMinionService.PelipperNativeSpawned} | "
+            + $"sameRuntimeNative={Alpha674418NativeMutationMinionService.SameRuntimeSpawned} | "
+            + $"sourceFailures={Alpha674418NativeMutationMinionService.SourceEquivalentFailures} | last={_last}";
 
     public void ResetTelemetry()
     {
@@ -161,7 +162,7 @@ internal sealed class Alpha674416MutationLeaderMinionPolicyService
             service.NormalizeMinion(minion);
 
         if (spawned.Count == 0)
-            service._last = $"wave-complete location={location.NameOrUniqueName} newMinions=0";
+            service._last = $"wave-complete location={location.NameOrUniqueName} newImmediateMinions=0; native followers may still be pending";
     }
 
     private void NormalizeMinion(Monster minion)
@@ -195,12 +196,14 @@ internal sealed class Alpha674416MutationLeaderMinionPolicyService
         else
             _fallbackSeen++;
 
-        bool lightweightPelipper = minion.modData.ContainsKey(MonsterMutationMinionFactory.PelipperLightweightMinionMarker);
-        string species = minion.modData.TryGetValue(MonsterMutationMinionFactory.PelipperLeaderSpeciesMarker, out string? rawSpecies)
+        string provider = minion.modData.TryGetValue(Alpha674418NativeMutationMinionService.NativeProviderMarker, out string? rawProvider)
+            ? rawProvider ?? string.Empty
+            : string.Empty;
+        string species = minion.modData.TryGetValue(Alpha674418NativeMutationMinionService.NativeSpeciesMarker, out string? rawSpecies)
             ? rawSpecies ?? string.Empty
             : string.Empty;
-        _last = $"minion type={minion.GetType().Name} ordinary=true hostileReady={ready} sameType={sameType} "
-            + $"lightweightPelipper={lightweightPelipper} species={species} lootBonus=none";
+        _last = $"minion type={minion.GetType().Name} ordinary=true hostileReady={ready} sameRuntime={sameType} "
+            + $"provider={provider} species={species} lootBonus=none";
     }
 
     private static object? TryReadMember(object target, string name)
