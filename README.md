@@ -6,59 +6,142 @@
 
 ## Current development checkpoint
 
-Current verified source line: **`v0.2.0-alpha.6.6.9` - Companion Flicker + Thin Health Bars Hotfix**.
+Current version: **`0.2.0-alpha.6.7.44.17`**
 
-Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and no materialized source diff. Alpha 6.6.7 water/bridge performance is user-confirmed; Alpha 6.6.8 land-safe behavior and Alpha 6.6.9 companion flicker/health UI require final live validation.**
+Current branch:
+
+`v0.2-alpha6-7-44-17-lightweight-minions`
+
+Current state:
+
+- CI-verified build: PASS, 0 warnings / 0 errors;
+- `main`: not merged;
+- Alpha 6.7.45: not started;
+- current work is still in live-runtime validation before the next story build.
 
 Resume development from:
 
 - `CONTINUE_HERE.md`
-- `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_9_2026-09-05.md`
+- `LATEST_TEAM_UP_HANDOFF.md`
+- `docs/LATEST_HANDOFF.md`
+- `docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md`
+- `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md`
 
-## Alpha 6.6.9
+## Current verified artifact
 
-### Pelipper source render/movement authority
+- CI source SHA: `c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e`
+- CI run: `34904471245`
+- CI job: `104177799252`
+- Artifact ID: `10371887676`
+- Artifact name: `team-up-alpha6-7-44-17-lightweight-minions`
+- Artifact wrapper SHA256: `ca2c4e2426c2c195c1f201030164d064244f6b639e87a4c349b05e766cbfa8f9`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.zip`
+- ZIP SHA256: `dc19dd525401583892f2c056b4448dcb1aeff01531b410f073ec73469f4c680d`
 
-Live testing showed flicker on both Farmer-owned Pokemon and NPC-linked Pokemon. The common cause was Team Up and Pelipper Town potentially competing over source-owned actor visibility/movement state.
+Later docs commits can move branch HEAD beyond the artifact source SHA. The ZIP above was built from `c1df68...`.
 
-Alpha 6.6.9 changes the contract:
+## Current Mutation system
 
-- Team Up no longer continuously sets Pelipper Pokemon `IsInvisible`.
-- Team Up no longer calls `Halt()` or clears Pelipper `controller` / `temporaryController` during deployment reconciliation.
-- Pelipper Town remains render and movement authority for its source-owned Pokemon.
-- Team Up keeps quota/deployment bookkeeping through soft markers only:
-  - `Ronvotri.TeamUp/PelipperDeployment = Active|Standby`
-  - `Ronvotri.TeamUp/PelipperDeploymentOwner = <owner>`
-- Legacy visibility suppression written by pre-6.6.9 Team Up builds is restored once on load and is never re-applied by the new runtime.
+A Mutation encounter is currently designed as:
 
-If Pelipper Town does not yet consume the soft `Standby` marker, a standby actor may remain visually present. The correct follow-up is a small Pelipper-side handshake, not restoring Team Up visibility hacks.
+- **1 Mutant leader**;
+- **2-4 ordinary hostile minions**.
 
-### NPC health presentation
+Mutant leader:
 
-Team Up already had real persistent NPC health. Alpha 6.6.9 exposes it in-game without adding a second fake HP system.
+- HP x3;
+- stat x2;
+- Mutation aura;
+- Pelipper visible Pokemon scale capped at x2;
+- x3 native loot on final defeat.
 
-- compact party HUD on the left for up to 5 active NPCs;
-- HUD health bar height: **5 px**;
-- contextual overhead health bar height: **4 px**;
-- overhead bars appear when the NPC is wounded, downed, or near a valid combat target;
-- full-health NPCs outside combat do not carry a permanent overhead bar;
-- colors communicate healthy / caution / danger / downed state;
-- no verbose `100/100` text over NPC heads;
-- host broadcasts a party snapshot only when health/downed/state signature changes, so farmhands can receive health changes without per-frame network spam.
+Minions:
 
-## Performance + land safety preserved
+- ordinary hostile units;
+- no Mutation bonuses;
+- no Mutation aura;
+- no x3 leader loot;
+- mutation-excluded to prevent recursive Mutation.
 
-Alpha 6.6.7 and 6.6.8 remain locked:
+Global x3 loot is intended for every Mutant leader supported by the native drop hook, not only Pelipper Town monsters.
 
-- no `isTileLocationTotallyClearAndPlaceable` in FollowService or CombatService;
-- combat unreachable-path retry cooldown = 24 ticks;
-- combat movement pulse = 3 ticks;
-- Pelipper decorative/source actors excluded from hostile Team Up targeting by default;
-- humanoid Team Up NPCs reject bare-water destinations;
-- real bridge/walkway tiles remain allowed;
-- stranded humanoid NPCs can be rescued to safe land/bridge positions.
+### Pelipper lightweight minions
 
-## Party Tactics
+For a Pelipper Mutant leader, Team Up does **not** create 2-4 full native Pelipper wild encounters for temporary followers.
+
+6.7.44.17 uses a performance-first one-actor follower path instead, avoiding extra native `PokemonNpc`, hidden combat proxy, `WildEncounterId`, Pelipper HP modData and source/proxy pairing work for each follower.
+
+Captureability of these temporary followers is not a current requirement. Natural Pelipper wild Pokemon keep Pelipper's normal capture behavior.
+
+If the lightweight follower visual needs improvement later, the preferred direction is a visual skin/override while preserving the lightweight one-actor architecture.
+
+## Pelipper compatibility contract
+
+Pelipper remains authoritative for its real Pokemon actors.
+
+Visible source actor:
+
+`PelipperTown.PokemonNpc`
+
+This owns species identity, render/sprite, display name and Shiny evidence.
+
+Hidden combat proxy:
+
+`StardewValley.Monsters.Monster`
+
+The proxy can expose a technical `Health/MaxHealth = 1,000,000` sentinel. That is **not** Pokemon HP.
+
+Real Pelipper Pokemon combat HP is read from:
+
+- `Griff.PelipperTown/WildCurrentHealth`
+- `Griff.PelipperTown/WildMaxHealth`
+
+Team Up preserves Pelipper controller/render/ownership authority and uses cached source/proxy pairing for compatibility.
+
+## Current live-validation priorities
+
+The current artifact still needs live confirmation for:
+
+1. 2-4 lightweight Pelipper Mutation followers spawning successfully;
+2. followers attacking the player/party normally;
+3. no noticeable spawn hitch/lag;
+4. Pelipper Mutant HP x3 across all three phases;
+5. final global x3 leader reward;
+6. one non-Pelipper Mutant regression test;
+7. Lower Workings runtime gate.
+
+Only after these runtime gates should Alpha 6.7.45 start, unless the user explicitly waives them.
+
+## Lower Workings
+
+Current story location:
+
+`Ronvotri.TeamUp_LowerWorkings`
+
+It uses `assets/LowerWorkings.tmx`, is registered through `Data/Locations`, has no static Warp and returns the party through the persisted breach route.
+
+Planned next story build after runtime validation:
+
+**Alpha 6.7.45 - Containment Chamber Escalation Encounter**
+
+No final boss yet. George remains ordinary/anonymous until the planned later reveal.
+
+## Party / combat direction
+
+Team Up is building toward a party-RPG layer for Stardew Valley with:
+
+- recruitable NPC party members;
+- roles, tactics and combat behavior;
+- companion/creature compatibility;
+- shared Party Vault storage;
+- NPC health/downed state;
+- story progression and combat encounters;
+- compatibility with major NPC/content expansions;
+- host-authoritative multiplayer behavior.
+
+Current story formation hard cap is **5 people including Farmers**. Multiplayer formation adapts to the number of connected Farmers.
+
+## Party tactics
 
 The five strategy values remain:
 
@@ -70,45 +153,34 @@ The five strategy values remain:
 
 Tactics UI remains in Codex and multiplayer strategy remains host-authoritative.
 
-## Current party rules
+## Controller and UI locks
 
-### People capacity: 6 total
-
-The six-person cap includes online Farmers and active Team Up NPCs together.
-
-```text
-Single-player: 1 Farmer + up to 5 active NPCs = 6/6
-Two-player co-op: 2 Farmers + up to 4 active NPCs = 6/6
-Four-player co-op: 4 Farmers + up to 2 active NPCs = 6/6
-```
-
-### Combat companion capacity: 2 shared
-
-The farm has one shared pool of two deployed external Pokemon/summon/creature companions across all Farmers and NPCs.
-
-- `Active`, `Waiting`, and `ReturningHome` reserve a slot.
-- `Standby` and `Inactive` do not.
-- Farmer-owned and NPC-linked creatures share the pool.
-- Vanilla dog/cat pets are free.
-- ChaCha is free and never enters Main Party.
-- Pelipper Town companions use this same shared quota when detected.
-
-## Switch controller
-
-Semantic controller input remains locked:
+Semantic controller behavior remains:
 
 - Stardew/SMAPI Action Button activates/equips;
 - Stardew/SMAPI Use Tool Button unequips;
 - controller activation debounce: 180 ms;
 - virtual mouse echo suppression: 260 ms;
 - inventory mouse double-click equip: 450 ms;
-- transactional equipment validation retained.
+- Codex D-pad / left analog moves one profile per input;
+- detailed Character Profile scale remains `1.52f` unless a later UI pass explicitly changes it.
 
-## Codex / Profile UI
+Active Team Up NPCs in `Following` or `Waiting` cannot receive held-item vanilla gifts. Inactive roster members keep normal gifting behavior.
 
-- D-pad and left analog move exactly one Codex profile per input.
-- Character Profile detailed content scale remains `1.52f` with scrolling.
-- ASCII-safe punctuation avoids hollow-star fallback glyphs.
+## Performance / movement locks
+
+Carry-forward safeguards include:
+
+- combat unreachable-path retry cooldown = 24 ticks;
+- combat movement pulse = 3 ticks;
+- no `isTileLocationTotallyClearAndPlaceable` in Follow, Combat or Surge hot paths;
+- humanoid followers reject bare-water destinations while real bridge/walkway tiles remain allowed;
+- Pelipper encounter discovery is throttled and source/proxy pairing is cached;
+- high Pelipper pair-cache `cacheHits` represent reuse, not repeated full scans.
+
+## Shiny lock
+
+Confirmed natural Shiny Pokemon remain Mutation-excluded. Current accepted Shiny behavior should not be rewritten without a concrete regression.
 
 ## Compatibility
 
@@ -117,77 +189,33 @@ Semantic controller input remains locked:
 - Cardcha source: `Ronvotri.Cardcha`
 - canonical NPC: `Ronvotri.Cardcha_MiMi`
 - signature: `BROOMTAIL SIGIL`
-- requesting Farmer live friendship gate in multiplayer
-- Team Up does not read Cardcha private SaveData/services.
+- Team Up does not depend on Cardcha private save/services.
 
 ### Sudoku
 
 - canonical NPC: `ronvotri.HeyYoureCursed_Sudoku`
 - signature: `NINEFOLD SEAL`
-- movement marker while Team Up controls Sudoku:
+- Team Up party-control markers remain:
   - `Ronvotri.TeamUp/PartyControlled = true`
   - `Ronvotri.TeamUp/PartyControllerOwner = <Farmer ID>`
 
-## Regression locks
+### Pelipper Town
 
-- hard leash 12 tiles;
-- target lock 45 ticks;
-- facing hold 10 ticks;
-- anti-spin;
-- Hold Position no chase outside attack range;
-- Aggressive never disables hard leash;
-- Boss Focus prioritizes highest MaxHealth only among valid candidates;
-- Surge Cardcha arena exclusion;
-- Surge safe placement uses `isTileOnMap + isTilePassable + IsTileBlockedBy`;
-- never restore `isTileLocationTotallyClearAndPlaceable` to Surge, Follow or Combat;
-- no arbitrary custom-monster cloning;
-- 51 SVE/RSV profiles/icons/balance;
-- Party Vault drag/drop;
-- Origin story retained.
+Pelipper remains source/render/controller authority for native Pokemon actors. Team Up compatibility code should remain source-respecting and avoid taking ownership of Pelipper's native lifecycle.
 
 ## Build
 
-One-click local build:
+Current CI build/audit/package script on the 6.7.44.17 branch:
 
-`BUILD_V0_2_ALPHA6.bat`
+`tools/build_alpha6744_11.py`
 
-Direct builder:
+The filename is historical; the branch version is retargeted to the current 6.7.44.17 gate.
 
-`BuildV0_2Alpha669.ps1`
+Current CI workflow:
 
-Smoke checklist:
+`.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml`
 
-`SMOKE_TEST_V0_2_ALPHA6_6_9_COMPANION_FLICKER_HEALTH_BARS_VI.txt`
-
-Authoritative CI run:
-
-`33974465552`
-
-Authoritative input commit:
-
-`ad214367f06fee1612818dc7d9e340f577a0cd90`
-
-First materialized 6.6.9 source commit:
-
-`b1ce92b`
-
-Package:
-
-`TeamUp_v0.2.0-alpha.6.6.9_COMPANION_FLICKER_HEALTH_BARS_HOTFIX_TEST.zip`
-
-Package SHA256:
-
-`efde24f02f12a7fbc23378cba4af2d7cdb8da2a6675ebd7a45cbaebd8e1e2949`
-
-Artifact ID:
-
-`9971897681`
-
-Artifact wrapper digest:
-
-`sha256:729faece12dffef01beb3d22e2e1855927c77662ba461a6fd54da6c061a76741`
-
-Authoritative builder result: `No materialized source diff.`
+The workflow filename is also historical; its current branch content targets 6.7.44.17.
 
 ## Independent development / clean-room rule
 
