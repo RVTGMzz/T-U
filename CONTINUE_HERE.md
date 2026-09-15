@@ -141,10 +141,4 @@ Planned 6.7.45 is **Containment Chamber Escalation Encounter**. George remains o
 
 ## Fresh-chat resume prompt
 
-`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-17-lightweight-minions. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md, docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md và handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md. Current verified artifact source SHA là c1df68ef8f6d0e7bd73d9790b1de3b8cfba1dc.`
-
-Correction: use the exact verified SHA below, not the abbreviated/mistyped value above:
-
-`c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e`
-
-Priority is live-testing 6.7.44.17 lightweight Pelipper Mutation minions, 3 HP phases and global x3 leader loot. Do not begin 6.7.45 until current runtime gates and Lower Workings pass unless I explicitly waive them.
+`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-17-lightweight-minions. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md, docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md và handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md. Current verified artifact source SHA là c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e, run 34904471245. Ưu tiên live-test 6.7.44.17 lightweight Pelipper Mutation minions, 3 HP phases và global x3 leader loot. Không bắt đầu 6.7.45 cho tới khi các runtime gate hiện tại và Lower Workings pass, trừ khi tôi chủ động waive.`
