@@ -1,115 +1,150 @@
 # Continue Team Up Here
 
-Current verified checkpoint: **Team Up v0.2.0-alpha.6.6.11**
-
-Status: **compile/package/direct-builder verified with 0 warnings, 0 errors and `No materialized source diff.`. Live validation pending for the no-companion-profile UX and the Pelipper flicker fix inherited from 6.6.10.**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.17**
 
 Development branch:
 
-`v0.2-alpha6-6-11-no-companion-profiles`
+`v0.2-alpha6-7-44-17-lightweight-minions`
 
-Final handoff branch:
+`main` is NOT merged. Alpha 6.7.45 has NOT started.
 
-`v0.2-alpha6-6-11-no-companion-profiles-handoff`
+## Read first in a new chat
 
-Read first:
+1. `CONTINUE_HERE.md`
+2. `LATEST_TEAM_UP_HANDOFF.md`
+3. `docs/LATEST_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md`
+5. `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md`
 
-`handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_6_11_2026-09-05.md`
+The dated handoff contains the fullest restart context, live evidence, remaining gates, Lower Workings locks and the exact resume prompt.
 
-## Alpha 6.6.11: no profiles for Pokemon / summons
+## Verified build checkpoint
 
-Live testing showed Team Up drew the Profile hint for talkable Pokemon/summon actors and could open a blank `Special / Companion` placeholder such as `PelipperTown.Villager.Maru`.
+- Version: `0.2.0-alpha.6.7.44.17`
+- CI-verified source SHA: `c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e`
+- CI run: `34904471245`
+- CI job: `104177799252`
+- Artifact ID: `10371887676`
+- Artifact: `team-up-alpha6-7-44-17-lightweight-minions`
+- Artifact wrapper SHA256: `ca2c4e2426c2c195c1f201030164d064244f6b639e87a4c349b05e766cbfa8f9`
+- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.zip`
+- Inner ZIP SHA256: `dc19dd525401583892f2c056b4448dcb1aeff01531b410f073ec73469f4c680d`
+- Build: PASS, 0 warnings, 0 errors
 
-New direct-profile eligibility rule in `ModEntry.cs`:
+The branch HEAD can be newer than the CI source SHA because handoff documents were synchronized after the build. The ZIP above was produced from `c1df68...`.
 
-- recruited people remain valid profile owners;
-- explicit custom recruits remain valid profile owners;
-- actors registered in `Party.CompanionUnits` are not profile owners;
-- `FarmerCompanion`, `FarmerSummon`, `SpecialCompanion`, and `LinkedCompanion` actor kinds are not profile owners;
-- unprofiled `PelipperTown.*` runtime proxy actors are not profile owners;
-- unknown non-villager actors without a catalog profile are not profile owners;
-- catalogued real NPC profiles continue to work.
+## Current Mutation design
 
-The guard is enforced at three levels:
+One Mutation encounter is **1 Mutant leader + 2-4 ordinary hostile minions**.
 
-1. dialogue Profile hint is not drawn for companion/summon actors;
-2. ProfileKey/controller input does not open their profile;
-3. `OpenProfileFromDialogue()` has a final guard, preventing the blank placeholder from opening through another direct path.
+Leader:
 
-## Alpha 6.6.10 Pelipper movement-authority lock preserved
+- HP x3;
+- stat x2;
+- Pelipper visible scale capped at x2;
+- Mutation aura;
+- x3 native loot on final defeat;
+- x3 loot applies to all Mutant leaders, including vanilla/custom/Pelipper.
 
-Pelipper source-controlled Pokemon are skipped in `FollowService.UpdateCompanionUnits` before actor resolution. Team Up therefore does not `PrepareForParty`, Hold, Follow, Warp, Halt, or replace movement controllers for Pelipper Pokemon. Pelipper remains sole movement/render authority. Soft Active/Standby deployment marker writes remain idempotent.
+Minions:
 
-## Performance / land safety / health locks
+- ordinary hostile;
+- no Mutation bonus;
+- no aura;
+- no x3 loot;
+- `MutationExcluded` so no recursive Mutation;
+- valid Team Up combat targets.
 
-- Alpha 6.6.7 severe river/bridge lag fix preserved;
-- Combat path retry cooldown = 24 ticks;
-- Combat movement pulse = 3 ticks;
-- never restore `isTileLocationTotallyClearAndPlaceable` to Follow, Combat, or Surge;
-- Alpha 6.6.8 humanoid bare-water rejection and true bridge allowance preserved;
-- Alpha 6.6.9 thin HUD + overhead NPC health bars preserved;
-- host health/downed/state snapshot sync preserved.
+## Pelipper follower performance lock
 
-## Party / compatibility locks
+For a Pelipper Mutant leader, **do not spawn 2-4 full native Pelipper wild encounters**.
 
-- 6 total people across online Farmers + active Team Up NPCs;
-- shared external combat companion cap = 2 across Farmer-owned + NPC-linked units;
-- vanilla pet free;
-- ChaCha free and never Main Party;
-- strategies: Balanced, Defensive, Aggressive, HoldPosition, BossFocus;
-- MiMi: `Ronvotri.Cardcha_MiMi`, `BROOMTAIL SIGIL`, no Cardcha private save/service coupling;
-- Sudoku: `ronvotri.HeyYoureCursed_Sudoku`, `NINEFOLD SEAL`;
-- Sudoku movement markers remain `Ronvotri.TeamUp/PartyControlled` and `Ronvotri.TeamUp/PartyControllerOwner`;
-- Switch Action Button equip / Use Tool unequip;
-- controller debounce 180 ms;
-- virtual mouse echo suppression 260 ms;
-- inventory mouse double-click 450 ms;
-- Codex D-pad/left analog exactly one profile per input;
-- detailed profile scale = 1.52f;
-- ASCII-safe punctuation retained.
+6.7.44.17 chooses the lightweight Team Up path because performance is more important than whether temporary followers are catchable. Each Pelipper follower is currently one lightweight temporary combat actor instead of a full `PokemonNpc + hidden proxy + WildEncounterId + HP modData + pairing/cache` bundle.
 
-## Authoritative Alpha 6.6.11 checkpoint
+Status telemetry:
 
-First materialized source commit: `8dbcf93`
+- `pelipperLightweight=...`
+- `nativePelipperSpawnsAvoided=...`
 
-Authoritative input commit: `3a0db6d2c11af3576246fca5e5502171f1e9569a`
+Captureability of Mutation followers is NOT a current gate. Natural Pelipper wild Pokemon keep their native capture behavior.
 
-Authoritative CI run: `33979472213`
+The temporary branch `v0.2-alpha6-7-44-17-mutant-capture-lock` is superseded. Do not use it as the continuation branch.
 
-Result:
+## Live-proven truth
 
-- `BuildV0_2Alpha6611.ps1` success;
-- 0 warnings;
-- 0 errors;
-- companion/summon direct profile block PASS;
-- dialogue Profile hint/input/final-open guards PASS;
-- Alpha 6.6.10 Pelipper follow-authority regression PASS;
-- Alpha 6.6.7 performance regression PASS;
-- Alpha 6.6.8 land-safe regression PASS;
-- Alpha 6.6.9 health UI regression PASS;
-- package verification PASS;
-- `No materialized source diff.`;
-- artifact upload PASS.
+Pelipper Mutation core is live-proven. The real Pokemon HP path is also live-proven:
 
-Package:
+- `Griff.PelipperTown/WildCurrentHealth`
+- `Griff.PelipperTown/WildMaxHealth`
 
-`TeamUp_v0.2.0-alpha.6.6.11_NO_COMPANION_PROFILES_HOTFIX_TEST.zip`
+Do not use the hidden Green Slime proxy's technical `Health/MaxHealth = 1,000,000` as Pokemon HP.
 
-Package SHA256:
+A 6.7.44.12 Seadra test proved forced Mutation, source HP binding, pair-cache reuse and natural Mutation rolls. A 6.7.44.13 Fidough test proved visible source scaling. x3 was visually too large, so the current visible Pelipper scale is x2.
 
-`0cd4a7c9712b9367f4e5d03ab2298fadf56d2fa11cb0a5c7f931c6209a8ccb62`
+## Not live-proven yet
 
-Artifact ID: `9973321194`
+6.7.44.17 itself still needs runtime confirmation for:
 
-Artifact wrapper digest:
+- 2-4 lightweight Pelipper followers actually spawning;
+- followers attacking normally;
+- no noticeable spawn hitch/lag;
+- `pelipperLightweight > 0` and `nativePelipperSpawnsAvoided > 0`;
+- full 3-bar Pelipper HP behavior;
+- global x3 leader loot on final death;
+- one non-Pelipper Mutation regression test.
 
-`sha256:3ebd0f2d7adb28d7a622ae0da93b68523d53af2c1a811b4ce175810a26356272`
+Lower Workings also still has a runtime gate before 6.7.45 unless explicitly waived by the user.
 
-## Highest-priority live validation
+## Next test sequence
 
-1. Talk to Farmer Pokemon such as Rowlet: no Team Up `Ho so` hint; pressing Profile must not open a profile.
-2. Talk to NPC-linked Pokemon: same behavior.
-3. `PelipperTown.Villager.*` / `PelipperTown.Player.*` runtime proxies must not open `Special / Companion` placeholders.
-4. Real NPCs, MiMi, Sudoku, and catalogued Codex entries must still open profiles normally.
-5. Confirm Pokemon remain stable/no flicker under the 6.6.10 authority fix.
-6. Recheck river/bridge FPS, humanoid land safety, NPC health bars, Switch equipment, and Codex one-profile navigation.
+Use a normal non-Shiny Pelipper wild Pokemon:
+
+```text
+teamup_mutation force
+```
+
+Wait roughly one second, then:
+
+```text
+teamup_mutation status
+```
+
+Check leader x2 size, 2-4 followers, hostility, smooth performance and the lightweight counters. If followers remain `0/N`, inspect safe spawn placement before changing the lightweight factory architecture.
+
+Then deplete the Mutant through all three HP bars. Expected phase telemetry is `phaseGuards=1`, then `phaseGuards=2`, then a true final death with `finalLethalPasses` increasing.
+
+On final death verify:
+
+`Mutant reward: lootX3 | minions=2-4 | scope=all-mutants | ...`
+
+A successful reward should have `dropCalls>=1`, two additional `extraDropPasses` for that reward, and `errors=0`.
+
+After that, force/test one non-Pelipper Mutant.
+
+## Frozen safety locks
+
+- Confirmed Shiny remains Mutation-excluded.
+- Current Shiny behavior stays frozen unless a concrete regression appears.
+- Active Following/Waiting Team Up NPCs cannot receive held-item vanilla gifts.
+- Preserve 20Hz Pelipper encounter discovery and species-pair cache.
+- High `cacheHits` means pair reuse, not repeated full scans.
+- Pelipper retains controller/render/ownership authority for real Pelipper actors.
+- Performance is still a subjective live gate even when telemetry is healthy.
+
+## Lower Workings and story gate
+
+Lower Workings remains `Ronvotri.TeamUp_LowerWorkings`, using `assets/LowerWorkings.tmx`, 32x24, no static Warp, exact persisted breach return and stages 0-6.
+
+Do not start Alpha 6.7.45 until current Mutation runtime gates and Lower Workings are live-passed unless the user explicitly waives them.
+
+Planned 6.7.45 is **Containment Chamber Escalation Encounter**. George remains ordinary/anonymous until 6.7.46, no exact `SECTOR 17`, and no final boss.
+
+## Fresh-chat resume prompt
+
+`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-17-lightweight-minions. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md, docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md và handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md. Current verified artifact source SHA là c1df68ef8f6d0e7bd73d9790b1de3b8cfba1dc.`
+
+Correction: use the exact verified SHA below, not the abbreviated/mistyped value above:
+
+`c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e`
+
+Priority is live-testing 6.7.44.17 lightweight Pelipper Mutation minions, 3 HP phases and global x3 leader loot. Do not begin 6.7.45 until current runtime gates and Lower Workings pass unless I explicitly waive them.
