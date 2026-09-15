@@ -44,11 +44,11 @@ internal sealed class Alpha674422PelipperMutationSteeringService
 
     private sealed class Pair
     {
-        public required Monster Proxy { get; init; }
-        public required NPC Source { get; init; }
-        public required PelipperWildEncounterIdentity Identity { get; init; }
-        public required bool Leader { get; init; }
-        public required bool Minion { get; init; }
+        public Monster Proxy { get; init; } = null!;
+        public NPC Source { get; init; } = null!;
+        public PelipperWildEncounterIdentity Identity { get; init; } = null!;
+        public bool Leader { get; init; }
+        public bool Minion { get; init; }
     }
 
     private readonly IMonitor _monitor;
