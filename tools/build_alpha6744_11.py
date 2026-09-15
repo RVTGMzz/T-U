@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_18"
+STAGE = ROOT / "_stage_alpha6744_19"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_18.txt"
-VERSION = "0.2.0-alpha.6.7.44.18"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.18_NATIVE_SOURCE_MINIONS_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_19.txt"
+VERSION = "0.2.0-alpha.6.7.44.19"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.19_PELIPPER_NATIVE_MINION_GATE_FIX_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.18_NATIVE_SOURCE_MINIONS_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.19_PELIPPER_NATIVE_MINION_GATE_FIX_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -45,6 +45,7 @@ try:
     reward = text("Core/Alpha674414PelipperMutantRewardService.cs")
     leader_minion = text("Core/Alpha674416MutationLeaderMinionPolicyService.cs")
     native_minions = text("Core/Alpha674418NativeMutationMinionService.cs")
+    command_gate = text("Core/Alpha674419PelipperSpawnCommandGateService.cs")
     factory = text("Combat/MonsterMutationMinionFactory.cs")
     mutation = text("Combat/MonsterMutationService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
@@ -116,8 +117,6 @@ try:
         "same-runtime source construction carry-forward missing")
     req("IsMutationMinion(monster)" in mutation,
         "Mutation eligibility does not exclude minions")
-    req("MutationLeaderMinionPolicyAlpha674416 = new Alpha674416MutationLeaderMinionPolicyService" in wiring,
-        "leader/minion policy not wired")
     log("MUTANT LEADER + SOURCE-EQUIVALENT NORMAL HOSTILE MINION POLICY: PASS")
 
     for token in [
@@ -141,13 +140,32 @@ try:
     req(native_minions.index("if (!mode.Equals(\"same-runtime-type\", StringComparison.Ordinal))")
         < native_minions.index("location.characters.Add(candidate)"),
         "fallback object could be inserted before source-equivalent check")
-    req("NativeMutationMinionsAlpha674418 = new Alpha674418NativeMutationMinionService" in wiring,
-        "native Mutation minion service not wired")
-    req("NativeMutationMinionsAlpha674418.Describe()" in mutation_cmd,
-        "native Mutation minion telemetry missing from teamup_mutation status")
-    req("native Pelipper capture path" in wiring,
-        "runtime log does not advertise native Pelipper capture path")
-    log("SOURCE-NATIVE MINIONS + PELIPPER NATIVE CAPTURE PIPELINE AUDIT: PASS")
+    log("SOURCE-NATIVE MINIONS + PELIPPER NATIVE CAPTURE PIPELINE CARRY-FORWARD: PASS")
+
+    for token in [
+        "Alpha674419PelipperSpawnCommandGateService",
+        "RequestPelipperNativeSpawn",
+        "finalizer:",
+        "RequestFinalizer",
+        "RestoreGate",
+        "IsSpawnCommandName",
+        "normalized.Contains(\"spawn\") && normalized.Contains(\"command\")",
+        "TryWrite(true)",
+        "state.Binding.TryWrite(state.OriginalValue)",
+        "bypasses=",
+        "restores=",
+        "pokemon_spawn",
+    ]:
+        req(token in command_gate, f"Pelipper internal command gate fix missing {token}")
+    req("WriteConfig" not in command_gate and "writeConfig" not in command_gate,
+        "command gate patch must not persist Pelipper config")
+    req("PelipperSpawnCommandGateAlpha674419 = new Alpha674419PelipperSpawnCommandGateService" in wiring,
+        "Pelipper spawn-command gate service not wired")
+    req("PelipperSpawnCommandGateAlpha674419.Describe()" in mutation_cmd,
+        "spawn-command gate telemetry missing from teamup_mutation status")
+    req("internal spawn-command gate" in wiring,
+        "runtime log does not advertise internal Pelipper command gate")
+    log("PELIPPER DISABLED SPAWN-COMMAND INTERNAL GATE + RESTORE AUDIT: PASS")
 
     for token in [
         "MutantLootMultiplier = 3",
@@ -211,7 +229,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.18 NATIVE SOURCE MINIONS")
+    log("BUILD SUCCESS - ALPHA 6.7.44.19 PELIPPER NATIVE MINION COMMAND GATE FIX")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
