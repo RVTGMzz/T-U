@@ -1,11 +1,12 @@
-# 6.7.44.20 Mutation native aggro gate
-name: Team Up v0.2.0-alpha.6.7.44.20 Mutation Native Aggro
+# 6.7.44.21 Pelipper Mutation hostility gate
+name: Team Up v0.2.0-alpha.6.7.44.21 Pelipper Mutation Hostility
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-20-mutation-aggro
+      - v0.2-alpha6-7-44-21-pelipper-mutation-hostility
     paths:
+      - 'src/TeamUp/Core/Alpha674421PelipperMutationHostilityService.cs'
       - 'src/TeamUp/Core/Alpha674420MutationAggroService.cs'
       - 'src/TeamUp/Core/Alpha674419PelipperSpawnCommandGateService.cs'
       - 'src/TeamUp/Core/Alpha674418NativeMutationMinionService.cs'
@@ -40,14 +41,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.20
+      - name: Build, audit and package Alpha 6.7.44.21
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.20 artifact
+      - name: Upload Alpha 6.7.44.21 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-20-mutation-native-aggro
+          name: team-up-alpha6-7-44-21-pelipper-mutation-hostility
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.20_MUTATION_NATIVE_AGGRO_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.20_MUTATION_NATIVE_AGGRO_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_20.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_21.txt
           if-no-files-found: error
