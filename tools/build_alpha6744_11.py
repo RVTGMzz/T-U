@@ -77,7 +77,7 @@ try:
     for token in [
         "Alpha674421PelipperMutationHostilityService",
         "PathFindController",
-        "state.Controller.update(Game1.currentGameTime)",
+        "controller.update(Game1.currentGameTime)",
         "PelipperWildEncounterIdentityService.TryResolve",
         "MonsterMutationService.IsMutant(proxy)",
         "MonsterMutationService.IsMutationMinion(proxy)",
