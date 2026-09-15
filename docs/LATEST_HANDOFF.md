@@ -2,44 +2,52 @@
 
 Current restart file: `../CONTINUE_HERE.md`
 
-Current detailed handoff: `ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md`
+Current detailed handoff: `ALPHA_6_7_44_23_MUTANT_LEADER_SMOOTHING_HANDOFF.md`
 
 ## Current checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.22`
-- Branch: `v0.2-alpha6-7-44-22-pelipper-pack-steering`
-- CI source SHA: `1921deff08d397cca6c867fcce35f5b184c68c1c`
-- Run: `34991407821`
-- Job: `104456710100`
-- Artifact ID: `10405981878`
-- Wrapper SHA256: `60b24fdb084fc687da548569e390546fed627330219ab2cc0b55a13f6f90529b`
-- Inner ZIP SHA256: `51c5422cb6c456e9946290c9c65090f4b4438aae9dfbd9fa76cb2d2a260e6432`
+- Version: `0.2.0-alpha.6.7.44.23`
+- Branch: `v0.2-alpha6-7-44-23-mutant-leader-smoothing`
+- CI source SHA: `2c8f132527cf06aa2d17a82875d7b6f4f46750b4`
+- Run: `34996106050`
+- Job: `104472621463`
+- Artifact ID: `10407443067`
+- Wrapper SHA256: `f27e09e980708d06a91c1e74bbd7a5094b92a2637aa405916fd5df8b8a283080`
+- Inner ZIP SHA256: `d95ed6f2a48447ec967032b38b08c2b30632547ecc3fc02351278981fec1efac`
 - Build: PASS, 0 warnings / 0 errors
 - Main: NOT merged
 - 6.7.45: NOT started
 
 ## Current live truth
 
-Source-native Pelipper followers are already live-proven: genuine same species, 2-4 contract, Spawn Commands may remain OFF, no unrelated Slime fallback.
+Source-native Pelipper followers are live-proven: genuine same species, 2-4 contract, Spawn Commands may remain OFF, and no unrelated Slime fallback.
 
-6.7.44.21 proved that Team Up can make the real Pelipper Pokemon chase Farmer, but the tile PathFindController approach is superseded because small followers can block the x2 leader and passive/gentle species move unnaturally.
+6.7.44.22 live testing proved followers now attack Farmer. Its remaining defect is leader-only: the x2 Mutant attacks only when very close and visibly jitters instead of moving like a normal Pokemon.
 
-## 6.7.44.22 delta
+## 6.7.44.23 delta
 
-`Alpha674422PelipperMutationSteeringService` uses low-level NPC movement instead of tile pathing. Followers approach a small ring around Farmer, pack members separate, followers strongly yield to the leader, the leader gets right-of-way, hidden proxies do not physically block their source Pokemon, and blocked actors perform short alternating sidesteps. Contact damage still uses the genuine combat proxy and native capture identity is preserved.
+`Alpha674423PelipperMutantLeaderSmoothingService` keeps the working follower pack behavior and replaces only the leader motion policy:
 
-The 6.7.44.21 hostility service is not instantiated at runtime in this checkpoint.
+- no pack separation is applied to the leader;
+- Pelipper passive movement/velocity is cleared with `source.Halt()` before each leader chase step;
+- short direction hysteresis reduces rapid axis flipping;
+- the leader holds a stable melee band rather than forcing overlap with Farmer;
+- leader attack reach is extended to fit the x2 visual size;
+- followers still use attack-ring targets, separation, leader clearance and sidestep recovery;
+- genuine source/proxy identity and native capture architecture remain intact.
+
+6.7.44.22 remains in source history but is not instantiated at runtime in 6.7.44.23.
 
 ## Next runtime sequence
 
 1. Keep Pelipper Spawn Commands OFF.
 2. Force a normal non-Shiny Pelipper Mutation.
-3. Prefer testing both a small species and a large/gentle species.
-4. Do not attack first. Verify leader and followers pursue Farmer with better spacing.
-5. Verify the x2 leader is not trapped behind followers.
-6. Verify passive species no longer move with the obvious grid-NPC behavior seen in 6.7.44.21.
-7. Verify contact reduces Farmer HP.
-8. Run `teamup_mutation status`; inspect `leaderMoves`, `minionMoves`, `separation`, `leaderClearance`, `sidesteps`, `blockedFrames`, `proxySyncs`, `contactDamageCalls`, `identityMisses`.
+3. Do not attack first.
+4. Verify followers still pursue and damage Farmer.
+5. Verify the x2 leader approaches without the prior jitter.
+6. Verify the leader stops near Farmer instead of trying to overlap the player.
+7. Verify leader damage lands from noticeably farther away.
+8. Run `teamup_mutation status` and inspect `leaderReachHits`, `leaderRangeHolds`, `leaderHaltResets`, `leaderDirectionChanges`, `leaderDirectionLocks`, `leaderMoves`, `minionMoves`, `proxySyncs`, `contactDamageCalls`, `identityMisses`.
 9. Recheck a follower with a Poke Ball.
 10. Then test all three leader HP phases and final x3 leader loot.
 11. Test vanilla/non-Pelipper and compatible custom source when practical.
