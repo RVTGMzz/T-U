@@ -1,10 +1,10 @@
 # Continue Team Up Here
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.19**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.20**
 
 Development branch:
 
-`v0.2-alpha6-7-44-19-pelipper-command-gate`
+`v0.2-alpha6-7-44-20-mutation-aggro`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -13,94 +13,53 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_19_PELIPPER_COMMAND_GATE_HANDOFF.md`
-
-6.7.44.19 supersedes 6.7.44.18 for live testing.
+4. `docs/ALPHA_6_7_44_20_MUTATION_AGGRO_HANDOFF.md`
 
 ## Verified build checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.19`
-- CI source SHA: `bdc566349eedd1e111226e4da049c6e00c5d58f7`
-- CI run: `34970728030`
-- CI job: `104386087201`
-- Artifact ID: `10396698147`
-- Artifact: `team-up-alpha6-7-44-19-pelipper-native-minion-gate-fix`
-- Wrapper SHA256: `40f1c3738b2709e1a1a5d7ef247c1deb747b932383dbd606dae3623bdabad71a`
-- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.19_PELIPPER_NATIVE_MINION_GATE_FIX_TEST.zip`
-- Inner ZIP SHA256: `116835726f684870792cfe357a73fe8722bd40263562779cd36119d20e13d003`
+- Version: `0.2.0-alpha.6.7.44.20`
+- CI source SHA: `712bc6a1bacb74fa0bd6273246f9f42b08927353`
+- CI run: `34974189152`
+- CI job: `104397637635`
+- Artifact ID: `10398603342`
+- Wrapper SHA256: `db583c3f1fec2560bc38d522c82b652c690b625638b09cee91d5f4cf4c17b544`
+- Inner ZIP SHA256: `e18b146d28d539f0f6c87634ccb03dbe9305f151b1205d8742d2d4a74bb79efd`
 - Build: PASS, 0 warnings, 0 errors
 
-Docs-only commits after the CI source SHA are expected.
+Docs-only commits after the CI SHA are expected.
 
-## Live finding that caused 6.7.44.19
+## Live truth
 
-6.7.44.18 successfully mutated Minccino with baseHP 87 -> 261, x2 visible scale and 4 requested followers, but Pelipper rejected every native follower request because the player's `Spawn Commands` option was OFF. Team Up then timed out all four requests.
+6.7.44.19 live Rockruff test proved source-native follower spawning works with Pelipper Spawn Commands still OFF: leader HP 78 -> 234, x2 scale, 4 requested, four genuine Rockruff Lv.5 created, `spawnedNow=4`, `pending=0`, `failed=0`, `safeRejected=0`, capture identity native, no Slimes.
 
-Capsakid showed the same failure earlier.
+The remaining regression was that both the Mutant leader and its followers stopped attacking the player.
 
-Therefore Mutation core, count and safe placement were not the problem. The blocker was only Pelipper's player-facing debug/cheat command gate.
+## 6.7.44.20 fix
 
-## 6.7.44.19 fix
+`Alpha674420MutationAggroService` re-arms Stardew's native pursuit flags for Mutation leaders/minions. Pelipper proxy and visible source are armed together. Team Up does not teleport or replace provider controllers.
 
-Team Up still uses Pelipper's own native `pokemon_spawn` callback so source/proxy identity and capture remain native. For Team Up's internal Mutation request only, it temporarily opens the Pelipper in-memory boolean whose semantic name contains both `spawn` and `command`, calls the native pipeline, then restores the exact original value in a Harmony finalizer.
+Immediate live gate: force one Pelipper Mutation, confirm same-species followers still spawn, then stand nearby and verify leader + followers actively pursue/attack. Run `teamup_mutation status` and expect `leaderArms>0`, `minionArms>0`, `pelipperProxyArms>0`, `pelipperSourceArms>0`, ideally `identityMisses=0`.
 
-It does not write Pelipper config and does not bypass wild enablement, host authority, species validation or capture rules.
+Then verify a follower remains catchable.
 
 ## Mutation contract
 
-One encounter is **1 Mutant leader + 2-4 ordinary hostile source-equivalent followers**.
+One encounter is **1 Mutant leader + 2-4 ordinary hostile source-equivalent followers**. No unrelated Slime fallback.
 
-Followers must match the creature before Mutation. No unrelated Slime fallback is allowed.
+Leader keeps HP x3, stat x2, visible Pelipper x2 cap, aura and global native loot x3. Followers match the original creature, stay ordinary, receive no Mutation bonus/aura/x3 reward, and cannot recursively mutate.
 
-Pelipper followers must be genuine same-species Pelipper wild encounters. Vanilla/custom followers must use the same source/runtime type when safe. Unsupported custom sources fail closed.
+## Remaining gates before 6.7.45
 
-Leader keeps HP x3, stat x2, Pelipper visible x2 cap, aura and global x3 native loot. Followers have no Mutation bonuses/aura/x3 leader reward and cannot recursively mutate.
+- Mutation hostility live-pass;
+- follower native capture recheck after aggro;
+- all three Pelipper HP phases;
+- final global x3 leader loot;
+- vanilla/non-Pelipper Mutation regression;
+- compatible custom-source regression when practical;
+- Lower Workings runtime gate.
 
-## Immediate runtime test
-
-Keep Pelipper's `Spawn Commands` option OFF. On a normal non-Shiny wild Pokémon:
-
-```text
-teamup_mutation force
-```
-
-Wait about one second, then:
-
-```text
-teamup_mutation status
-```
-
-Expected for an N-follower wave where N is 2-4:
-
-- N same-species followers visible and hostile;
-- no Slimes;
-- native minions `pelipperNative=N`;
-- `pending=0`;
-- `sourceFailures=0`;
-- spawn-command gate `attempts=N`;
-- `gateFound=N`;
-- `bypasses=N`;
-- `restores=N`;
-- `probeFailures=0`;
-- `writeFailures=0`.
-
-Then throw a Poké Ball at one follower. Native capture is still a live gate until proven.
-
-After that test all three leader HP phases, final global x3 loot, one vanilla/non-Pelipper Mutation, a compatible custom monster when practical, and Lower Workings.
-
-## Frozen locks
-
-- Confirmed Shiny remains Mutation-excluded.
-- No unrelated Slime fallback.
-- Active Following/Waiting teammates cannot receive held-item vanilla gifts.
-- Preserve 20Hz Pelipper discovery and pair cache.
-- Real Pelipper HP remains `WildCurrentHealth` / `WildMaxHealth`, never the proxy's 1,000,000 sentinel.
-- Lower Workings still gates 6.7.45 unless explicitly waived.
-
-## 6.7.45 lock
-
-Planned 6.7.45 remains **Containment Chamber Escalation Encounter**. Do not start it until current runtime gates and Lower Workings pass unless the user explicitly waives them.
+Do not start 6.7.45 unless the user explicitly waives remaining gates.
 
 ## Fresh-chat resume prompt
 
-`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-19-pelipper-command-gate. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_19_PELIPPER_COMMAND_GATE_HANDOFF.md. Current verified code SHA là bdc566349eedd1e111226e4da049c6e00c5d58f7, run 34970728030. 6.7.44.18 live-fail vì Pelipper Spawn Commands OFF chặn 2-4 native followers. 6.7.44.19 tạm mở đúng in-memory spawn-command gate cho internal Mutation request rồi restore ngay. Ưu tiên live-test same-species followers với setting vẫn OFF, gate bypass/restore telemetry, capture, 3 HP phases, x3 loot, vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi chủ động waive.`
+`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-20-mutation-aggro. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_20_MUTATION_AGGRO_HANDOFF.md. Current verified code SHA là 712bc6a1bacb74fa0bd6273246f9f42b08927353, run 34974189152. 6.7.44.19 live-pass native same-species Rockruff followers 4/4 nhưng leader + đệ không tấn công Farmer. 6.7.44.20 re-arms native Stardew pursuit flags cho Mutation proxy/source. Ưu tiên live-test hostility + capture, sau đó 3 HP phases, x3 loot, vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi chủ động waive.`
