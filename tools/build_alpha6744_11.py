@@ -71,14 +71,13 @@ try:
         "spawn-command gate must not persist Pelipper config")
     log("PELIPPER INTERNAL SPAWN-COMMAND GATE + RESTORE: PASS")
 
-    # Keep 6.7.44.20 as evidence/low-cost native flags, but 6.7.44.21 is the actual Pelipper hostility path.
     req("monster.focusedOnFarmers = true" in aggro and "monster.moveTowardPlayer" in aggro,
         "6.7.44.20 native aggro evidence missing")
 
     for token in [
         "Alpha674421PelipperMutationHostilityService",
         "PathFindController",
-        "controller.update(Game1.currentGameTime)",
+        "state.Controller.update(Game1.currentGameTime)",
         "PelipperWildEncounterIdentityService.TryResolve",
         "MonsterMutationService.IsMutant(proxy)",
         "MonsterMutationService.IsMutationMinion(proxy)",
