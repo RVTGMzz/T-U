@@ -1,11 +1,12 @@
-# 6.7.44.19 Pelipper disabled spawn-command internal gate
-name: Team Up v0.2.0-alpha.6.7.44.19 Pelipper Native Minion Gate Fix
+# 6.7.44.20 Mutation native aggro gate
+name: Team Up v0.2.0-alpha.6.7.44.20 Mutation Native Aggro
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-19-pelipper-command-gate
+      - v0.2-alpha6-7-44-20-mutation-aggro
     paths:
+      - 'src/TeamUp/Core/Alpha674420MutationAggroService.cs'
       - 'src/TeamUp/Core/Alpha674419PelipperSpawnCommandGateService.cs'
       - 'src/TeamUp/Core/Alpha674418NativeMutationMinionService.cs'
       - 'src/TeamUp/Core/Alpha674416MutationLeaderMinionPolicyService.cs'
@@ -39,14 +40,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.19
+      - name: Build, audit and package Alpha 6.7.44.20
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.19 artifact
+      - name: Upload Alpha 6.7.44.20 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-19-pelipper-native-minion-gate-fix
+          name: team-up-alpha6-7-44-20-mutation-native-aggro
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.19_PELIPPER_NATIVE_MINION_GATE_FIX_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.19_PELIPPER_NATIVE_MINION_GATE_FIX_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_19.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.20_MUTATION_NATIVE_AGGRO_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.20_MUTATION_NATIVE_AGGRO_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_20.txt
           if-no-files-found: error
