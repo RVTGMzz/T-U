@@ -21,6 +21,7 @@ public sealed partial class ModEntry
     private Alpha674418NativeMutationMinionService NativeMutationMinionsAlpha674418 { get; set; } = null!;
     private Alpha674419PelipperSpawnCommandGateService PelipperSpawnCommandGateAlpha674419 { get; set; } = null!;
     private Alpha674420MutationAggroService MutationAggroAlpha674420 { get; set; } = null!;
+    private Alpha674421PelipperMutationHostilityService PelipperMutationHostilityAlpha674421 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -65,10 +66,17 @@ public sealed partial class ModEntry
             Helper,
             ModManifest.UniqueID);
 
-        // 6.7.44.20: source-native Pelipper actors are targetable but can still remain neutral because
-        // their combat proxy is the generic Monster type. Re-arm Stardew's own pursue-Farmer flags
-        // for Mutation leaders/minions and the paired visible Pokemon, without teleport/path hacks.
+        // 6.7.44.20 proved the generic proxy/source pair can be armed with Stardew pursuit flags.
+        // Keep that low-cost layer for vanilla/custom behavior and telemetry.
         MutationAggroAlpha674420 = new Alpha674420MutationAggroService(
+            Monitor,
+            Helper);
+
+        // 6.7.44.21: Pelipper wild Pokemon are passive targets by design and don't consume Monster
+        // pursuit flags as hostile AI. Mutation therefore gets a Team Up-owned hostility bridge:
+        // path the real visible Pokemon toward the Farmer, synchronize its genuine combat proxy,
+        // and route contact damage through Farmer.takeDamage(proxy) without replacing capture identity.
+        PelipperMutationHostilityAlpha674421 = new Alpha674421PelipperMutationHostilityService(
             Monitor,
             Helper);
 
@@ -85,12 +93,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.20 Pelipper runtime diagnostics: status.",
+            "6.7.44.21 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.20 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 source-native normal hostile minions, native Pelipper capture path with internal spawn-command gate, native Mutation aggro, global leader loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.21 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 source-native normal hostile minions, native Pelipper capture path with internal spawn-command gate, Pelipper Mutation chase/contact hostility, global leader loot x3, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -120,6 +128,7 @@ public sealed partial class ModEntry
         NativeMutationMinionsAlpha674418.ResetTelemetry();
         PelipperSpawnCommandGateAlpha674419.ResetTelemetry();
         MutationAggroAlpha674420.ResetTelemetry();
+        PelipperMutationHostilityAlpha674421.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -183,6 +192,7 @@ public sealed partial class ModEntry
         Monitor.Log(NativeMutationMinionsAlpha674418.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSpawnCommandGateAlpha674419.Describe(), LogLevel.Info);
         Monitor.Log(MutationAggroAlpha674420.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperMutationHostilityAlpha674421.Describe(), LogLevel.Info);
         Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
