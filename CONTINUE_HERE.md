@@ -1,10 +1,10 @@
 # Continue Team Up Here
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.17**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.18**
 
 Development branch:
 
-`v0.2-alpha6-7-44-17-lightweight-minions`
+`v0.2-alpha6-7-44-18-native-minions`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -13,29 +13,28 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md`
-5. `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md`
+4. `docs/ALPHA_6_7_44_18_NATIVE_MINIONS_HANDOFF.md`
 
-The dated handoff contains the fullest restart context, live evidence, remaining gates, Lower Workings locks and the exact resume prompt.
+6.7.44.18 supersedes the 6.7.44.17 lightweight-Slime follower design.
 
 ## Verified build checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.17`
-- CI-verified source SHA: `c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e`
-- CI run: `34904471245`
-- CI job: `104177799252`
-- Artifact ID: `10371887676`
-- Artifact: `team-up-alpha6-7-44-17-lightweight-minions`
-- Artifact wrapper SHA256: `ca2c4e2426c2c195c1f201030164d064244f6b639e87a4c349b05e766cbfa8f9`
-- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.zip`
-- Inner ZIP SHA256: `dc19dd525401583892f2c056b4448dcb1aeff01531b410f073ec73469f4c680d`
+- Version: `0.2.0-alpha.6.7.44.18`
+- CI-verified source SHA: `8c73eb93a3a7529e3d8232773e7c61c73ca9567d`
+- CI run: `34914882066`
+- CI job: `104210252539`
+- Artifact ID: `10375867225`
+- Artifact: `team-up-alpha6-7-44-18-native-source-minions`
+- Artifact wrapper SHA256: `9aaf524f071610f64c5e93dc05dc9ad4225f586e21ca832ef41b4059e7afeebd`
+- Inner ZIP: `TeamUp_v0.2.0-alpha.6.7.44.18_NATIVE_SOURCE_MINIONS_TEST.zip`
+- Inner ZIP SHA256: `81a0a16ec0890f2434fa32961dcf08242933377197348918a17f340eefa63957`
 - Build: PASS, 0 warnings, 0 errors
 
-The branch HEAD can be newer than the CI source SHA because handoff documents were synchronized after the build. The ZIP above was produced from `c1df68...`.
+The branch HEAD can be newer because handoff docs are synchronized after the verified build. The ZIP above was produced from `8c73eb9...`.
 
-## Current Mutation design
+## Mutation design lock
 
-One Mutation encounter is **1 Mutant leader + 2-4 ordinary hostile minions**.
+One encounter is **1 Mutant leader + 2-4 ordinary hostile source-equivalent followers**.
 
 Leader:
 
@@ -43,102 +42,82 @@ Leader:
 - stat x2;
 - Pelipper visible scale capped at x2;
 - Mutation aura;
-- x3 native loot on final defeat;
-- x3 loot applies to all Mutant leaders, including vanilla/custom/Pelipper.
+- global x3 native loot on final defeat.
 
-Minions:
+Followers:
 
+- must correspond to the creature before Mutation;
 - ordinary hostile;
-- no Mutation bonus;
-- no aura;
-- no x3 loot;
-- `MutationExcluded` so no recursive Mutation;
-- valid Team Up combat targets.
+- no Mutation bonus/aura/x3 leader reward;
+- `MutationExcluded`;
+- valid Team Up combat targets;
+- no unrelated Slime fallback.
 
-## Pelipper follower performance lock
+Pelipper followers now use genuine native same-species wild encounters so Pelipper keeps source/proxy identity and native capture authority. Vanilla/custom followers require the same runtime/source type when Team Up can create it safely. Unsupported custom sources fail closed and report telemetry.
 
-For a Pelipper Mutant leader, **do not spawn 2-4 full native Pelipper wild encounters**.
+## Live truth already proven
 
-6.7.44.17 chooses the lightweight Team Up path because performance is more important than whether temporary followers are catchable. Each Pelipper follower is currently one lightweight temporary combat actor instead of a full `PokemonNpc + hidden proxy + WildEncounterId + HP modData + pairing/cache` bundle.
+The 6.7.44.17 Nidoran♂ BusStop test proved:
 
-Status telemetry:
+- forced Pelipper Mutation;
+- visible x2 leader scale;
+- 3 requested followers can spawn 3/3;
+- `safeRejected=0`;
+- ordinary followers attack normally.
 
-- `pelipperLightweight=...`
-- `nativePelipperSpawnsAvoided=...`
+The rejected part was visual/source identity: those followers were lightweight Slimes. 6.7.44.18 replaces that architecture with native/source-equivalent followers.
 
-Captureability of Mutation followers is NOT a current gate. Natural Pelipper wild Pokemon keep their native capture behavior.
+Earlier Seadra/Fidough tests already proved Pelipper real HP binding, source/proxy pairing cache, natural Mutation roll reachability and visible source scaling.
 
-The temporary branch `v0.2-alpha6-7-44-17-mutant-capture-lock` is superseded. Do not use it as the continuation branch.
-
-## Live-proven truth
-
-Pelipper Mutation core is live-proven. The real Pokemon HP path is also live-proven:
+Real Pokemon HP remains:
 
 - `Griff.PelipperTown/WildCurrentHealth`
 - `Griff.PelipperTown/WildMaxHealth`
 
-Do not use the hidden Green Slime proxy's technical `Health/MaxHealth = 1,000,000` as Pokemon HP.
+Never use the hidden combat proxy's technical `1,000,000` Health sentinel as Pokemon HP.
 
-A 6.7.44.12 Seadra test proved forced Mutation, source HP binding, pair-cache reuse and natural Mutation rolls. A 6.7.44.13 Fidough test proved visible source scaling. x3 was visually too large, so the current visible Pelipper scale is x2.
+## Immediate runtime test
 
-## Not live-proven yet
-
-6.7.44.17 itself still needs runtime confirmation for:
-
-- 2-4 lightweight Pelipper followers actually spawning;
-- followers attacking normally;
-- no noticeable spawn hitch/lag;
-- `pelipperLightweight > 0` and `nativePelipperSpawnsAvoided > 0`;
-- full 3-bar Pelipper HP behavior;
-- global x3 leader loot on final death;
-- one non-Pelipper Mutation regression test.
-
-Lower Workings also still has a runtime gate before 6.7.45 unless explicitly waived by the user.
-
-## Next test sequence
-
-Use a normal non-Shiny Pelipper wild Pokemon:
+On a normal non-Shiny Pelipper wild Pokemon:
 
 ```text
 teamup_mutation force
 ```
 
-Wait roughly one second, then:
+Wait about one second, then:
 
 ```text
 teamup_mutation status
 ```
 
-Check leader x2 size, 2-4 followers, hostility, smooth performance and the lightweight counters. If followers remain `0/N`, inspect safe spawn placement before changing the lightweight factory architecture.
+Expected:
 
-Then deplete the Mutant through all three HP bars. Expected phase telemetry is `phaseGuards=1`, then `phaseGuards=2`, then a true final death with `finalLethalPasses` increasing.
+- 2-4 followers are the same Pokemon species as the leader before Mutation;
+- no Slimes;
+- followers attack normally;
+- `pelipperCommands > 0`;
+- `pelipperNative > 0`;
+- `sourceFailures = 0`;
+- `pending` returns to 0;
+- no unacceptable hitch.
 
-On final death verify:
+Then throw a Poké Ball at one follower. Native Pelipper capture is a runtime gate and is not considered passed until tested live.
 
-`Mutant reward: lootX3 | minions=2-4 | scope=all-mutants | ...`
+After that test all three leader HP phases, global x3 leader loot, one vanilla/non-Pelipper Mutation and at least one compatible custom monster.
 
-A successful reward should have `dropCalls>=1`, two additional `extraDropPasses` for that reward, and `errors=0`.
-
-After that, force/test one non-Pelipper Mutant.
-
-## Frozen safety locks
+## Frozen locks
 
 - Confirmed Shiny remains Mutation-excluded.
-- Current Shiny behavior stays frozen unless a concrete regression appears.
-- Active Following/Waiting Team Up NPCs cannot receive held-item vanilla gifts.
-- Preserve 20Hz Pelipper encounter discovery and species-pair cache.
-- High `cacheHits` means pair reuse, not repeated full scans.
-- Pelipper retains controller/render/ownership authority for real Pelipper actors.
-- Performance is still a subjective live gate even when telemetry is healthy.
+- Shiny behavior stays frozen unless a concrete regression appears.
+- Active Following/Waiting teammates cannot receive held-item vanilla gifts.
+- Preserve 20Hz Pelipper discovery and pair cache.
+- Pelipper keeps render/controller/ownership/capture authority for genuine Pelipper actors.
+- Lower Workings remains unchanged and still gates 6.7.45 unless explicitly waived.
 
-## Lower Workings and story gate
+## 6.7.45 lock
 
-Lower Workings remains `Ronvotri.TeamUp_LowerWorkings`, using `assets/LowerWorkings.tmx`, 32x24, no static Warp, exact persisted breach return and stages 0-6.
-
-Do not start Alpha 6.7.45 until current Mutation runtime gates and Lower Workings are live-passed unless the user explicitly waives them.
-
-Planned 6.7.45 is **Containment Chamber Escalation Encounter**. George remains ordinary/anonymous until 6.7.46, no exact `SECTOR 17`, and no final boss.
+Planned 6.7.45 is **Containment Chamber Escalation Encounter** in the real Lower Workings. Do not start it until current runtime gates and Lower Workings pass unless the user explicitly waives them. George stays ordinary/anonymous until 6.7.46. No exact `SECTOR 17`. No final boss.
 
 ## Fresh-chat resume prompt
 
-`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-17-lightweight-minions. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md, docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md và handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md. Current verified artifact source SHA là c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e, run 34904471245. Ưu tiên live-test 6.7.44.17 lightweight Pelipper Mutation minions, 3 HP phases và global x3 leader loot. Không bắt đầu 6.7.45 cho tới khi các runtime gate hiện tại và Lower Workings pass, trừ khi tôi chủ động waive.`
+`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-18-native-minions. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_18_NATIVE_MINIONS_HANDOFF.md. Current verified code SHA là 8c73eb93a3a7529e3d8232773e7c61c73ca9567d, run 34914882066. 6.7.44.18 supersedes lightweight Slime minions: follower phải là quái tương ứng trước Mutation; Pelipper dùng native same-species wild encounter và cần live-test capture. Ưu tiên same-species spawn, capture, 3 HP phases, x3 leader loot, vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi chủ động waive.`
