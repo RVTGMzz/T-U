@@ -172,9 +172,13 @@ internal sealed class Alpha674421PelipperMutationHostilityService
             _pathsBuilt++;
         }
 
+        PathFindController? controller = state.Controller;
+        if (controller is null)
+            return;
+
         try
         {
-            bool done = state.Controller.update(Game1.currentGameTime);
+            bool done = controller.update(Game1.currentGameTime);
             _pathSteps++;
             if (done)
             {
