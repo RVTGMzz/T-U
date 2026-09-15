@@ -1,35 +1,35 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.22
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.23
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_23_MUTANT_LEADER_SMOOTHING_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-22-pelipper-pack-steering`
-- Version: `0.2.0-alpha.6.7.44.22`
-- CI source SHA: `1921deff08d397cca6c867fcce35f5b184c68c1c`
-- Run: `34991407821`
-- Job: `104456710100`
-- Artifact ID: `10405981878`
-- Wrapper SHA256: `60b24fdb084fc687da548569e390546fed627330219ab2cc0b55a13f6f90529b`
-- Inner ZIP SHA256: `51c5422cb6c456e9946290c9c65090f4b4438aae9dfbd9fa76cb2d2a260e6432`
+- Branch: `v0.2-alpha6-7-44-23-mutant-leader-smoothing`
+- Version: `0.2.0-alpha.6.7.44.23`
+- CI source SHA: `2c8f132527cf06aa2d17a82875d7b6f4f46750b4`
+- Run: `34996106050`
+- Job: `104472621463`
+- Artifact ID: `10407443067`
+- Wrapper SHA256: `f27e09e980708d06a91c1e74bbd7a5094b92a2637aa405916fd5df8b8a283080`
+- Inner ZIP SHA256: `d95ed6f2a48447ec967032b38b08c2b30632547ecc3fc02351278981fec1efac`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
 
 ## Current live truth
 
-6.7.44.19 proved native same-species Pelipper followers can spawn with Spawn Commands OFF and no Slime fallback. 6.7.44.20 proved generic Monster aggro flags do not make Pelipper wild Pokemon hostile.
+Native same-species Pelipper followers already work with Spawn Commands OFF and no Slime fallback.
 
-6.7.44.21 proved Team Up-owned chase can move real Pelipper Pokemon toward Farmer, but its tile PathFindController implementation has bad pack locomotion: followers can jam the x2 leader and passive/gentle species look grid-like or erratic.
+6.7.44.22 live test confirmed followers now pursue/attack Farmer. Remaining defect was specifically the x2 Mutant leader: attack range felt too short and movement visibly jittered.
 
-## 6.7.44.22
+## 6.7.44.23
 
-`Alpha674422PelipperMutationSteeringService` replaces the 6.7.44.21 runtime chase with low-level Stardew NPC movement. It preserves the real visible Pokemon, real hidden proxy and native capture identity while adding follower attack-ring targets, pack separation, leader right-of-way, hidden-proxy non-collision, blocked sidestep recovery and proxy-based contact damage.
+`Alpha674423PelipperMutantLeaderSmoothingService` supersedes the 6.7.44.22 runtime steering instance. Followers retain the working pack steering. The leader now ignores follower separation, clears passive Pelipper movement/velocity with `Halt()` before chase steps, uses short direction hysteresis, holds a stable melee band, and can damage Farmer from an extended range suited to its x2 visual scale.
 
-The 6.7.44.21 service remains in source history but is not instantiated in 6.7.44.22.
+The real visible Pokemon, genuine hidden combat proxy, proxy-based damage and native capture identity remain unchanged.
 
-Immediate live gate: test one small species and one large/gentle species. Expect `leaderMoves>0`, `minionMoves>0`, separation/leader-clearance counters when the pack closes, usually `proxySyncs>0`, ideally `identityMisses=0`, and `contactDamageCalls>0` after actual touch. Recheck native follower capture.
+Immediate live gate: force a Pelipper Mutation, do not attack first, verify followers still attack, leader movement is visibly smoother, leader stops near Farmer instead of overlapping, and leader damage lands from farther away. `teamup_mutation status` should show the new `leader-smooth-reach` telemetry with positive `leaderReachHits`, `leaderRangeHolds`, `leaderHaltResets` and `leaderDirectionLocks` during a real encounter, ideally `identityMisses=0`.
 
-After locomotion passes, continue 3 HP phases, x3 final loot, vanilla/custom regression and Lower Workings. Do not begin 6.7.45 unless remaining runtime gates are passed or explicitly waived.
+After this passes, recheck follower capture, then continue 3 HP phases, x3 final loot, vanilla/custom regression and Lower Workings. Do not begin 6.7.45 unless remaining runtime gates are passed or explicitly waived.
