@@ -1,7 +1,7 @@
 {
   "Name": "Team Up!",
   "Author": "Ronvotri",
-  "Version": "0.2.0-alpha.6.7.44.18",
+  "Version": "0.2.0-alpha.6.7.44.19",
   "Description": "Build an RPG-style NPC party with free pet/creature companions, shared Party Vault storage, and future MMORPG-inspired combat roles and tactics.",
   "UniqueID": "Ronvotri.TeamUp",
   "EntryDll": "TeamUp.dll",
