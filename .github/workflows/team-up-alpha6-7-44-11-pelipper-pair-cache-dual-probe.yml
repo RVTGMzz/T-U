@@ -1,11 +1,12 @@
-# 6.7.44.17 lightweight minion performance gate
-name: Team Up v0.2.0-alpha.6.7.44.17 Lightweight Mutation Minions
+# 6.7.44.18 source-native mutation minion gate
+name: Team Up v0.2.0-alpha.6.7.44.18 Native Source Mutation Minions
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-17-lightweight-minions
+      - v0.2-alpha6-7-44-18-native-minions
     paths:
+      - 'src/TeamUp/Core/Alpha674418NativeMutationMinionService.cs'
       - 'src/TeamUp/Core/Alpha674416MutationLeaderMinionPolicyService.cs'
       - 'src/TeamUp/Core/Alpha674414PelipperMutantRewardService.cs'
       - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
@@ -37,14 +38,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.17
+      - name: Build, audit and package Alpha 6.7.44.18
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.17 artifact
+      - name: Upload Alpha 6.7.44.18 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-17-lightweight-minions
+          name: team-up-alpha6-7-44-18-native-source-minions
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_17.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.18_NATIVE_SOURCE_MINIONS_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.18_NATIVE_SOURCE_MINIONS_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_18.txt
           if-no-files-found: error
