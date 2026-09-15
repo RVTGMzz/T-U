@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_21"
+STAGE = ROOT / "_stage_alpha6744_22"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_21.txt"
-VERSION = "0.2.0-alpha.6.7.44.21"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_22.txt"
+VERSION = "0.2.0-alpha.6.7.44.22"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.22_PELIPPER_PACK_STEERING_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.22_PELIPPER_PACK_STEERING_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -44,7 +44,7 @@ try:
     native_minions = text("Core/Alpha674418NativeMutationMinionService.cs")
     command_gate = text("Core/Alpha674419PelipperSpawnCommandGateService.cs")
     aggro = text("Core/Alpha674420MutationAggroService.cs")
-    hostility = text("Core/Alpha674421PelipperMutationHostilityService.cs")
+    steering = text("Core/Alpha674422PelipperMutationSteeringService.cs")
     mutation = text("Combat/MonsterMutationService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
     mutation_cmd = text("ModEntry.Alpha6719.cs")
@@ -72,34 +72,41 @@ try:
     log("PELIPPER INTERNAL SPAWN-COMMAND GATE + RESTORE: PASS")
 
     req("monster.focusedOnFarmers = true" in aggro and "monster.moveTowardPlayer" in aggro,
-        "6.7.44.20 native aggro evidence missing")
+        "6.7.44.20 generic aggro carry-forward missing")
 
     for token in [
-        "Alpha674421PelipperMutationHostilityService",
-        "PathFindController",
-        "controller.update(Game1.currentGameTime)",
-        "PelipperWildEncounterIdentityService.TryResolve",
-        "MonsterMutationService.IsMutant(proxy)",
-        "MonsterMutationService.IsMutationMinion(proxy)",
+        "Alpha674422PelipperMutationSteeringService",
+        "SetMovingUp(false)",
+        "SetMovingRight(false)",
+        "SetMovingDown(false)",
+        "SetMovingLeft(false)",
+        "source.MovePosition(Game1.currentGameTime, Game1.viewport, location)",
+        "ApplyPackSeparation",
+        "LeaderClearanceRadius",
+        "BlockedTicksBeforeSidestep",
+        "SidestepTicks",
+        "proxy.collidesWithOtherCharacters.Value = false",
         "SyncProxy(proxy, source)",
         "proxy.Position = source.Position",
         "farmer.takeDamage(damage, overrideParry: false, proxy)",
-        "RepathTicks = 12",
-        "ContactCooldownTicks = 45",
-        "contactDamageCalls=",
-        "pathsBuilt=",
-        "proxySyncs=",
+        "leaderMoves=",
+        "minionMoves=",
+        "leaderClearance=",
+        "sidesteps=",
+        "blockedFrames=",
     ]:
-        req(token in hostility, f"Pelipper Mutation hostility missing {token}")
-    req("(!leader && !minion)" in hostility,
-        "hostility layer could affect natural non-Mutation Pelipper wilds")
-    req("new GreenSlime" not in hostility,
-        "hostility layer must not create fallback monsters")
-    req("PelipperMutationHostilityAlpha674421 = new Alpha674421PelipperMutationHostilityService" in wiring,
-        "6.7.44.21 hostility service not wired")
-    req("PelipperMutationHostilityAlpha674421.Describe()" in mutation_cmd,
-        "6.7.44.21 hostility telemetry missing from teamup_mutation status")
-    log("PELIPPER MUTATION TEAM-UP PATHING + PROXY CONTACT DAMAGE AUDIT: PASS")
+        req(token in steering, f"Pelipper pack steering missing {token}")
+    req("PathFindController" not in steering,
+        "6.7.44.22 steering must not use tile PathFindController")
+    req("new GreenSlime" not in steering,
+        "steering layer must not create fallback monsters")
+    req("PelipperMutationHostilityAlpha674421 = new" not in wiring,
+        "6.7.44.21 hostility runtime must be disabled in 6.7.44.22")
+    req("PelipperMutationSteeringAlpha674422 = new Alpha674422PelipperMutationSteeringService" in wiring,
+        "6.7.44.22 steering service not wired")
+    req("PelipperMutationSteeringAlpha674422.Describe()" in mutation_cmd,
+        "6.7.44.22 steering telemetry missing from teamup_mutation status")
+    log("PELIPPER MUTATION PACK STEERING + LEADER CLEARANCE AUDIT: PASS")
 
     for token in ["MutantLootMultiplier = 3", "scope=all-mutants", "monsterDrop", "extraDropPasses"]:
         req(token in reward, f"global x3 Mutant reward missing {token}")
@@ -154,7 +161,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.21 PELIPPER MUTATION HOSTILITY")
+    log("BUILD SUCCESS - ALPHA 6.7.44.22 PELIPPER PACK STEERING")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
