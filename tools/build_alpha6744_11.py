@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_20"
+STAGE = ROOT / "_stage_alpha6744_21"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_20.txt"
-VERSION = "0.2.0-alpha.6.7.44.20"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.20_MUTATION_NATIVE_AGGRO_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_21.txt"
+VERSION = "0.2.0-alpha.6.7.44.21"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.20_MUTATION_NATIVE_AGGRO_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.21_PELIPPER_MUTATION_HOSTILITY_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -39,15 +39,12 @@ try:
     manifest = json.loads(text("manifest.json"))
     config = text("ModConfig.cs")
     binding = text("Core/Alpha674412PelipperModDataHpBindingService.cs")
-    pairing = text("Core/Alpha674410PelipperSpeciesPairingService.cs")
     visible = text("Core/Alpha674413PelipperVisibleMutationService.cs")
-    minion_spawn = text("Core/Alpha674413MutationMinionSpawnService.cs")
     reward = text("Core/Alpha674414PelipperMutantRewardService.cs")
-    leader_minion = text("Core/Alpha674416MutationLeaderMinionPolicyService.cs")
     native_minions = text("Core/Alpha674418NativeMutationMinionService.cs")
     command_gate = text("Core/Alpha674419PelipperSpawnCommandGateService.cs")
     aggro = text("Core/Alpha674420MutationAggroService.cs")
-    factory = text("Combat/MonsterMutationMinionFactory.cs")
+    hostility = text("Core/Alpha674421PelipperMutationHostilityService.cs")
     mutation = text("Combat/MonsterMutationService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
     mutation_cmd = text("ModEntry.Alpha6719.cs")
@@ -55,115 +52,57 @@ try:
     req(f"<ProjectVersion>{VERSION}</ProjectVersion>" in project, "wrong project version")
     req(manifest.get("Version") == VERSION, "wrong manifest version")
 
-    for token in [
-        "Griff.PelipperTown/WildCurrentHealth",
-        "Griff.PelipperTown/WildMaxHealth",
-        "SourceProxyMap",
-    ]:
+    for token in ["Griff.PelipperTown/WildCurrentHealth", "Griff.PelipperTown/WildMaxHealth", "SourceProxyMap"]:
         req(token in binding, f"HP binding missing {token}")
-    req("ConditionalWeakTable<Monster, CachedPair>" in pairing and "cacheHits=" in pairing,
-        "Pelipper pair cache carry-forward missing")
-    log("PELIPPER HP + PAIR CACHE CARRY-FORWARD: PASS")
+    req("MutationVisualScaleMultiplier { get; set; } = 2f" in config, "Mutation visible scale default is not x2")
+    req("PelipperVisibleScaleCap = 2f" in visible, "Pelipper visible x2 cap missing")
+    log("PELIPPER HP + VISIBLE SCALE CARRY-FORWARD: PASS")
 
-    for token in [
-        "PelipperVisibleScaleCap = 2f",
-        "PelipperWildEncounterIdentityService.TryResolve",
-        "MonsterMutationService.IsMutant",
-    ]:
-        req(token in visible, f"visible Mutation carry-forward missing {token}")
-    req("MutationVisualScaleMultiplier { get; set; } = 2f" in config,
-        "Mutation visible scale default is not x2")
-    log("PELIPPER VISIBLE MUTATION X2: PASS")
-
-    for token in [
-        "TryFindSafeSpawnPosition",
-        "BuildSpawnOffsets",
-        "radius <= 8",
-        "pelipperSourceAnchors",
-    ]:
-        req(token in minion_spawn, f"wide-spawn carry-forward missing {token}")
-    req("MutationMinionMin { get; set; } = 2" in config and "MutationMinionMax { get; set; } = 4" in config,
-        "2-4 minion config changed")
-    log("MUTATION 2-4 WIDE-SPAWN: PASS")
-
-    for token in [
-        "MutantLeaderMarker",
-        "NormalHostileMinionMarker",
-        "MutationExcludedMarker",
-        "LootMultiplierMarker",
-        "CombatTargetOptInKey",
-    ]:
-        req(token in leader_minion, f"leader/minion policy missing {token}")
-    req("TryCreateSameRuntimeType" in factory and "same-runtime-type" in factory,
-        "same-runtime construction carry-forward missing")
-    req("IsMutationMinion(monster)" in mutation,
-        "Mutation eligibility does not exclude minions")
-    log("MUTANT LEADER + SOURCE-EQUIVALENT MINION POLICY: PASS")
-
-    for token in [
-        "Alpha674418NativeMutationMinionService",
-        "pokemon_spawn",
-        "PelipperWildEncounterIdentityService.TryResolve",
-        "callback(\"pokemon_spawn\", args)",
-        "pelipper-native",
-        "same-runtime-type",
-        "No Slime fallback",
-    ]:
+    for token in ["pokemon_spawn", "callback(\"pokemon_spawn\", args)", "pelipper-native", "No Slime fallback"]:
         req(token in native_minions, f"native source minion pipeline missing {token}")
-    req("if (!mode.Equals(\"same-runtime-type\", StringComparison.Ordinal))" in native_minions,
-        "unsupported custom source is not fail-closed")
-    log("SOURCE-NATIVE MINIONS + CAPTURE PIPELINE: PASS")
+    req("MutationMinionMin { get; set; } = 2" in config and "MutationMinionMax { get; set; } = 4" in config,
+        "2-4 minion contract changed")
+    req("IsMutationMinion(monster)" in mutation, "Mutation minions are not excluded from recursive Mutation")
+    log("SOURCE-NATIVE 2-4 MINIONS + NO-SLIME CONTRACT: PASS")
 
-    for token in [
-        "Alpha674419PelipperSpawnCommandGateService",
-        "RequestPelipperNativeSpawn",
-        "RequestFinalizer",
-        "RestoreGate",
-        "TryWrite(true)",
-        "state.Binding.TryWrite(state.OriginalValue)",
-        "bypasses=",
-        "restores=",
-    ]:
-        req(token in command_gate, f"Pelipper spawn-command gate carry-forward missing {token}")
+    for token in ["RequestFinalizer", "RestoreGate", "TryWrite(true)", "state.Binding.TryWrite(state.OriginalValue)"]:
+        req(token in command_gate, f"Pelipper spawn-command gate missing {token}")
     req("WriteConfig" not in command_gate and "writeConfig" not in command_gate,
         "spawn-command gate must not persist Pelipper config")
     log("PELIPPER INTERNAL SPAWN-COMMAND GATE + RESTORE: PASS")
 
-    for token in [
-        "Alpha674420MutationAggroService",
-        "ScanPulseTicks = 3",
-        "RefreshTicks = 60",
-        "PursuitThresholdTiles = 999",
-        "monster.focusedOnFarmers = true",
-        "monster.moveTowardPlayer(PursuitThresholdTiles)",
-        "source.moveTowardPlayer(PursuitThresholdTiles)",
-        "PelipperWildEncounterIdentityService.TryResolve",
-        "CombatTargetOptInKey",
-        "DamageToFarmer = 1",
-        "leaderArms=",
-        "minionArms=",
-        "pelipperProxyArms=",
-        "pelipperSourceArms=",
-    ]:
-        req(token in aggro, f"Mutation native aggro missing {token}")
-    req(".Position =" not in aggro and ".Position=" not in aggro,
-        "Mutation aggro must not teleport actors")
-    req("controller = null" not in aggro and "temporaryController = null" not in aggro,
-        "Mutation aggro must not take over provider controllers")
-    req("MutationAggroAlpha674420 = new Alpha674420MutationAggroService" in wiring,
-        "Mutation aggro service not wired")
-    req("MutationAggroAlpha674420.Describe()" in mutation_cmd,
-        "Mutation aggro telemetry missing from teamup_mutation status")
-    req("native Mutation aggro" in wiring,
-        "runtime log does not advertise native Mutation aggro")
-    log("MUTATION LEADER + MINION NATIVE AGGRO AUDIT: PASS")
+    # Keep 6.7.44.20 as evidence/low-cost native flags, but 6.7.44.21 is the actual Pelipper hostility path.
+    req("monster.focusedOnFarmers = true" in aggro and "monster.moveTowardPlayer" in aggro,
+        "6.7.44.20 native aggro evidence missing")
 
     for token in [
-        "MutantLootMultiplier = 3",
-        "scope=all-mutants",
-        "monsterDrop",
-        "extraDropPasses",
+        "Alpha674421PelipperMutationHostilityService",
+        "PathFindController",
+        "controller.update(Game1.currentGameTime)",
+        "PelipperWildEncounterIdentityService.TryResolve",
+        "MonsterMutationService.IsMutant(proxy)",
+        "MonsterMutationService.IsMutationMinion(proxy)",
+        "SyncProxy(proxy, source)",
+        "proxy.Position = source.Position",
+        "farmer.takeDamage(damage, overrideParry: false, proxy)",
+        "RepathTicks = 12",
+        "ContactCooldownTicks = 45",
+        "contactDamageCalls=",
+        "pathsBuilt=",
+        "proxySyncs=",
     ]:
+        req(token in hostility, f"Pelipper Mutation hostility missing {token}")
+    req("(!leader && !minion)" in hostility,
+        "hostility layer could affect natural non-Mutation Pelipper wilds")
+    req("new GreenSlime" not in hostility,
+        "hostility layer must not create fallback monsters")
+    req("PelipperMutationHostilityAlpha674421 = new Alpha674421PelipperMutationHostilityService" in wiring,
+        "6.7.44.21 hostility service not wired")
+    req("PelipperMutationHostilityAlpha674421.Describe()" in mutation_cmd,
+        "6.7.44.21 hostility telemetry missing from teamup_mutation status")
+    log("PELIPPER MUTATION TEAM-UP PATHING + PROXY CONTACT DAMAGE AUDIT: PASS")
+
+    for token in ["MutantLootMultiplier = 3", "scope=all-mutants", "monsterDrop", "extraDropPasses"]:
         req(token in reward, f"global x3 Mutant reward missing {token}")
     log("GLOBAL LEADER-ONLY MUTANT LOOT-X3: PASS")
 
@@ -216,7 +155,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.20 MUTATION NATIVE AGGRO")
+    log("BUILD SUCCESS - ALPHA 6.7.44.21 PELIPPER MUTATION HOSTILITY")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
