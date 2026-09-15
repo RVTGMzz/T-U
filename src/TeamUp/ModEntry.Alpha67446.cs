@@ -21,7 +21,7 @@ public sealed partial class ModEntry
     private Alpha674418NativeMutationMinionService NativeMutationMinionsAlpha674418 { get; set; } = null!;
     private Alpha674419PelipperSpawnCommandGateService PelipperSpawnCommandGateAlpha674419 { get; set; } = null!;
     private Alpha674420MutationAggroService MutationAggroAlpha674420 { get; set; } = null!;
-    private Alpha674421PelipperMutationHostilityService PelipperMutationHostilityAlpha674421 { get; set; } = null!;
+    private Alpha674422PelipperMutationSteeringService PelipperMutationSteeringAlpha674422 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -66,17 +66,17 @@ public sealed partial class ModEntry
             Helper,
             ModManifest.UniqueID);
 
-        // 6.7.44.20 proved the generic proxy/source pair can be armed with Stardew pursuit flags.
-        // Keep that low-cost layer for vanilla/custom behavior and telemetry.
+        // 6.7.44.20 remains useful for generic Monster hostility and telemetry, but Pelipper's visible
+        // Pokemon NPCs don't consume those native Monster pursuit flags as active hostile AI.
         MutationAggroAlpha674420 = new Alpha674420MutationAggroService(
             Monitor,
             Helper);
 
-        // 6.7.44.21: Pelipper wild Pokemon are passive targets by design and don't consume Monster
-        // pursuit flags as hostile AI. Mutation therefore gets a Team Up-owned hostility bridge:
-        // path the real visible Pokemon toward the Farmer, synchronize its genuine combat proxy,
-        // and route contact damage through Farmer.takeDamage(proxy) without replacing capture identity.
-        PelipperMutationHostilityAlpha674421 = new Alpha674421PelipperMutationHostilityService(
+        // 6.7.44.22 supersedes the 6.7.44.21 tile PathFindController experiment for Pelipper.
+        // Use low-level NPC movement, pack separation, leader right-of-way and blocked sidesteps so
+        // large x2 leaders don't jam behind their own followers and passive species don't move like
+        // grid NPCs. Source/proxy identity and native capture remain unchanged.
+        PelipperMutationSteeringAlpha674422 = new Alpha674422PelipperMutationSteeringService(
             Monitor,
             Helper);
 
@@ -93,12 +93,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.21 Pelipper runtime diagnostics: status.",
+            "6.7.44.22 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.21 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 source-native normal hostile minions, native Pelipper capture path with internal spawn-command gate, Pelipper Mutation chase/contact hostility, global leader loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.22 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 source-native normal hostile minions, native Pelipper capture path with internal spawn-command gate, Pelipper Mutation pack steering/contact hostility, global leader loot x3, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -128,7 +128,7 @@ public sealed partial class ModEntry
         NativeMutationMinionsAlpha674418.ResetTelemetry();
         PelipperSpawnCommandGateAlpha674419.ResetTelemetry();
         MutationAggroAlpha674420.ResetTelemetry();
-        PelipperMutationHostilityAlpha674421.ResetTelemetry();
+        PelipperMutationSteeringAlpha674422.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -192,7 +192,7 @@ public sealed partial class ModEntry
         Monitor.Log(NativeMutationMinionsAlpha674418.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSpawnCommandGateAlpha674419.Describe(), LogLevel.Info);
         Monitor.Log(MutationAggroAlpha674420.Describe(), LogLevel.Info);
-        Monitor.Log(PelipperMutationHostilityAlpha674421.Describe(), LogLevel.Info);
+        Monitor.Log(PelipperMutationSteeringAlpha674422.Describe(), LogLevel.Info);
         Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
