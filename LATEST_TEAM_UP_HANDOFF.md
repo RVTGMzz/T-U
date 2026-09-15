@@ -1,35 +1,35 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.21
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.22
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_21_PELIPPER_MUTATION_HOSTILITY_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-21-pelipper-mutation-hostility`
-- Version: `0.2.0-alpha.6.7.44.21`
-- CI source SHA: `9bb3a88a98c51a3695ffa9e982f3da482c08632c`
-- Run: `34976619122`
-- Job: `104405839414`
-- Artifact ID: `10398993101`
-- Wrapper SHA256: `c27601d8160b76edaad383ed0be7a1dcd47f0b5e4b672101e71b8b38ae41d72e`
-- Inner ZIP SHA256: `7e68d423593acf32efcfa1d618bb5d5f90cfa9a0f9679e976b309ee6aaa602e9`
+- Branch: `v0.2-alpha6-7-44-22-pelipper-pack-steering`
+- Version: `0.2.0-alpha.6.7.44.22`
+- CI source SHA: `1921deff08d397cca6c867fcce35f5b184c68c1c`
+- Run: `34991407821`
+- Job: `104456710100`
+- Artifact ID: `10405981878`
+- Wrapper SHA256: `60b24fdb084fc687da548569e390546fed627330219ab2cc0b55a13f6f90529b`
+- Inner ZIP SHA256: `51c5422cb6c456e9946290c9c65090f4b4438aae9dfbd9fa76cb2d2a260e6432`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
 
 ## Current live truth
 
-6.7.44.19 proved native same-species Pelipper followers can spawn 4/4 with Spawn Commands OFF and no Slime fallback.
+6.7.44.19 proved native same-species Pelipper followers can spawn with Spawn Commands OFF and no Slime fallback. 6.7.44.20 proved generic Monster aggro flags do not make Pelipper wild Pokemon hostile.
 
-6.7.44.20 live Growlithe test proved generic native pursuit is not sufficient: Team Up successfully armed leader/minion proxy+source dozens of times with zero identity misses, but Pelipper wild Pokemon still did not attack Farmer. Treat Pelipper wilds as passive provider actors rather than native hostile Monster AI.
+6.7.44.21 proved Team Up-owned chase can move real Pelipper Pokemon toward Farmer, but its tile PathFindController implementation has bad pack locomotion: followers can jam the x2 leader and passive/gentle species look grid-like or erratic.
 
-## 6.7.44.21
+## 6.7.44.22
 
-Adds `Alpha674421PelipperMutationHostilityService` only for Pelipper Mutation leaders/minions. The genuine visible Pokemon source is driven toward Farmer using a private `PathFindController`; its genuine hidden Monster proxy is synchronized to the same position; contact damage calls `Farmer.takeDamage(..., proxy)` with a cooldown. No replacement actor is created and capture identity is preserved architecturally. Natural non-Mutation wild Pokemon are untouched.
+`Alpha674422PelipperMutationSteeringService` replaces the 6.7.44.21 runtime chase with low-level Stardew NPC movement. It preserves the real visible Pokemon, real hidden proxy and native capture identity while adding follower attack-ring targets, pack separation, leader right-of-way, hidden-proxy non-collision, blocked sidestep recovery and proxy-based contact damage.
 
-Immediate gate: force a Pelipper Mutation, do not attack first, verify leader + followers visibly chase and damage Farmer. `teamup_mutation status` should show `pathsBuilt>0`, `pathSteps>0`, `pairs>0`, leader/minion counts positive and, after contact, `contactDamageCalls>0`, ideally `identityMisses=0`.
+The 6.7.44.21 service remains in source history but is not instantiated in 6.7.44.22.
 
-Then explicitly recheck follower Poké Ball capture. After that continue 3 HP phases, x3 final loot, vanilla/custom regression and Lower Workings.
+Immediate live gate: test one small species and one large/gentle species. Expect `leaderMoves>0`, `minionMoves>0`, separation/leader-clearance counters when the pack closes, usually `proxySyncs>0`, ideally `identityMisses=0`, and `contactDamageCalls>0` after actual touch. Recheck native follower capture.
 
-Do not begin 6.7.45 unless remaining runtime gates are passed or explicitly waived.
+After locomotion passes, continue 3 HP phases, x3 final loot, vanilla/custom regression and Lower Workings. Do not begin 6.7.45 unless remaining runtime gates are passed or explicitly waived.
