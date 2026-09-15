@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_17"
+STAGE = ROOT / "_stage_alpha6744_18"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_17.txt"
-VERSION = "0.2.0-alpha.6.7.44.17"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_18.txt"
+VERSION = "0.2.0-alpha.6.7.44.18"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.18_NATIVE_SOURCE_MINIONS_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.18_NATIVE_SOURCE_MINIONS_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -44,6 +44,7 @@ try:
     minion_spawn = text("Core/Alpha674413MutationMinionSpawnService.cs")
     reward = text("Core/Alpha674414PelipperMutantRewardService.cs")
     leader_minion = text("Core/Alpha674416MutationLeaderMinionPolicyService.cs")
+    native_minions = text("Core/Alpha674418NativeMutationMinionService.cs")
     factory = text("Combat/MonsterMutationMinionFactory.cs")
     mutation = text("Combat/MonsterMutationService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
@@ -97,7 +98,7 @@ try:
         "MutantLeaderMarker",
         "NormalHostileMinionMarker",
         "leader=Mutant",
-        "minions=normal-hostile",
+        "minions=source-equivalent-normal-hostile",
         "leaderLoot=x3",
         "minionLootBonus=none",
         "MutationExcludedMarker",
@@ -112,35 +113,41 @@ try:
     req("minion.modData.Remove(Alpha674414PelipperMutantRewardService.LootMultiplierMarker)" in leader_minion,
         "minions are not protected from x3 loot marker")
     req("TryCreateSameRuntimeType" in factory and "same-runtime-type" in factory,
-        "same-type normal minion priority missing")
+        "same-runtime source construction carry-forward missing")
     req("IsMutationMinion(monster)" in mutation,
         "Mutation eligibility does not exclude minions")
     req("MutationLeaderMinionPolicyAlpha674416 = new Alpha674416MutationLeaderMinionPolicyService" in wiring,
         "leader/minion policy not wired")
-    req("MutationLeaderMinionPolicyAlpha674416.Describe()" in mutation_cmd,
-        "leader/minion policy missing from mutation status")
-    log("MUTANT LEADER + NORMAL HOSTILE MINION POLICY AUDIT: PASS")
+    log("MUTANT LEADER + SOURCE-EQUIVALENT NORMAL HOSTILE MINION POLICY: PASS")
 
     for token in [
-        "PelipperLightweightMinionMarker",
-        "PelipperLeaderSpeciesMarker",
-        "PelipperLightweightSpawned",
-        "PelipperNativeSpawnAvoided",
-        "PelipperTownCompatibilityService.IsWildCombatActor(source)",
-        "pelipper-lightweight-teamup",
-        "CreateFallback(position, baseMaxHealth, baseDamage, baseSpeed)",
+        "Alpha674418NativeMutationMinionService",
+        "NativeMutationMinionMarker",
+        "NativeProviderMarker",
+        "NativeSpeciesMarker",
+        "source-equivalent-only",
+        "pokemon_spawn",
+        "ResolvePokemonSpawnCallback",
+        "PelipperWildEncounterIdentityService.TryResolve",
+        "callback(\"pokemon_spawn\", args)",
+        "pelipper-native",
+        "same-runtime-type",
+        "No Slime fallback",
+        "return false;",
     ]:
-        req(token in factory, f"lightweight Pelipper minion policy missing {token}")
-    req("if (PelipperTownCompatibilityService.IsWildCombatActor(source))" in factory,
-        "Pelipper lightweight fast path missing")
-    req(factory.index("if (PelipperTownCompatibilityService.IsWildCombatActor(source))")
-        < factory.index("TryCreateSameRuntimeType(source"),
-        "Pelipper fast path must run before same-runtime-type reflection construction")
-    req("pelipperLightweight=" in leader_minion and "nativePelipperSpawnsAvoided=" in leader_minion,
-        "lightweight Pelipper telemetry missing")
-    req("lightweight one-actor Pelipper minions" in wiring,
-        "runtime log does not advertise lightweight Pelipper minions")
-    log("PELIPPER LIGHTWEIGHT ONE-ACTOR MINION POLICY: PASS")
+        req(token in native_minions, f"native source minion policy missing {token}")
+    req("if (!mode.Equals(\"same-runtime-type\", StringComparison.Ordinal))" in native_minions,
+        "unsupported custom source is not rejected before map insertion")
+    req(native_minions.index("if (!mode.Equals(\"same-runtime-type\", StringComparison.Ordinal))")
+        < native_minions.index("location.characters.Add(candidate)"),
+        "fallback object could be inserted before source-equivalent check")
+    req("NativeMutationMinionsAlpha674418 = new Alpha674418NativeMutationMinionService" in wiring,
+        "native Mutation minion service not wired")
+    req("NativeMutationMinionsAlpha674418.Describe()" in mutation_cmd,
+        "native Mutation minion telemetry missing from teamup_mutation status")
+    req("native Pelipper capture path" in wiring,
+        "runtime log does not advertise native Pelipper capture path")
+    log("SOURCE-NATIVE MINIONS + PELIPPER NATIVE CAPTURE PIPELINE AUDIT: PASS")
 
     for token in [
         "MutantLootMultiplier = 3",
@@ -204,7 +211,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.17 LIGHTWEIGHT MUTATION MINIONS")
+    log("BUILD SUCCESS - ALPHA 6.7.44.18 NATIVE SOURCE MINIONS")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
