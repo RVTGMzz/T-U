@@ -74,7 +74,8 @@ jobs:
             "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID"
           SIGNED_URL="$(sed -n 's/^[Ll]ocation:[[:space:]]*//p' /tmp/teamup_asset_headers | tr -d '\r' | head -n1)"
           test -n "$SIGNED_URL"
-          echo "TEAMUP_SIGNED_URL_BEGIN"
-          echo "$SIGNED_URL"
-          echo "TEAMUP_SIGNED_URL_END"
+          echo "TEAMUP_SIGNED_URL_B64_BEGIN"
+          printf '%s' "$SIGNED_URL" | base64 -w0
+          echo
+          echo "TEAMUP_SIGNED_URL_B64_END"
           echo "TEAMUP_RELEASE_ASSET_ID=$ASSET_ID"
