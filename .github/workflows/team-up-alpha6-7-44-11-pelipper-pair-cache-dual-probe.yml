@@ -43,7 +43,6 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ github.token }}
-      TEMP_TAG: team-up-6.7.44.24-ci-export
       ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.zip
     steps:
       - uses: actions/checkout@v4
@@ -52,30 +51,23 @@ jobs:
           dotnet_version: 6.0.x
       - name: Build, audit and package Alpha 6.7.44.24
         run: python3 tools/build_alpha6744_11.py
-      - name: Export package through temporary private prerelease
+      - name: Commit temporary private base64 export chunks
         shell: bash
         run: |
           set -euo pipefail
-          gh release delete "$TEMP_TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
-          gh release create "$TEMP_TAG" \
-            "release/$ZIP_NAME" \
-            "release/TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.sha256.txt" \
-            "BUILD_LOG_ALPHA6744_24.txt" \
-            --target "$GITHUB_SHA" \
-            --title "TEMP Team Up 6.7.44.24 CI Export" \
-            --notes "Temporary private CI export used because Actions artifact quota is full." \
-            --prerelease
-          ASSET_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TEMP_TAG" --jq ".assets[] | select(.name == \"$ZIP_NAME\") | .id")"
-          test -n "$ASSET_ID"
-          curl -sS -D /tmp/teamup_asset_headers -o /dev/null \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/octet-stream" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID"
-          SIGNED_URL="$(sed -n 's/^[Ll]ocation:[[:space:]]*//p' /tmp/teamup_asset_headers | tr -d '\r' | head -n1)"
-          test -n "$SIGNED_URL"
-          echo "TEAMUP_SIGNED_URL_B64_BEGIN"
-          printf '%s' "$SIGNED_URL" | base64 -w0
-          echo
-          echo "TEAMUP_SIGNED_URL_B64_END"
-          echo "TEAMUP_RELEASE_ASSET_ID=$ASSET_ID"
+          rm -rf _ci_export_674424
+          mkdir -p _ci_export_674424
+          base64 -w0 "release/$ZIP_NAME" > /tmp/teamup_674424.b64
+          split -b 100000 -d -a 2 /tmp/teamup_674424.b64 _ci_export_674424/part_
+          sha256sum "release/$ZIP_NAME" > _ci_export_674424/SHA256.txt
+          printf '%s\n' "$ZIP_NAME" > _ci_export_674424/FILENAME.txt
+          wc -c /tmp/teamup_674424.b64 > _ci_export_674424/BASE64_SIZE.txt
+          ls _ci_export_674424/part_* | wc -l > _ci_export_674424/PART_COUNT.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add _ci_export_674424
+          git commit -m "ci-export: 6.7.44.24 package chunks [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+          echo "CI_EXPORT_READY"
+          cat _ci_export_674424/PART_COUNT.txt
+          cat _ci_export_674424/BASE64_SIZE.txt
