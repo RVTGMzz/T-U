@@ -1,37 +1,11 @@
-# 6.7.44.24 Pelipper Mutant elite combat finalization gate
-name: Team Up v0.2.0-alpha.6.7.44.24 Elite Combat Finalization
+# One-shot 6.7.44.24 private export re-split. Build already passed at run 35135507500.
+name: Team Up v0.2.0-alpha.6.7.44.24 Export Resplit
 
 on:
   push:
     branches:
       - v0.2-alpha6-7-44-24-elite-combat-finalization
     paths:
-      - 'src/TeamUp/Core/Alpha674424EliteCombatFinalizationService.cs'
-      - 'src/TeamUp/Core/Alpha674424EliteReachOverlayService.cs'
-      - 'src/TeamUp/Core/Alpha674423PelipperMutantLeaderSmoothingService.cs'
-      - 'src/TeamUp/Core/Alpha674422PelipperMutationSteeringService.cs'
-      - 'src/TeamUp/Core/Alpha674421PelipperMutationHostilityService.cs'
-      - 'src/TeamUp/Core/Alpha674420MutationAggroService.cs'
-      - 'src/TeamUp/Core/Alpha674419PelipperSpawnCommandGateService.cs'
-      - 'src/TeamUp/Core/Alpha674418NativeMutationMinionService.cs'
-      - 'src/TeamUp/Core/Alpha674416MutationLeaderMinionPolicyService.cs'
-      - 'src/TeamUp/Core/Alpha674414PelipperMutantRewardService.cs'
-      - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
-      - 'src/TeamUp/Core/Alpha674413MutationMinionSpawnService.cs'
-      - 'src/TeamUp/Core/Alpha674412PelipperModDataHpBindingService.cs'
-      - 'src/TeamUp/Core/Alpha674410PelipperSpeciesPairingService.cs'
-      - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
-      - 'src/TeamUp/Core/PelipperCaptureSafetyService.cs'
-      - 'src/TeamUp/Combat/MonsterMutationMinionFactory.cs'
-      - 'src/TeamUp/Combat/MonsterMutationService.cs'
-      - 'src/TeamUp/ModConfig.cs'
-      - 'src/TeamUp/ModEntry.Alpha6719.cs'
-      - 'src/TeamUp/ModEntry.Alpha67446.cs'
-      - 'src/TeamUp/TeamUp.csproj'
-      - 'src/TeamUp/manifest.json'
-      - 'src/TeamUp/assets/**'
-      - 'src/TeamUp/i18n/**'
-      - 'tools/build_alpha6744_11.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
@@ -39,35 +13,26 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  resplit:
     runs-on: ubuntu-24.04
-    env:
-      GH_TOKEN: ${{ github.token }}
-      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.zip
     steps:
       - uses: actions/checkout@v4
-      - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
-        with:
-          dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.24
-        run: python3 tools/build_alpha6744_11.py
-      - name: Commit temporary private base64 export chunks
+      - name: Re-split existing verified package base64 into connector-sized chunks
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf _ci_export_674424
-          mkdir -p _ci_export_674424
-          base64 -w0 "release/$ZIP_NAME" > /tmp/teamup_674424.b64
-          split -b 100000 -d -a 2 /tmp/teamup_674424.b64 _ci_export_674424/part_
-          sha256sum "release/$ZIP_NAME" > _ci_export_674424/SHA256.txt
-          printf '%s\n' "$ZIP_NAME" > _ci_export_674424/FILENAME.txt
-          wc -c /tmp/teamup_674424.b64 > _ci_export_674424/BASE64_SIZE.txt
+          cat _ci_export_674424/part_* > /tmp/teamup_674424.b64
+          EXPECTED="$(awk '{print $1}' _ci_export_674424/BASE64_SIZE.txt)"
+          ACTUAL="$(wc -c < /tmp/teamup_674424.b64)"
+          test "$EXPECTED" = "$ACTUAL"
+          rm _ci_export_674424/part_*
+          split -b 30000 -d -a 2 /tmp/teamup_674424.b64 _ci_export_674424/part_
           ls _ci_export_674424/part_* | wc -l > _ci_export_674424/PART_COUNT.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add _ci_export_674424
-          git commit -m "ci-export: 6.7.44.24 package chunks [skip ci]"
+          git commit -m "ci-export: resplit 6.7.44.24 package [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
-          echo "CI_EXPORT_READY"
+          echo "CI_RESPLIT_READY"
           cat _ci_export_674424/PART_COUNT.txt
           cat _ci_export_674424/BASE64_SIZE.txt
