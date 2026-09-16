@@ -1,11 +1,13 @@
-# 6.7.44.23 Pelipper Mutant leader smoothing gate
-name: Team Up v0.2.0-alpha.6.7.44.23 Mutant Leader Smoothing
+# 6.7.44.24 Pelipper Mutant elite combat finalization gate
+name: Team Up v0.2.0-alpha.6.7.44.24 Elite Combat Finalization
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-23-mutant-leader-smoothing
+      - v0.2-alpha6-7-44-24-elite-combat-finalization
     paths:
+      - 'src/TeamUp/Core/Alpha674424EliteCombatFinalizationService.cs'
+      - 'src/TeamUp/Core/Alpha674424EliteReachOverlayService.cs'
       - 'src/TeamUp/Core/Alpha674423PelipperMutantLeaderSmoothingService.cs'
       - 'src/TeamUp/Core/Alpha674422PelipperMutationSteeringService.cs'
       - 'src/TeamUp/Core/Alpha674421PelipperMutationHostilityService.cs'
@@ -19,6 +21,7 @@ on:
       - 'src/TeamUp/Core/Alpha674412PelipperModDataHpBindingService.cs'
       - 'src/TeamUp/Core/Alpha674410PelipperSpeciesPairingService.cs'
       - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
+      - 'src/TeamUp/Core/PelipperCaptureSafetyService.cs'
       - 'src/TeamUp/Combat/MonsterMutationMinionFactory.cs'
       - 'src/TeamUp/Combat/MonsterMutationService.cs'
       - 'src/TeamUp/ModConfig.cs'
@@ -43,14 +46,14 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.23
+      - name: Build, audit and package Alpha 6.7.44.24
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.23 artifact
+      - name: Upload Alpha 6.7.44.24 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-23-mutant-leader-smoothing
+          name: team-up-alpha6-7-44-24-elite-combat-finalization
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_23.txt
+            release/TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_24.txt
           if-no-files-found: error
