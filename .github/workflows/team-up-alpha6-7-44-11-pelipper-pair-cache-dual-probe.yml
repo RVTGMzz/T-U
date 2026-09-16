@@ -36,11 +36,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TEMP_TAG: team-up-6.7.44.24-ci-export
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.zip
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
@@ -48,12 +52,29 @@ jobs:
           dotnet_version: 6.0.x
       - name: Build, audit and package Alpha 6.7.44.24
         run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.24 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: team-up-alpha6-7-44-24-elite-combat-finalization
-          path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_24.txt
-          if-no-files-found: error
+      - name: Export package through temporary private prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release delete "$TEMP_TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
+          gh release create "$TEMP_TAG" \
+            "release/$ZIP_NAME" \
+            "release/TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.sha256.txt" \
+            "BUILD_LOG_ALPHA6744_24.txt" \
+            --target "$GITHUB_SHA" \
+            --title "TEMP Team Up 6.7.44.24 CI Export" \
+            --notes "Temporary private CI export used because Actions artifact quota is full." \
+            --prerelease
+          ASSET_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TEMP_TAG" --jq ".assets[] | select(.name == \"$ZIP_NAME\") | .id")"
+          test -n "$ASSET_ID"
+          curl -sS -D /tmp/teamup_asset_headers -o /dev/null \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/octet-stream" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID"
+          SIGNED_URL="$(sed -n 's/^[Ll]ocation:[[:space:]]*//p' /tmp/teamup_asset_headers | tr -d '\r' | head -n1)"
+          test -n "$SIGNED_URL"
+          echo "TEAMUP_SIGNED_URL_BEGIN"
+          echo "$SIGNED_URL"
+          echo "TEAMUP_SIGNED_URL_END"
+          echo "TEAMUP_RELEASE_ASSET_ID=$ASSET_ID"
