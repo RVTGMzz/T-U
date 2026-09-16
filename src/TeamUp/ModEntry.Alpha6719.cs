@@ -54,6 +54,8 @@ public sealed partial class ModEntry
         PelipperSpawnCommandGateAlpha674419?.ResetTelemetry();
         MutationAggroAlpha674420?.ResetTelemetry();
         PelipperMutationLeaderSmoothingAlpha674423?.ResetTelemetry();
+        MutationEliteReachAlpha674424?.ResetTelemetry();
+        MutationEliteFinalizationAlpha674424?.ResetTelemetry();
     }
 
     private void OnAlpha6719UpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -99,6 +101,10 @@ public sealed partial class ModEntry
                     Monitor.Log(MutationAggroAlpha674420.Describe(), LogLevel.Info);
                 if (PelipperMutationLeaderSmoothingAlpha674423 is not null)
                     Monitor.Log(PelipperMutationLeaderSmoothingAlpha674423.Describe(), LogLevel.Info);
+                if (MutationEliteReachAlpha674424 is not null)
+                    Monitor.Log(MutationEliteReachAlpha674424.Describe(), LogLevel.Info);
+                if (MutationEliteFinalizationAlpha674424 is not null)
+                    Monitor.Log(MutationEliteFinalizationAlpha674424.Describe(), LogLevel.Info);
                 if (MutationMinionSpawnAlpha674413 is not null)
                     Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
                 if (PelipperSourceProbeAlpha67449 is not null)
