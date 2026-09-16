@@ -22,6 +22,8 @@ public sealed partial class ModEntry
     private Alpha674419PelipperSpawnCommandGateService PelipperSpawnCommandGateAlpha674419 { get; set; } = null!;
     private Alpha674420MutationAggroService MutationAggroAlpha674420 { get; set; } = null!;
     private Alpha674423PelipperMutantLeaderSmoothingService PelipperMutationLeaderSmoothingAlpha674423 { get; set; } = null!;
+    private Alpha674424EliteCombatFinalizationService MutationEliteFinalizationAlpha674424 { get; set; } = null!;
+    private Alpha674424EliteReachOverlayService MutationEliteReachAlpha674424 { get; set; } = null!;
 
     private void RegisterAlpha67446RuntimeFixes()
     {
@@ -72,13 +74,18 @@ public sealed partial class ModEntry
             Monitor,
             Helper);
 
-        // 6.7.44.23 supersedes both the 6.7.44.21 tile-path experiment and 6.7.44.22 steering runtime.
-        // Followers retain the proven pack steering, while the x2 Mutant leader no longer yields to
-        // followers, clears Pelipper passive movement state before chase steps, uses short direction
-        // hysteresis, holds a stable melee band and can damage Farmer from a visually appropriate x2 reach.
+        // 6.7.44.23 remains the proven movement layer. 6.7.44.24 deliberately overlays only leader
+        // reach/hold, persistent Mutation damage and capture blocking so follower locomotion stays intact.
         PelipperMutationLeaderSmoothingAlpha674423 = new Alpha674423PelipperMutantLeaderSmoothingService(
             Monitor,
             Helper);
+        MutationEliteFinalizationAlpha674424 = new Alpha674424EliteCombatFinalizationService(
+            Monitor,
+            Helper,
+            ModManifest.UniqueID);
+        MutationEliteReachAlpha674424 = new Alpha674424EliteReachOverlayService(
+            Monitor,
+            ModManifest.UniqueID);
 
         PelipperRuntimeAlpha67446 = new Alpha67446PelipperRuntimeService(Monitor, ModManifest.UniqueID);
         PelipperSourceProbeAlpha67449 = new Alpha67449PelipperSourceProbeService(Monitor, ModManifest.UniqueID);
@@ -93,12 +100,12 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.23 Pelipper runtime diagnostics: status.",
+            "6.7.44.24 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.23 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 source-native normal hostile minions, native Pelipper capture path with internal spawn-command gate, follower pack steering + smooth extended-reach Mutant leader hostility, global leader loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.24 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 source-native normal hostile minions, internal spawn-command gate, follower pack steering, smooth Mutant leader hostility, 160px leader reach, persistent Mutation damage, Mutant-leader capture block, global leader loot x3, active-teammate gift guard.",
             LogLevel.Info);
     }
 
@@ -129,6 +136,8 @@ public sealed partial class ModEntry
         PelipperSpawnCommandGateAlpha674419.ResetTelemetry();
         MutationAggroAlpha674420.ResetTelemetry();
         PelipperMutationLeaderSmoothingAlpha674423.ResetTelemetry();
+        MutationEliteFinalizationAlpha674424.ResetTelemetry();
+        MutationEliteReachAlpha674424.ResetTelemetry();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
@@ -193,6 +202,8 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperSpawnCommandGateAlpha674419.Describe(), LogLevel.Info);
         Monitor.Log(MutationAggroAlpha674420.Describe(), LogLevel.Info);
         Monitor.Log(PelipperMutationLeaderSmoothingAlpha674423.Describe(), LogLevel.Info);
+        Monitor.Log(MutationEliteReachAlpha674424.Describe(), LogLevel.Info);
+        Monitor.Log(MutationEliteFinalizationAlpha674424.Describe(), LogLevel.Info);
         Monitor.Log(MutationMinionSpawnAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSourceProbeAlpha67449.Describe(), LogLevel.Info);
         Monitor.Log(PelipperDualHpProbeAlpha674411.Describe(), LogLevel.Info);
