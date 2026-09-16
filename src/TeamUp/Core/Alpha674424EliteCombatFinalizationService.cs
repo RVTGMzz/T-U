@@ -10,10 +10,9 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Alpha 6.7.44.24 closes the remaining Pelipper Mutant-leader combat gaps proven by live testing:
-/// preserve the Mutation x2 contact damage even if Pelipper rewrites its hidden proxy later, report
-/// requested versus actual Farmer HP loss, and make the Mutant leader itself uncapturable while
-/// leaving its ordinary native followers catchable.
+/// Alpha 6.7.44.24 preserves Mutant stat damage, measures requested vs actual Farmer HP loss,
+/// and blocks native Pelipper capture for the Mutant leader only. Ordinary Mutation followers
+/// keep their native capture lifecycle.
 /// </summary>
 internal sealed class Alpha674424EliteCombatFinalizationService
 {
@@ -21,13 +20,11 @@ internal sealed class Alpha674424EliteCombatFinalizationService
     public const string NoCaptureMarker = "Ronvotri.TeamUp/MutantLeaderNoCapture";
 
     private const int MaxTargetProbeDepth = 2;
-
     private static readonly HashSet<MethodBase> PatchedCaptureMethods = new();
     private static Alpha674424EliteCombatFinalizationService? ActiveInstance;
 
     private readonly IMonitor _monitor;
     private readonly Harmony _harmony;
-
     private long _damageStamps;
     private long _damageRestores;
     private long _damageObservedHits;
@@ -88,30 +85,20 @@ internal sealed class Alpha674424EliteCombatFinalizationService
     private void PatchMutationStamp()
     {
         MethodInfo? method = AccessTools.Method(typeof(MonsterMutationService), "TryMutate");
-        if (method is null)
-        {
-            _last = "TryMutate hook unavailable";
-            return;
-        }
-
-        _harmony.Patch(
-            method,
-            postfix: new HarmonyMethod(typeof(Alpha674424EliteCombatFinalizationService), nameof(AfterTryMutate)));
+        if (method is not null)
+            _harmony.Patch(method, postfix: new HarmonyMethod(typeof(Alpha674424EliteCombatFinalizationService), nameof(AfterTryMutate)));
     }
 
     private void PatchLeaderDamageProbe()
     {
         MethodInfo? method = AccessTools.Method(typeof(Alpha674423PelipperMutantLeaderSmoothingService), "TryDamage");
-        if (method is null)
+        if (method is not null)
         {
-            _last = "TryDamage hook unavailable";
-            return;
+            _harmony.Patch(
+                method,
+                prefix: new HarmonyMethod(typeof(Alpha674424EliteCombatFinalizationService), nameof(BeforeLeaderDamage)),
+                postfix: new HarmonyMethod(typeof(Alpha674424EliteCombatFinalizationService), nameof(AfterLeaderDamage)));
         }
-
-        _harmony.Patch(
-            method,
-            prefix: new HarmonyMethod(typeof(Alpha674424EliteCombatFinalizationService), nameof(BeforeLeaderDamage)),
-            postfix: new HarmonyMethod(typeof(Alpha674424EliteCombatFinalizationService), nameof(AfterLeaderDamage)));
     }
 
     private static void AfterTryMutate(Monster __0, bool __result)
@@ -134,8 +121,7 @@ internal sealed class Alpha674424EliteCombatFinalizationService
         if (service is null || __args.Length < 4 || __args[3] is not Farmer farmer)
             return;
 
-        object? pair = __args[1];
-        if (!TryReadPair(pair, out Monster? proxy, out bool leader, out string species) || proxy is null)
+        if (!TryReadPair(__args[1], out Monster? proxy, out bool leader, out string species) || proxy is null)
             return;
 
         int requested = Math.Max(1, proxy.DamageToFarmer);
@@ -146,7 +132,7 @@ internal sealed class Alpha674424EliteCombatFinalizationService
             {
                 proxy.DamageToFarmer = intended;
                 service._damageRestores++;
-                service._last = $"damage-restored species={species} proxy={proxy.Name} intended={intended}";
+                service._last = $"damage-restored species={species} intended={intended}";
             }
         }
 
@@ -192,7 +178,6 @@ internal sealed class Alpha674424EliteCombatFinalizationService
                 _damageRestores++;
                 _last = $"tick-damage-restored leader={proxy.Name} intended={intended}";
             }
-
             MarkLeaderSourceNoCapture(proxy);
         }
     }
@@ -202,14 +187,11 @@ internal sealed class Alpha674424EliteCombatFinalizationService
         if (!MonsterMutationService.IsMutant(proxy)
             || !PelipperTownCompatibilityService.IsWildCombatActor(proxy)
             || !PelipperWildEncounterIdentityService.TryResolve(proxy, out PelipperWildEncounterIdentity identity))
-        {
             return;
-        }
 
-        NPC source = identity.SourceActor;
         proxy.modData[NoCaptureMarker] = "true";
-        if (!source.modData.TryGetValue(NoCaptureMarker, out string? raw)
-            || !raw.Equals("true", StringComparison.OrdinalIgnoreCase))
+        NPC source = identity.SourceActor;
+        if (!HasTrueMarker(source, NoCaptureMarker))
         {
             source.modData[NoCaptureMarker] = "true";
             _sourceNoCaptureMarks++;
@@ -217,9 +199,7 @@ internal sealed class Alpha674424EliteCombatFinalizationService
     }
 
     private void OnAssemblyLoad(object? sender, AssemblyLoadEventArgs e)
-    {
-        PatchPelipperCaptureMethods(new[] { e.LoadedAssembly });
-    }
+        => PatchPelipperCaptureMethods(new[] { e.LoadedAssembly });
 
     private void PatchPelipperCaptureMethods(IEnumerable<Assembly> assemblies)
     {
@@ -228,9 +208,7 @@ internal sealed class Alpha674424EliteCombatFinalizationService
             string assemblyName = assembly.GetName().Name ?? string.Empty;
             if (!assemblyName.Contains("PelipperTown", StringComparison.OrdinalIgnoreCase)
                 && !assemblyName.Contains("Griff.PelipperTown", StringComparison.OrdinalIgnoreCase))
-            {
                 continue;
-            }
 
             foreach (Type type in SafeGetTypes(assembly))
             {
@@ -297,12 +275,7 @@ internal sealed class Alpha674424EliteCombatFinalizationService
         if (candidate is Monster monster)
             return MonsterMutationService.IsMutant(monster);
         if (candidate is NPC npc)
-        {
-            if (HasTrueMarker(npc, NoCaptureMarker))
-                return true;
-            if (IsSourceOfMutantLeader(npc))
-                return true;
-        }
+            return HasTrueMarker(npc, NoCaptureMarker) || IsSourceOfMutantLeader(npc);
 
         Type type = candidate.GetType();
         if (IsSimple(type) || !visited.Add(candidate))
@@ -313,20 +286,16 @@ internal sealed class Alpha674424EliteCombatFinalizationService
         {
             if (!LooksLikeTargetMember(field.Name))
                 continue;
-            object? value = TryGetValue(() => field.GetValue(candidate));
-            if (ContainsMutantLeaderTarget(value, depth + 1, visited))
+            if (ContainsMutantLeaderTarget(TryGetValue(() => field.GetValue(candidate)), depth + 1, visited))
                 return true;
         }
-
         foreach (PropertyInfo property in type.GetProperties(flags))
         {
             if (!property.CanRead || property.GetIndexParameters().Length != 0 || !LooksLikeTargetMember(property.Name))
                 continue;
-            object? value = TryGetValue(() => property.GetValue(candidate));
-            if (ContainsMutantLeaderTarget(value, depth + 1, visited))
+            if (ContainsMutantLeaderTarget(TryGetValue(() => property.GetValue(candidate)), depth + 1, visited))
                 return true;
         }
-
         return false;
     }
 
@@ -340,9 +309,8 @@ internal sealed class Alpha674424EliteCombatFinalizationService
         {
             if (proxy.Health <= 0 || !MonsterMutationService.IsMutant(proxy))
                 continue;
-            if (!PelipperWildEncounterIdentityService.TryResolve(proxy, out PelipperWildEncounterIdentity identity))
-                continue;
-            if (ReferenceEquals(identity.SourceActor, source))
+            if (PelipperWildEncounterIdentityService.TryResolve(proxy, out PelipperWildEncounterIdentity identity)
+                && ReferenceEquals(identity.SourceActor, source))
                 return true;
         }
         return false;
@@ -356,10 +324,10 @@ internal sealed class Alpha674424EliteCombatFinalizationService
         if (pair is null)
             return false;
 
-        Type type = pair.GetType();
-        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         try
         {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            Type type = pair.GetType();
             proxy = type.GetProperty("Proxy", flags)?.GetValue(pair) as Monster;
             leader = type.GetProperty("Leader", flags)?.GetValue(pair) is bool rawLeader && rawLeader;
             object? identity = type.GetProperty("Identity", flags)?.GetValue(pair);
@@ -373,9 +341,12 @@ internal sealed class Alpha674424EliteCombatFinalizationService
     }
 
     private static bool TryReadIntendedDamage(Monster monster, out int damage)
-        => monster.modData.TryGetValue(IntendedDamageMarker, out string? raw)
+    {
+        damage = 0;
+        return monster.modData.TryGetValue(IntendedDamageMarker, out string? raw)
             && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out damage)
             && damage > 0;
+    }
 
     private static bool HasTrueMarker(NPC npc, string key)
         => npc.modData.TryGetValue(key, out string? raw)
@@ -383,23 +354,15 @@ internal sealed class Alpha674424EliteCombatFinalizationService
 
     private static bool LooksLikeCaptureMethod(string typeKey, MethodInfo method)
     {
-        string methodKey = Normalize(method.Name);
-        string combined = typeKey + methodKey;
-        return combined.Contains("capture")
-            || combined.Contains("catch")
-            || combined.Contains("pokeball")
-            || combined.Contains("pokeball");
+        string combined = typeKey + Normalize(method.Name);
+        return combined.Contains("capture") || combined.Contains("catch") || combined.Contains("pokeball");
     }
 
     private static bool LooksLikeTargetMember(string name)
     {
         string key = Normalize(name);
-        return key.Contains("target")
-            || key.Contains("pokemon")
-            || key.Contains("wild")
-            || key.Contains("encounter")
-            || key.Contains("monster")
-            || key.Contains("npc");
+        return key.Contains("target") || key.Contains("pokemon") || key.Contains("wild")
+            || key.Contains("encounter") || key.Contains("monster") || key.Contains("npc");
     }
 
     private static string Normalize(string text)
