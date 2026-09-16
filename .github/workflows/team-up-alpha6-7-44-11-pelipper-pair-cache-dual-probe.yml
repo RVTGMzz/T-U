@@ -1,5 +1,5 @@
-# One-shot 6.7.44.24 private export re-split. Build already passed at run 35135507500.
-name: Team Up v0.2.0-alpha.6.7.44.24 Export Resplit
+# One-shot cleanup after verified 6.7.44.24 build/export.
+name: Team Up v0.2.0-alpha.6.7.44.24 Finalize Test Release
 
 on:
   push:
@@ -13,26 +13,37 @@ permissions:
   contents: write
 
 jobs:
-  resplit:
+  finalize:
     runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OLD_TAG: team-up-6.7.44.24-ci-export
+      NEW_TAG: v0.2.0-alpha.6.7.44.24-test
+      VERIFIED_SHA: cacc69b9ccfeedfa2a9094044efa13781d33655e
     steps:
       - uses: actions/checkout@v4
-      - name: Re-split existing verified package base64 into connector-sized chunks
+        with:
+          fetch-depth: 0
+      - name: Promote verified assets and clean temporary export files
         shell: bash
         run: |
           set -euo pipefail
-          cat _ci_export_674424/part_* > /tmp/teamup_674424.b64
-          EXPECTED="$(awk '{print $1}' _ci_export_674424/BASE64_SIZE.txt)"
-          ACTUAL="$(wc -c < /tmp/teamup_674424.b64)"
-          test "$EXPECTED" = "$ACTUAL"
-          rm _ci_export_674424/part_*
-          split -b 30000 -d -a 2 /tmp/teamup_674424.b64 _ci_export_674424/part_
-          ls _ci_export_674424/part_* | wc -l > _ci_export_674424/PART_COUNT.txt
+          rm -rf /tmp/teamup-674424-release
+          mkdir -p /tmp/teamup-674424-release
+          gh release download "$OLD_TAG" -D /tmp/teamup-674424-release
+          gh release delete "$NEW_TAG" --cleanup-tag --yes >/dev/null 2>&1 || true
+          gh release create "$NEW_TAG" /tmp/teamup-674424-release/* \
+            --target "$VERIFIED_SHA" \
+            --title "Team Up 6.7.44.24 Elite Combat Finalization TEST" \
+            --notes "Runtime test build. Extends Mutant leader reach to 160px with a 128px hold band, preserves intended Mutation x2 contact damage with requested-vs-actual telemetry, blocks native capture for the Mutant leader only, and leaves ordinary source-native followers catchable. Build/audit PASS with 0 warnings and 0 errors. ZIP SHA256: 5f5c4817600f9aaf968419de140225a2a7939e33cb8769675d6b1b29609f7676." \
+            --prerelease
+          gh release delete "$OLD_TAG" --cleanup-tag --yes
+          rm -rf _ci_export_674424
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add _ci_export_674424
-          git commit -m "ci-export: resplit 6.7.44.24 package [skip ci]"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-          echo "CI_RESPLIT_READY"
-          cat _ci_export_674424/PART_COUNT.txt
-          cat _ci_export_674424/BASE64_SIZE.txt
+          git add -A _ci_export_674424
+          if ! git diff --cached --quiet; then
+            git commit -m "ci-export: clean temporary 6.7.44.24 transfer files [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+          echo "FINAL_RELEASE_READY=$NEW_TAG"
