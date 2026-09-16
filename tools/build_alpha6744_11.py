@@ -10,13 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src" / "TeamUp"
 RELEASE = ROOT / "release"
-STAGE = ROOT / "_stage_alpha6744_23"
+STAGE = ROOT / "_stage_alpha6744_24"
 MOD_STAGE = STAGE / "Team Up"
-LOG = ROOT / "BUILD_LOG_ALPHA6744_23.txt"
-VERSION = "0.2.0-alpha.6.7.44.23"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.zip"
+LOG = ROOT / "BUILD_LOG_ALPHA6744_24.txt"
+VERSION = "0.2.0-alpha.6.7.44.24"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.24_ELITE_COMBAT_FINALIZATION_TEST.sha256.txt"
 lines: list[str] = []
 
 
@@ -45,6 +45,8 @@ try:
     command_gate = text("Core/Alpha674419PelipperSpawnCommandGateService.cs")
     aggro = text("Core/Alpha674420MutationAggroService.cs")
     steering = text("Core/Alpha674423PelipperMutantLeaderSmoothingService.cs")
+    elite = text("Core/Alpha674424EliteCombatFinalizationService.cs")
+    reach = text("Core/Alpha674424EliteReachOverlayService.cs")
     mutation = text("Combat/MonsterMutationService.cs")
     wiring = text("ModEntry.Alpha67446.cs")
     mutation_cmd = text("ModEntry.Alpha6719.cs")
@@ -76,39 +78,60 @@ try:
 
     for token in [
         "Alpha674423PelipperMutantLeaderSmoothingService",
-        "LeaderHoldCenterDistance = 92f",
-        "LeaderAttackCenterDistance = 112f",
         "LeaderAxisSwitchBias = 24f",
         "LeaderDirectionLockTicks = 8",
         "source.Halt()",
         "if (!pair.Leader)",
         "ApplyFollowerSeparation",
-        "LeaderClearanceRadius = 112f",
         "source.MovePosition(Game1.currentGameTime, Game1.viewport, location)",
         "proxy.collidesWithOtherCharacters.Value = false",
-        "farmerDistance <= LeaderAttackCenterDistance",
         "farmer.takeDamage(damage, overrideParry: false, proxy)",
         "leaderReachHits=",
         "leaderRangeHolds=",
         "leaderHaltResets=",
         "leaderDirectionChanges=",
-        "leaderDirectionLocks=",
         "minionMoves=",
-        "leaderClearance=",
-        "sidesteps=",
     ]:
-        req(token in steering, f"6.7.44.23 leader smoothing missing {token}")
-    req("new PathFindController" not in steering,
-        "6.7.44.23 must not restore tile PathFindController")
-    req("new GreenSlime" not in steering,
-        "leader smoothing must not create fallback monsters")
-    req("PelipperMutationSteeringAlpha674422 = new" not in wiring,
-        "6.7.44.22 steering runtime must be disabled in 6.7.44.23")
-    req("PelipperMutationLeaderSmoothingAlpha674423 = new Alpha674423PelipperMutantLeaderSmoothingService" in wiring,
-        "6.7.44.23 smoothing service not wired")
-    req("PelipperMutationLeaderSmoothingAlpha674423.Describe()" in mutation_cmd,
-        "6.7.44.23 telemetry missing from teamup_mutation status")
-    log("PELIPPER MUTANT LEADER SMOOTHING + EXTENDED REACH AUDIT: PASS")
+        req(token in steering, f"6.7.44.23 movement carry-forward missing {token}")
+    req("new PathFindController" not in steering, "tile PathFindController must stay disabled")
+    req("new GreenSlime" not in steering, "leader smoothing must not create fallback monsters")
+    log("PELIPPER MUTANT LEADER SMOOTHING CARRY-FORWARD: PASS")
+
+    for token in [
+        "ExtendedLeaderAttackDistance = 160f",
+        "ExtendedLeaderHoldDistance = 128f",
+        "BeforeTryDamage",
+        "BeforeMoveSource",
+        "reachExpansions=",
+        "holdOverrides=",
+    ]:
+        req(token in reach, f"6.7.44.24 elite reach overlay missing {token}")
+    log("MUTANT LEADER 160PX REACH + 128PX HOLD OVERLAY: PASS")
+
+    for token in [
+        "MutantIntendedDamage",
+        "MutantLeaderNoCapture",
+        "AfterTryMutate",
+        "BeforeLeaderDamage",
+        "requestedDamageTotal=",
+        "actualDamageTotal=",
+        "captureMethodsPatched=",
+        "captureBlocks=",
+        "ContainsMutantLeaderTarget",
+        "MonsterMutationService.IsMutant(monster)",
+        "[MutationCaptureGuard]",
+    ]:
+        req(token in elite, f"6.7.44.24 elite combat finalization missing {token}")
+    req("IsMutationMinion" not in elite,
+        "capture guard must not classify ordinary Mutation followers as blocked leaders")
+    req("MutationEliteFinalizationAlpha674424 = new Alpha674424EliteCombatFinalizationService" in wiring,
+        "6.7.44.24 finalization service not wired")
+    req("MutationEliteReachAlpha674424 = new Alpha674424EliteReachOverlayService" in wiring,
+        "6.7.44.24 reach overlay not wired")
+    req("MutationEliteFinalizationAlpha674424.Describe()" in mutation_cmd
+        and "MutationEliteReachAlpha674424.Describe()" in mutation_cmd,
+        "6.7.44.24 telemetry missing from teamup_mutation status")
+    log("MUTANT X2 DAMAGE PRESERVATION + LEADER CAPTURE GUARD AUDIT: PASS")
 
     for token in ["MutantLootMultiplier = 3", "scope=all-mutants", "monsterDrop", "extraDropPasses"]:
         req(token in reward, f"global x3 Mutant reward missing {token}")
@@ -163,7 +186,7 @@ try:
 
     digest = hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()
     SHA_PATH.write_text(f"{digest}  {ZIP_NAME}\n", encoding="utf-8")
-    log("BUILD SUCCESS - ALPHA 6.7.44.23 MUTANT LEADER SMOOTHING")
+    log("BUILD SUCCESS - ALPHA 6.7.44.24 ELITE COMBAT FINALIZATION")
     log(f"ZIP: {ZIP_NAME}")
     log(f"SHA256: {digest}")
 finally:
