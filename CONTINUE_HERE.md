@@ -1,103 +1,138 @@
 # Continue Team Up Here
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.23**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.26**
 
 Development branch:
 
-`v0.2-alpha6-7-44-23-mutant-leader-smoothing`
+`v0.2-alpha6-7-44-26-pelipper-phase-lifecycle`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
-## Read first in a new chat
-
-1. `CONTINUE_HERE.md`
-2. `LATEST_TEAM_UP_HANDOFF.md`
-3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_23_MUTANT_LEADER_SMOOTHING_HANDOFF.md`
-
 ## Verified build checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.23`
-- CI source SHA: `2c8f132527cf06aa2d17a82875d7b6f4f46750b4`
-- CI run: `34996106050`
-- CI job: `104472621463`
-- Artifact ID: `10407443067`
-- Wrapper SHA256: `f27e09e980708d06a91c1e74bbd7a5094b92a2637aa405916fd5df8b8a283080`
-- Inner ZIP SHA256: `d95ed6f2a48447ec967032b38b08c2b30632547ecc3fc02351278981fec1efac`
+- Version: `0.2.0-alpha.6.7.44.26`
+- CI source SHA: `aa4bc43d41f3755728bf76285c4a40bd2f7e98d6`
+- CI run: `35178910723`
+- CI job: `105066633179`
+- Private prerelease asset ID: `569378688`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.26_PELIPPER_PHASE_LIFECYCLE_TEST.zip`
+- ZIP SHA256: `6aeb3b44c1fe03a2de3b9efc908b02d006056e5ad039b005341364c8ff58d170`
 - Build: PASS, 0 warnings, 0 errors
 
 Docs-only commits after the CI source SHA are expected.
 
-## Live truth
+## Live truth so far
 
-6.7.44.19 live-proved genuine same-species Pelipper followers with Spawn Commands OFF and no Slime fallback.
+- 6.7.44.19: genuine same-species Pelipper followers spawn with Spawn Commands OFF; no visible Slime fallback.
+- 6.7.44.20: generic Monster pursuit flags do not make Pelipper wild Pokemon actively attack Farmer.
+- 6.7.44.21: Team Up-owned chase works, but tile-path locomotion was visually poor.
+- 6.7.44.22: followers live-proved able to attack Farmer; leader still had short reach and jitter.
+- 6.7.44.23: leader smoothing/reach attempt; live log showed per-step `Halt()` was effectively 1:1 with leader movement and therefore a likely jitter source.
+- 6.7.44.24: adds 160px elite reach, 128px hold band, intended Mutation x2 damage preservation, requested-vs-actual damage telemetry, and Mutant-leader-only capture blocking. Not live-tested yet.
+- 6.7.44.25: continuous leader chase bypasses the legacy per-step Halt outside the 128px hold band. Not live-tested yet.
+- 6.7.44.26: explicit Pelipper Mutant phase lifecycle overlay. Not live-tested yet.
 
-6.7.44.20 proved generic Monster pursuit flags are insufficient for Pelipper wild Pokemon.
+## 6.7.44.26 phase lifecycle
 
-6.7.44.21 proved Team Up-owned chase works but tile pathing was visually bad.
+`Alpha674426PelipperMutantPhaseLifecycleService` is chained through `Alpha674424EliteReachOverlayService`, so existing ModEntry registration/status/reset wiring stays stable.
 
-6.7.44.22 live test proved the followers now attack Farmer. The remaining failure is specifically the Mutant leader: it only attacks at very close range and visibly jitters / moves unlike a normal Pokemon.
+It does not replace the existing source-aware HP engine. It observes and hardens it:
 
-## 6.7.44.23 fix
+- records explicit phase markers for `1/3 -> 2/3 -> 3/3`;
+- observes `ExtraLifeMarker` transitions produced by the proven source-aware damage hook;
+- verifies a guarded lethal transition restored authoritative Pelipper HP to full;
+- records the final lethal candidate separately;
+- patches native `monsterDrop` entry points and blocks premature drop calls during non-final or just-guarded phases;
+- final-phase native death/drop remains authoritative;
+- global Mutant native loot x3 remains the existing reward implementation;
+- followers are not treated as Mutant leaders and remain catchable;
+- no movement, teleport, controller replacement, fake capture, or fallback monster creation is added by 6.7.44.26.
 
-`Alpha674423PelipperMutantLeaderSmoothingService` supersedes the 6.7.44.22 runtime steering instance while preserving its successful follower pack behavior.
+Expected `teamup_mutation status` line:
 
-Leader-specific changes:
+```text
+Pelipper Mutation phases: explicit-3-phase
+```
 
-- no follower separation is applied to the leader;
-- `source.Halt()` clears Pelipper passive movement/velocity before each leader chase step;
-- short direction hysteresis reduces rapid cardinal axis flips;
-- leader holds a stable melee band instead of trying to overlap Farmer;
-- leader melee reach is extended to visually match the x2 Mutant scale;
-- followers retain pack separation, leader clearance and blocked sidesteps;
-- real source/proxy pair and native capture identity remain intact.
+Useful fields:
 
-6.7.44.22 remains in source history but is NOT instantiated at runtime in 6.7.44.23.
+```text
+tracked
+transitions
+phase2
+phase3
+restoreVerified
+restoreMismatch
+finalLethalArmed
+prematureDropBlocks
+finalDropPasses
+unverifiedFinalDrops
+invalidState
+```
+
+Healthy three-phase runtime should ultimately show:
+
+```text
+transitions=2
+phase2=1
+phase3=1
+restoreVerified=2
+restoreMismatch=0
+finalLethalArmed>=1
+invalidState=0
+```
+
+For reward, final native `monsterDrop` may be invoked three times because the existing reward service repeats the native drop pass twice to achieve x3. Those final calls must not be blocked by the phase lifecycle guard.
 
 ## Immediate runtime test
 
-Keep Pelipper Spawn Commands OFF and run:
+Install 6.7.44.26 and keep Pelipper Spawn Commands OFF.
+
+Run:
 
 ```text
 teamup_mutation force
 ```
 
-Do not attack first. Verify:
+Validate in one encounter if possible:
 
-- followers still attack normally;
-- Mutant leader approaches smoothly without the previous jitter;
-- leader stops near Farmer instead of trying to occupy the same pixels;
-- leader can damage Farmer from noticeably farther away;
-- native spawn/capture behavior remains intact.
+1. Followers still attack and retain native capture.
+2. Mutant leader chase is visually smoother than 6.7.44.23/24.
+3. Leader reaches/attacks from the 160px band instead of requiring pixel contact.
+4. Leader requested damage preserves Mutation Stat x2; compare requested vs actual damage if Farmer defense reduces it.
+5. Poké Ball cannot capture the Mutant leader, while followers remain catchable.
+6. First lethal bar transition restores full HP and enters phase 2/3.
+7. Second lethal bar transition restores full HP and enters phase 3/3.
+8. Third lethal bar kills the leader for real.
+9. No loot appears on phase 1->2 or 2->3; final death receives native loot x3.
 
-Then:
+Then run:
 
 ```text
 teamup_mutation status
 ```
 
-Expected new steering line: `Pelipper Mutation steering: leader-smooth-reach`.
-
-Inspect `leaderMoves`, `minionMoves`, `leaderReachHits`, `leaderRangeHolds`, `leaderHaltResets`, `leaderDirectionChanges`, `leaderDirectionLocks`, `proxySyncs`, `contactDamageCalls`, and ideally `identityMisses=0`.
+Inspect the continuous-chase, elite-finalization, source mutation, phase lifecycle, and Mutant reward lines together.
 
 ## Mutation contract
 
-One encounter is **1 Mutant leader + 2-4 ordinary hostile source-equivalent followers**. No unrelated Slime fallback.
+One encounter is **1 Mutant leader + 2-4 ordinary hostile source-equivalent followers**.
 
-Leader keeps HP x3, stat x2, visible Pelipper x2 cap, aura and global native loot x3. Followers match the original creature, remain ordinary and Mutation-excluded, receive no x3 leader reward, and remain genuine Pelipper wild encounters when Pelipper is the source.
+Leader keeps HP x3, stat x2, visible Pelipper x2 cap, aura, no capture, and final native loot x3. Followers match the original creature, remain ordinary and Mutation-excluded, receive no x3 leader reward, and retain genuine Pelipper wild capture semantics.
+
+No unrelated Slime fallback.
 
 ## Remaining gates before 6.7.45
 
-- 6.7.44.23 leader smoothing/reach live-pass;
-- follower native capture recheck;
-- all three Pelipper HP phases;
-- final global x3 leader loot;
+- live-pass 6.7.44.26 combined leader movement/reach/damage/capture behavior;
+- live-pass all three Pelipper HP phases;
+- live-pass final x3 leader loot with no phase-early reward;
 - vanilla/non-Pelipper Mutation regression;
 - compatible custom-source regression when practical;
 - Lower Workings runtime gate.
 
-Do not start 6.7.45 unless the user explicitly waives remaining gates.
+Do not start 6.7.45 unless the user explicitly waives the remaining runtime gates.
 
 ## Fresh-chat resume prompt
 
-`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-23-mutant-leader-smoothing. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_23_MUTANT_LEADER_SMOOTHING_HANDOFF.md. Current verified code SHA là 2c8f132527cf06aa2d17a82875d7b6f4f46750b4, run 34996106050. 6.7.44.22 live-proved follower Pelipper Mutation đã tấn công được, nhưng Mutant leader chỉ đánh khi rất gần và movement bị giật. 6.7.44.23 giữ follower pack steering, bỏ separation trên leader, Halt() movement state trước chase, thêm direction hysteresis, stable melee band và extended x2 melee reach. Ưu tiên live-test leader smooth/reach + capture, sau đó 3 HP phases, x3 loot, vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi chủ động waive.`
+`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-26-pelipper-phase-lifecycle. Current verified code SHA aa4bc43d41f3755728bf76285c4a40bd2f7e98d6, run 35178910723, ZIP SHA256 6aeb3b44c1fe03a2de3b9efc908b02d006056e5ad039b005341364c8ff58d170. 6.7.44.25 đã build continuous leader chase để bỏ per-step Halt gây jitter; 6.7.44.26 thêm explicit 1/3->2/3->3/3 phase lifecycle + premature loot guard mà không thay source-aware HP engine. Ưu tiên live-test một encounter hoàn chỉnh: follower attack/capture, leader smooth/reach/damage/capture lock, 3 HP phases, final loot x3; sau đó vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi waive.`
