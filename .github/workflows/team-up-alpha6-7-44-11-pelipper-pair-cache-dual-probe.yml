@@ -1,13 +1,13 @@
-# 6.7.44.31 safe baseline rebuilt from the last user-live-loaded 6.7.44.23 source checkpoint.
-name: Team Up v0.2.0-alpha.6.7.44.31 Safe Baseline 44.23
+# 6.7.44.32 exact Mutation force-target pin built on the user-live-loaded 6.7.44.23 baseline.
+name: Team Up v0.2.0-alpha.6.7.44.32 Force Target Pin
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-31-safe-baseline
+      - v0.2-alpha6-7-44-32-force-target-pin
     paths:
       - 'src/TeamUp/**'
-      - 'tools/build_alpha6744_31.py'
+      - 'tools/build_alpha6744_32.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
@@ -20,31 +20,31 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       EXPORT_TAG: team-up-6.7.44.24-ci-export
-      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.31_SAFE_BASELINE_44_23_TEST.zip
-      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.31_SAFE_BASELINE_44_23_TEST.sha256.txt
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.32_FORCE_TARGET_PIN_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.32_FORCE_TARGET_PIN_TEST.sha256.txt
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build and audit Alpha 6.7.44.31 safe baseline
-        run: python3 tools/build_alpha6744_31.py
-      - name: Upload Alpha 6.7.44.31 workflow artifact
+      - name: Build and audit Alpha 6.7.44.32 force target pin
+        run: python3 tools/build_alpha6744_32.py
+      - name: Upload Alpha 6.7.44.32 workflow artifact
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-31-safe-baseline
+          name: team-up-alpha6-7-44-32-force-target-pin
           path: |
             release/${{ env.ZIP_NAME }}
             release/${{ env.SHA_NAME }}
-            BUILD_LOG_ALPHA6744_31.txt
+            BUILD_LOG_ALPHA6744_32.txt
           if-no-files-found: error
-      - name: Export Alpha 6.7.44.31 through existing private prerelease
+      - name: Export Alpha 6.7.44.32 through existing private prerelease
         shell: bash
         run: |
           set -euo pipefail
           gh release upload "$EXPORT_TAG" \
             "release/$ZIP_NAME" \
             "release/$SHA_NAME" \
-            "BUILD_LOG_ALPHA6744_31.txt" \
+            "BUILD_LOG_ALPHA6744_32.txt" \
             --clobber
