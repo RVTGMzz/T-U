@@ -1,11 +1,12 @@
-# 6.7.44.25 Pelipper Mutant leader continuous-chase gate.
-name: Team Up v0.2.0-alpha.6.7.44.25 Leader Continuous Chase
+# 6.7.44.26 Pelipper Mutant explicit three-phase lifecycle gate.
+name: Team Up v0.2.0-alpha.6.7.44.26 Pelipper Phase Lifecycle
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-25-leader-continuous-chase
+      - v0.2-alpha6-7-44-26-pelipper-phase-lifecycle
     paths:
+      - 'src/TeamUp/Core/Alpha674426PelipperMutantPhaseLifecycleService.cs'
       - 'src/TeamUp/Core/Alpha674425PelipperLeaderContinuousChaseService.cs'
       - 'src/TeamUp/Core/Alpha674424EliteCombatFinalizationService.cs'
       - 'src/TeamUp/Core/Alpha674424EliteReachOverlayService.cs'
@@ -30,7 +31,7 @@ on:
       - 'src/TeamUp/manifest.json'
       - 'src/TeamUp/assets/**'
       - 'src/TeamUp/i18n/**'
-      - 'tools/build_alpha6744_25.py'
+      - 'tools/build_alpha6744_26.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
@@ -43,22 +44,22 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       EXPORT_TAG: team-up-6.7.44.24-ci-export
-      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.25_LEADER_CONTINUOUS_CHASE_TEST.zip
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.26_PELIPPER_PHASE_LIFECYCLE_TEST.zip
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build and audit Alpha 6.7.44.25
-        run: python3 tools/build_alpha6744_25.py
-      - name: Export Alpha 6.7.44.25 through existing private prerelease
+      - name: Build and audit Alpha 6.7.44.26
+        run: python3 tools/build_alpha6744_26.py
+      - name: Export Alpha 6.7.44.26 through existing private prerelease
         shell: bash
         run: |
           set -euo pipefail
           gh release upload "$EXPORT_TAG" \
             "release/$ZIP_NAME" \
-            "release/TeamUp_v0.2.0-alpha.6.7.44.25_LEADER_CONTINUOUS_CHASE_TEST.sha256.txt" \
-            "BUILD_LOG_ALPHA6744_25.txt" \
+            "release/TeamUp_v0.2.0-alpha.6.7.44.26_PELIPPER_PHASE_LIFECYCLE_TEST.sha256.txt" \
+            "BUILD_LOG_ALPHA6744_26.txt" \
             --clobber
           ASSET_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$EXPORT_TAG" --jq ".assets[] | select(.name == \"$ZIP_NAME\") | .id")"
           test -n "$ASSET_ID"
@@ -69,8 +70,8 @@ jobs:
             "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID"
           SIGNED_URL="$(sed -n 's/^[Ll]ocation:[[:space:]]*//p' /tmp/teamup_asset_headers | tr -d '\r' | head -n1)"
           test -n "$SIGNED_URL"
-          echo "TEAMUP_674425_SIGNED_URL_B64_BEGIN"
+          echo "TEAMUP_674426_SIGNED_URL_B64_BEGIN"
           printf '%s' "$SIGNED_URL" | base64 -w0
           echo
-          echo "TEAMUP_674425_SIGNED_URL_B64_END"
-          echo "TEAMUP_674425_RELEASE_ASSET_ID=$ASSET_ID"
+          echo "TEAMUP_674426_SIGNED_URL_B64_END"
+          echo "TEAMUP_674426_RELEASE_ASSET_ID=$ASSET_ID"
