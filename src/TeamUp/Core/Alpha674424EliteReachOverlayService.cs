@@ -10,7 +10,8 @@ namespace Ronvotri.TeamUp.Core;
 /// Small overlay on the proven 6.7.44.23 steering runtime. It widens only the Mutant leader's
 /// effective melee band without duplicating or replacing follower steering. 6.7.44.25 chains a
 /// continuous-chase child overlay here so existing ModEntry registration/status/reset wiring stays
-/// stable while per-step leader Halt() calls are bypassed outside the 128px hold band.
+/// stable while per-step leader Halt() calls are bypassed outside the 128px hold band. 6.7.44.26
+/// chains explicit three-phase lifecycle telemetry/loot guarding through the same stable surface.
 /// </summary>
 internal sealed class Alpha674424EliteReachOverlayService
 {
@@ -21,6 +22,7 @@ internal sealed class Alpha674424EliteReachOverlayService
     private readonly IMonitor _monitor;
     private readonly Harmony _harmony;
     private readonly Alpha674425PelipperLeaderContinuousChaseService _continuousChase;
+    private readonly Alpha674426PelipperMutantPhaseLifecycleService _phaseLifecycle;
     private long _reachExpansions;
     private long _holdOverrides;
     private string _last = "reset";
@@ -32,8 +34,9 @@ internal sealed class Alpha674424EliteReachOverlayService
         ActiveInstance = this;
         Apply();
         _continuousChase = new Alpha674425PelipperLeaderContinuousChaseService(monitor, uniqueId);
+        _phaseLifecycle = new Alpha674426PelipperMutantPhaseLifecycleService(monitor, uniqueId);
         _monitor.Log(
-            "Team Up 6.7.44.25 Elite reach + continuous chase enabled: Mutant leader attack radius 160px, stable hold band 128px, per-step Halt bypass outside hold; follower steering unchanged.",
+            "Team Up 6.7.44.26 Elite runtime chain enabled: 160px reach, 128px hold, continuous leader chase, explicit three-phase lifecycle and guarded-phase loot suppression; follower steering unchanged.",
             LogLevel.Info);
     }
 
@@ -42,7 +45,9 @@ internal sealed class Alpha674424EliteReachOverlayService
     public string Describe()
         => $"Mutation elite reach overlay: attack=160px | hold=128px | reachExpansions={_reachExpansions} | holdOverrides={_holdOverrides} | last={_last}"
             + Environment.NewLine
-            + _continuousChase.Describe();
+            + _continuousChase.Describe()
+            + Environment.NewLine
+            + _phaseLifecycle.Describe();
 
     public void ResetTelemetry()
     {
@@ -50,6 +55,7 @@ internal sealed class Alpha674424EliteReachOverlayService
         _holdOverrides = 0;
         _last = "reset";
         _continuousChase.ResetTelemetry();
+        _phaseLifecycle.ResetTelemetry();
     }
 
     private void Apply()
