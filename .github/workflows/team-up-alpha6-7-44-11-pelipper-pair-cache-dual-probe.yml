@@ -1,56 +1,50 @@
-# 6.7.44.23 Pelipper Mutant leader smoothing gate
-name: Team Up v0.2.0-alpha.6.7.44.23 Mutant Leader Smoothing
+# 6.7.44.31 safe baseline rebuilt from the last user-live-loaded 6.7.44.23 source checkpoint.
+name: Team Up v0.2.0-alpha.6.7.44.31 Safe Baseline 44.23
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-23-mutant-leader-smoothing
+      - v0.2-alpha6-7-44-31-safe-baseline
     paths:
-      - 'src/TeamUp/Core/Alpha674423PelipperMutantLeaderSmoothingService.cs'
-      - 'src/TeamUp/Core/Alpha674422PelipperMutationSteeringService.cs'
-      - 'src/TeamUp/Core/Alpha674421PelipperMutationHostilityService.cs'
-      - 'src/TeamUp/Core/Alpha674420MutationAggroService.cs'
-      - 'src/TeamUp/Core/Alpha674419PelipperSpawnCommandGateService.cs'
-      - 'src/TeamUp/Core/Alpha674418NativeMutationMinionService.cs'
-      - 'src/TeamUp/Core/Alpha674416MutationLeaderMinionPolicyService.cs'
-      - 'src/TeamUp/Core/Alpha674414PelipperMutantRewardService.cs'
-      - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
-      - 'src/TeamUp/Core/Alpha674413MutationMinionSpawnService.cs'
-      - 'src/TeamUp/Core/Alpha674412PelipperModDataHpBindingService.cs'
-      - 'src/TeamUp/Core/Alpha674410PelipperSpeciesPairingService.cs'
-      - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
-      - 'src/TeamUp/Combat/MonsterMutationMinionFactory.cs'
-      - 'src/TeamUp/Combat/MonsterMutationService.cs'
-      - 'src/TeamUp/ModConfig.cs'
-      - 'src/TeamUp/ModEntry.Alpha6719.cs'
-      - 'src/TeamUp/ModEntry.Alpha67446.cs'
-      - 'src/TeamUp/TeamUp.csproj'
-      - 'src/TeamUp/manifest.json'
-      - 'src/TeamUp/assets/**'
-      - 'src/TeamUp/i18n/**'
-      - 'tools/build_alpha6744_11.py'
+      - 'src/TeamUp/**'
+      - 'tools/build_alpha6744_31.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPORT_TAG: team-up-6.7.44.24-ci-export
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.31_SAFE_BASELINE_44_23_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.31_SAFE_BASELINE_44_23_TEST.sha256.txt
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build, audit and package Alpha 6.7.44.23
-        run: python3 tools/build_alpha6744_11.py
-      - name: Upload Alpha 6.7.44.23 artifact
+      - name: Build and audit Alpha 6.7.44.31 safe baseline
+        run: python3 tools/build_alpha6744_31.py
+      - name: Upload Alpha 6.7.44.31 workflow artifact
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-23-mutant-leader-smoothing
+          name: team-up-alpha6-7-44-31-safe-baseline
           path: |
-            release/TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.zip
-            release/TeamUp_v0.2.0-alpha.6.7.44.23_MUTANT_LEADER_SMOOTHING_TEST.sha256.txt
-            BUILD_LOG_ALPHA6744_23.txt
+            release/${{ env.ZIP_NAME }}
+            release/${{ env.SHA_NAME }}
+            BUILD_LOG_ALPHA6744_31.txt
           if-no-files-found: error
+      - name: Export Alpha 6.7.44.31 through existing private prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$EXPORT_TAG" \
+            "release/$ZIP_NAME" \
+            "release/$SHA_NAME" \
+            "BUILD_LOG_ALPHA6744_31.txt" \
+            --clobber
