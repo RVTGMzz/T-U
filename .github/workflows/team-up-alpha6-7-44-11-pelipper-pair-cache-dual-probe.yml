@@ -1,35 +1,20 @@
-# 6.7.44.28 Lower Workings runtime gate.
-name: Team Up v0.2.0-alpha.6.7.44.28 Lower Workings Runtime Gate
+# 6.7.44.29 Lower Workings runtime command hardening.
+name: Team Up v0.2.0-alpha.6.7.44.29 Lower Runtime Command Hardening
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-28-lower-workings-runtime-gate
+      - v0.2-alpha6-7-44-29-lower-runtime-command-hardening
     paths:
-      - 'src/TeamUp/Core/Alpha674428LowerWorkingsRuntimeGateService.cs'
-      - 'src/TeamUp/Core/Alpha674427MutationRegressionGuardService.cs'
-      - 'src/TeamUp/Core/Alpha674426PelipperMutantPhaseLifecycleService.cs'
-      - 'src/TeamUp/Core/Alpha674425PelipperLeaderContinuousChaseService.cs'
-      - 'src/TeamUp/Core/Alpha674424EliteCombatFinalizationService.cs'
-      - 'src/TeamUp/Core/Alpha674424EliteReachOverlayService.cs'
-      - 'src/TeamUp/Core/Alpha674423PelipperMutantLeaderSmoothingService.cs'
-      - 'src/TeamUp/Core/Alpha674419PelipperSpawnCommandGateService.cs'
-      - 'src/TeamUp/Core/Alpha674418NativeMutationMinionService.cs'
-      - 'src/TeamUp/Core/Alpha674414PelipperMutantRewardService.cs'
-      - 'src/TeamUp/Core/Alpha674413PelipperVisibleMutationService.cs'
-      - 'src/TeamUp/Core/Alpha674412PelipperModDataHpBindingService.cs'
-      - 'src/TeamUp/Core/Alpha67448PelipperSourceMutationService.cs'
-      - 'src/TeamUp/Combat/MonsterMutationMinionFactory.cs'
-      - 'src/TeamUp/Combat/MonsterMutationService.cs'
-      - 'src/TeamUp/Story/LowerWorkingsInteriorSurveyStoryService.cs'
-      - 'src/TeamUp/ModConfig.cs'
+      - 'src/TeamUp/ModEntry.cs'
       - 'src/TeamUp/ModEntry.Alpha6744.cs'
+      - 'src/TeamUp/Core/Alpha674428LowerWorkingsRuntimeGateService.cs'
       - 'src/TeamUp/TeamUp.csproj'
       - 'src/TeamUp/manifest.json'
       - 'src/TeamUp/assets/LowerWorkings.tmx'
       - 'src/TeamUp/assets/**'
       - 'src/TeamUp/i18n/**'
-      - 'tools/build_alpha6744_28.py'
+      - 'tools/build_alpha6744_29.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
@@ -42,45 +27,34 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       EXPORT_TAG: team-up-6.7.44.24-ci-export
-      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.28_LOWER_WORKINGS_RUNTIME_GATE_TEST.zip
-      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.28_LOWER_WORKINGS_RUNTIME_GATE_TEST.sha256.txt
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.29_LOWER_RUNTIME_COMMAND_HARDENING_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.29_LOWER_RUNTIME_COMMAND_HARDENING_TEST.sha256.txt
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build and audit Alpha 6.7.44.28
-        run: python3 tools/build_alpha6744_28.py
-      - name: Upload Alpha 6.7.44.28 workflow artifact
+      - name: Build and audit Alpha 6.7.44.29
+        run: python3 tools/build_alpha6744_29.py
+      - name: Upload Alpha 6.7.44.29 workflow artifact
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-28-lower-workings-runtime-gate
+          name: team-up-alpha6-7-44-29-lower-runtime-command-hardening
           path: |
             release/${{ env.ZIP_NAME }}
             release/${{ env.SHA_NAME }}
-            BUILD_LOG_ALPHA6744_28.txt
+            BUILD_LOG_ALPHA6744_29.txt
           if-no-files-found: error
-      - name: Export Alpha 6.7.44.28 through existing private prerelease
+      - name: Export Alpha 6.7.44.29 through existing private prerelease
         shell: bash
         run: |
           set -euo pipefail
           gh release upload "$EXPORT_TAG" \
             "release/$ZIP_NAME" \
             "release/$SHA_NAME" \
-            "BUILD_LOG_ALPHA6744_28.txt" \
+            "BUILD_LOG_ALPHA6744_29.txt" \
             --clobber
           ASSET_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$EXPORT_TAG" --jq ".assets[] | select(.name == \"$ZIP_NAME\") | .id")"
           test -n "$ASSET_ID"
-          curl -sS -D /tmp/teamup_asset_headers -o /dev/null \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/octet-stream" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID"
-          SIGNED_URL="$(sed -n 's/^[Ll]ocation:[[:space:]]*//p' /tmp/teamup_asset_headers | tr -d '\r' | head -n1)"
-          test -n "$SIGNED_URL"
-          echo "TEAMUP_674428_SIGNED_URL_B64_BEGIN"
-          printf '%s' "$SIGNED_URL" | base64 -w0
-          echo
-          echo "TEAMUP_674428_SIGNED_URL_B64_END"
-          echo "TEAMUP_674428_RELEASE_ASSET_ID=$ASSET_ID"
+          echo "TEAMUP_674429_RELEASE_ASSET_ID=$ASSET_ID"
