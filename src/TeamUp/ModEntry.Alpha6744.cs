@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Ronvotri.TeamUp.Core;
 using Ronvotri.TeamUp.Story;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -11,6 +12,7 @@ public sealed partial class ModEntry
 {
     private const string LowerWorkingsLocationNameAlpha6744 = "Ronvotri.TeamUp_LowerWorkings";
     private LowerWorkingsInteriorSurveyStoryService LowerWorkingsInteriorSurveyAlpha6744 { get; set; } = null!;
+    private Alpha674428LowerWorkingsRuntimeGateService LowerWorkingsRuntimeGateAlpha674428 { get; set; } = null!;
 
     private void RegisterAlpha6744Events()
     {
@@ -27,6 +29,15 @@ public sealed partial class ModEntry
             () => EntryProtocolAlpha6740.GetRequiredFieldPeople(),
             () => EntryProtocolAlpha6740.GetRequiredNpcAllies());
 
+        LowerWorkingsRuntimeGateAlpha674428 = new Alpha674428LowerWorkingsRuntimeGateService(
+            Monitor,
+            LowerWorkingsLocationNameAlpha6744,
+            () => LowerWorkingsInteriorSurveyAlpha6744.Stage,
+            () => LowerWorkingsDescentAlpha6742.FirstDescentComplete,
+            () => EntryProtocolAlpha6740.ProtocolReady,
+            () => SurgeHighAlpha6738.IsHigh,
+            () => RosterProgressionAlpha6727.GetUnlockedNpcSlots(Game1.MasterPlayer));
+
         Helper.Events.Content.AssetRequested += OnAlpha6744AssetRequested;
         Helper.Events.GameLoop.SaveLoaded += OnAlpha6744SaveLoaded;
         Helper.Events.Player.Warped += OnAlpha6744Warped;
@@ -36,6 +47,10 @@ public sealed partial class ModEntry
             "teamup_lower_interior",
             "Lower Workings dedicated interior survey: status | reset | stage <0-6>.",
             OnAlpha6744Command);
+        Helper.ConsoleCommands.Add(
+            "teamup_lower_runtime",
+            "Lower Workings runtime gate: status | reset.",
+            OnAlpha674428Command);
 
         EnsureAlpha67442EncounterReactionsRegistered();
         RegisterAlpha67446RuntimeFixes();
@@ -72,14 +87,20 @@ public sealed partial class ModEntry
 
     private void OnAlpha6744SaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
-        if (Context.IsWorldReady)
-            LowerWorkingsInteriorSurveyAlpha6744.OnSaveLoaded();
+        if (!Context.IsWorldReady)
+            return;
+
+        LowerWorkingsInteriorSurveyAlpha6744.OnSaveLoaded();
+        LowerWorkingsRuntimeGateAlpha674428.OnSaveLoaded();
     }
 
     private void OnAlpha6744Warped(object? sender, WarpedEventArgs e)
     {
-        if (Context.IsWorldReady && e.IsLocalPlayer)
-            LowerWorkingsInteriorSurveyAlpha6744.OnLocalWarped(e.NewLocation);
+        if (!Context.IsWorldReady || !e.IsLocalPlayer)
+            return;
+
+        LowerWorkingsInteriorSurveyAlpha6744.OnLocalWarped(e.NewLocation);
+        LowerWorkingsRuntimeGateAlpha674428.OnLocalWarped(e.OldLocation, e.NewLocation);
     }
 
     private void OnAlpha6744UpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -119,6 +140,26 @@ public sealed partial class ModEntry
         WriteAlpha6744Diagnostic();
     }
 
+    private void OnAlpha674428Command(string command, string[] args)
+    {
+        if (!Context.IsWorldReady)
+        {
+            Monitor.Log("Load a save before using teamup_lower_runtime.", LogLevel.Info);
+            return;
+        }
+
+        string action = args.Length == 0 ? "status" : args[0].Trim().ToLowerInvariant();
+        if (action == "reset")
+            LowerWorkingsRuntimeGateAlpha674428.ResetTelemetry();
+        else if (action != "status")
+        {
+            Monitor.Log("Usage: teamup_lower_runtime <status|reset>", LogLevel.Info);
+            return;
+        }
+
+        Monitor.Log(LowerWorkingsRuntimeGateAlpha674428.Describe(), LogLevel.Info);
+    }
+
     private void WriteAlpha6744Diagnostic()
     {
         GameLocation? lower = Game1.getLocationFromName(LowerWorkingsLocationNameAlpha6744);
@@ -128,6 +169,7 @@ public sealed partial class ModEntry
             Origin.Describe(),
             LowerWorkingsDescentAlpha6742.Describe(Game1.currentLocation),
             LowerWorkingsInteriorSurveyAlpha6744.Describe(Game1.currentLocation),
+            LowerWorkingsRuntimeGateAlpha674428.Describe(),
             $"Dedicated location: name={LowerWorkingsLocationNameAlpha6744} loaded={lower is not null} asset=assets/LowerWorkings.tmx",
             $"Formation requirement: people={EntryProtocolAlpha6740.GetRequiredFieldPeople()} | activeNpcAllies={EntryProtocolAlpha6740.GetRequiredNpcAllies()} | hard people cap remains 5.",
             "Route: Guild survey order -> persisted breach MineShaft + tile anchor -> dedicated Lower Workings map -> three 120-tick clue surveys -> safe return at entry -> Guild report.",
