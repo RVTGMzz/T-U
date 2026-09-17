@@ -12,6 +12,8 @@ namespace Ronvotri.TeamUp.Core;
 /// continuous-chase child overlay here so existing ModEntry registration/status/reset wiring stays
 /// stable while per-step leader Halt() calls are bypassed outside the 128px hold band. 6.7.44.26
 /// chains explicit three-phase lifecycle telemetry/loot guarding through the same stable surface.
+/// 6.7.44.27 adds a source-equivalent regression guard so unsupported non-Pelipper follower sources
+/// fail closed instead of ever escaping as an unrelated GreenSlime fallback.
 /// </summary>
 internal sealed class Alpha674424EliteReachOverlayService
 {
@@ -23,6 +25,7 @@ internal sealed class Alpha674424EliteReachOverlayService
     private readonly Harmony _harmony;
     private readonly Alpha674425PelipperLeaderContinuousChaseService _continuousChase;
     private readonly Alpha674426PelipperMutantPhaseLifecycleService _phaseLifecycle;
+    private readonly Alpha674427MutationRegressionGuardService _regressionGuard;
     private long _reachExpansions;
     private long _holdOverrides;
     private string _last = "reset";
@@ -35,8 +38,9 @@ internal sealed class Alpha674424EliteReachOverlayService
         Apply();
         _continuousChase = new Alpha674425PelipperLeaderContinuousChaseService(monitor, uniqueId);
         _phaseLifecycle = new Alpha674426PelipperMutantPhaseLifecycleService(monitor, uniqueId);
+        _regressionGuard = new Alpha674427MutationRegressionGuardService(monitor, uniqueId);
         _monitor.Log(
-            "Team Up 6.7.44.26 Elite runtime chain enabled: 160px reach, 128px hold, continuous leader chase, explicit three-phase lifecycle and guarded-phase loot suppression; follower steering unchanged.",
+            "Team Up 6.7.44.27 Elite runtime chain enabled: 160px reach, 128px hold, continuous leader chase, explicit three-phase lifecycle, guarded-phase loot suppression and source-equivalent-only Mutation followers; follower steering unchanged.",
             LogLevel.Info);
     }
 
@@ -47,7 +51,9 @@ internal sealed class Alpha674424EliteReachOverlayService
             + Environment.NewLine
             + _continuousChase.Describe()
             + Environment.NewLine
-            + _phaseLifecycle.Describe();
+            + _phaseLifecycle.Describe()
+            + Environment.NewLine
+            + _regressionGuard.Describe();
 
     public void ResetTelemetry()
     {
@@ -56,6 +62,7 @@ internal sealed class Alpha674424EliteReachOverlayService
         _last = "reset";
         _continuousChase.ResetTelemetry();
         _phaseLifecycle.ResetTelemetry();
+        _regressionGuard.ResetTelemetry();
     }
 
     private void Apply()
