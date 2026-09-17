@@ -1,3 +1,4 @@
+using System.Reflection;
 using Ronvotri.TeamUp.Combat;
 using Ronvotri.TeamUp.Core;
 using StardewModdingAPI;
@@ -9,6 +10,11 @@ namespace Ronvotri.TeamUp;
 
 public sealed partial class ModEntry
 {
+    private static readonly MethodInfo? MutationIsEligibleAlpha674432 = typeof(MonsterMutationService).GetMethod(
+        "IsEligible", BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly MethodInfo? MutationTryMutateAlpha674432 = typeof(MonsterMutationService).GetMethod(
+        "TryMutate", BindingFlags.Instance | BindingFlags.NonPublic);
+
     private MonsterMutationService MutationAlpha6719 { get; set; } = null!;
 
     private void RegisterAlpha6719Events()
@@ -116,19 +122,34 @@ public sealed partial class ModEntry
                 return;
 
             case "force":
-                string? displayName = PelipperSourceProbeAlpha67449?.CaptureForceTargetDisplayName();
-                bool transformed = MutationAlpha6719.ForceNearestEligible(out string rawResult);
-
-                if (!transformed && Context.IsWorldReady && Game1.currentLocation is not null)
+                Monster? forceTarget = FindPinnedMutationForceTargetAlpha674432();
+                if (forceTarget is null)
                 {
-                    Monster? probeTarget = Game1.currentLocation.characters
-                        .OfType<Monster>()
-                        .Where(monster => monster.Health > 0)
-                        .Where(PelipperTownCompatibilityService.IsWildCombatActor)
-                        .OrderBy(monster => Microsoft.Xna.Framework.Vector2.DistanceSquared(monster.Position, Game1.player.Position))
-                        .FirstOrDefault();
-                    if (probeTarget is not null)
-                        Alpha674411PelipperDualHpProbeService.ProbeNow(probeTarget);
+                    string noTarget = LocalizeMutationForceResult(
+                        transformed: false,
+                        "No eligible normal hostile monster is available in this location.",
+                        displayName: null);
+                    Monitor.Log(noTarget, LogLevel.Info);
+                    if (Context.IsWorldReady)
+                        Game1.showGlobalMessage(noTarget);
+                    return;
+                }
+
+                string? displayName = ResolvePinnedMutationDisplayNameAlpha674432(forceTarget);
+                LogPinnedMutationForceTargetAlpha674432(forceTarget, displayName);
+
+                bool transformed = TryForcePinnedMutationAlpha674432(forceTarget);
+                string rawResult = transformed
+                    ? $"Forced mutation: {forceTarget.Name} -> HP {forceTarget.Health}/{forceTarget.MaxHealth}."
+                    : $"Force mutation was rejected for {forceTarget.Name}.";
+
+                if (!transformed)
+                {
+                    Alpha674411PelipperDualHpProbeService.ProbeNow(forceTarget);
+                    if (PelipperModDataHpBindingAlpha674412 is not null)
+                        Monitor.Log(PelipperModDataHpBindingAlpha674412.Describe(), LogLevel.Info);
+                    if (PelipperSourceMutationAlpha67448 is not null)
+                        Monitor.Log(PelipperSourceMutationAlpha67448.Describe(), LogLevel.Info);
                 }
 
                 string result = LocalizeMutationForceResult(transformed, rawResult, displayName);
@@ -141,6 +162,94 @@ public sealed partial class ModEntry
                 Monitor.Log("Usage: teamup_mutation <status|list|force>", LogLevel.Info);
                 return;
         }
+    }
+
+    private Monster? FindPinnedMutationForceTargetAlpha674432()
+    {
+        if (!Context.IsWorldReady || !Context.IsMainPlayer || Game1.currentLocation is null)
+            return null;
+
+        return Game1.currentLocation.characters
+            .OfType<Monster>()
+            .Where(monster => monster.Health > 0)
+            .Where(IsPinnedMutationEligibleAlpha674432)
+            .OrderBy(monster => Microsoft.Xna.Framework.Vector2.DistanceSquared(monster.Position, Game1.player.Position))
+            .FirstOrDefault();
+    }
+
+    private bool IsPinnedMutationEligibleAlpha674432(Monster monster)
+    {
+        if (MutationIsEligibleAlpha674432 is null)
+            return false;
+        try
+        {
+            return MutationIsEligibleAlpha674432.Invoke(MutationAlpha6719, new object[] { monster }) is true;
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"[MutationForceTarget] eligibility reflection failed for {monster.GetType().FullName}: {ex.GetType().Name}: {ex.Message}", LogLevel.Warn);
+            return false;
+        }
+    }
+
+    private bool TryForcePinnedMutationAlpha674432(Monster target)
+    {
+        if (MutationTryMutateAlpha674432 is null)
+            return false;
+        try
+        {
+            return MutationTryMutateAlpha674432.Invoke(MutationAlpha6719, new object[] { target, true }) is true;
+        }
+        catch (TargetInvocationException ex)
+        {
+            Exception root = ex.InnerException ?? ex;
+            Monitor.Log($"[MutationForceTarget] pinned force threw {root.GetType().Name}: {root.Message}", LogLevel.Error);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"[MutationForceTarget] pinned force failed: {ex.GetType().Name}: {ex.Message}", LogLevel.Error);
+            return false;
+        }
+    }
+
+    private static string? ResolvePinnedMutationDisplayNameAlpha674432(Monster target)
+    {
+        if (PelipperTownCompatibilityService.IsWildCombatActor(target)
+            && PelipperWildEncounterIdentityService.TryResolve(target, out PelipperWildEncounterIdentity identity)
+            && !ReferenceEquals(identity.SourceActor, target))
+        {
+            return identity.DisplayName;
+        }
+
+        return string.IsNullOrWhiteSpace(target.displayName) ? target.Name : target.displayName;
+    }
+
+    private void LogPinnedMutationForceTargetAlpha674432(Monster target, string? displayName)
+    {
+        const string currentHpKey = "Griff.PelipperTown/WildCurrentHealth";
+        const string maxHpKey = "Griff.PelipperTown/WildMaxHealth";
+
+        bool pelipper = PelipperTownCompatibilityService.IsWildCombatActor(target);
+        string currentHp = target.modData.TryGetValue(currentHpKey, out string? currentRaw) ? currentRaw : "<missing>";
+        string maxHp = target.modData.TryGetValue(maxHpKey, out string? maxRaw) ? maxRaw : "<missing>";
+        string encounter = "<none>";
+        string sourceType = "<none>";
+        string identityName = displayName ?? target.Name;
+
+        if (pelipper
+            && PelipperWildEncounterIdentityService.TryResolve(target, out PelipperWildEncounterIdentity identity)
+            && !ReferenceEquals(identity.SourceActor, target))
+        {
+            encounter = identity.EncounterId;
+            sourceType = identity.SourceActor.GetType().FullName ?? identity.SourceActor.GetType().Name;
+            identityName = identity.DisplayName;
+        }
+
+        Monitor.Log(
+            $"[MutationForceTarget] pinned={identityName} proxyType={target.GetType().FullName} pelipper={pelipper} "
+            + $"proxyHP={target.Health}/{target.MaxHealth} wildHP={currentHp}/{maxHp} encounter={encounter} sourceType={sourceType}",
+            LogLevel.Info);
     }
 
     private string LocalizeMutationForceResult(bool transformed, string rawResult, string? displayName)
