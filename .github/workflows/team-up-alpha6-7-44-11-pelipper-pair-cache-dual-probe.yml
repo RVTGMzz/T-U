@@ -1,12 +1,12 @@
-# 6.7.44.24 Pelipper Mutant elite combat finalization gate.
-# Artifact upload is temporarily omitted while the repo's Actions artifact quota is full.
-name: Team Up v0.2.0-alpha.6.7.44.24 Elite Combat Finalization
+# 6.7.44.25 Pelipper Mutant leader continuous-chase gate.
+name: Team Up v0.2.0-alpha.6.7.44.25 Leader Continuous Chase
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-24-elite-combat-finalization
+      - v0.2-alpha6-7-44-25-leader-continuous-chase
     paths:
+      - 'src/TeamUp/Core/Alpha674425PelipperLeaderContinuousChaseService.cs'
       - 'src/TeamUp/Core/Alpha674424EliteCombatFinalizationService.cs'
       - 'src/TeamUp/Core/Alpha674424EliteReachOverlayService.cs'
       - 'src/TeamUp/Core/Alpha674423PelipperMutantLeaderSmoothingService.cs'
@@ -30,7 +30,7 @@ on:
       - 'src/TeamUp/manifest.json'
       - 'src/TeamUp/assets/**'
       - 'src/TeamUp/i18n/**'
-      - 'tools/build_alpha6744_11.py'
+      - 'tools/build_alpha6744_25.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
@@ -45,5 +45,15 @@ jobs:
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build and audit Alpha 6.7.44.24
-        run: python3 tools/build_alpha6744_11.py
+      - name: Build and audit Alpha 6.7.44.25
+        run: python3 tools/build_alpha6744_25.py
+      - name: Upload Alpha 6.7.44.25 test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-25-leader-continuous-chase
+          path: |
+            release/TeamUp_v0.2.0-alpha.6.7.44.25_LEADER_CONTINUOUS_CHASE_TEST.zip
+            release/TeamUp_v0.2.0-alpha.6.7.44.25_LEADER_CONTINUOUS_CHASE_TEST.sha256.txt
+            BUILD_LOG_ALPHA6744_25.txt
+          if-no-files-found: error
+          retention-days: 7
