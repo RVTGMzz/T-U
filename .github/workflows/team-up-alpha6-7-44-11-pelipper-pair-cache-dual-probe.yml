@@ -52,6 +52,7 @@ jobs:
       - name: Build and audit Alpha 6.7.44.28
         run: python3 tools/build_alpha6744_28.py
       - name: Upload Alpha 6.7.44.28 workflow artifact
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: team-up-alpha6-7-44-28-lower-workings-runtime-gate
