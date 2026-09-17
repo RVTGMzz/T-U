@@ -10,6 +10,8 @@ namespace Ronvotri.TeamUp.Core;
 /// Late identity fallback for Pelipper 1.2.0 wild encounters.
 /// 6.7.44.11 adds a proxy-instance cache so a successful species pairing is reused instead of
 /// rescanning the entire location repeatedly. Ambiguous duplicate-species scenes still fail closed.
+/// 6.7.44.33 also recognizes Pelipper's source-side PokemonNpcEncounter/v1 identity and preserves
+/// Nidoran gender symbols during species normalization so Nidoran♂ and Nidoran♀ never collapse.
 /// </summary>
 internal sealed class Alpha674410PelipperSpeciesPairingService
 {
@@ -194,8 +196,6 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
             LocationName = location.NameOrUniqueName,
             NormalizedSpecies = proxySpecies
         });
-
-        // No per-pair log: live 6.7.44.10 proved it can flood SMAPI and amplify hitching.
     }
 
     private static bool IsKnownCombatProxy(NPC actor)
@@ -212,11 +212,11 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
         foreach (var pair in source.modData.Pairs)
         {
             string key = NormalizeToken(pair.Key);
-            if (((key.Contains("pelipper") && key.Contains("wildencounterid")) || key.EndsWith("wildencounterid", StringComparison.Ordinal))
-                && !string.IsNullOrWhiteSpace(pair.Value))
-            {
+            bool wildEncounterKey = (key.Contains("pelipper") && key.Contains("wildencounterid"))
+                || key.EndsWith("wildencounterid", StringComparison.Ordinal);
+            bool pokemonNpcEncounterKey = key.Contains("pelipper") && key.Contains("pokemonnpcencounter");
+            if ((wildEncounterKey || pokemonNpcEncounterKey) && !string.IsNullOrWhiteSpace(pair.Value))
                 return $"pelipper:{location.NameOrUniqueName}:wild:{pair.Value.Trim()}";
-            }
         }
 
         return $"teamup:{Game1.uniqueIDForThisGame}:{location.NameOrUniqueName}:{NormalizeSpecies(displayName)}:{Game1.ticks}:{Guid.NewGuid():N}";
@@ -241,7 +241,12 @@ internal sealed class Alpha674410PelipperSpeciesPairingService
     }
 
     private static string NormalizeSpecies(string? text)
-        => NormalizeToken(CleanSpecies(text));
+    {
+        string value = CleanSpecies(text)
+            .Replace("♂", " Male ", StringComparison.Ordinal)
+            .Replace("♀", " Female ", StringComparison.Ordinal);
+        return NormalizeToken(value);
+    }
 
     private static string NormalizeToken(string text)
         => new(text.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
