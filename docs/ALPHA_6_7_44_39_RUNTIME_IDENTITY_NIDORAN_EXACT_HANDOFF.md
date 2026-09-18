@@ -1,6 +1,6 @@
 # Alpha 6.7.44.39 - Runtime Identity + Nidoran Exact Handoff
 
-Repository: `ronvotri/T-U`
+Repository: `RVTGMzz/T-U`
 
 Branch: `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
 
