@@ -1,19 +1,19 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.35
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.36
 
 Repository: **`ronvotri/T-U`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_35_LEADER_PURSUIT_REACH_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_36_ELITE_CONTRACT_FINALIZATION_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-35-leader-pursuit-reach`
-- Version: `0.2.0-alpha.6.7.44.35`
-- CI source SHA: `0397307ce548e35256e6ee41d0fe2252578107ee`
-- Run: `35357490625`
-- Job: `105640304295`
-- ZIP SHA256: `3a93d1de1890d19d23b5e53fb745b2db6e4e2edcf9a175e8ea8751a05c07202a`
+- Branch: `v0.2-alpha6-7-44-36-elite-contract-finalization`
+- Version: `0.2.0-alpha.6.7.44.36`
+- CI source SHA: `a20fc738743eabb88bd8f9c080ce0cb12af40ac6`
+- Run: `35362286478`
+- Job: `105656210575`
+- ZIP SHA256: `f05ea922ea88de8a5e4f65204208da9f4bcd34951d1d519d9fef2614a3805ea9`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
@@ -43,3 +43,8 @@ After 6.7.44.34 passes, continue with leader movement/reach and reintroduce the 
 ## 6.7.44.35
 
 Focused leader locomotion/reach pass on the safe runtime shape. Per-step leader Halt is removed; hold is edge-triggered at 128px; attack reach is 160px. Followers remain unchanged. Runtime PASS requires Ron live confirmation.
+
+
+## 6.7.44.36
+
+Elite contract finalization bundles capture guard + explicit 3 HP phases + final-only x3 native loot. The old 6.7.44.24-30 crash stack remains excluded. Runtime PASS still requires Ron live confirmation.
