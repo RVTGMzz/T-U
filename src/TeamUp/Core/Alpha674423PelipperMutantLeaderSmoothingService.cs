@@ -28,8 +28,8 @@ internal sealed class Alpha674423PelipperMutantLeaderSmoothingService
     private const float SeparationRadius = 76f;
     private const float LeaderClearanceRadius = 112f;
     private const float StopDistance = 10f;
-    private const float LeaderHoldCenterDistance = 92f;
-    private const float LeaderAttackCenterDistance = 112f;
+    private const float LeaderHoldCenterDistance = 128f;
+    private const float LeaderAttackCenterDistance = 160f;
     private const float BlockedMovementEpsilon = 0.35f;
     private const float LeaderAxisSwitchBias = 24f;
     private const int LeaderDirectionLockTicks = 8;
@@ -47,6 +47,7 @@ internal sealed class Alpha674423PelipperMutantLeaderSmoothingService
         public long NextContactTick { get; set; }
         public int LockedDirection { get; set; } = -1;
         public long DirectionLockUntilTick { get; set; }
+        public bool LeaderHoldingRange { get; set; }
     }
 
     private sealed class Pair
@@ -84,12 +85,12 @@ internal sealed class Alpha674423PelipperMutantLeaderSmoothingService
         _monitor = monitor;
         helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         _monitor.Log(
-            "Team Up 6.7.44.23 Pelipper Mutation leader smoothing enabled: follower pack steering retained; Mutant leader gets clean velocity reset, direction hysteresis, independent right-of-way and extended x2 melee reach.",
+            "Team Up 6.7.44.35 Pelipper Mutation leader pursuit enabled: follower steering retained; leader chase is continuous (no per-step Halt), hold=128px, reach=160px.",
             LogLevel.Info);
     }
 
     public string Describe()
-        => $"Pelipper Mutation steering: leader-smooth-reach | ticks={_ticks} | pairs={_pairsSeen} | leaderMoves={_leaderMoves} | minionMoves={_minionMoves} | "
+        => $"Pelipper Mutation steering: continuous-leader | hold={LeaderHoldCenterDistance:0}px | reach={LeaderAttackCenterDistance:0}px | ticks={_ticks} | pairs={_pairsSeen} | leaderMoves={_leaderMoves} | minionMoves={_minionMoves} | "
             + $"separation={_separationAdjustments} | leaderClearance={_leaderClearanceAdjustments} | sidesteps={_sidesteps} | blockedFrames={_blockedFrames} | "
             + $"leaderReachHits={_leaderReachHits} | leaderRangeHolds={_leaderRangeHolds} | leaderHaltResets={_leaderHaltResets} | "
             + $"leaderDirectionChanges={_leaderDirectionChanges} | leaderDirectionLocks={_leaderDirectionLocks} | proxySyncs={_proxySyncs} | "
@@ -212,6 +213,7 @@ internal sealed class Alpha674423PelipperMutantLeaderSmoothingService
             state.NextContactTick = 0;
             state.LockedDirection = -1;
             state.DirectionLockUntilTick = 0;
+            state.LeaderHoldingRange = false;
         }
 
         source.modData[SteeringMarker] = "1";
@@ -244,12 +246,26 @@ internal sealed class Alpha674423PelipperMutantLeaderSmoothingService
         bool moved;
         if (holdLeaderRange)
         {
-            StopSource(source);
+            // Halt only once when the leader ENTERS the hold band. Repeating Halt every tick was the
+            // strongest live-correlated source of leader jitter in 6.7.44.23.
+            if (!state.LeaderHoldingRange)
+            {
+                StopSource(source);
+                state.LeaderHoldingRange = true;
+                _leaderHaltResets++;
+            }
+            else
+            {
+                StopDirectionalFlags(source);
+            }
+
             moved = false;
             _leaderRangeHolds++;
         }
         else
         {
+            if (pair.Leader)
+                state.LeaderHoldingRange = false;
             moved = MoveSource(source, steering, pair.Leader, state, location);
         }
 
@@ -342,16 +358,10 @@ internal sealed class Alpha674423PelipperMutantLeaderSmoothingService
             ? Math.Clamp(Math.Max(originalSpeed, 3), 3, 4)
             : Math.Clamp(Math.Max(originalSpeed, 2), 2, 4);
 
-        if (leader)
-        {
-            // Clear Pelipper's passive movement state/velocity before applying the Team Up chase step.
-            source.Halt();
-            _leaderHaltResets++;
-        }
-        else
-        {
-            StopDirectionalFlags(source);
-        }
+        // 6.7.44.35: continuous chase. Clear only directional input before issuing the next cardinal
+        // step. Do NOT call source.Halt() on every leader chase tick; Pelipper can interpret that as a
+        // fresh stop/start cycle and the visible x2 leader jitters even though position telemetry moves.
+        StopDirectionalFlags(source);
 
         int direction = ResolveDirection(steering, leader, state);
         SetDirection(source, direction);
