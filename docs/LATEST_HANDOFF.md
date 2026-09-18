@@ -4,55 +4,57 @@ Repository: **`ronvotri/T-U`**
 
 Current restart file: `../CONTINUE_HERE.md`
 
-Current detailed handoff: `ALPHA_6_7_44_38_LOWER_WORKINGS_RUNTIME_GATE_V2_HANDOFF.md`
+Current detailed handoff: `ALPHA_6_7_44_39_RUNTIME_IDENTITY_NIDORAN_EXACT_HANDOFF.md`
 
 ## Current checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.38`
-- Branch: `v0.2-alpha6-7-44-38-lower-workings-runtime-gate-v2`
-- CI source SHA: `f08e1a861ba90eacbde5905952615d77bb055b67`
-- Run: `35370448488`
-- Job: `105682900175`
-- ZIP SHA256: `71cb8c0dc9f006d19882163b0abf0023d2bb844971cd2676e7f1377f157d61e8`
+- Version: `0.2.0-alpha.6.7.44.39`
+- Branch: `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
+- CI source SHA: `feee4184c7c991743b695e70dc071b13e56d9650`
+- Run: `35373758996`
+- Job: `105693541626`
+- ZIP SHA256: `b49f1597b8a9316d521c81f0c732c5c5bdbd76ca3dabc9fb9554622dae008566`
 - Build: PASS, 0 warnings / 0 errors
 - Main: NOT merged
 - 6.7.45: NOT started
 
-## Mutation
+## Runtime truth
 
-6.7.44.34-37 remain carried forward:
-- Pelipper source-ID pairing;
-- stable x2 presentation;
-- 18-tile aggro arena;
-- stronger damage;
-- continuous leader pursuit;
-- 128px hold / 160px reach;
-- leader no-capture;
-- 3 HP phases;
-- final-only x3 reward;
-- Pelipper native followers;
-- exact same-type vanilla/custom followers;
-- unsupported sources fail closed;
-- factory-level GreenSlime fallback removed.
+General Pelipper native Mutation follower spawning is live-proven for multiple ordinary species.
 
-## Lower Workings Runtime Gate v2
+Outstanding findings:
+- Ron's installed runtime did not expose `teamup_mutation_regression`;
+- Nidoran♂ follower requests produced Nidoran♀ actors from Pelipper;
+- Team Up exact matcher correctly left those actors unclaimed.
 
-6.7.44.38 validates the dedicated Lower Workings route without the old crash-path design.
+## Runtime identity lock
 
-No new SaveLoaded, UpdateTicked, Harmony, reflection scan, warp action or story writes are introduced.
+6.7.44.39 registers `teamup_build` and `teamup_mutation_regression` in early core wiring and prints a startup build stamp.
 
-Runtime command:
+Expected:
 
-`teamup_lower_runtime`
+`Team Up build: version=0.2.0-alpha.6.7.44.39 | branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact ...`
 
-Expected map contract:
-- `Ronvotri.TeamUp_LowerWorkings`;
-- vanilla `GameLocation`;
-- 32x24;
-- Back / Buildings / Front;
-- arrival 15,21;
-- exact persisted breach return.
+## Nidoran exactness
+
+Pelipper command tokens:
+- male -> `nidoran-m`
+- female -> `nidoran-f`
+
+Request telemetry:
+`[MutationNativePelipperRequest] species=... spawnToken=... level=...`
+
+Live PASS requires Pelipper-created followers to match the Mutant leader gender.
+
+## Carry-forward
+
+- no old 6.7.44.24-30 crash stack;
+- 6.7.44.34 aggro/damage/presentation;
+- 6.7.44.35 chase/reach;
+- 6.7.44.36 no-capture/3 phases/final x3 loot;
+- 6.7.44.37 no GreenSlime fallback/fail closed;
+- 6.7.44.38 read-only Lower Workings Runtime Gate v2.
 
 ## Next
 
-Live-confirm the route. If clean, begin 6.7.45 Containment Chamber Escalation.
+Verify build identity + regression command + Nidoran exactness. Then complete the Lower Workings v2 live gate and enter 6.7.45.
