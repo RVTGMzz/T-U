@@ -1,7 +1,9 @@
+using Ronvotri.TeamUp.Combat;
 using Ronvotri.TeamUp.Core;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Monsters;
 
 namespace Ronvotri.TeamUp;
 
@@ -99,12 +101,17 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.34 Pelipper runtime diagnostics: status.",
+            "6.7.44.37 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
+        Helper.ConsoleCommands.Add(
+            "teamup_mutation_regression",
+            "6.7.44.37 Mutation regression audit for the current location.",
+            OnAlpha674437MutationRegressionCommand);
+
         Monitor.Log(
-            $"Team Up 6.7.44.36 elite contract enabled: source-ID pairing, pre-render stable Mutation scale, x3 aggro arena, three Pelipper HP phases, final-only x3 native loot, leader capture blocked, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), 2-4 source-native hostile minions, leader x2 damage and continuous pursuit.",
+            $"Team Up 6.7.44.37 regression/stability enabled: exact source-equivalent minions only, GreenSlime fallback removed at factory level, unsupported custom sources fail closed, "
+            + $"Pelipper native followers preserved, 6.7.44.36 elite contract retained, source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks).",
             LogLevel.Info);
     }
 
@@ -188,6 +195,81 @@ public sealed partial class ModEntry
                 : $"You can't give gifts while {name} is active in Team Up.",
             error: true);
         Monitor.Log($"[GiftGuard] Blocked held-item gift to active teammate {npc.Name} state={member.State}.", LogLevel.Debug);
+    }
+
+    private void OnAlpha674437MutationRegressionCommand(string command, string[] args)
+    {
+        if (!Context.IsWorldReady || Game1.currentLocation is null)
+        {
+            Monitor.Log("Load a save before using teamup_mutation_regression.", LogLevel.Info);
+            return;
+        }
+
+        GameLocation location = Game1.currentLocation;
+        List<Monster> minions = location.characters
+            .OfType<Monster>()
+            .Where(MonsterMutationService.IsMutationMinion)
+            .ToList();
+
+        int typeMismatch = 0;
+        int recursiveMutants = 0;
+        int missingExcluded = 0;
+        int pelipperNative = 0;
+        int pelipperIdentityMiss = 0;
+        int pelipperDuplicateEncounter = 0;
+        HashSet<string> pelipperEncounterIds = new(StringComparer.Ordinal);
+
+        foreach (Monster minion in minions)
+        {
+            if (MonsterMutationService.IsMutant(minion))
+                recursiveMutants++;
+
+            if (!minion.modData.ContainsKey(MonsterMutationService.MutationExcludedMarker))
+                missingExcluded++;
+
+            minion.modData.TryGetValue(Alpha674418NativeMutationMinionService.NativeProviderMarker, out string? provider);
+            minion.modData.TryGetValue(MonsterMutationService.MutationSourceMarker, out string? sourceType);
+
+            if (string.Equals(provider, "pelipper-native", StringComparison.Ordinal))
+            {
+                pelipperNative++;
+                if (!PelipperTownCompatibilityService.IsWildCombatActor(minion)
+                    || !PelipperWildEncounterIdentityService.TryResolve(minion, out PelipperWildEncounterIdentity identity))
+                {
+                    pelipperIdentityMiss++;
+                    continue;
+                }
+
+                if (!pelipperEncounterIds.Add(identity.EncounterId))
+                    pelipperDuplicateEncounter++;
+                continue;
+            }
+
+            string runtimeType = minion.GetType().FullName ?? minion.GetType().Name;
+            if (!string.IsNullOrWhiteSpace(sourceType)
+                && !runtimeType.Equals(sourceType, StringComparison.Ordinal))
+            {
+                typeMismatch++;
+            }
+        }
+
+        int factoryFallback = MonsterMutationMinionFactory.FallbackSpawned;
+        int failClosed = MonsterMutationMinionFactory.FailClosedRejected;
+        bool pass = typeMismatch == 0
+            && recursiveMutants == 0
+            && missingExcluded == 0
+            && factoryFallback == 0
+            && pelipperIdentityMiss == 0
+            && pelipperDuplicateEncounter == 0;
+
+        Monitor.Log(
+            $"Mutation regression audit: {(pass ? "PASS" : "FAIL")} | location={location.NameOrUniqueName} | minions={minions.Count} | "
+            + $"typeMismatch={typeMismatch} | recursiveMutants={recursiveMutants} | missingExcluded={missingExcluded} | "
+            + $"factoryFallback={factoryFallback} | failClosed={failClosed} | pelipperNative={pelipperNative} | "
+            + $"pelipperIdentityMiss={pelipperIdentityMiss} | pelipperDuplicateEncounter={pelipperDuplicateEncounter}",
+            pass ? LogLevel.Info : LogLevel.Warn);
+        Monitor.Log(NativeMutationMinionsAlpha674418.Describe(), LogLevel.Info);
+        Monitor.Log(MutationAlpha6719.Describe(), LogLevel.Info);
     }
 
     private void OnAlpha67446PelipperRuntimeCommand(string command, string[] args)
