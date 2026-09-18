@@ -51,6 +51,16 @@ public sealed partial class ModEntry
             "teamup_lower_runtime",
             "Lower Workings Runtime Gate v2: status | reset (telemetry only).",
             OnAlpha674438LowerRuntimeCommand);
+        Helper.ConsoleCommands.Add(
+            "teamup_mutation_regression",
+            "Mutation regression audit for the current location.",
+            OnAlpha674437MutationRegressionCommand);
+        Helper.ConsoleCommands.Add(
+            "teamup_build",
+            "Print the exact loaded Team Up build identity.",
+            OnAlpha674439BuildCommand);
+
+        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact", LogLevel.Info);
 
         EnsureAlpha67442EncounterReactionsRegistered();
         RegisterAlpha67446RuntimeFixes();
@@ -135,6 +145,13 @@ public sealed partial class ModEntry
         }
 
         WriteAlpha6744Diagnostic();
+    }
+
+    private void OnAlpha674439BuildCommand(string command, string[] args)
+    {
+        Monitor.Log(
+            $"Team Up build: version={ModManifest.Version} | branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact | regressionCommand=registered | lowerRuntimeCommand=registered",
+            LogLevel.Info);
     }
 
     private void OnAlpha674438LowerRuntimeCommand(string command, string[] args)
