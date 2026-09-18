@@ -246,9 +246,10 @@ internal sealed class Alpha674418NativeMutationMinionService
 
         List<NPC> before = location.characters.OfType<NPC>().ToList();
         int? level = TryReadPelipperLevel(leader);
+        string spawnToken = ResolvePelipperSpawnToken(species);
         string[] args = level is > 0
-            ? new[] { species, level.Value.ToString(CultureInfo.InvariantCulture) }
-            : new[] { species };
+            ? new[] { spawnToken, level.Value.ToString(CultureInfo.InvariantCulture) }
+            : new[] { spawnToken };
 
         try
         {
@@ -258,8 +259,8 @@ internal sealed class Alpha674418NativeMutationMinionService
         catch (Exception ex)
         {
             _sourceEquivalentFailures++;
-            _last = $"pokemon_spawn error {ex.GetType().Name}: {ex.Message}";
-            _monitor.Log($"Pelipper native follower spawn failed for {species}: {ex.GetType().Name}: {ex.Message}", LogLevel.Warn);
+            _last = $"pokemon_spawn error species={species} token={spawnToken} {ex.GetType().Name}: {ex.Message}";
+            _monitor.Log($"Pelipper native follower spawn failed for {species} token={spawnToken}: {ex.GetType().Name}: {ex.Message}", LogLevel.Warn);
             return NativeSpawnResult.Failed;
         }
 
@@ -271,6 +272,8 @@ internal sealed class Alpha674418NativeMutationMinionService
             before,
             Game1.ticks + 45,
             suppressLoot);
+
+        _monitor.Log($"[MutationNativePelipperRequest] species={species} spawnToken={spawnToken} level={(level is > 0 ? level.Value : 0)}", LogLevel.Debug);
 
         if (TryResolvePelipperRequest(request, out _))
             return NativeSpawnResult.Resolved;
@@ -529,6 +532,17 @@ internal sealed class Alpha674418NativeMutationMinionService
             return identity.DisplayName;
         }
         return string.IsNullOrWhiteSpace(leader.displayName) ? leader.Name : leader.displayName;
+    }
+
+    private static string ResolvePelipperSpawnToken(string species)
+    {
+        string normalized = NormalizeSpecies(species);
+        return normalized switch
+        {
+            "nidoranmale" => "nidoran-m",
+            "nidoranfemale" => "nidoran-f",
+            _ => species
+        };
     }
 
     private static string NormalizeSpecies(string value)
