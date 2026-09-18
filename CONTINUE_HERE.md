@@ -2,11 +2,11 @@
 
 Repository: **`ronvotri/T-U`**
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.35**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.36**
 
 Development branch:
 
-`v0.2-alpha6-7-44-35-leader-pursuit-reach`
+`v0.2-alpha6-7-44-36-elite-contract-finalization`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -15,18 +15,18 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_35_LEADER_PURSUIT_REACH_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_36_ELITE_CONTRACT_FINALIZATION_HANDOFF.md`
 
 ## Verified build checkpoint
 
 - Repository: `ronvotri/T-U`
-- Version: `0.2.0-alpha.6.7.44.35`
-- Branch: `v0.2-alpha6-7-44-35-leader-pursuit-reach`
-- CI source SHA: `0397307ce548e35256e6ee41d0fe2252578107ee`
-- CI run: `35357490625`
-- CI job: `105640304295`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.35_COMBAT_PRESENCE_FIX_TEST.zip`
-- ZIP SHA256: `3a93d1de1890d19d23b5e53fb745b2db6e4e2edcf9a175e8ea8751a05c07202a`
+- Version: `0.2.0-alpha.6.7.44.36`
+- Branch: `v0.2-alpha6-7-44-36-elite-contract-finalization`
+- CI source SHA: `a20fc738743eabb88bd8f9c080ce0cb12af40ac6`
+- CI run: `35362286478`
+- CI job: `105656210575`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.36_COMBAT_PRESENCE_FIX_TEST.zip`
+- ZIP SHA256: `f05ea922ea88de8a5e4f65204208da9f4bcd34951d1d519d9fef2614a3805ea9`
 - Build: PASS, 0 warnings, 0 errors
 - Package audit: PASS
 
@@ -106,7 +106,7 @@ Do not start 6.7.45 unless Ron explicitly waives remaining gates.
 
 ## Fresh-chat resume prompt
 
-`Tiếp tục Team Up từ CONTINUE_HERE.md trong repo ronvotri/T-U, branch v0.2-alpha6-7-44-35-leader-pursuit-reach. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_35_LEADER_PURSUIT_REACH_HANDOFF.md. Current CI source SHA 0397307ce548e35256e6ee41d0fe2252578107ee, run 35357490625. 6.7.44.33 đã khôi phục Mutation Pelipper source/proxy pairing và Ron live-confirmed spawn lại; feedback mới là elite flicker, aggro quá gần và damage yếu. 6.7.44.34 sửa pre-render scale stabilization, x3 aggro arena 18 tiles, Pelipper engaged/passive flags và damage floors. Các service 6.7.44.24-30 gây crash load vẫn bị loại hoàn toàn. Chỉ gọi Runtime PASS khi Ron test lại và xác nhận.`
+`Tiếp tục Team Up từ CONTINUE_HERE.md trong repo ronvotri/T-U, branch v0.2-alpha6-7-44-36-elite-contract-finalization. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_36_ELITE_CONTRACT_FINALIZATION_HANDOFF.md. Current CI source SHA a20fc738743eabb88bd8f9c080ce0cb12af40ac6, run 35362286478. 6.7.44.33 đã khôi phục Mutation Pelipper source/proxy pairing và Ron live-confirmed spawn lại; feedback mới là elite flicker, aggro quá gần và damage yếu. 6.7.44.34 sửa pre-render scale stabilization, x3 aggro arena 18 tiles, Pelipper engaged/passive flags và damage floors. Các service 6.7.44.24-30 gây crash load vẫn bị loại hoàn toàn. Chỉ gọi Runtime PASS khi Ron test lại và xác nhận.`
 
 
 ## 6.7.44.35 delta
@@ -119,3 +119,14 @@ Do not start 6.7.45 unless Ron explicitly waives remaining gates.
 - no 6.7.44.24-30 crash-stack service is reintroduced.
 
 Immediate live gate: force one Pelipper Mutation and judge only leader chase smoothness + 160px reach.
+
+
+## 6.7.44.36 delta
+
+- Pelipper Mutant leader is marked no-capture on source + proxy.
+- capture guard scans Pelipper capture/catch/Pokeball paths and blocks the leader only.
+- ordinary Mutation followers keep native capture behavior.
+- existing source-aware HP engine is now explicit 3-phase state: 1/3 -> 2/3 -> 3/3.
+- phase 1/2 monsterDrop is blocked.
+- phase 3 authorizes native drop and reward service repeats it to x3 total.
+- 6.7.44.34-35 aggro/damage/pursuit/reach remain carried forward.
