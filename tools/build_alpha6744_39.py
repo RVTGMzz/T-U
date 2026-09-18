@@ -152,7 +152,8 @@ try:
     req("new GreenSlime" not in factory, "GreenSlime fallback reintroduced")
     req("Monster? minion = MonsterMutationMinionFactory.Create(" in mutation, "legacy nullable fail-closed path regressed")
     req("Monster? candidate = MonsterMutationMinionFactory.Create(" in native, "native nullable fail-closed path regressed")
-    req('"teamup_mutation_regression"' in runtime_wiring, "44.37 regression audit command missing")
+    req("OnAlpha674437MutationRegressionCommand" in runtime_wiring, "44.37 regression audit handler missing")
+    req('"teamup_mutation_regression"' in lower_wiring, "44.37 regression audit command early registration missing")
     log("44.37 REGRESSION/STABILITY CARRY-FORWARD: PASS")
 
     req('PhaseTotalMarker = "Ronvotri.TeamUp/MutationPhaseTotal"' in source_mutation, "44.36 phase contract regressed")
