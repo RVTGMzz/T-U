@@ -1,56 +1,66 @@
 # Team Up - Canonical Latest Handoff
 
+Repository: **`ronvotri/T-U`**
+
 Current restart file: `../CONTINUE_HERE.md`
 
-Current detailed handoff: `ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md`
+Current detailed handoff: `ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
 
 ## Current checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.22`
-- Branch: `v0.2-alpha6-7-44-22-pelipper-pack-steering`
-- CI source SHA: `1921deff08d397cca6c867fcce35f5b184c68c1c`
-- Run: `34991407821`
-- Job: `104456710100`
-- Artifact ID: `10405981878`
-- Wrapper SHA256: `60b24fdb084fc687da548569e390546fed627330219ab2cc0b55a13f6f90529b`
-- Inner ZIP SHA256: `51c5422cb6c456e9946290c9c65090f4b4438aae9dfbd9fa76cb2d2a260e6432`
+- Version: `0.2.0-alpha.6.7.44.34`
+- Branch: `v0.2-alpha6-7-44-34-combat-presence-fix`
+- CI source SHA: `9c75bd4790be3eb747f1fd869621540efc86dae5`
+- Run: `35289471845`
+- Job: `105428979340`
+- ZIP SHA256: `177036a76f6164bedf5fd15dd78ba8281eba1df95f2b0322df9efac5ee284d2a`
 - Build: PASS, 0 warnings / 0 errors
 - Main: NOT merged
 - 6.7.45: NOT started
 
-## Current live truth
+## Runtime authority
 
-Source-native Pelipper followers are already live-proven: genuine same species, 2-4 contract, Spawn Commands may remain OFF, no unrelated Slime fallback.
+Ron live-confirmed 6.7.44.33 can spawn Pelipper Mutation encounters again. Current authoritative feedback is:
 
-6.7.44.21 proved that Team Up can make the real Pelipper Pokemon chase Farmer, but the tile PathFindController approach is superseded because small followers can block the x2 leader and passive/gentle species move unnaturally.
+- Mutant leader visibly flickers;
+- leader and same-species followers require too-close proximity before pursuing;
+- contact damage feels too weak.
 
-## 6.7.44.22 delta
+6.7.44.34 addresses exactly those points and is awaiting live confirmation.
 
-`Alpha674422PelipperMutationSteeringService` uses low-level NPC movement instead of tile pathing. Followers approach a small ring around Farmer, pack members separate, followers strongly yield to the leader, the leader gets right-of-way, hidden proxies do not physically block their source Pokemon, and blocked actors perform short alternating sidesteps. Contact damage still uses the genuine combat proxy and native capture identity is preserved.
+## Active architecture
 
-The 6.7.44.21 hostility service is not instantiated at runtime in this checkpoint.
+- visible Pelipper source: `PelipperTown.PokemonNpc`;
+- hidden combat proxy: `StardewValley.Monsters.Monster`;
+- real Pokemon HP: `WildCurrentHealth` / `WildMaxHealth`;
+- 6.7.44.33 source/proxy pairing recognizes `PokemonNpcEncounter/v1` and preserves Nidoran gender identity;
+- 6.7.44.34 pre-render reasserts the Mutant presentation scale;
+- Mutation combat arena is 18 tiles;
+- Pelipper Mutation source/proxy are explicitly engaged and no longer passive inside that arena;
+- follower raw contact-damage floor is 4;
+- Mutant leader raw floor is 8 with higher intended x2 damage preserved.
+
+## Safety boundary
+
+Do not reintroduce the 6.7.44.24-30 service stack wholesale. It caused game-load crashes during live testing. Re-add any desired contract feature only as an isolated change on the current loadable runtime shape.
 
 ## Next runtime sequence
 
-1. Keep Pelipper Spawn Commands OFF.
-2. Force a normal non-Shiny Pelipper Mutation.
-3. Prefer testing both a small species and a large/gentle species.
-4. Do not attack first. Verify leader and followers pursue Farmer with better spacing.
-5. Verify the x2 leader is not trapped behind followers.
-6. Verify passive species no longer move with the obvious grid-NPC behavior seen in 6.7.44.21.
-7. Verify contact reduces Farmer HP.
-8. Run `teamup_mutation status`; inspect `leaderMoves`, `minionMoves`, `separation`, `leaderClearance`, `sidesteps`, `blockedFrames`, `proxySyncs`, `contactDamageCalls`, `identityMisses`.
-9. Recheck a follower with a Poke Ball.
-10. Then test all three leader HP phases and final x3 leader loot.
-11. Test vanilla/non-Pelipper and compatible custom source when practical.
-12. Complete Lower Workings runtime gate.
-13. Only then prepare 6.7.45 unless explicitly waived.
+1. Install 6.7.44.34.
+2. Run `teamup_mutation force`.
+3. Verify no visible leader flicker.
+4. Verify leader/followers pursue from substantially farther away.
+5. Verify damage is materially stronger.
+6. Only after Ron confirms, address remaining leader movement/reach.
+7. Reintroduce capture block, three HP phases and x3 loot one isolated patch at a time.
+8. Run vanilla/non-Pelipper regression.
+9. Rebuild Lower Workings runtime validation without the previous crash path.
+10. Only then prepare 6.7.45 unless explicitly waived.
 
 ## Carry-forward locks
 
 - Confirmed Shiny remains Mutation-excluded.
-- Real Pelipper HP remains `WildCurrentHealth` / `WildMaxHealth`, never proxy sentinel HP.
-- Preserve 20Hz encounter discovery and species-pair cache.
-- Spawn Commands setting can remain OFF; Team Up restores the internal gate immediately.
-- Active Following/Waiting teammates cannot receive held-item vanilla gifts.
-- Lower Workings remains unchanged and gates 6.7.45 unless explicitly waived.
+- No unrelated GreenSlime visible fallback.
+- Spawn Commands may remain OFF outside Team Up's temporary internal gate.
+- Native follower capture remains preferred where Pelipper supports it.
+- No Runtime PASS without Ron's live confirmation.
