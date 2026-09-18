@@ -1,35 +1,40 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.22
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.34
+
+Repository: **`ronvotri/T-U`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-22-pelipper-pack-steering`
-- Version: `0.2.0-alpha.6.7.44.22`
-- CI source SHA: `1921deff08d397cca6c867fcce35f5b184c68c1c`
-- Run: `34991407821`
-- Job: `104456710100`
-- Artifact ID: `10405981878`
-- Wrapper SHA256: `60b24fdb084fc687da548569e390546fed627330219ab2cc0b55a13f6f90529b`
-- Inner ZIP SHA256: `51c5422cb6c456e9946290c9c65090f4b4438aae9dfbd9fa76cb2d2a260e6432`
+- Branch: `v0.2-alpha6-7-44-34-combat-presence-fix`
+- Version: `0.2.0-alpha.6.7.44.34`
+- CI source SHA: `9c75bd4790be3eb747f1fd869621540efc86dae5`
+- Run: `35289471845`
+- Job: `105428979340`
+- ZIP SHA256: `177036a76f6164bedf5fd15dd78ba8281eba1df95f2b0322df9efac5ee284d2a`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
 
 ## Current live truth
 
-6.7.44.19 proved native same-species Pelipper followers can spawn with Spawn Commands OFF and no Slime fallback. 6.7.44.20 proved generic Monster aggro flags do not make Pelipper wild Pokemon hostile.
+6.7.44.33 restored Pelipper Mutation source/proxy identity after the rollback cycle. Ron live-confirmed Mutant spawning again. The current live problems are presentation flicker on the Mutant leader, too-short pursuit range for leader/followers, and weak-feeling contact damage.
 
-6.7.44.21 proved Team Up-owned chase can move real Pelipper Pokemon toward Farmer, but its tile PathFindController implementation has bad pack locomotion: followers can jam the x2 leader and passive/gentle species look grid-like or erratic.
+6.7.44.24-30 are not part of the active runtime because that stack caused load/crash regressions.
 
-## 6.7.44.22
+## 6.7.44.34
 
-`Alpha674422PelipperMutationSteeringService` replaces the 6.7.44.21 runtime chase with low-level Stardew NPC movement. It preserves the real visible Pokemon, real hidden proxy and native capture identity while adding follower attack-ring targets, pack separation, leader right-of-way, hidden-proxy non-collision, blocked sidestep recovery and proxy-based contact damage.
+6.7.44.34 keeps the loadable 6.7.44.23-shaped runtime plus the 6.7.44.33 pairing fixes, then adds only a focused combat-presence patch:
 
-The 6.7.44.21 service remains in source history but is not instantiated in 6.7.44.22.
+- pre-render x2 visible-scale stabilization;
+- x3 Mutation aggro arena, 18 tiles;
+- Pelipper `WildCombatEngaged=true`;
+- Pelipper `PassiveUntilAttacked=false`;
+- ordinary follower raw damage floor 4;
+- Mutant leader raw damage floor 8 while preserving higher intended x2 damage.
 
-Immediate live gate: test one small species and one large/gentle species. Expect `leaderMoves>0`, `minionMoves>0`, separation/leader-clearance counters when the pack closes, usually `proxySyncs>0`, ideally `identityMisses=0`, and `contactDamageCalls>0` after actual touch. Recheck native follower capture.
+Immediate live gate is only flicker, aggro distance and damage feel. Do not call Runtime PASS until Ron confirms.
 
-After locomotion passes, continue 3 HP phases, x3 final loot, vanilla/custom regression and Lower Workings. Do not begin 6.7.45 unless remaining runtime gates are passed or explicitly waived.
+After 6.7.44.34 passes, continue with leader movement/reach and reintroduce the remaining elite contract in small isolated steps. Do not begin 6.7.45 unless remaining gates pass or Ron explicitly waives them.
