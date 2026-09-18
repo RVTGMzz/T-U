@@ -33,6 +33,11 @@ internal sealed class MonsterMutationService
     public const string MutationBossMarker = "Ronvotri.TeamUp/MutationBoss";
     public const string MutationSourceMarker = "Ronvotri.TeamUp/MutationSource";
     public const string MutationScaleMarker = "Ronvotri.TeamUp/MutationVisualScale";
+    public const string MutationIntendedDamageMarker = "Ronvotri.TeamUp/MutantIntendedDamage";
+
+    // Pelipper wild combat uses a technical proxy whose DamageToFarmer can be the placeholder value 1.
+    // Treat 4 as the ordinary compatibility floor, then apply the configured Mutation stat multiplier.
+    private const int PelipperTechnicalBaseDamageFloor = 4;
 
     private static readonly Point[] SpawnOffsets =
     {
@@ -298,7 +303,11 @@ internal sealed class MonsterMutationService
             return false;
 
         int baseMaxHealth = Math.Max(1, monster.MaxHealth);
-        int baseDamage = Math.Max(1, ReadIntMember(monster, "DamageToFarmer", "damageToFarmer") ?? 1);
+        int rawBaseDamage = Math.Max(1, ReadIntMember(monster, "DamageToFarmer", "damageToFarmer") ?? 1);
+        bool pelipperWild = PelipperTownCompatibilityService.IsWildCombatActor(monster);
+        int baseDamage = pelipperWild
+            ? Math.Max(rawBaseDamage, PelipperTechnicalBaseDamageFloor)
+            : rawBaseDamage;
         int baseSpeed = Math.Max(1, monster.Speed);
         int baseResilience = Math.Max(0, ReadIntMember(monster, "Resilience", "resilience") ?? 0);
 
@@ -310,7 +319,8 @@ internal sealed class MonsterMutationService
         monster.MaxHealth = mutantMax;
         monster.Health = mutantMax;
 
-        TryWriteNumericMember(monster, SafeScaledInt(baseDamage, statScale, 1, 100_000), "DamageToFarmer", "damageToFarmer");
+        int intendedDamage = SafeScaledInt(baseDamage, statScale, 1, 100_000);
+        TryWriteNumericMember(monster, intendedDamage, "DamageToFarmer", "damageToFarmer");
         if (baseResilience > 0)
             TryWriteNumericMember(monster, SafeScaledInt(baseResilience, statScale, 0, 100_000), "Resilience", "resilience");
 
@@ -335,6 +345,7 @@ internal sealed class MonsterMutationService
         }
         monster.modData[MutationSourceMarker] = monster.GetType().FullName ?? monster.GetType().Name;
         monster.modData[MutationScaleMarker] = effectiveFootprintScale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+        monster.modData[MutationIntendedDamageMarker] = intendedDamage.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         int min = Math.Clamp(_minionMin(), 0, 8);
         int max = Math.Clamp(_minionMax(), 0, 8);
@@ -357,7 +368,7 @@ internal sealed class MonsterMutationService
         _mutations++;
         LastMutationLine =
             $"[MutationTelemetry] source={monster.GetType().FullName} location={location.NameOrUniqueName} "
-            + $"baseHP={baseMaxHealth} mutantHP={mutantMax} baseDamage={baseDamage} damageX={statScale:0.##} "
+            + $"baseHP={baseMaxHealth} mutantHP={mutantMax} rawDamage={rawBaseDamage} baseDamage={baseDamage} intendedDamage={intendedDamage} damageX={statScale:0.##} "
             + $"baseResilience={baseResilience} speed={baseSpeed}->{mutantSpeed} scaleX={effectiveFootprintScale:0.##} "
             + $"scaleApplied={visualScaleApplied} minionsRequested={requestedMinions} force={force} storyDirective={storyDirective}";
         _monitor.Log(LastMutationLine, LogLevel.Info);
