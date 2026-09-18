@@ -26,6 +26,9 @@ internal sealed class Alpha67448PelipperSourceMutationService
     public const string ExtraLifeMarker = "Ronvotri.TeamUp/PelipperMutantExtraLives";
     public const string LogicalMaxHpMarker = "Ronvotri.TeamUp/PelipperMutantLogicalMaxHp";
     public const string SourceHpMarker = "Ronvotri.TeamUp/PelipperSourceHpAccessor";
+    public const string PhaseTotalMarker = "Ronvotri.TeamUp/MutationPhaseTotal";
+    public const string PhaseCurrentMarker = "Ronvotri.TeamUp/MutationPhaseCurrent";
+    public const string NoCaptureMarker = "Ronvotri.TeamUp/MutantLeaderNoCapture";
 
     private const int MaximumReasonableSourceHp = 100_000;
 
@@ -325,7 +328,11 @@ internal sealed class Alpha67448PelipperSourceMutationService
         __0.modData[ExtraLifeMarker] = extraLives.ToString(System.Globalization.CultureInfo.InvariantCulture);
         __0.modData[LogicalMaxHpMarker] = logicalMaxHp.ToString(System.Globalization.CultureInfo.InvariantCulture);
         __0.modData[SourceHpMarker] = health.SourceLabel;
+        __0.modData[PhaseTotalMarker] = bars.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        __0.modData[PhaseCurrentMarker] = "1";
+        __0.modData[NoCaptureMarker] = "true";
         health.Identity.SourceActor.modData[SourceMutantMarker] = health.Identity.EncounterId;
+        health.Identity.SourceActor.modData[NoCaptureMarker] = "true";
 
         service._lastLine = $"mutated source={health.Identity.DisplayName} hp={health.Maximum}/{health.Maximum} logicalHP={logicalMaxHp} bars={bars} extraLives={extraLives} via={health.SourceLabel} force={__1}";
         if (__1)
@@ -399,6 +406,9 @@ internal sealed class Alpha67448PelipperSourceMutationService
                 {
                     extraLives--;
                     __instance.modData[ExtraLifeMarker] = extraLives.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    int totalPhases = Math.Max(1, ReadIntMarker(__instance, PhaseTotalMarker));
+                    int currentPhase = Math.Clamp(totalPhases - extraLives, 1, totalPhases);
+                    __instance.modData[PhaseCurrentMarker] = currentPhase.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     __args[0] = 0;
                     stamp.CancelDamage = true;
                     service._phaseGuards++;
@@ -411,8 +421,10 @@ internal sealed class Alpha67448PelipperSourceMutationService
                 return;
             }
 
+            int finalTotal = Math.Max(1, ReadIntMarker(__instance, PhaseTotalMarker));
+            __instance.modData[PhaseCurrentMarker] = finalTotal.ToString(System.Globalization.CultureInfo.InvariantCulture);
             service._finalLethalPasses++;
-            service._lastLine = $"mutant-final-lethal source={health.Identity.DisplayName} hp={health.Current}/{health.Maximum} incoming={incoming}";
+            service._lastLine = $"mutant-final-lethal source={health.Identity.DisplayName} phase={finalTotal}/{finalTotal} hp={health.Current}/{health.Maximum} incoming={incoming}";
             return;
         }
 
