@@ -29,6 +29,8 @@ internal sealed class Alpha674414PelipperMutantRewardService
     private long _markedMutants;
     private long _dropCalls;
     private long _extraDropPasses;
+    private long _prematureDropBlocks;
+    private long _finalDropPasses;
     private long _errors;
     private string _last = "reset";
 
@@ -50,13 +52,16 @@ internal sealed class Alpha674414PelipperMutantRewardService
 
     public string Describe()
         => $"Mutant reward: lootX{MutantLootMultiplier} | minions=2-4 | scope=all-mutants | marked={_markedMutants} | "
-            + $"dropHooks={_dropHooks.Count} | dropCalls={_dropCalls} | extraDropPasses={_extraDropPasses} | errors={_errors} | last={_last}";
+            + $"dropHooks={_dropHooks.Count} | dropCalls={_dropCalls} | extraDropPasses={_extraDropPasses} | "
+            + $"prematureDropBlocks={_prematureDropBlocks} | finalDropPasses={_finalDropPasses} | errors={_errors} | last={_last}";
 
     public void ResetTelemetry()
     {
         _markedMutants = 0;
         _dropCalls = 0;
         _extraDropPasses = 0;
+        _prematureDropBlocks = 0;
+        _finalDropPasses = 0;
         _errors = 0;
         _last = "reset";
     }
@@ -119,6 +124,10 @@ internal sealed class Alpha674414PelipperMutantRewardService
                     {
                         _harmony.Patch(
                             method,
+                            prefix: new HarmonyMethod(typeof(Alpha674414PelipperMutantRewardService), nameof(MonsterDropPrefix))
+                            {
+                                priority = Priority.First
+                            },
                             postfix: new HarmonyMethod(typeof(Alpha674414PelipperMutantRewardService), nameof(MonsterDropPostfix))
                             {
                                 priority = Priority.Last
@@ -132,6 +141,38 @@ internal sealed class Alpha674414PelipperMutantRewardService
                 }
             }
         }
+    }
+
+    private static bool MonsterDropPrefix(object[] __args)
+    {
+        Alpha674414PelipperMutantRewardService? service = Active;
+        if (service is null || _reentry || !Context.IsWorldReady || !Context.IsMainPlayer)
+            return true;
+
+        Monster? monster = __args.OfType<Monster>().FirstOrDefault();
+        if (monster is null
+            || !MonsterMutationService.IsMutant(monster)
+            || !PelipperTownCompatibilityService.IsWildCombatActor(monster))
+        {
+            return true;
+        }
+
+        int extraLives = ReadIntMarker(monster, Alpha67448PelipperSourceMutationService.ExtraLifeMarker);
+        int totalPhases = ReadIntMarker(monster, Alpha67448PelipperSourceMutationService.PhaseTotalMarker);
+        int currentPhase = ReadIntMarker(monster, Alpha67448PelipperSourceMutationService.PhaseCurrentMarker);
+
+        bool nonFinalPhase = extraLives > 0
+            || (totalPhases > 1 && currentPhase > 0 && currentPhase < totalPhases);
+        if (nonFinalPhase)
+        {
+            service._prematureDropBlocks++;
+            service._last = $"blocked-premature-drop source={ReadDisplayName(monster)} phase={currentPhase}/{totalPhases} extraLives={extraLives}";
+            return false;
+        }
+
+        service._finalDropPasses++;
+        service._last = $"final-drop-authorized source={ReadDisplayName(monster)} phase={Math.Max(1, currentPhase)}/{Math.Max(1, totalPhases)}";
+        return true;
     }
 
     private static void MonsterDropPostfix(GameLocation __instance, MethodBase __originalMethod, object[] __args)
@@ -177,6 +218,12 @@ internal sealed class Alpha674414PelipperMutantRewardService
             _reentry = false;
         }
     }
+
+    private static int ReadIntMarker(Monster monster, string key)
+        => monster.modData.TryGetValue(key, out string? raw)
+            && int.TryParse(raw, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int value)
+                ? Math.Max(0, value)
+                : 0;
 
     private static string ReadDisplayName(Monster monster)
     {
