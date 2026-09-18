@@ -149,7 +149,7 @@ internal sealed class MonsterMutationService
             + $"deathHooks={PatchedDeathMethodCount} | rolls={_rolls} | mutations={_mutations} | excluded={_excludedDeaths} | "
             + $"active={active} | activeMinions={minions} | spawnedMinions={_minionsSpawned} | "
             + $"footprintHooks={MonsterMutationFootprintPatch.PatchedMethodCount} | sameTypeMinions={MonsterMutationMinionFactory.SameTypeSpawned} | "
-            + $"fallbackMinions={MonsterMutationMinionFactory.FallbackSpawned}";
+            + $"fallbackMinions={MonsterMutationMinionFactory.FallbackSpawned} | failClosed={MonsterMutationMinionFactory.FailClosedRejected}";
     }
 
     public IReadOnlyList<string> DescribeCurrentLocation()
@@ -491,7 +491,7 @@ internal sealed class MonsterMutationService
         int spawned = 0;
         int rejected = 0;
         int sameType = 0;
-        int fallback = 0;
+        int failClosed = 0;
         for (int i = 0; i < wave.RequestedCount; i++)
         {
             if (!TryFindSafeSpawnPosition(wave.Location, wave.Mutant, i, out Vector2 position))
@@ -500,17 +500,26 @@ internal sealed class MonsterMutationService
                 continue;
             }
 
-            Monster minion = MonsterMutationMinionFactory.Create(
+            Monster? minion = MonsterMutationMinionFactory.Create(
                 wave.Mutant,
                 position,
                 wave.BaseMaxHealth,
                 wave.BaseDamage,
                 wave.BaseSpeed,
                 out string spawnMode);
-            if (spawnMode == "same-runtime-type")
-                sameType++;
-            else
-                fallback++;
+            if (minion is null)
+            {
+                failClosed++;
+                continue;
+            }
+
+            if (!spawnMode.Equals("same-runtime-type", StringComparison.Ordinal))
+            {
+                failClosed++;
+                continue;
+            }
+
+            sameType++;
             minion.modData[MutationMinionMarker] = "1";
             minion.modData[MutationSourceMarker] = wave.SourceType;
             if (!_minionLoot())
@@ -521,10 +530,10 @@ internal sealed class MonsterMutationService
         }
 
         _minionsSpawned += spawned;
-        LastMutationLine += $" | minionsSpawned={spawned}/{wave.RequestedCount} sameType={sameType} fallback={fallback} safeRejected={rejected}";
+        LastMutationLine += $" | minionsSpawned={spawned}/{wave.RequestedCount} sameType={sameType} failClosed={failClosed} safeRejected={rejected}";
         _monitor.Log(
             $"[MutationMinions] source={wave.SourceType} location={wave.Location.NameOrUniqueName} "
-            + $"spawned={spawned}/{wave.RequestedCount} sameType={sameType} fallback={fallback} safeRejected={rejected}",
+            + $"spawned={spawned}/{wave.RequestedCount} sameType={sameType} failClosed={failClosed} safeRejected={rejected}",
             LogLevel.Info);
     }
 
