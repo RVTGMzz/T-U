@@ -1,5 +1,5 @@
 # 6.7.44.34 restores Pelipper source/proxy pairing while preserving the live-loaded 6.7.44.23 runtime shape.
-name: Team Up v0.2.0-alpha.6.7.44.34 Pelipper Source ID Pairing
+name: Team Up v0.2.0-alpha.6.7.44.34 Combat Presence Fix
 
 on:
   push:
@@ -20,14 +20,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       EXPORT_TAG: team-up-6.7.44.24-ci-export
-      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.34_PELIPPER_SOURCE_ID_PAIRING_TEST.zip
-      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.34_PELIPPER_SOURCE_ID_PAIRING_TEST.sha256.txt
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.34_COMBAT_PRESENCE_FIX_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.34_COMBAT_PRESENCE_FIX_TEST.sha256.txt
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build and audit Alpha 6.7.44.34 Pelipper source pairing
+      - name: Build and audit Alpha 6.7.44.34 Combat presence
         run: python3 tools/build_alpha6744_34.py
       - name: Upload Alpha 6.7.44.34 workflow artifact
         continue-on-error: true
