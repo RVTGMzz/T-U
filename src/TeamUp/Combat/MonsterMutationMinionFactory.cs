@@ -11,14 +11,12 @@ namespace Ronvotri.TeamUp.Combat;
 /// A minion should look and behave like the normal monster that mutated whenever the runtime type
 /// exposes a constructor shape we can call without guessing opaque third-party state. We therefore
 /// accept only a position-only constructor, or a position + recognized level/difficulty integer.
-/// Unknown custom constructor shapes fail closed to the existing GreenSlime fallback instead of
-/// reflection-cloning NetFields or invoking arbitrary constructors with fabricated arguments.
+/// Unknown custom constructor shapes fail closed. Team Up never substitutes an unrelated creature.
 ///
-/// Alpha 6.7.44.17 performance lock: Pelipper wild Mutation followers never instantiate another
-/// Pelipper runtime type. A full Pelipper wild encounter owns both a visible PokemonNpc and hidden
-/// combat proxy plus encounter metadata/pairing/runtime bookkeeping. Mutation only needs temporary
-/// hostile followers, so Pelipper leaders use one lightweight Team Up GreenSlime combat actor per
-/// follower. This deliberately trades native Pokemon capture/render semantics for lower runtime cost.
+/// Alpha 6.7.44.37 stability lock: Pelipper followers must use the native Pelipper spawn path owned
+/// by Alpha674418NativeMutationMinionService. This factory therefore refuses Pelipper sources instead
+/// of ever fabricating a GreenSlime placeholder. Vanilla/custom sources are accepted only when the
+/// exact runtime type can be constructed through a conservative recognized constructor shape.
 /// </summary>
 internal static class MonsterMutationMinionFactory
 {
@@ -30,6 +28,7 @@ internal static class MonsterMutationMinionFactory
     public static int SameTypeFailures { get; private set; }
     public static int PelipperLightweightSpawned { get; private set; }
     public static int PelipperNativeSpawnAvoided { get; private set; }
+    public static int FailClosedRejected { get; private set; }
 
     public static void ResetTelemetry()
     {
@@ -38,9 +37,10 @@ internal static class MonsterMutationMinionFactory
         SameTypeFailures = 0;
         PelipperLightweightSpawned = 0;
         PelipperNativeSpawnAvoided = 0;
+        FailClosedRejected = 0;
     }
 
-    public static Monster Create(
+    public static Monster? Create(
         Monster source,
         Vector2 position,
         int baseMaxHealth,
@@ -48,26 +48,14 @@ internal static class MonsterMutationMinionFactory
         int baseSpeed,
         out string mode)
     {
-        // Pelipper Mutation followers intentionally do NOT use source.GetType() construction.
-        // Creating another native Pelipper combat actor can cause the source mod to materialize or
-        // expect a paired PokemonNpc/WildEncounterId. The lightweight Team Up actor is one object,
-        // temporary, ordinary, hostile, and does not participate in Pelipper capture/pairing logic.
+        // Pelipper has a source-owned native spawn lifecycle. Never manufacture a substitute actor here.
+        // Alpha674418NativeMutationMinionService owns that path and preserves real Pokemon identity/capture.
         if (PelipperTownCompatibilityService.IsWildCombatActor(source))
         {
-            Monster lightweight = CreateFallback(position, baseMaxHealth, baseDamage, baseSpeed);
-            lightweight.modData[PelipperLightweightMinionMarker] = "1";
-
-            if (PelipperWildEncounterIdentityService.TryResolve(source, out PelipperWildEncounterIdentity identity)
-                && !string.IsNullOrWhiteSpace(identity.DisplayName))
-            {
-                lightweight.modData[PelipperLeaderSpeciesMarker] = identity.DisplayName;
-            }
-
-            FallbackSpawned++;
-            PelipperLightweightSpawned++;
             PelipperNativeSpawnAvoided++;
-            mode = "pelipper-lightweight-teamup";
-            return lightweight;
+            FailClosedRejected++;
+            mode = "pelipper-native-required";
+            return null;
         }
 
         if (TryCreateSameRuntimeType(source, position, baseMaxHealth, out Monster? sameType) && sameType is not null)
@@ -79,18 +67,9 @@ internal static class MonsterMutationMinionFactory
         }
 
         SameTypeFailures++;
-        Monster fallback = CreateFallback(position, baseMaxHealth, baseDamage, baseSpeed);
-        FallbackSpawned++;
-        mode = "green-slime-fallback";
-        return fallback;
-    }
-
-    private static Monster CreateFallback(Vector2 position, int baseMaxHealth, int baseDamage, int baseSpeed)
-    {
-        int mineLevel = Math.Clamp(20 + Math.Max(1, baseMaxHealth) / 3, 20, 100);
-        var fallback = new GreenSlime(position, mineLevel);
-        NormalizeNormalStats(fallback, baseMaxHealth, baseDamage, baseSpeed);
-        return fallback;
+        FailClosedRejected++;
+        mode = "unsupported-fail-closed";
+        return null;
     }
 
     private static bool TryCreateSameRuntimeType(Monster source, Vector2 position, int baseMaxHealth, out Monster? monster)
