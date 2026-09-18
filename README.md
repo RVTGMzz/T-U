@@ -6,11 +6,11 @@
 
 ## Current development checkpoint
 
-Current version: **`0.2.0-alpha.6.7.44.17`**
+Current version: **`0.2.0-alpha.6.7.44.34`**
 
 Current branch:
 
-`v0.2-alpha6-7-44-17-lightweight-minions`
+`v0.2-alpha6-7-44-34-combat-presence-fix`
 
 Current state:
 
@@ -24,21 +24,17 @@ Resume development from:
 - `CONTINUE_HERE.md`
 - `LATEST_TEAM_UP_HANDOFF.md`
 - `docs/LATEST_HANDOFF.md`
-- `docs/ALPHA_6_7_44_17_LIGHTWEIGHT_MINIONS_HANDOFF.md`
-- `handoff/CURRENT_CHAT_HANDOFF_V0_2_ALPHA6_7_44_17_2026-09-15.md`
+- `docs/ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
 
 ## Current verified artifact
 
-- CI source SHA: `c1df68ef8f6f8d0e7bd73d1876b32c28c914c00e`
-- CI run: `34904471245`
-- CI job: `104177799252`
-- Artifact ID: `10371887676`
-- Artifact name: `team-up-alpha6-7-44-17-lightweight-minions`
-- Artifact wrapper SHA256: `ca2c4e2426c2c195c1f201030164d064244f6b639e87a4c349b05e766cbfa8f9`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.17_LIGHTWEIGHT_MUTATION_MINIONS_TEST.zip`
-- ZIP SHA256: `dc19dd525401583892f2c056b4448dcb1aeff01531b410f073ec73469f4c680d`
+- CI source SHA: `9c75bd4790be3eb747f1fd869621540efc86dae5`
+- CI run: `35289471845`
+- CI job: `105428979340`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.34_COMBAT_PRESENCE_FIX_TEST.zip`
+- ZIP SHA256: `177036a76f6164bedf5fd15dd78ba8281eba1df95f2b0322df9efac5ee284d2a`
 
-Later docs commits can move branch HEAD beyond the artifact source SHA. The ZIP above was built from `c1df68...`.
+Current live gate: verify Mutant flicker, 18-tile aggro arena and stronger contact damage. The 6.7.44.24-30 crash stack remains excluded.
 
 ## Current Mutation system
 
@@ -205,17 +201,17 @@ Pelipper remains source/render/controller authority for native Pokemon actors. T
 
 ## Build
 
-Current CI build/audit/package script on the 6.7.44.17 branch:
+Current CI build/audit/package script on the 6.7.44.34 branch:
 
-`tools/build_alpha6744_11.py`
+`tools/build_alpha6744_34.py`
 
-The filename is historical; the branch version is retargeted to the current 6.7.44.17 gate.
+The workflow filename is historical; the current branch targets the 6.7.44.34 gate.
 
 Current CI workflow:
 
 `.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml`
 
-The workflow filename is also historical; its current branch content targets 6.7.44.17.
+The workflow filename is also historical; its current branch content targets 6.7.44.34.
 
 ## Independent development / clean-room rule
 
@@ -224,6 +220,6 @@ Team Up! is an independent codebase. Do not copy or redistribute code, DLLs, ass
 ## Naming
 
 - **Display name:** Team Up!
-- **Repository:** `ronvotri/Team-Up`
+- **Repository:** `ronvotri/T-U`
 - **SMAPI UniqueID:** `Ronvotri.TeamUp`
 - **Working subtitle:** *Party & Combat Companions for Stardew Valley*
