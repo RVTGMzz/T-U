@@ -429,6 +429,17 @@ internal sealed class Alpha674423PelipperMutantLeaderSmoothingService
             return;
 
         int damage = Math.Max(1, proxy.DamageToFarmer);
+        if (pair.Minion)
+            damage = Math.Max(damage, Alpha674420MutationAggroService.PelipperOrdinaryDamageFloor);
+        if (pair.Leader)
+        {
+            damage = Math.Max(damage, Alpha674420MutationAggroService.PelipperMutantDamageFloor);
+            if (proxy.modData.TryGetValue(MonsterMutationService.MutationIntendedDamageMarker, out string? intendedRaw)
+                && int.TryParse(intendedRaw, out int intendedDamage))
+            {
+                damage = Math.Max(damage, intendedDamage);
+            }
+        }
         try
         {
             farmer.takeDamage(damage, overrideParry: false, proxy);
