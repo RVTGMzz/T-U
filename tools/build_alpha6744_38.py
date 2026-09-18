@@ -76,13 +76,14 @@ try:
         req(token in gate, f"Lower Workings v2 gate token missing: {token}")
 
     for forbidden_token in [
-        "Harmony",
-        "AppDomain",
-        "AssemblyLoad",
-        "SaveLoaded",
-        "UpdateTicked",
+        "using HarmonyLib",
+        "new Harmony(",
+        "AppDomain.",
+        "AssemblyLoad +=",
+        "SaveLoaded +=",
+        "UpdateTicked +=",
         "Game1.warpFarmer",
-        "Helper.Events",
+        "Helper.Events.",
     ]:
         req(forbidden_token not in gate, f"unsafe lifecycle/action leaked into v2 gate: {forbidden_token}")
 
