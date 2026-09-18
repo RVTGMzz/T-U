@@ -2,11 +2,11 @@
 
 Repository: **`ronvotri/T-U`**
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.38**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.39**
 
 Development branch:
 
-`v0.2-alpha6-7-44-38-lower-workings-runtime-gate-v2`
+`v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -15,73 +15,96 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_38_LOWER_WORKINGS_RUNTIME_GATE_V2_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_39_RUNTIME_IDENTITY_NIDORAN_EXACT_HANDOFF.md`
 
 ## Verified build checkpoint
 
 - Repository: `ronvotri/T-U`
-- Version: `0.2.0-alpha.6.7.44.38`
-- Branch: `v0.2-alpha6-7-44-38-lower-workings-runtime-gate-v2`
-- CI source SHA: `f08e1a861ba90eacbde5905952615d77bb055b67`
-- CI run: `35370448488`
-- CI job: `105682900175`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.38_LOWER_WORKINGS_RUNTIME_GATE_V2_TEST.zip`
-- ZIP SHA256: `71cb8c0dc9f006d19882163b0abf0023d2bb844971cd2676e7f1377f157d61e8`
+- Version: `0.2.0-alpha.6.7.44.39`
+- Branch: `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
+- CI source SHA: `feee4184c7c991743b695e70dc071b13e56d9650`
+- CI run: `35373758996`
+- CI job: `105693541626`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.39_RUNTIME_IDENTITY_NIDORAN_EXACT_TEST.zip`
+- ZIP SHA256: `b49f1597b8a9316d521c81f0c732c5c5bdbd76ca3dabc9fb9554622dae008566`
 - Build: PASS, 0 warnings, 0 errors
 - Package audit: PASS
 
-## Current authority
+## Latest live authority from Ron
 
-- 6.7.44.35 leader chase/reach was live-confirmed OK by Ron.
-- 6.7.44.36 bundles leader no-capture, 3 HP phases and final-only x3 native loot.
-- 6.7.44.37 removes GreenSlime fallback at factory level and adds `teamup_mutation_regression`.
-- 6.7.44.38 adds a read-only Lower Workings Runtime Gate v2.
-- Old 6.7.44.24-30 crash-stack services remain excluded.
+User runtime showed:
 
-## 6.7.44.38 delta
+- `teamup_mutation force` works for Alolan Meowth and Yamper with genuine native same-species Pelipper followers.
+- Mutation combat telemetry shows the 6.7.44.34 damage path active: raw proxy damage 1 -> base floor 4 -> intended Mutant damage 8.
+- `teamup_mutation_regression` returned Unknown command.
+- Nidoran♂ Mutant requested followers, but Pelipper created Nidoran♀. Team Up refused to claim them, leaving `spawnedNow=0 pending=2`.
 
-Lower Workings Runtime Gate v2 is intentionally minimal:
+Therefore:
+- native follower architecture is working generally;
+- Nidoran gender exactness is still a live gate;
+- the Unknown command strongly indicates the installed DLL was not the expected 6.7.44.37/38 runtime, so 6.7.44.39 adds explicit build identity.
 
-- no Harmony;
-- no reflection/assembly scan;
-- no new SaveLoaded subscription;
-- no UpdateTicked subscription;
-- no warp call;
-- no story/modData writes;
-- observes only the already-existing local Warped event;
-- command: `teamup_lower_runtime status|reset`.
+## 6.7.44.39 delta
 
-It validates:
-- runtime location is vanilla `StardewValley.GameLocation`;
-- map is 32x24;
-- layers Back / Buildings / Front exist and are 32x24;
-- arrival tile is `15,21`;
-- story clue tiles are in bounds;
-- persisted breach location/tile can be read;
-- entry arrives at `15,21`;
-- safe return lands on the exact persisted breach tile;
-- host/farmhand observation telemetry;
-- prerequisites and survey stage are reported read-only.
+### Runtime identity
 
-Static CI also validates:
-- `AmbientLight=45 50 60`;
-- vanilla `Mines/mine.png` tilesheet;
-- no static Warp property/object layer.
+Commands are registered early in the core 6.7.44 wiring, before runtime-fix initialization:
 
-## Immediate runtime test
+- `teamup_build`
+- `teamup_mutation_regression`
+- `teamup_lower_runtime`
 
-After installing 6.7.44.38, load the save and first run:
+Startup prints:
 
-`teamup_lower_runtime`
+`[TeamUpBuild] version=0.2.0-alpha.6.7.44.39 branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
 
-This command must exist and must not crash the save.
+`teamup_build` prints the exact loaded build and confirms the diagnostic commands are registered.
 
-If the story state already allows entry, enter Lower Workings normally, then run the command again. On return to the breach, run it once more.
+### Nidoran exact spawn request
 
-Do not call Runtime PASS until Ron confirms the live route.
+Before calling Pelipper `pokemon_spawn`:
+
+- Nidoran♂ -> `nidoran-m`
+- Nidoran♀ -> `nidoran-f`
+- all other species keep their existing display token.
+
+New debug telemetry:
+
+`[MutationNativePelipperRequest] species=<display> spawnToken=<token> level=<n>`
+
+The existing exact species matcher still refuses a wrong-gender spawned actor.
+
+## Immediate live test
+
+Install 6.7.44.39 into a clean Team Up mod folder.
+
+Run:
+
+```text
+teamup_build
+teamup_mutation_regression
+```
+
+Both commands must exist. `teamup_build` must report 6.7.44.39 and branch `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`.
+
+Then force Mutation until Nidoran♂ or Nidoran♀ is selected. The request telemetry should show the matching `nidoran-m` or `nidoran-f` token, and native followers must match the leader gender.
+
+Do not call Nidoran Runtime PASS until Ron confirms.
+
+## Carry-forward locks
+
+- old 6.7.44.24-30 crash stack remains excluded;
+- 6.7.44.34 combat presence remains;
+- 6.7.44.35 leader pursuit/reach remains;
+- 6.7.44.36 elite contract remains;
+- 6.7.44.37 fail-closed/no-GreenSlime architecture remains;
+- 6.7.44.38 Lower Workings Runtime Gate v2 remains.
 
 ## Next
 
-If 6.7.44.38 loads and the Lower Workings route validates, technical gates for 6.7.44 are closed enough to begin **6.7.45 Containment Chamber Escalation Encounter**.
+After 6.7.44.39 confirms:
+1. regression command is actually available on Ron's installed build;
+2. Nidoran gender-native follower spawn is exact;
+3. Lower Workings v2 can be queried without load/runtime failure;
 
-Do not restore the old 6.7.44.24-30 service stack.
+then proceed toward 6.7.45 Containment Chamber Escalation, unless another concrete runtime regression appears.
