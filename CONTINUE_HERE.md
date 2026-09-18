@@ -1,10 +1,12 @@
 # Continue Team Up Here
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.22**
+Repository: **`ronvotri/T-U`**
+
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.34**
 
 Development branch:
 
-`v0.2-alpha6-7-44-22-pelipper-pack-steering`
+`v0.2-alpha6-7-44-34-combat-presence-fix`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -13,87 +15,95 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
 
 ## Verified build checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.22`
-- CI source SHA: `1921deff08d397cca6c867fcce35f5b184c68c1c`
-- CI run: `34991407821`
-- CI job: `104456710100`
-- Artifact ID: `10405981878`
-- Wrapper SHA256: `60b24fdb084fc687da548569e390546fed627330219ab2cc0b55a13f6f90529b`
-- Inner ZIP SHA256: `51c5422cb6c456e9946290c9c65090f4b4438aae9dfbd9fa76cb2d2a260e6432`
+- Repository: `ronvotri/T-U`
+- Version: `0.2.0-alpha.6.7.44.34`
+- Branch: `v0.2-alpha6-7-44-34-combat-presence-fix`
+- CI source SHA: `9c75bd4790be3eb747f1fd869621540efc86dae5`
+- CI run: `35289471845`
+- CI job: `105428979340`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.34_COMBAT_PRESENCE_FIX_TEST.zip`
+- ZIP SHA256: `177036a76f6164bedf5fd15dd78ba8281eba1df95f2b0322df9efac5ee284d2a`
 - Build: PASS, 0 warnings, 0 errors
+- Package audit: PASS
 
-Docs-only commits after the CI source SHA are expected.
+## Current live truth
 
-## Live truth
+- 6.7.44.19 previously live-proved genuine same-species Pelipper followers with Spawn Commands OFF.
+- 6.7.44.23 previously live-proved Pelipper leader/follower steering and contact combat, but leader movement was still visually imperfect.
+- 6.7.44.24 through 6.7.44.30 introduced a load/crash regression and are excluded from the current runtime.
+- 6.7.44.31 restored the known-loadable 6.7.44.23 runtime shape, but Mutation force was not functionally reliable for all Pelipper species.
+- 6.7.44.33 restored Pelipper source/proxy pairing using `PokemonNpcEncounter/v1` and preserves Nidoran♂/Nidoran♀ identity. Ron live-confirmed Mutation spawning again.
+- Live feedback on 6.7.44.33: Mutant leader visibly flickered, leader/followers only aggroed at short distance, and damage felt too weak.
 
-6.7.44.19 live-proved genuine same-species Pelipper followers with Spawn Commands OFF and no Slime fallback.
+## 6.7.44.34 delta
 
-6.7.44.20 proved generic Monster pursuit flags are insufficient for Pelipper wild Pokemon.
+6.7.44.34 is a focused combat-presence pass on top of the loadable 6.7.44.33 path:
 
-6.7.44.21 proved a Team Up-owned movement layer can make Pelipper Mutation Pokemon chase Farmer, but the tile PathFindController approach is not acceptable: small followers can block the x2 leader, and passive/gentle species move in an unnatural grid-like way.
-
-## 6.7.44.22 fix
-
-`Alpha674422PelipperMutationSteeringService` supersedes the 6.7.44.21 runtime chase implementation.
-
-It keeps the real visible Pokemon, real hidden proxy and native capture identity, but uses low-level NPC movement plus pack steering:
-
-- followers approach a small ring around Farmer;
-- pack separation reduces stacking;
-- minions strongly yield to the large Mutant leader;
-- leader gets right-of-way;
-- hidden proxy cannot physically block its source Pokemon;
-- blocked actors use short alternating sidesteps;
-- contact damage still uses the real proxy as damager.
-
-6.7.44.21 remains in source history but is NOT instantiated at runtime in 6.7.44.22.
+- keeps the 6.7.44.33 Pelipper source-ID pairing fix;
+- excludes all 6.7.44.24-30 crash-stack services;
+- reasserts Pelipper Mutant visible scale immediately before world render to reduce x1/x2 flicker;
+- Mutation aggro arena is 18 tiles, x3 the 6-tile baseline;
+- Pelipper Mutation actors set `WildCombatEngaged=true` and `PassiveUntilAttacked=false` inside the aggro arena;
+- ordinary Pelipper Mutation followers use a minimum raw contact-damage floor of 4;
+- Mutant leader uses a minimum raw contact-damage floor of 8 and preserves higher intended x2 Mutation damage;
+- no Lower Workings runtime validator is active in this build.
 
 ## Immediate runtime test
 
-Keep Pelipper Spawn Commands OFF and run:
+Install only 6.7.44.34 and run:
 
 ```text
 teamup_mutation force
 ```
 
-Prefer one small species and one large/gentle species when practical. Do not attack first. Verify:
+Verify only these three things first:
 
-- leader reaches Farmer instead of getting trapped behind followers;
-- followers spread rather than stack;
-- movement is less grid-like/erratic;
-- contact damages Farmer;
-- native same-species spawn and capture remain intact.
+1. Mutant leader no longer visibly flickers between normal and x2 presentation.
+2. Leader and followers start pursuing from a materially larger distance, approximately the new 18-tile arena.
+3. Leader/follower contact damage feels materially stronger than 6.7.44.33.
 
-Then:
+Do not call Runtime PASS until Ron confirms these live.
 
-```text
-teamup_mutation status
-```
+## Frozen Mutation contract
 
-Expected steering telemetry: `leaderMoves>0`, `minionMoves>0`, `separation>0` when the pack closes, `leaderClearance>0` when followers approach the leader, usually `proxySyncs>0`, and ideally `identityMisses=0`. `sidesteps` may stay 0 on open ground, but should rise after a genuine block.
+One encounter is **1 Mutant leader + 2-4 ordinary hostile source-equivalent followers**.
 
-## Mutation contract
+Leader:
+- HP x3;
+- stat x2;
+- visible Pelipper scale capped at x2;
+- Mutation aura;
+- final native loot x3;
+- must not be catchable in the final intended design.
 
-One encounter is **1 Mutant leader + 2-4 ordinary hostile source-equivalent followers**. No unrelated Slime fallback.
+Followers:
+- same/source-equivalent creature;
+- ordinary hostile;
+- no Mutation bonus/aura/x3 reward;
+- Mutation-excluded;
+- genuine native Pelipper encounters where supported;
+- no unrelated GreenSlime visible fallback.
 
-Leader keeps HP x3, stat x2, visible Pelipper x2 cap, aura and global native loot x3. Followers match the original creature, remain ordinary and Mutation-excluded, receive no x3 leader reward, and remain genuine Pelipper wild encounters when Pelipper is the source.
+Real Pelipper HP remains:
+- `Griff.PelipperTown/WildCurrentHealth`
+- `Griff.PelipperTown/WildMaxHealth`
+
+Never use the hidden technical proxy 1,000,000 HP as real Pokemon HP.
 
 ## Remaining gates before 6.7.45
 
-- 6.7.44.22 pack steering live-pass;
-- follower native capture recheck;
-- all three Pelipper HP phases;
-- final global x3 leader loot;
+- live-pass 6.7.44.34 flicker / aggro / damage;
+- then repair leader movement/reach only on the current safe runtime shape;
+- reintroduce capture-block, 3 HP phases and x3 loot one small change at a time;
 - vanilla/non-Pelipper Mutation regression;
-- compatible custom-source regression when practical;
-- Lower Workings runtime gate.
+- Lower Workings runtime gate using a non-crashing implementation.
 
-Do not start 6.7.45 unless the user explicitly waives remaining gates.
+Do not start 6.7.45 unless Ron explicitly waives remaining gates.
 
 ## Fresh-chat resume prompt
 
-`Tiếp tục Team Up từ CONTINUE_HERE.md trên branch v0.2-alpha6-7-44-22-pelipper-pack-steering. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_22_PELIPPER_PACK_STEERING_HANDOFF.md. Current verified code SHA là 1921deff08d397cca6c867fcce35f5b184c68c1c, run 34991407821. 6.7.44.21 live-proved Team Up chase works nhưng PathFindController làm leader x2 dễ bị đệ chặn và Pokemon hiền di chuyển grid-like kỳ lạ. 6.7.44.22 bỏ runtime PathFindController, dùng low-level NPC movement + pack separation + leader right-of-way + blocked sidestep, vẫn giữ real source/proxy/native capture. Ưu tiên live-test locomotion nhỏ/lớn, contact damage + capture, sau đó 3 HP phases, x3 loot, vanilla/custom regression và Lower Workings. Không bắt đầu 6.7.45 trừ khi tôi chủ động waive.`
+`Tiếp tục Team Up từ CONTINUE_HERE.md trong repo ronvotri/T-U, branch v0.2-alpha6-7-44-34-combat-presence-fix. Đọc LATEST_TEAM_UP_HANDOFF.md, docs/LATEST_HANDOFF.md và docs/ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md. Current CI source SHA 9c75bd4790be3eb747f1fd869621540efc86dae5, run 35289471845. 6.7.44.33 đã khôi phục Mutation Pelipper source/proxy pairing và Ron live-confirmed spawn lại; feedback mới là elite flicker, aggro quá gần và damage yếu. 6.7.44.34 sửa pre-render scale stabilization, x3 aggro arena 18 tiles, Pelipper engaged/passive flags và damage floors. Các service 6.7.44.24-30 gây crash load vẫn bị loại hoàn toàn. Chỉ gọi Runtime PASS khi Ron test lại và xác nhận.`
