@@ -1,19 +1,19 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.34
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.35
 
 Repository: **`ronvotri/T-U`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_35_LEADER_PURSUIT_REACH_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-34-combat-presence-fix`
-- Version: `0.2.0-alpha.6.7.44.34`
-- CI source SHA: `9c75bd4790be3eb747f1fd869621540efc86dae5`
-- Run: `35289471845`
-- Job: `105428979340`
-- ZIP SHA256: `177036a76f6164bedf5fd15dd78ba8281eba1df95f2b0322df9efac5ee284d2a`
+- Branch: `v0.2-alpha6-7-44-35-leader-pursuit-reach`
+- Version: `0.2.0-alpha.6.7.44.35`
+- CI source SHA: `0397307ce548e35256e6ee41d0fe2252578107ee`
+- Run: `35357490625`
+- Job: `105640304295`
+- ZIP SHA256: `3a93d1de1890d19d23b5e53fb745b2db6e4e2edcf9a175e8ea8751a05c07202a`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
@@ -38,3 +38,8 @@ Detailed handoff: `docs/ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
 Immediate live gate is only flicker, aggro distance and damage feel. Do not call Runtime PASS until Ron confirms.
 
 After 6.7.44.34 passes, continue with leader movement/reach and reintroduce the remaining elite contract in small isolated steps. Do not begin 6.7.45 unless remaining gates pass or Ron explicitly waives them.
+
+
+## 6.7.44.35
+
+Focused leader locomotion/reach pass on the safe runtime shape. Per-step leader Halt is removed; hold is edge-triggered at 128px; attack reach is 160px. Followers remain unchanged. Runtime PASS requires Ron live confirmation.
