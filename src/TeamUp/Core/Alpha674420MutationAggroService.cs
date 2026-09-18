@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Microsoft.Xna.Framework;
 using Ronvotri.TeamUp.Combat;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -24,8 +25,13 @@ internal sealed class Alpha674420MutationAggroService
     public const string AggroMarker = "Ronvotri.TeamUp/MutationAggroArmed";
 
     private const int ScanPulseTicks = 3;
-    private const int RefreshTicks = 60;
-    private const int PursuitThresholdTiles = 999;
+    private const int RefreshTicks = 15;
+    private const int BaseAggroRadiusTiles = 6;
+    public const int MutationAggroRadiusTiles = BaseAggroRadiusTiles * 3;
+    public const int PelipperOrdinaryDamageFloor = 4;
+    public const int PelipperMutantDamageFloor = 8;
+    private const string PelipperEngagedKey = "Griff.PelipperTown/WildCombatEngaged";
+    private const string PelipperPassiveKey = "Griff.PelipperTown/PassiveUntilAttacked";
 
     private sealed class AggroStamp
     {
@@ -54,7 +60,7 @@ internal sealed class Alpha674420MutationAggroService
     }
 
     public string Describe()
-        => $"Mutation aggro: native-pursuit | scans={_scanPulses} | leaderArms={_leaderArms} | minionArms={_minionArms} | "
+        => $"Mutation aggro: x3-arena={MutationAggroRadiusTiles}tiles | scans={_scanPulses} | leaderArms={_leaderArms} | minionArms={_minionArms} | "
             + $"pelipperProxyArms={_pelipperProxyArms} | pelipperSourceArms={_pelipperSourceArms} | "
             + $"damageFloors={_damageFloors} | identityMisses={_identityMisses} | last={_last}";
 
@@ -85,6 +91,12 @@ internal sealed class Alpha674420MutationAggroService
             if ((!leader && !minion) || monster.Health <= 0)
                 continue;
 
+            Vector2 monsterCenter = new(monster.GetBoundingBox().Center.X, monster.GetBoundingBox().Center.Y);
+            Vector2 farmerCenter = new(Game1.player.GetBoundingBox().Center.X, Game1.player.GetBoundingBox().Center.Y);
+            float aggroRadiusPixels = MutationAggroRadiusTiles * 64f;
+            if (Vector2.DistanceSquared(monsterCenter, farmerCenter) > aggroRadiusPixels * aggroRadiusPixels)
+                continue;
+
             AggroStamp stamp = _refresh.GetOrCreateValue(monster);
             if (stamp.NextRefreshTick > Game1.ticks)
                 continue;
@@ -99,13 +111,24 @@ internal sealed class Alpha674420MutationAggroService
         // These are Stardew's native pursuit controls. Do not replace the monster's controller or
         // manually move its coordinates; custom/native movement remains authoritative.
         monster.focusedOnFarmers = true;
-        monster.moveTowardPlayer(PursuitThresholdTiles);
+        monster.moveTowardPlayer(MutationAggroRadiusTiles);
         monster.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
         monster.modData[AggroMarker] = "1";
 
-        if (monster.DamageToFarmer <= 0)
+        int desiredDamage = minion ? PelipperOrdinaryDamageFloor : 1;
+        if (leader)
         {
-            monster.DamageToFarmer = 1;
+            desiredDamage = PelipperMutantDamageFloor;
+            if (monster.modData.TryGetValue(MonsterMutationService.MutationIntendedDamageMarker, out string? intendedRaw)
+                && int.TryParse(intendedRaw, out int intended))
+            {
+                desiredDamage = Math.Max(desiredDamage, intended);
+            }
+        }
+
+        if (monster.DamageToFarmer < desiredDamage)
+        {
+            monster.DamageToFarmer = desiredDamage;
             _damageFloors++;
         }
 
@@ -115,6 +138,11 @@ internal sealed class Alpha674420MutationAggroService
             _minionArms++;
 
         bool pelipper = PelipperTownCompatibilityService.IsWildCombatActor(monster);
+        if (pelipper)
+        {
+            monster.modData[PelipperEngagedKey] = "true";
+            monster.modData[PelipperPassiveKey] = "false";
+        }
         string species = string.IsNullOrWhiteSpace(monster.displayName) ? monster.Name : monster.displayName;
         if (!pelipper)
         {
@@ -133,20 +161,22 @@ internal sealed class Alpha674420MutationAggroService
         // The visible Pokemon is a separate NPC. Arm its native walk-toward-player flag too so
         // visuals remain aggressive while Pelipper retains render/capture/source ownership.
         NPC source = identity.SourceActor;
-        source.moveTowardPlayer(PursuitThresholdTiles);
+        source.moveTowardPlayer(MutationAggroRadiusTiles);
         source.modData[PelipperTownCompatibilityService.CombatTargetOptInKey] = "true";
+        source.modData[PelipperEngagedKey] = "true";
+        source.modData[PelipperPassiveKey] = "false";
         source.modData[AggroMarker] = "1";
         if (source is Monster sourceMonster)
         {
             sourceMonster.focusedOnFarmers = true;
-            if (sourceMonster.DamageToFarmer <= 0)
+            if (sourceMonster.DamageToFarmer < desiredDamage)
             {
-                sourceMonster.DamageToFarmer = 1;
+                sourceMonster.DamageToFarmer = desiredDamage;
                 _damageFloors++;
             }
         }
 
         _pelipperSourceArms++;
-        _last = $"armed Pelipper species={identity.DisplayName} leader={leader} minion={minion} proxy+source=true pursuit=native";
+        _last = $"armed Pelipper species={identity.DisplayName} leader={leader} minion={minion} proxy+source=true arena={MutationAggroRadiusTiles}tiles damage={desiredDamage} engaged=true";
     }
 }
