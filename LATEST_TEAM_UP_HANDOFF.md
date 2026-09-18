@@ -1,35 +1,40 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.38
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.39
 
 Repository: **`ronvotri/T-U`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_38_LOWER_WORKINGS_RUNTIME_GATE_V2_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_39_RUNTIME_IDENTITY_NIDORAN_EXACT_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-38-lower-workings-runtime-gate-v2`
-- Version: `0.2.0-alpha.6.7.44.38`
-- CI source SHA: `f08e1a861ba90eacbde5905952615d77bb055b67`
-- Run: `35370448488`
-- Job: `105682900175`
-- ZIP SHA256: `71cb8c0dc9f006d19882163b0abf0023d2bb844971cd2676e7f1377f157d61e8`
+- Branch: `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
+- Version: `0.2.0-alpha.6.7.44.39`
+- CI source SHA: `feee4184c7c991743b695e70dc071b13e56d9650`
+- Run: `35373758996`
+- Job: `105693541626`
+- ZIP SHA256: `b49f1597b8a9316d521c81f0c732c5c5bdbd76ca3dabc9fb9554622dae008566`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
 
-## Runtime authority
+## Latest live authority
 
-6.7.44.35 chase/reach is live-confirmed OK. 6.7.44.36-37 complete/harden the Mutation contract. 6.7.44.38 reintroduces Lower Workings validation as a read-only lazy observer, not the old 6.7.44.28 lifecycle service.
+Ron proved normal Pelipper Mutation followers work for Alolan Meowth and Yamper. Nidoran♂ still caused Pelipper to create Nidoran♀ followers, which Team Up correctly refused to claim. `teamup_mutation_regression` was Unknown in Ron's runtime despite existing in 6.7.44.37/38 source.
 
-The old 6.7.44.24-30 crash stack remains excluded.
+6.7.44.39 addresses both diagnostic/runtime-identity uncertainty and the Nidoran command-token ambiguity.
 
-## Lower Workings v2
+## 6.7.44.39
 
-Command:
+- early command registration for `teamup_build`, `teamup_mutation_regression`, and `teamup_lower_runtime`;
+- startup build stamp with exact version/branch;
+- Nidoran♂ command token `nidoran-m`;
+- Nidoran♀ command token `nidoran-f`;
+- request telemetry reports display species + exact spawn token;
+- wrong-gender followers are still rejected by exact matching.
 
-`teamup_lower_runtime`
+All 6.7.44.34-38 safety/Mutation/Lower Workings work remains carried forward. Old 6.7.44.24-30 crash services remain absent.
 
-The service only reads map/runtime state and observes the existing local Warped event. It does not patch, warp, write story state, scan assemblies or add a SaveLoaded/UpdateTicked loop.
+## Next live gate
 
-If live route passes, next development target is 6.7.45 Containment Chamber Escalation.
+Install into a clean Team Up folder, run `teamup_build`, then `teamup_mutation_regression`. Confirm build identity first, then live-test Nidoran gender exactness. No Runtime PASS until Ron confirms.
