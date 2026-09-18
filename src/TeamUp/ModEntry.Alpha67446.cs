@@ -17,6 +17,7 @@ public sealed partial class ModEntry
     private Alpha674413PelipperVisibleMutationService PelipperVisibleMutationAlpha674413 { get; set; } = null!;
     private Alpha674413MutationMinionSpawnService MutationMinionSpawnAlpha674413 { get; set; } = null!;
     private Alpha674414PelipperMutantRewardService PelipperMutantRewardAlpha674414 { get; set; } = null!;
+    private Alpha674436EliteCaptureGuardService EliteCaptureGuardAlpha674436 { get; set; } = null!;
     private Alpha674416MutationLeaderMinionPolicyService MutationLeaderMinionPolicyAlpha674416 { get; set; } = null!;
     private Alpha674418NativeMutationMinionService NativeMutationMinionsAlpha674418 { get; set; } = null!;
     private Alpha674419PelipperSpawnCommandGateService PelipperSpawnCommandGateAlpha674419 { get; set; } = null!;
@@ -49,6 +50,10 @@ public sealed partial class ModEntry
             ModManifest.UniqueID);
 
         PelipperMutantRewardAlpha674414 = new Alpha674414PelipperMutantRewardService(
+            Monitor,
+            ModManifest.UniqueID);
+
+        EliteCaptureGuardAlpha674436 = new Alpha674436EliteCaptureGuardService(
             Monitor,
             ModManifest.UniqueID);
 
@@ -98,8 +103,8 @@ public sealed partial class ModEntry
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.34 combat presence enabled: source-ID pairing, pre-render stable Mutation scale, x3 aggro arena (18 tiles), Pelipper engagement override, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), HP binding, 2-4 source-native hostile minions, leader x2 damage with Pelipper proxy floor, native capture path, follower pack steering and leader hostility.",
+            $"Team Up 6.7.44.36 elite contract enabled: source-ID pairing, pre-render stable Mutation scale, x3 aggro arena, three Pelipper HP phases, final-only x3 native loot, leader capture blocked, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), 2-4 source-native hostile minions, leader x2 damage and continuous pursuit.",
             LogLevel.Info);
     }
 
@@ -124,6 +129,7 @@ public sealed partial class ModEntry
         PelipperVisibleMutationAlpha674413.ResetTelemetry();
         MutationMinionSpawnAlpha674413.ResetTelemetry();
         PelipperMutantRewardAlpha674414.ResetTelemetry();
+        EliteCaptureGuardAlpha674436.ResetTelemetry();
         MutationLeaderMinionPolicyAlpha674416.ResetTelemetry();
         NativeMutationMinionsAlpha674418.ResetTelemetry();
         PelipperSpawnCommandGateAlpha674419.ResetTelemetry();
@@ -198,6 +204,7 @@ public sealed partial class ModEntry
         Monitor.Log(PelipperModDataHpBindingAlpha674412.Describe(), LogLevel.Info);
         Monitor.Log(PelipperVisibleMutationAlpha674413.Describe(), LogLevel.Info);
         Monitor.Log(PelipperMutantRewardAlpha674414.Describe(), LogLevel.Info);
+        Monitor.Log(EliteCaptureGuardAlpha674436.Describe(), LogLevel.Info);
         Monitor.Log(MutationLeaderMinionPolicyAlpha674416.Describe(), LogLevel.Info);
         Monitor.Log(NativeMutationMinionsAlpha674418.Describe(), LogLevel.Info);
         Monitor.Log(PelipperSpawnCommandGateAlpha674419.Describe(), LogLevel.Info);
