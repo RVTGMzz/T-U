@@ -90,7 +90,7 @@ internal sealed class Alpha674418NativeMutationMinionService
 
         _helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         _monitor.Log(
-            "Team Up 6.7.44.18 native Mutation minions enabled: Pelipper uses native pokemon_spawn; vanilla/custom require source-equivalent runtime type; unrelated Slime fallback disabled.",
+            "Team Up 6.7.44.37 Mutation minion stability enabled: Pelipper uses native pokemon_spawn; vanilla/custom require exact source-equivalent runtime type; unsupported sources fail closed; unrelated Slime fallback removed.",
             LogLevel.Info);
     }
 
@@ -198,7 +198,7 @@ internal sealed class Alpha674418NativeMutationMinionService
                 continue;
             }
 
-            Monster candidate = MonsterMutationMinionFactory.Create(
+            Monster? candidate = MonsterMutationMinionFactory.Create(
                 leader,
                 position,
                 baseMaxHealth,
@@ -206,10 +206,8 @@ internal sealed class Alpha674418NativeMutationMinionService
                 baseSpeed,
                 out string mode);
 
-            if (!mode.Equals("same-runtime-type", StringComparison.Ordinal))
+            if (candidate is null || !mode.Equals("same-runtime-type", StringComparison.Ordinal))
             {
-                // The factory may manufacture an in-memory fallback object, but it is deliberately
-                // discarded here and never added to the location.
                 _sourceEquivalentFailures++;
                 failedNow++;
                 continue;
