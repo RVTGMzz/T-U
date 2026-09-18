@@ -89,16 +89,17 @@ public sealed partial class ModEntry
         Helper.Events.Input.ButtonPressed += OnAlpha67447GiftGuardButtonPressed;
         Helper.Events.GameLoop.SaveLoaded += OnAlpha67447SaveLoaded;
 
+        Helper.Events.Display.RenderingWorld += OnAlpha674434RenderingWorld;
         Helper.Events.Display.RenderedWorld += OnAlpha67448RenderedWorld;
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.23 Pelipper runtime diagnostics: status.",
+            "6.7.44.34 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.23 runtime fixes enabled: 20Hz encounter discovery, cached Pelipper identity/Shiny reflection, cached unique-species source pairing, Elite proxy guard, "
-            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), Pelipper modData HP binding, visible Mutation x2 cap, 2-4 source-native normal hostile minions, native Pelipper capture path with internal spawn-command gate, follower pack steering + smooth extended-reach Mutant leader hostility, global leader loot x3, active-teammate gift guard.",
+            $"Team Up 6.7.44.34 combat presence enabled: source-ID pairing, pre-render stable Mutation scale, x3 aggro arena (18 tiles), Pelipper engagement override, "
+            + $"source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks), HP binding, 2-4 source-native hostile minions, leader x2 damage with Pelipper proxy floor, native capture path, follower pack steering and leader hostility.",
             LogLevel.Info);
     }
 
@@ -110,7 +111,6 @@ public sealed partial class ModEntry
             return;
 
         EncounterReactionsAlpha67442.Update(Party.Members);
-        PelipperVisibleMutationAlpha674413.Update();
     }
 
     private void OnAlpha67447SaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -129,6 +129,16 @@ public sealed partial class ModEntry
         PelipperSpawnCommandGateAlpha674419.ResetTelemetry();
         MutationAggroAlpha674420.ResetTelemetry();
         PelipperMutationLeaderSmoothingAlpha674423.ResetTelemetry();
+    }
+
+    private void OnAlpha674434RenderingWorld(object? sender, RenderingWorldEventArgs e)
+    {
+        if (!Context.IsWorldReady || Game1.eventUp)
+            return;
+
+        // Pelipper can refresh presentation fields during its own update cycle. Reassert the Mutant
+        // scale immediately before world draw so the visible source doesn't alternate x1/x2 frames.
+        PelipperVisibleMutationAlpha674413.Update();
     }
 
     private void OnAlpha67448RenderedWorld(object? sender, RenderedWorldEventArgs e)
