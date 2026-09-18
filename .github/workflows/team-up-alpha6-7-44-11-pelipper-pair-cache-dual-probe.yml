@@ -1,13 +1,13 @@
-# 6.7.44.37 restores Pelipper source/proxy pairing while preserving the live-loaded 6.7.44.23 runtime shape.
-name: Team Up v0.2.0-alpha.6.7.44.37 Regression + Stability
+# 6.7.44.38 restores Pelipper source/proxy pairing while preserving the live-loaded 6.7.44.23 runtime shape.
+name: Team Up v0.2.0-alpha.6.7.44.38 Lower Workings Runtime Gate v2
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-37-regression-stability
+      - v0.2-alpha6-7-44-38-lower-workings-runtime-gate-v2
     paths:
       - 'src/TeamUp/**'
-      - 'tools/build_alpha6744_37.py'
+      - 'tools/build_alpha6744_38.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
@@ -20,31 +20,31 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       EXPORT_TAG: team-up-6.7.44.24-ci-export
-      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.37_REGRESSION_STABILITY_TEST.zip
-      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.37_REGRESSION_STABILITY_TEST.sha256.txt
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.38_LOWER_WORKINGS_RUNTIME_GATE_V2_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.38_LOWER_WORKINGS_RUNTIME_GATE_V2_TEST.sha256.txt
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build and audit Alpha 6.7.44.37 Regression + stability
-        run: python3 tools/build_alpha6744_37.py
-      - name: Upload Alpha 6.7.44.37 workflow artifact
+      - name: Build and audit Alpha 6.7.44.38 Lower Workings runtime gate v2
+        run: python3 tools/build_alpha6744_38.py
+      - name: Upload Alpha 6.7.44.38 workflow artifact
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-34-regression-stability
+          name: team-up-alpha6-7-44-34-lower-workings-runtime-gate-v2
           path: |
             release/${{ env.ZIP_NAME }}
             release/${{ env.SHA_NAME }}
-            BUILD_LOG_ALPHA6744_37.txt
+            BUILD_LOG_ALPHA6744_38.txt
           if-no-files-found: error
-      - name: Export Alpha 6.7.44.37 through existing private prerelease
+      - name: Export Alpha 6.7.44.38 through existing private prerelease
         shell: bash
         run: |
           set -euo pipefail
           gh release upload "$EXPORT_TAG" \
             "release/$ZIP_NAME" \
             "release/$SHA_NAME" \
-            "BUILD_LOG_ALPHA6744_37.txt" \
+            "BUILD_LOG_ALPHA6744_38.txt" \
             --clobber
