@@ -220,6 +220,6 @@ Team Up! is an independent codebase. Do not copy or redistribute code, DLLs, ass
 ## Naming
 
 - **Display name:** Team Up!
-- **Repository:** `ronvotri/T-U`
+- **Repository:** `RVTGMzz/T-U`
 - **SMAPI UniqueID:** `Ronvotri.TeamUp`
 - **Working subtitle:** *Party & Combat Companions for Stardew Valley*
