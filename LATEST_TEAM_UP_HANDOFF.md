@@ -1,42 +1,35 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.37
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.38
 
 Repository: **`ronvotri/T-U`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_37_REGRESSION_STABILITY_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_38_LOWER_WORKINGS_RUNTIME_GATE_V2_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-37-regression-stability`
-- Version: `0.2.0-alpha.6.7.44.37`
-- CI source SHA: `561909f1849d06c0d9750deac2e523ff30009995`
-- Run: `35363771773`
-- Job: `105661138777`
-- ZIP SHA256: `7ebca7fe3f75bafbce33086c2d0b3680d01dc19b669c79809e35ccdf21eb59e7`
+- Branch: `v0.2-alpha6-7-44-38-lower-workings-runtime-gate-v2`
+- Version: `0.2.0-alpha.6.7.44.38`
+- CI source SHA: `f08e1a861ba90eacbde5905952615d77bb055b67`
+- Run: `35370448488`
+- Job: `105682900175`
+- ZIP SHA256: `71cb8c0dc9f006d19882163b0abf0023d2bb844971cd2676e7f1377f157d61e8`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
 
 ## Runtime authority
 
-Ron confirmed 6.7.44.35 leader chase/reach is OK.
+6.7.44.35 chase/reach is live-confirmed OK. 6.7.44.36-37 complete/harden the Mutation contract. 6.7.44.38 reintroduces Lower Workings validation as a read-only lazy observer, not the old 6.7.44.28 lifecycle service.
 
-6.7.44.36 completes the elite contract in one bundle:
-- Mutant leader no-capture;
-- 3 source-aware HP phases;
-- no phase 1/2 loot;
-- final phase native reward x3.
+The old 6.7.44.24-30 crash stack remains excluded.
 
-6.7.44.37 is the regression/stability pass:
-- no GreenSlime fallback remains in the factory;
-- Pelipper uses only native spawn;
-- vanilla/custom followers require exact same runtime type;
-- unsupported sources fail closed;
-- runtime audit command: `teamup_mutation_regression`.
+## Lower Workings v2
 
-The 6.7.44.24-30 combined crash stack remains excluded.
+Command:
 
-## Next
+`teamup_lower_runtime`
 
-Live test 6.7.44.37 and the 6.7.44.36 elite contract. If clean, move to Lower Workings Runtime Gate v2. Only after that start 6.7.45 unless Ron explicitly waives the gate.
+The service only reads map/runtime state and observes the existing local Warped event. It does not patch, warp, write story state, scan assemblies or add a SaveLoaded/UpdateTicked loop.
+
+If live route passes, next development target is 6.7.45 Containment Chamber Escalation.
