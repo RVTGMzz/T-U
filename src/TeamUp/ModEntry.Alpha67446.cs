@@ -101,16 +101,11 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.37 Pelipper runtime diagnostics: status.",
+            "6.7.44.39 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
-        Helper.ConsoleCommands.Add(
-            "teamup_mutation_regression",
-            "6.7.44.37 Mutation regression audit for the current location.",
-            OnAlpha674437MutationRegressionCommand);
-
         Monitor.Log(
-            $"Team Up 6.7.44.37 regression/stability enabled: exact source-equivalent minions only, GreenSlime fallback removed at factory level, unsupported custom sources fail closed, "
+            $"Team Up 6.7.44.39 regression/stability enabled: exact source-equivalent minions only, GreenSlime fallback removed at factory level, unsupported custom sources fail closed, "
             + $"Pelipper native followers preserved, 6.7.44.36 elite contract retained, source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks).",
             LogLevel.Info);
     }
