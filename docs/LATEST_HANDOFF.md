@@ -4,16 +4,16 @@ Repository: **`ronvotri/T-U`**
 
 Current restart file: `../CONTINUE_HERE.md`
 
-Current detailed handoff: `ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
+Current detailed handoff: `ALPHA_6_7_44_35_LEADER_PURSUIT_REACH_HANDOFF.md`
 
 ## Current checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.34`
-- Branch: `v0.2-alpha6-7-44-34-combat-presence-fix`
-- CI source SHA: `9c75bd4790be3eb747f1fd869621540efc86dae5`
-- Run: `35289471845`
-- Job: `105428979340`
-- ZIP SHA256: `177036a76f6164bedf5fd15dd78ba8281eba1df95f2b0322df9efac5ee284d2a`
+- Version: `0.2.0-alpha.6.7.44.35`
+- Branch: `v0.2-alpha6-7-44-35-leader-pursuit-reach`
+- CI source SHA: `0397307ce548e35256e6ee41d0fe2252578107ee`
+- Run: `35357490625`
+- Job: `105640304295`
+- ZIP SHA256: `3a93d1de1890d19d23b5e53fb745b2db6e4e2edcf9a175e8ea8751a05c07202a`
 - Build: PASS, 0 warnings / 0 errors
 - Main: NOT merged
 - 6.7.45: NOT started
@@ -64,3 +64,8 @@ Do not reintroduce the 6.7.44.24-30 service stack wholesale. It caused game-load
 - Spawn Commands may remain OFF outside Team Up's temporary internal gate.
 - Native follower capture remains preferred where Pelipper supports it.
 - No Runtime PASS without Ron's live confirmation.
+
+
+## 6.7.44.35 live gate
+
+Test one Mutation encounter. Confirm leader pursuit is smoother, it no longer needs near-contact range to hit, and 6.7.44.34 aggro/damage behavior remains intact. Do not reintroduce the old 6.7.44.24-30 service stack.
