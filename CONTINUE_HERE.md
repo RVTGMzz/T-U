@@ -1,6 +1,6 @@
 # Continue Team Up Here
 
-Repository: **`ronvotri/T-U`**
+Repository: **`RVTGMzz/T-U`**
 
 Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.39**
 
@@ -19,7 +19,7 @@ Development branch:
 
 ## Verified build checkpoint
 
-- Repository: `ronvotri/T-U`
+- Repository: `RVTGMzz/T-U`
 - Version: `0.2.0-alpha.6.7.44.39`
 - Branch: `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
 - CI source SHA: `feee4184c7c991743b695e70dc071b13e56d9650`
