@@ -534,7 +534,7 @@ internal sealed class Alpha674418NativeMutationMinionService
         return string.IsNullOrWhiteSpace(leader.displayName) ? leader.Name : leader.displayName;
     }
 
-    private static string ResolvePelipperSpawnToken(string species)
+    internal static string ResolvePelipperSpawnToken(string species)
     {
         string normalized = NormalizeSpecies(species);
         return normalized switch
