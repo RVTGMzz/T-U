@@ -2,6 +2,8 @@
 
 Repository: **`RVTGMzz/T-U`**
 
+GitHub write account for this project: **`lengochung28191@gmail.com`**
+
 Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.41**
 
 Development branch:
@@ -16,75 +18,97 @@ Development branch:
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
 4. `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
+5. `NEXT_CHAT_PROMPT.md`
 
 ## Verified build checkpoint
 
 - Repository: `RVTGMzz/T-U`
 - Version: `0.2.0-alpha.6.7.44.41`
 - Branch: `v0.2-alpha6-7-44-41-capture-guard-scope-fix`
-- CI source SHA: `f658913ed19b92491facddf3f98bc1ff3c9d1e05`
+- CI source SHA: `80c93472af35ecfe4f55ebbe4aef10d8bfe3ee1d`
 - CI run: `35455277486`
 - CI job: `105929333037`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.41_FINAL_RUNTIME_CLOSURE_TEST.zip`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.41_CAPTURE_GUARD_SCOPE_FIX_TEST.zip`
 - ZIP SHA256: `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`
 - Build: PASS, 0 warnings, 0 errors
-- Package audit: PASS
+- Capture guard method-scope audit: PASS
+- Unified preflight carry-forward: PASS
 
-## 6.7.44.40 purpose
+## Latest live authority
 
-This is the final technical closure build before 6.7.45 story work.
+Ron supplied the crash log from 6.7.44.40.
 
-New command:
+Important evidence:
 
-`teamup_preflight`
+- Team Up 6.7.44.40 did load.
+- The save reached `Context: loaded save 'Vôtri_446407416'`.
+- During Team Up startup, the elite capture guard attempted Harmony patches across many Pelipper methods.
+- The old matcher combined DECLARING TYPE NAME + METHOD NAME, so types such as `CaptureResult` caused unrelated methods on that type to be treated as capture methods.
+- Repeated patch failures included `InvalidProgramException: Common Language Runtime detected an invalid program.`
+- affected methods included object/record plumbing such as `ToString`, `PrintMembers`, `GetHashCode`, `Equals`, `Deconstruct`, and `Dispose`.
+- capture guard still reported `hooks=172`.
+- the process then ended abruptly after save load with no managed SMAPI crash stack.
 
-It unifies:
-- exact loaded build identity;
-- Nidoran♂/♀ Pelipper spawn-token self-check;
-- current Mutation follower regression audit;
-- current Pelipper Mutant elite markers (3 phases, loot x3 marker, no-capture marker);
-- live Nidoran follower gender exactness when a Nidoran Mutant is currently active;
-- Lower Workings map validity and entry/return telemetry.
+This makes the capture guard over-patching the strongest current crash suspect.
 
-Output state:
-- `PASS`: all observed technical gates passed;
-- `PENDING`: no failure, but one or more live paths have not yet been observed;
-- `FAIL`: an observed technical contract failed.
+Ownership Marker is NOT the current crash suspect. The separate warning about its non-public API type is unrelated to this Team Up hard-crash investigation.
 
-## Immediate live test
+## 6.7.44.41 fix
 
-Install 6.7.44.40 into a clean Team Up folder.
+`Alpha674436EliteCaptureGuardService` now:
 
-Run:
+- matches **method name only**;
+- declaring type names no longer influence capture detection;
+- explicitly excludes:
+  - `ToString`
+  - `PrintMembers`
+  - `GetHashCode`
+  - `Equals`
+  - `Deconstruct`
+  - `Dispose`
+  - `Clone`
+- still recognizes real method names containing:
+  - `capture`
+  - `catch`
+  - `pokeball`
+- preserves Mutant leader no-capture;
+- preserves ordinary follower native capture.
 
-```text
-teamup_build
-teamup_preflight
-```
+Do NOT restore the old broad type-name matcher.
 
-Then force a Mutation and run `teamup_preflight` again.
+## Immediate live gate
 
-For full closure, also run preflight after a Nidoran Mutation and after completing the Lower Workings entry/return route.
+Install 6.7.44.41 into a **clean Team Up folder** and load the exact save that crashed.
 
-Do not call 6.7.44 Runtime PASS until Ron confirms the live output.
+The first goal is load stability, not feature testing.
+
+Expected:
+
+1. no repeated capture-guard `InvalidProgramException` spam;
+2. capture guard `hooks=...` is sharply lower than 172;
+3. save stays loaded instead of the game vanishing;
+4. only after the save is stable, run:
+   `teamup_build`
+   `teamup_preflight`
+
+If 6.7.44.41 still hard-crashes, request only the new `SMAPI-latest.txt` and inspect the tail directly. Do not ask Ron to repeat broad reproduction steps.
 
 ## Carry-forward locks
 
-- old 6.7.44.24-30 crash stack remains excluded;
-- 6.7.44.34 combat presence remains;
-- 6.7.44.35 pursuit/reach remains;
-- 6.7.44.36 elite contract remains;
-- 6.7.44.37 fail-closed/no-GreenSlime remains;
-- 6.7.44.38 Lower Workings v2 remains;
-- 6.7.44.39 Nidoran exact spawn-token mapping remains.
+6.7.44.41 still carries:
+
+- 6.7.44.34 combat presence / anti-flicker / 18-tile aggro / stronger damage;
+- 6.7.44.35 continuous leader pursuit / 128px hold / 160px reach;
+- 6.7.44.36 no-capture / 3 HP phases / final-only x3 native loot;
+- 6.7.44.37 factory-level no-GreenSlime fallback / fail closed;
+- 6.7.44.38 read-only Lower Workings Runtime Gate v2;
+- 6.7.44.39 runtime identity + Nidoran exact spawn token mapping;
+- 6.7.44.40 unified `teamup_preflight`.
+
+Old 6.7.44.24-30 crash-stack services remain excluded.
 
 ## Next
 
-If 6.7.44.40 preflight closes without a concrete runtime failure, begin **6.7.45 Containment Chamber Escalation Encounter**.
+Do NOT start 6.7.45 yet.
 
-
-## 6.7.44.41 crash-response delta
-
-Ron supplied a live SMAPI log where 6.7.44.40 loaded, then the process terminated abruptly after save initialization with no managed crash stack. The strongest abnormal signal was the 6.7.44.36 capture guard attempting to patch record/object methods such as ToString, Equals, GetHashCode, PrintMembers and Deconstruct across Pelipper capture-related types, producing repeated InvalidProgramException messages while still reporting 172 installed hooks.
-
-6.7.44.41 narrows matching to method names only and explicitly excludes record/object plumbing. Declaring type names no longer cause unrelated methods to be patched. Runtime live validation must confirm load stability and a sharply reduced hook count before moving to 6.7.45.
+First Ron must confirm 6.7.44.41 can load the save without the previous hard crash. If stable, resume `teamup_build` / `teamup_preflight` and close the remaining 6.7.44 live gates. Then begin **6.7.45 Containment Chamber Escalation Encounter**.
