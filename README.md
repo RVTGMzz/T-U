@@ -6,11 +6,11 @@
 
 ## Current development checkpoint
 
-Current version: **`0.2.0-alpha.6.7.44.40`**
+Current version: **`0.2.0-alpha.6.7.44.41`**
 
 Current branch:
 
-`v0.2-alpha6-7-44-40-final-runtime-closure`
+`v0.2-alpha6-7-44-41-capture-guard-scope-fix`
 
 Current state:
 
@@ -24,17 +24,17 @@ Resume development from:
 - `CONTINUE_HERE.md`
 - `LATEST_TEAM_UP_HANDOFF.md`
 - `docs/LATEST_HANDOFF.md`
-- `docs/ALPHA_6_7_44_40_FINAL_RUNTIME_CLOSURE_HANDOFF.md`
+- `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
 
 ## Current verified artifact
 
-- CI source SHA: `f658913ed19b92491facddf3f98bc1ff3c9d1e05`
-- CI run: `35419812620`
-- CI job: `105835213977`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.40_FINAL_RUNTIME_CLOSURE_TEST.zip`
-- ZIP SHA256: `5d5ad7a90577f0a02a7397003553463914104eec57931ef9209188bcd8cad7d8`
+- CI source SHA: `80c93472af35ecfe4f55ebbe4aef10d8bfe3ee1d`
+- CI run: `35455277486`
+- CI job: `105929333037`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.41_CAPTURE_GUARD_SCOPE_FIX_TEST.zip`
+- ZIP SHA256: `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`
 
-Current live gate: run `teamup_preflight` to close the remaining 6.7.44 runtime evidence. The 6.7.44.24-30 crash stack remains excluded.
+Current live gate: prove 6.7.44.41 load stability after the capture-guard scope fix. Only after the save stays loaded should `teamup_build` / `teamup_preflight` resume. The 6.7.44.24-30 crash stack remains excluded.
 
 ## Current Mutation system
 
@@ -201,17 +201,17 @@ Pelipper remains source/render/controller authority for native Pokemon actors. T
 
 ## Build
 
-Current CI build/audit/package script on the 6.7.44.40 branch:
+Current CI build/audit/package script on the 6.7.44.41 branch:
 
-`tools/build_alpha6744_40.py`
+`tools/build_alpha6744_41.py`
 
-The workflow filename is historical; the current branch targets the 6.7.44.40 gate.
+The workflow filename is historical; the current branch targets the 6.7.44.41 gate.
 
 Current CI workflow:
 
 `.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml`
 
-The workflow filename is also historical; its current branch content targets 6.7.44.40.
+The workflow filename is also historical; its current branch content targets 6.7.44.41.
 
 ## Independent development / clean-room rule
 
