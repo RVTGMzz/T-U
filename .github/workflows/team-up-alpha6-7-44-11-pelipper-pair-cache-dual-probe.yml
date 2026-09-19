@@ -1,13 +1,13 @@
-# 6.7.44.39 restores Pelipper source/proxy pairing while preserving the live-loaded 6.7.44.23 runtime shape.
-name: Team Up v0.2.0-alpha.6.7.44.39 Runtime Identity + Nidoran Exact
+# 6.7.44.40 restores Pelipper source/proxy pairing while preserving the live-loaded 6.7.44.23 runtime shape.
+name: Team Up v0.2.0-alpha.6.7.44.40 Final Runtime Closure
 
 on:
   push:
     branches:
-      - v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact
+      - v0.2-alpha6-7-44-40-final-runtime-closure
     paths:
       - 'src/TeamUp/**'
-      - 'tools/build_alpha6744_39.py'
+      - 'tools/build_alpha6744_40.py'
       - '.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml'
   workflow_dispatch:
 
@@ -20,31 +20,31 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       EXPORT_TAG: team-up-6.7.44.24-ci-export
-      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.39_RUNTIME_IDENTITY_NIDORAN_EXACT_TEST.zip
-      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.39_RUNTIME_IDENTITY_NIDORAN_EXACT_TEST.sha256.txt
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.40_FINAL_RUNTIME_CLOSURE_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.40_FINAL_RUNTIME_CLOSURE_TEST.sha256.txt
     steps:
       - uses: actions/checkout@v4
       - uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
         with:
           dotnet_version: 6.0.x
-      - name: Build and audit Alpha 6.7.44.39 Runtime identity + Nidoran exact
-        run: python3 tools/build_alpha6744_39.py
-      - name: Upload Alpha 6.7.44.39 workflow artifact
+      - name: Build and audit Alpha 6.7.44.40 Final runtime closure
+        run: python3 tools/build_alpha6744_40.py
+      - name: Upload Alpha 6.7.44.40 workflow artifact
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: team-up-alpha6-7-44-34-runtime-identity-nidoran-exact
+          name: team-up-alpha6-7-44-40-final-runtime-closure
           path: |
             release/${{ env.ZIP_NAME }}
             release/${{ env.SHA_NAME }}
-            BUILD_LOG_ALPHA6744_39.txt
+            BUILD_LOG_ALPHA6744_40.txt
           if-no-files-found: error
-      - name: Export Alpha 6.7.44.39 through existing private prerelease
+      - name: Export Alpha 6.7.44.40 through existing private prerelease
         shell: bash
         run: |
           set -euo pipefail
           gh release upload "$EXPORT_TAG" \
             "release/$ZIP_NAME" \
             "release/$SHA_NAME" \
-            "BUILD_LOG_ALPHA6744_39.txt" \
+            "BUILD_LOG_ALPHA6744_40.txt" \
             --clobber
