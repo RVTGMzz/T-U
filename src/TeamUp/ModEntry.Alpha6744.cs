@@ -64,7 +64,7 @@ public sealed partial class ModEntry
             "6.7.44.40 unified final runtime closure audit.",
             OnAlpha674440PreflightCommand);
 
-        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-40-final-runtime-closure", LogLevel.Info);
+        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-41-capture-guard-scope-fix", LogLevel.Info);
 
         EnsureAlpha67442EncounterReactionsRegistered();
         RegisterAlpha67446RuntimeFixes();
@@ -154,7 +154,7 @@ public sealed partial class ModEntry
     private void OnAlpha674439BuildCommand(string command, string[] args)
     {
         Monitor.Log(
-            $"Team Up build: version={ModManifest.Version} | branch=v0.2-alpha6-7-44-40-final-runtime-closure | regressionCommand=registered | lowerRuntimeCommand=registered | preflightCommand=registered",
+            $"Team Up build: version={ModManifest.Version} | branch=v0.2-alpha6-7-44-41-capture-guard-scope-fix | regressionCommand=registered | lowerRuntimeCommand=registered | preflightCommand=registered",
             LogLevel.Info);
     }
 
