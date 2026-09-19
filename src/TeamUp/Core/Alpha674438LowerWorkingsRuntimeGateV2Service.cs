@@ -151,6 +151,35 @@ internal sealed class Alpha674438LowerWorkingsRuntimeGateV2Service
         _last = "reset";
     }
 
+    public PreflightSnapshot GetPreflightSnapshot()
+    {
+        MapSnapshot map = ProbeMap();
+        bool routeObserved = _entryObservations > 0 || _returnObservations > 0;
+        bool routePass = routeObserved
+            && _entryMismatches == 0
+            && _returnMismatches == 0
+            && _mapFailures == 0
+            && _errors == 0
+            && (_entryObservations == 0 || _entryPasses == _entryObservations)
+            && (_returnObservations == 0 || _returnPasses == _returnObservations);
+
+        return new PreflightSnapshot(
+            map.Valid,
+            map.LocationLoaded,
+            ResolveState(map.Valid),
+            routeObserved,
+            routePass,
+            _entryObservations,
+            _entryPasses,
+            _entryMismatches,
+            _returnObservations,
+            _returnPasses,
+            _returnMismatches,
+            _mapFailures,
+            _errors,
+            _last);
+    }
+
     public string Describe()
     {
         MapSnapshot map = ProbeMap();
@@ -275,6 +304,22 @@ internal sealed class Alpha674438LowerWorkingsRuntimeGateV2Service
 
     private static string Serialize(Point point)
         => $"{point.X},{point.Y}";
+
+    public readonly record struct PreflightSnapshot(
+        bool MapValid,
+        bool LocationLoaded,
+        string State,
+        bool RouteObserved,
+        bool RoutePass,
+        int EntryObservations,
+        int EntryPasses,
+        int EntryMismatches,
+        int ReturnObservations,
+        int ReturnPasses,
+        int ReturnMismatches,
+        int MapFailures,
+        int Errors,
+        string Last);
 
     private readonly record struct MapSnapshot(
         bool Valid,
