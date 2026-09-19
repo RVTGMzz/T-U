@@ -6,11 +6,11 @@
 
 ## Current development checkpoint
 
-Current version: **`0.2.0-alpha.6.7.44.34`**
+Current version: **`0.2.0-alpha.6.7.44.40`**
 
 Current branch:
 
-`v0.2-alpha6-7-44-34-combat-presence-fix`
+`v0.2-alpha6-7-44-40-final-runtime-closure`
 
 Current state:
 
@@ -24,17 +24,17 @@ Resume development from:
 - `CONTINUE_HERE.md`
 - `LATEST_TEAM_UP_HANDOFF.md`
 - `docs/LATEST_HANDOFF.md`
-- `docs/ALPHA_6_7_44_34_COMBAT_PRESENCE_HANDOFF.md`
+- `docs/ALPHA_6_7_44_40_FINAL_RUNTIME_CLOSURE_HANDOFF.md`
 
 ## Current verified artifact
 
-- CI source SHA: `9c75bd4790be3eb747f1fd869621540efc86dae5`
-- CI run: `35289471845`
-- CI job: `105428979340`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.34_COMBAT_PRESENCE_FIX_TEST.zip`
-- ZIP SHA256: `177036a76f6164bedf5fd15dd78ba8281eba1df95f2b0322df9efac5ee284d2a`
+- CI source SHA: `f658913ed19b92491facddf3f98bc1ff3c9d1e05`
+- CI run: `35419812620`
+- CI job: `105835213977`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.40_FINAL_RUNTIME_CLOSURE_TEST.zip`
+- ZIP SHA256: `5d5ad7a90577f0a02a7397003553463914104eec57931ef9209188bcd8cad7d8`
 
-Current live gate: verify Mutant flicker, 18-tile aggro arena and stronger contact damage. The 6.7.44.24-30 crash stack remains excluded.
+Current live gate: run `teamup_preflight` to close the remaining 6.7.44 runtime evidence. The 6.7.44.24-30 crash stack remains excluded.
 
 ## Current Mutation system
 
@@ -201,17 +201,17 @@ Pelipper remains source/render/controller authority for native Pokemon actors. T
 
 ## Build
 
-Current CI build/audit/package script on the 6.7.44.34 branch:
+Current CI build/audit/package script on the 6.7.44.40 branch:
 
-`tools/build_alpha6744_34.py`
+`tools/build_alpha6744_40.py`
 
-The workflow filename is historical; the current branch targets the 6.7.44.34 gate.
+The workflow filename is historical; the current branch targets the 6.7.44.40 gate.
 
 Current CI workflow:
 
 `.github/workflows/team-up-alpha6-7-44-11-pelipper-pair-cache-dual-probe.yml`
 
-The workflow filename is also historical; its current branch content targets 6.7.44.34.
+The workflow filename is also historical; its current branch content targets 6.7.44.40.
 
 ## Independent development / clean-room rule
 
