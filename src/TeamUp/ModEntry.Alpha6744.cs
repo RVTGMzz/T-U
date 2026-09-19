@@ -59,8 +59,12 @@ public sealed partial class ModEntry
             "teamup_build",
             "Print the exact loaded Team Up build identity.",
             OnAlpha674439BuildCommand);
+        Helper.ConsoleCommands.Add(
+            "teamup_preflight",
+            "6.7.44.40 unified final runtime closure audit.",
+            OnAlpha674440PreflightCommand);
 
-        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact", LogLevel.Info);
+        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-40-final-runtime-closure", LogLevel.Info);
 
         EnsureAlpha67442EncounterReactionsRegistered();
         RegisterAlpha67446RuntimeFixes();
@@ -150,7 +154,7 @@ public sealed partial class ModEntry
     private void OnAlpha674439BuildCommand(string command, string[] args)
     {
         Monitor.Log(
-            $"Team Up build: version={ModManifest.Version} | branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact | regressionCommand=registered | lowerRuntimeCommand=registered",
+            $"Team Up build: version={ModManifest.Version} | branch=v0.2-alpha6-7-44-40-final-runtime-closure | regressionCommand=registered | lowerRuntimeCommand=registered | preflightCommand=registered",
             LogLevel.Info);
     }
 
