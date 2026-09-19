@@ -1,40 +1,31 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.39
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.40
 
 Repository: **`RVTGMzz/T-U`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_39_RUNTIME_IDENTITY_NIDORAN_EXACT_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_40_FINAL_RUNTIME_CLOSURE_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
-- Version: `0.2.0-alpha.6.7.44.39`
-- CI source SHA: `feee4184c7c991743b695e70dc071b13e56d9650`
-- Run: `35373758996`
-- Job: `105693541626`
-- ZIP SHA256: `b49f1597b8a9316d521c81f0c732c5c5bdbd76ca3dabc9fb9554622dae008566`
+- Branch: `v0.2-alpha6-7-44-40-final-runtime-closure`
+- Version: `0.2.0-alpha.6.7.44.40`
+- CI source SHA: `f658913ed19b92491facddf3f98bc1ff3c9d1e05`
+- Run: `35419812620`
+- Job: `105835213977`
+- ZIP SHA256: `5d5ad7a90577f0a02a7397003553463914104eec57931ef9209188bcd8cad7d8`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
 
-## Latest live authority
+## 6.7.44.40
 
-Ron proved normal Pelipper Mutation followers work for Alolan Meowth and Yamper. Nidoran♂ still caused Pelipper to create Nidoran♀ followers, which Team Up correctly refused to claim. `teamup_mutation_regression` was Unknown in Ron's runtime despite existing in 6.7.44.37/38 source.
+Adds one unified runtime command: `teamup_preflight`.
 
-6.7.44.39 addresses both diagnostic/runtime-identity uncertainty and the Nidoran command-token ambiguity.
+It reports PASS / PENDING / FAIL across build identity, Nidoran token mapping, Mutation regression, elite markers, live Nidoran exactness and Lower Workings map/route telemetry.
 
-## 6.7.44.39
-
-- early command registration for `teamup_build`, `teamup_mutation_regression`, and `teamup_lower_runtime`;
-- startup build stamp with exact version/branch;
-- Nidoran♂ command token `nidoran-m`;
-- Nidoran♀ command token `nidoran-f`;
-- request telemetry reports display species + exact spawn token;
-- wrong-gender followers are still rejected by exact matching.
-
-All 6.7.44.34-38 safety/Mutation/Lower Workings work remains carried forward. Old 6.7.44.24-30 crash services remain absent.
+All 6.7.44.34-39 safety and gameplay fixes remain carried forward. Old 6.7.44.24-30 crash services remain absent.
 
 ## Next live gate
 
-Install into a clean Team Up folder, run `teamup_build`, then `teamup_mutation_regression`. Confirm build identity first, then live-test Nidoran gender exactness. No Runtime PASS until Ron confirms.
+Install into a clean Team Up folder, run `teamup_build` and `teamup_preflight`. After one Mutation, run preflight again. Full closure also needs one Nidoran live observation and Lower Workings entry/return observation.
