@@ -8,7 +8,7 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Alpha 6.7.44.36 capture guard for Pelipper Mutation leaders only.
+/// Alpha 6.7.44.41 capture guard for Pelipper Mutation leaders only.
 /// Followers keep Pelipper's native capture lifecycle.
 /// </summary>
 internal sealed class Alpha674436EliteCaptureGuardService
@@ -34,7 +34,7 @@ internal sealed class Alpha674436EliteCaptureGuardService
         PatchPelipperCaptureMethods(AppDomain.CurrentDomain.GetAssemblies());
 
         _monitor.Log(
-            $"Team Up 6.7.44.36 elite capture guard enabled: Mutant leaders blocked, ordinary followers untouched; hooks={_captureMethodsPatched}.",
+            $"Team Up 6.7.44.41 elite capture guard enabled: Mutant leaders blocked, ordinary followers untouched; hooks={_captureMethodsPatched}.",
             LogLevel.Info);
     }
 
@@ -61,14 +61,13 @@ internal sealed class Alpha674436EliteCaptureGuardService
 
             foreach (Type type in SafeGetTypes(assembly))
             {
-                string typeKey = Normalize(type.FullName ?? type.Name);
                 foreach (MethodInfo method in type.GetMethods(
                     BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
                     if (method.IsAbstract
                         || method.ContainsGenericParameters
                         || method.IsSpecialName
-                        || !LooksLikeCaptureMethod(typeKey, method)
+                        || !LooksLikeCaptureMethod(method)
                         || !PatchedCaptureMethods.Add(method))
                     {
                         continue;
@@ -89,7 +88,7 @@ internal sealed class Alpha674436EliteCaptureGuardService
                     {
                         PatchedCaptureMethods.Remove(method);
                         _monitor.LogOnce(
-                            $"6.7.44.36 capture guard skipped {type.FullName}.{method.Name}: {ex.GetType().Name}: {ex.Message}",
+                            $"6.7.44.41 capture guard skipped {type.FullName}.{method.Name}: {ex.GetType().Name}: {ex.Message}",
                             LogLevel.Trace);
                     }
                 }
@@ -173,12 +172,26 @@ internal sealed class Alpha674436EliteCaptureGuardService
         => npc.modData.TryGetValue(key, out string? raw)
             && raw.Equals("true", StringComparison.OrdinalIgnoreCase);
 
-    private static bool LooksLikeCaptureMethod(string typeKey, MethodInfo method)
+    private static bool LooksLikeCaptureMethod(MethodInfo method)
     {
-        string combined = typeKey + Normalize(method.Name);
-        return combined.Contains("capture")
-            || combined.Contains("catch")
-            || combined.Contains("pokeball");
+        string methodKey = Normalize(method.Name);
+
+        // Never patch compiler/record/object plumbing merely because the declaring type
+        // happens to contain words like Capture or Pokeball.
+        if (methodKey is "tostring"
+            or "printmembers"
+            or "gethashcode"
+            or "equals"
+            or "deconstruct"
+            or "dispose"
+            or "clone")
+        {
+            return false;
+        }
+
+        return methodKey.Contains("capture")
+            || methodKey.Contains("catch")
+            || methodKey.Contains("pokeball");
     }
 
     private static bool LooksLikeTargetMember(string name)
