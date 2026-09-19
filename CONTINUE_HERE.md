@@ -2,11 +2,11 @@
 
 Repository: **`RVTGMzz/T-U`**
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.39**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.40**
 
 Development branch:
 
-`v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
+`v0.2-alpha6-7-44-40-final-runtime-closure`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -15,96 +15,69 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_39_RUNTIME_IDENTITY_NIDORAN_EXACT_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_40_FINAL_RUNTIME_CLOSURE_HANDOFF.md`
 
 ## Verified build checkpoint
 
 - Repository: `RVTGMzz/T-U`
-- Version: `0.2.0-alpha.6.7.44.39`
-- Branch: `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
-- CI source SHA: `feee4184c7c991743b695e70dc071b13e56d9650`
-- CI run: `35373758996`
-- CI job: `105693541626`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.39_RUNTIME_IDENTITY_NIDORAN_EXACT_TEST.zip`
-- ZIP SHA256: `b49f1597b8a9316d521c81f0c732c5c5bdbd76ca3dabc9fb9554622dae008566`
+- Version: `0.2.0-alpha.6.7.44.40`
+- Branch: `v0.2-alpha6-7-44-40-final-runtime-closure`
+- CI source SHA: `f658913ed19b92491facddf3f98bc1ff3c9d1e05`
+- CI run: `35419812620`
+- CI job: `105835213977`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.40_FINAL_RUNTIME_CLOSURE_TEST.zip`
+- ZIP SHA256: `5d5ad7a90577f0a02a7397003553463914104eec57931ef9209188bcd8cad7d8`
 - Build: PASS, 0 warnings, 0 errors
 - Package audit: PASS
 
-## Latest live authority from Ron
+## 6.7.44.40 purpose
 
-User runtime showed:
+This is the final technical closure build before 6.7.45 story work.
 
-- `teamup_mutation force` works for Alolan Meowth and Yamper with genuine native same-species Pelipper followers.
-- Mutation combat telemetry shows the 6.7.44.34 damage path active: raw proxy damage 1 -> base floor 4 -> intended Mutant damage 8.
-- `teamup_mutation_regression` returned Unknown command.
-- Nidoran♂ Mutant requested followers, but Pelipper created Nidoran♀. Team Up refused to claim them, leaving `spawnedNow=0 pending=2`.
+New command:
 
-Therefore:
-- native follower architecture is working generally;
-- Nidoran gender exactness is still a live gate;
-- the Unknown command strongly indicates the installed DLL was not the expected 6.7.44.37/38 runtime, so 6.7.44.39 adds explicit build identity.
+`teamup_preflight`
 
-## 6.7.44.39 delta
+It unifies:
+- exact loaded build identity;
+- Nidoran♂/♀ Pelipper spawn-token self-check;
+- current Mutation follower regression audit;
+- current Pelipper Mutant elite markers (3 phases, loot x3 marker, no-capture marker);
+- live Nidoran follower gender exactness when a Nidoran Mutant is currently active;
+- Lower Workings map validity and entry/return telemetry.
 
-### Runtime identity
-
-Commands are registered early in the core 6.7.44 wiring, before runtime-fix initialization:
-
-- `teamup_build`
-- `teamup_mutation_regression`
-- `teamup_lower_runtime`
-
-Startup prints:
-
-`[TeamUpBuild] version=0.2.0-alpha.6.7.44.39 branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`
-
-`teamup_build` prints the exact loaded build and confirms the diagnostic commands are registered.
-
-### Nidoran exact spawn request
-
-Before calling Pelipper `pokemon_spawn`:
-
-- Nidoran♂ -> `nidoran-m`
-- Nidoran♀ -> `nidoran-f`
-- all other species keep their existing display token.
-
-New debug telemetry:
-
-`[MutationNativePelipperRequest] species=<display> spawnToken=<token> level=<n>`
-
-The existing exact species matcher still refuses a wrong-gender spawned actor.
+Output state:
+- `PASS`: all observed technical gates passed;
+- `PENDING`: no failure, but one or more live paths have not yet been observed;
+- `FAIL`: an observed technical contract failed.
 
 ## Immediate live test
 
-Install 6.7.44.39 into a clean Team Up mod folder.
+Install 6.7.44.40 into a clean Team Up folder.
 
 Run:
 
 ```text
 teamup_build
-teamup_mutation_regression
+teamup_preflight
 ```
 
-Both commands must exist. `teamup_build` must report 6.7.44.39 and branch `v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact`.
+Then force a Mutation and run `teamup_preflight` again.
 
-Then force Mutation until Nidoran♂ or Nidoran♀ is selected. The request telemetry should show the matching `nidoran-m` or `nidoran-f` token, and native followers must match the leader gender.
+For full closure, also run preflight after a Nidoran Mutation and after completing the Lower Workings entry/return route.
 
-Do not call Nidoran Runtime PASS until Ron confirms.
+Do not call 6.7.44 Runtime PASS until Ron confirms the live output.
 
 ## Carry-forward locks
 
 - old 6.7.44.24-30 crash stack remains excluded;
 - 6.7.44.34 combat presence remains;
-- 6.7.44.35 leader pursuit/reach remains;
+- 6.7.44.35 pursuit/reach remains;
 - 6.7.44.36 elite contract remains;
-- 6.7.44.37 fail-closed/no-GreenSlime architecture remains;
-- 6.7.44.38 Lower Workings Runtime Gate v2 remains.
+- 6.7.44.37 fail-closed/no-GreenSlime remains;
+- 6.7.44.38 Lower Workings v2 remains;
+- 6.7.44.39 Nidoran exact spawn-token mapping remains.
 
 ## Next
 
-After 6.7.44.39 confirms:
-1. regression command is actually available on Ron's installed build;
-2. Nidoran gender-native follower spawn is exact;
-3. Lower Workings v2 can be queried without load/runtime failure;
-
-then proceed toward 6.7.45 Containment Chamber Escalation, unless another concrete runtime regression appears.
+If 6.7.44.40 preflight closes without a concrete runtime failure, begin **6.7.45 Containment Chamber Escalation Encounter**.
