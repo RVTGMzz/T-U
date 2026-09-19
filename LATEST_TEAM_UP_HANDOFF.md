@@ -2,37 +2,42 @@
 
 Repository: **`RVTGMzz/T-U`**
 
+GitHub write account: **`lengochung28191@gmail.com`**
+
 Start here: `CONTINUE_HERE.md`
 
 Detailed handoff: `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
+
+New-chat prompt: `NEXT_CHAT_PROMPT.md`
 
 ## Current checkpoint
 
 - Branch: `v0.2-alpha6-7-44-41-capture-guard-scope-fix`
 - Version: `0.2.0-alpha.6.7.44.41`
-- CI source SHA: `f658913ed19b92491facddf3f98bc1ff3c9d1e05`
+- CI source SHA: `80c93472af35ecfe4f55ebbe4aef10d8bfe3ee1d`
 - Run: `35455277486`
 - Job: `105929333037`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.41_CAPTURE_GUARD_SCOPE_FIX_TEST.zip`
 - ZIP SHA256: `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`
 - Build: PASS, 0 warnings / 0 errors
 - `main`: NOT merged
 - 6.7.45: NOT started
 
-## 6.7.44.40
+## Crash-response authority
 
-Adds one unified runtime command: `teamup_preflight`.
+6.7.44.40 reached save load, but the elite capture guard emitted repeated CLR `InvalidProgramException` failures while trying to Harmony-patch unrelated record/object methods and still reported 172 hooks. The process then ended abruptly without a managed SMAPI stack.
 
-It reports PASS / PENDING / FAIL across build identity, Nidoran token mapping, Mutation regression, elite markers, live Nidoran exactness and Lower Workings map/route telemetry.
+6.7.44.41 narrows the capture matcher to method names only and explicitly excludes object/record plumbing. This is the current load-stability build.
 
-All 6.7.44.34-39 safety and gameplay fixes remain carried forward. Old 6.7.44.24-30 crash services remain absent.
+## Live gate
 
-## Next live gate
+Install 6.7.44.41 cleanly and load the same save.
 
-Install into a clean Team Up folder, run `teamup_build` and `teamup_preflight`. After one Mutation, run preflight again. Full closure also needs one Nidoran live observation and Lower Workings entry/return observation.
+First verify:
+- no repeated capture-guard InvalidProgramException spam;
+- capture hook count is sharply lower than 172;
+- game remains loaded.
 
+Only after that run `teamup_build` and `teamup_preflight`.
 
-## 6.7.44.41 crash-response delta
-
-Ron supplied a live SMAPI log where 6.7.44.40 loaded, then the process terminated abruptly after save initialization with no managed crash stack. The strongest abnormal signal was the 6.7.44.36 capture guard attempting to patch record/object methods such as ToString, Equals, GetHashCode, PrintMembers and Deconstruct across Pelipper capture-related types, producing repeated InvalidProgramException messages while still reporting 172 installed hooks.
-
-6.7.44.41 narrows matching to method names only and explicitly excludes record/object plumbing. Declaring type names no longer cause unrelated methods to be patched. Runtime live validation must confirm load stability and a sharply reduced hook count before moving to 6.7.45.
+Do not call Runtime PASS before Ron confirms live stability.
