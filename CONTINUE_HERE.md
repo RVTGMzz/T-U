@@ -2,11 +2,11 @@
 
 Repository: **`RVTGMzz/T-U`**
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.40**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.41**
 
 Development branch:
 
-`v0.2-alpha6-7-44-40-final-runtime-closure`
+`v0.2-alpha6-7-44-41-capture-guard-scope-fix`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -15,18 +15,18 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_40_FINAL_RUNTIME_CLOSURE_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
 
 ## Verified build checkpoint
 
 - Repository: `RVTGMzz/T-U`
-- Version: `0.2.0-alpha.6.7.44.40`
-- Branch: `v0.2-alpha6-7-44-40-final-runtime-closure`
+- Version: `0.2.0-alpha.6.7.44.41`
+- Branch: `v0.2-alpha6-7-44-41-capture-guard-scope-fix`
 - CI source SHA: `f658913ed19b92491facddf3f98bc1ff3c9d1e05`
-- CI run: `35419812620`
-- CI job: `105835213977`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.40_FINAL_RUNTIME_CLOSURE_TEST.zip`
-- ZIP SHA256: `5d5ad7a90577f0a02a7397003553463914104eec57931ef9209188bcd8cad7d8`
+- CI run: `35455277486`
+- CI job: `105929333037`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.41_FINAL_RUNTIME_CLOSURE_TEST.zip`
+- ZIP SHA256: `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`
 - Build: PASS, 0 warnings, 0 errors
 - Package audit: PASS
 
@@ -81,3 +81,10 @@ Do not call 6.7.44 Runtime PASS until Ron confirms the live output.
 ## Next
 
 If 6.7.44.40 preflight closes without a concrete runtime failure, begin **6.7.45 Containment Chamber Escalation Encounter**.
+
+
+## 6.7.44.41 crash-response delta
+
+Ron supplied a live SMAPI log where 6.7.44.40 loaded, then the process terminated abruptly after save initialization with no managed crash stack. The strongest abnormal signal was the 6.7.44.36 capture guard attempting to patch record/object methods such as ToString, Equals, GetHashCode, PrintMembers and Deconstruct across Pelipper capture-related types, producing repeated InvalidProgramException messages while still reporting 172 installed hooks.
+
+6.7.44.41 narrows matching to method names only and explicitly excludes record/object plumbing. Declaring type names no longer cause unrelated methods to be patched. Runtime live validation must confirm load stability and a sharply reduced hook count before moving to 6.7.45.
