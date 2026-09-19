@@ -134,8 +134,9 @@ try:
     for token in [
         '"teamup_build"',
         '"teamup_mutation_regression"',
+        '"teamup_preflight"',
         '[TeamUpBuild] version=',
-        'branch=v0.2-alpha6-7-44-39-runtime-identity-nidoran-exact',
+        'branch=v0.2-alpha6-7-44-40-final-runtime-closure',
     ]:
         req(token in lower_wiring, f"runtime identity/early command token missing: {token}")
     req(lower_wiring.index('"teamup_mutation_regression"') < lower_wiring.index("RegisterAlpha67446RuntimeFixes();"),
