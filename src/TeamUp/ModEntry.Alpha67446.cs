@@ -101,11 +101,11 @@ public sealed partial class ModEntry
 
         Helper.ConsoleCommands.Add(
             "teamup_pelipper_runtime",
-            "6.7.44.40 Pelipper runtime diagnostics: status.",
+            "6.7.44.41 Pelipper runtime diagnostics: status.",
             OnAlpha67446PelipperRuntimeCommand);
 
         Monitor.Log(
-            $"Team Up 6.7.44.40 final runtime closure enabled: exact source-equivalent minions only, GreenSlime fallback removed at factory level, unsupported custom sources fail closed, "
+            $"Team Up 6.7.44.41 capture guard scope fix enabled: exact source-equivalent minions only, GreenSlime fallback removed at factory level, unsupported custom sources fail closed, "
             + $"Pelipper native followers preserved, 6.7.44.36 elite contract retained, source-aware Mutation ({PelipperSourceMutationAlpha67448.PatchedDamageMethodCount} hooks).",
             LogLevel.Info);
     }
