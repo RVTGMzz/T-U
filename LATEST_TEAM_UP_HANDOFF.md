@@ -8,6 +8,8 @@ Start here: `CONTINUE_HERE.md`
 
 Detailed handoff: `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
 
+Runtime inspector: `docs/ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`
+
 New-chat prompt: `NEXT_CHAT_PROMPT.md`
 
 ## Current checkpoint
@@ -23,17 +25,45 @@ New-chat prompt: `NEXT_CHAT_PROMPT.md`
 - `main`: NOT merged
 - 6.7.45: NOT started
 
-## Crash-response authority
+## Latest live authority
 
-6.7.44.40 reached save load, but the elite capture guard emitted repeated CLR `InvalidProgramException` failures while trying to Harmony-patch unrelated record/object methods and still reported 172 hooks. The process then ended abruptly without a managed SMAPI stack.
+Ron supplied another SMAPI log after attempting to retest. That log is **not 6.7.44.41**.
 
-6.7.44.41 narrows the capture matcher to method names only and explicitly excludes object/record plumbing. This is the current load-stability build.
+It explicitly reports:
+
+- Team Up `0.2.0-alpha.6.7.44.40`;
+- branch `v0.2-alpha6-7-44-40-final-runtime-closure`;
+- capture guard `hooks=172`;
+- 41 Team Up capture-guard `InvalidProgramException` lines;
+- 41 bad object/record plumbing targets;
+- save `Vôtri_446407416` loaded.
+
+Therefore this retest only reconfirms the known 6.7.44.40 crash signature. It is **not evidence that 6.7.44.41 failed**.
+
+6.7.44.41 has still not received a clean live-load test.
+
+## Tooling added without changing the mod package
+
+- `tools/analyze_alpha674441_log.py`
+- `docs/ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`
+
+The inspector is read-only and classifies SMAPI logs as:
+
+- `FAIL_WRONG_BUILD`
+- `FAIL_CAPTURE_GUARD`
+- `INCOMPLETE`
+- `CANDIDATE_PASS_AWAITING_USER_CONFIRMATION`
+
+It correctly classifies Ron's stale 6.7.44.40 log as `FAIL_WRONG_BUILD`.
+
+The 6.7.44.41 DLL/ZIP was intentionally left unchanged while awaiting a clean runtime test.
 
 ## Live gate
 
-Install 6.7.44.41 cleanly and load the same save.
+Install 6.7.44.41 into a clean Team Up folder and confirm startup reports `0.2.0-alpha.6.7.44.41`.
 
-First verify:
+Then load the same save and verify:
+
 - no repeated capture-guard InvalidProgramException spam;
 - capture hook count is sharply lower than 172;
 - game remains loaded.
