@@ -18,7 +18,8 @@ Development branch:
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
 4. `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
-5. `NEXT_CHAT_PROMPT.md`
+5. `docs/ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`
+6. `NEXT_CHAT_PROMPT.md`
 
 ## Verified build checkpoint
 
@@ -36,62 +37,74 @@ Development branch:
 
 ## Latest live authority
 
-Ron supplied the crash log from 6.7.44.40.
+The newest Ron SMAPI log was expected to test 6.7.44.41, but it actually loaded the stale 6.7.44.40 package.
 
-Important evidence:
+Confirmed in that log:
 
-- Team Up 6.7.44.40 did load.
-- The save reached `Context: loaded save 'Vôtri_446407416'`.
-- During Team Up startup, the elite capture guard attempted Harmony patches across many Pelipper methods.
-- The old matcher combined DECLARING TYPE NAME + METHOD NAME, so types such as `CaptureResult` caused unrelated methods on that type to be treated as capture methods.
-- Repeated patch failures included `InvalidProgramException: Common Language Runtime detected an invalid program.`
-- affected methods included object/record plumbing such as `ToString`, `PrintMembers`, `GetHashCode`, `Equals`, `Deconstruct`, and `Dispose`.
-- capture guard still reported `hooks=172`.
-- the process then ended abruptly after save load with no managed SMAPI crash stack.
+- Team Up `0.2.0-alpha.6.7.44.40`;
+- `[TeamUpBuild] ... branch=v0.2-alpha6-7-44-40-final-runtime-closure`;
+- 41 capture-guard `InvalidProgramException` lines;
+- `hooks=172`;
+- save `Vôtri_446407416` loaded;
+- the old object/record plumbing patch targets are still present.
 
-This makes the capture guard over-patching the strongest current crash suspect.
+Therefore the newest failed launch is another 6.7.44.40 reproduction. It does **not** prove 6.7.44.41 fails.
 
-Ownership Marker is NOT the current crash suspect. The separate warning about its non-public API type is unrelated to this Team Up hard-crash investigation.
+6.7.44.41 remains runtime-untested on a confirmed clean install.
+
+Ownership Marker remains outside the current crash suspect set unless new evidence points to it.
 
 ## 6.7.44.41 fix
 
 `Alpha674436EliteCaptureGuardService` now:
 
-- matches **method name only**;
+- matches method name only;
 - declaring type names no longer influence capture detection;
-- explicitly excludes:
-  - `ToString`
-  - `PrintMembers`
-  - `GetHashCode`
-  - `Equals`
-  - `Deconstruct`
-  - `Dispose`
-  - `Clone`
-- still recognizes real method names containing:
-  - `capture`
-  - `catch`
-  - `pokeball`
+- explicitly excludes `ToString`, `PrintMembers`, `GetHashCode`, `Equals`, `Deconstruct`, `Dispose`, and `Clone`;
+- still recognizes actual method names containing `capture`, `catch`, or `pokeball`;
 - preserves Mutant leader no-capture;
 - preserves ordinary follower native capture.
 
 Do NOT restore the old broad type-name matcher.
 
+## Runtime inspector
+
+A tooling-only helper now exists:
+
+`tools/analyze_alpha674441_log.py`
+
+Run:
+
+```bash
+python tools/analyze_alpha674441_log.py SMAPI-latest.txt
+```
+
+It detects stale .40 installs, capture-guard failures, hook count, save-load evidence, and prints the final log tail.
+
+It does not change TeamUp.dll, the ZIP, save data, config, or story state.
+
 ## Immediate live gate
 
-Install 6.7.44.41 into a **clean Team Up folder** and load the exact save that crashed.
+Install 6.7.44.41 into a clean Team Up folder.
 
-The first goal is load stability, not feature testing.
+Before loading a save, confirm the console reports:
+
+`Team Up! 0.2.0-alpha.6.7.44.41`
+
+and:
+
+`[TeamUpBuild] version=0.2.0-alpha.6.7.44.41 branch=v0.2-alpha6-7-44-41-capture-guard-scope-fix`
+
+Then load the exact save that crashed.
 
 Expected:
 
 1. no repeated capture-guard `InvalidProgramException` spam;
-2. capture guard `hooks=...` is sharply lower than 172;
-3. save stays loaded instead of the game vanishing;
-4. only after the save is stable, run:
-   `teamup_build`
-   `teamup_preflight`
+2. capture guard `hooks=...` sharply lower than 172;
+3. save stays loaded;
+4. only after stability, run `teamup_build` and `teamup_preflight`.
 
-If 6.7.44.41 still hard-crashes, request only the new `SMAPI-latest.txt` and inspect the tail directly. Do not ask Ron to repeat broad reproduction steps.
+If a confirmed 6.7.44.41 install still hard-crashes, request only the new `SMAPI-latest.txt` and inspect the tail directly.
 
 ## Carry-forward locks
 
@@ -111,4 +124,4 @@ Old 6.7.44.24-30 crash-stack services remain excluded.
 
 Do NOT start 6.7.45 yet.
 
-First Ron must confirm 6.7.44.41 can load the save without the previous hard crash. If stable, resume `teamup_build` / `teamup_preflight` and close the remaining 6.7.44 live gates. Then begin **6.7.45 Containment Chamber Escalation Encounter**.
+First Ron must confirm a genuine 6.7.44.41 clean install can load the save without the previous hard crash. If stable, resume `teamup_build` / `teamup_preflight` and close the remaining 6.7.44 live gates. Then begin **6.7.45 Containment Chamber Escalation Encounter**.
