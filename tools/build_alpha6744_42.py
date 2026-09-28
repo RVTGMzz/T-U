@@ -15,9 +15,9 @@ STAGE = ROOT / "_stage_alpha6744_42"
 MOD_STAGE = STAGE / "Team Up"
 LOG = ROOT / "BUILD_LOG_ALPHA6744_42.txt"
 VERSION = "0.2.0-alpha.6.7.44.42"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_SCOPE_FIX_TEST.zip"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_SCOPE_FIX_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.sha256.txt"
 lines: list[str] = []
 
 def log(value: str) -> None:
