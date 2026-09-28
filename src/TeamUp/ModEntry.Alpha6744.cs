@@ -61,10 +61,10 @@ public sealed partial class ModEntry
             OnAlpha674439BuildCommand);
         Helper.ConsoleCommands.Add(
             "teamup_preflight",
-            "6.7.44.40 unified final runtime closure audit.",
+            "6.7.44.42 load-safe runtime isolation audit.",
             OnAlpha674440PreflightCommand);
 
-        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-41-capture-guard-scope-fix", LogLevel.Info);
+        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable", LogLevel.Info);
 
         EnsureAlpha67442EncounterReactionsRegistered();
         RegisterAlpha67446RuntimeFixes();
@@ -154,7 +154,7 @@ public sealed partial class ModEntry
     private void OnAlpha674439BuildCommand(string command, string[] args)
     {
         Monitor.Log(
-            $"Team Up build: version={ModManifest.Version} | branch=v0.2-alpha6-7-44-41-capture-guard-scope-fix | regressionCommand=registered | lowerRuntimeCommand=registered | preflightCommand=registered",
+            $"Team Up build: version={ModManifest.Version} | branch=v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable | regressionCommand=registered | lowerRuntimeCommand=registered | preflightCommand=registered",
             LogLevel.Info);
     }
 
