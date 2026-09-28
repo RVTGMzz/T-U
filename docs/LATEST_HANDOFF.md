@@ -2,64 +2,43 @@
 
 Repository: **`RVTGMzz/T-U`**
 
-Current restart file: `../CONTINUE_HERE.md`
-
-Current detailed handoff: `ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
-
-Runtime inspector notes: `ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`
-
-Current new-chat prompt: `../NEXT_CHAT_PROMPT.md`
+Current detailed handoff: `ALPHA_6_7_44_42_CAPTURE_GUARD_LOADSAFE_DISABLE_HANDOFF.md`
 
 ## Current checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.41`
-- Branch: `v0.2-alpha6-7-44-41-capture-guard-scope-fix`
-- CI source SHA: `80c93472af35ecfe4f55ebbe4aef10d8bfe3ee1d`
-- Run: `35455277486`
-- Job: `105929333037`
-- ZIP SHA256: `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`
+- Version: `0.2.0-alpha.6.7.44.42`
+- Branch: `v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
+- CI source SHA: `95bb3521360623907eb79a2acf4c05e7a9f7b9fb`
+- CI run: `36443436095`
+- CI job: `108999507464`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
+- ZIP SHA256: `5279f3cf143417ddbdd35b0281324cfd140c638d4ba0f0baaedcf0f4af3d420d`
 - Build: PASS, 0 warnings / 0 errors
-- Main: NOT merged
-- 6.7.45: NOT started
+- Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
+- Runtime: RETEST REQUIRED
 
-## Current priority
+Direct package:
 
-Load stability before all other testing.
+`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.42-loadsafe-95bb3521/TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
 
-6.7.44.40 over-patched Pelipper record/object methods and produced repeated CLR InvalidProgramException failures with 172 capture hooks.
+## Runtime authority
 
-6.7.44.41 narrows the matcher to method names only and excludes record/object plumbing.
+Confirmed 6.7.44.41 live test:
+- correct .41 build and branch loaded;
+- capture guard still installed 89 Pelipper capture/catch/pokeball Harmony prefixes;
+- save `Vôtri_446407416` reached SaveLoaded;
+- Cardcha D3-L .76 had already removed its collision hot-path postfix and completed its SaveLoaded work;
+- process exited abruptly before playable world;
+- no managed SMAPI exception was logged.
 
-## Latest retest evidence
+This makes the 89-hook capture scan the strongest isolated suspect, but not yet a proven root cause.
 
-The latest Ron log still loaded **6.7.44.40**, not 6.7.44.41.
+## 6.7.44.42
 
-The log contains:
+The capture service remains constructed, so downstream telemetry calls remain safe, but the constructor no longer invokes the broad `PatchPelipperCaptureMethods(...)` scan.
 
-- `[TeamUpBuild] version=0.2.0-alpha.6.7.44.40 branch=v0.2-alpha6-7-44-40-final-runtime-closure`;
-- `hooks=172`;
-- 41 capture-guard `InvalidProgramException` lines;
-- save `Vôtri_446407416` loaded.
+CI proves the install call is absent and the rest of 6.7.44 carries forward.
 
-This retest does not evaluate 6.7.44.41. A clean 6.7.44.41 runtime test is still pending.
+Runtime gate: install .42 cleanly with Cardcha .76 unchanged and answer only whether the same save reaches the world.
 
-## Read-only runtime inspector
-
-Use:
-
-```bash
-python tools/analyze_alpha674441_log.py SMAPI-latest.txt
-```
-
-The inspector does not alter TeamUp.dll or save state. The current mod ZIP remains unchanged.
-
-## Runtime gate
-
-Load the same save on a confirmed 6.7.44.41 install. Runtime PASS requires Ron confirmation.
-
-If stable:
-- run `teamup_build`;
-- run `teamup_preflight`;
-- resume remaining Mutation / Nidoran / Lower Workings gates.
-
-If it still hard-crashes on a confirmed 6.7.44.41 build, inspect the new SMAPI log directly before any more feature work.
+Do not restore the broad capture scan even if another subsystem is later implicated.
