@@ -8,8 +8,8 @@ using StardewValley.Monsters;
 namespace Ronvotri.TeamUp.Core;
 
 /// <summary>
-/// Alpha 6.7.44.41 capture guard for Pelipper Mutation leaders only.
-/// Followers keep Pelipper's native capture lifecycle.
+/// Alpha 6.7.44.42 load-safe capture guard quarantine.
+/// The broad Pelipper capture Harmony scan is intentionally disabled until a specific safe target is proven.
 /// </summary>
 internal sealed class Alpha674436EliteCaptureGuardService
 {
@@ -31,15 +31,17 @@ internal sealed class Alpha674436EliteCaptureGuardService
         _harmony = new Harmony(uniqueId + ".Alpha674436EliteCaptureGuard");
         Active = this;
 
-        PatchPelipperCaptureMethods(AppDomain.CurrentDomain.GetAssemblies());
-
+        // 6.7.44.42 runtime isolation:
+        // 6.7.44.41 still installed 89 heterogeneous Pelipper capture/catch/pokeball prefixes
+        // and Ron's process hard-exited after SaveLoaded without a managed SMAPI exception.
+        // Keep this service alive for diagnostics, but install zero Harmony capture-method hooks.
         _monitor.Log(
-            $"Team Up 6.7.44.41 elite capture guard enabled: Mutant leaders blocked, ordinary followers untouched; hooks={_captureMethodsPatched}.",
+            "Team Up 6.7.44.42 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.",
             LogLevel.Info);
     }
 
     public string Describe()
-        => $"Mutation capture guard: leader=blocked | followers=native | hooks={_captureMethodsPatched} | blocks={_captureBlocks} | targetMisses={_targetMisses} | last={_last}";
+        => $"Mutation capture guard: load-safe-disabled | hooks={_captureMethodsPatched} | blocks={_captureBlocks} | targetMisses={_targetMisses} | last={_last}";
 
     public void ResetTelemetry()
     {
@@ -88,7 +90,7 @@ internal sealed class Alpha674436EliteCaptureGuardService
                     {
                         PatchedCaptureMethods.Remove(method);
                         _monitor.LogOnce(
-                            $"6.7.44.41 capture guard skipped {type.FullName}.{method.Name}: {ex.GetType().Name}: {ex.Message}",
+                            $"6.7.44.42 capture guard skipped {type.FullName}.{method.Name}: {ex.GetType().Name}: {ex.Message}",
                             LogLevel.Trace);
                     }
                 }
