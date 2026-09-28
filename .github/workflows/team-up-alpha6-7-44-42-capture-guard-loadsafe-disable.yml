@@ -1,0 +1,73 @@
+name: Team Up v0.2.0-alpha.6.7.44.42 Capture Guard Load-Safe Disable
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable
+    paths:
+      - 'src/TeamUp/**'
+      - 'tools/build_alpha6744_42.py'
+      - '.github/workflows/team-up-alpha6-7-44-42-capture-guard-loadsafe-disable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.sha256.txt
+    steps:
+      - name: Checkout 6.7.44.42 branch
+        uses: actions/checkout@v4
+
+      - name: Setup SMAPI build environment
+        uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+
+      - name: Build and audit 6.7.44.42 load-safe capture quarantine
+        run: python3 tools/build_alpha6744_42.py
+
+      - name: Upload 6.7.44.42 workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-42-capture-guard-loadsafe-disable
+          path: |
+            release/${{ env.ZIP_NAME }}
+            release/${{ env.SHA_NAME }}
+            BUILD_LOG_ALPHA6744_42.txt
+          if-no-files-found: error
+
+      - name: Publish 6.7.44.42 TEST prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          TAG="team-up-6.7.44.42-loadsafe-${SHORT_SHA}"
+          NOTES=$(cat <<'EOF'
+          Team Up 6.7.44.42 runtime-isolation TEST.
+
+          Authority:
+          - Ron's confirmed 6.7.44.41 runtime still hard-exits during save load.
+          - 6.7.44.41 installed 89 Pelipper capture/catch/pokeball Harmony prefixes.
+          - No managed SMAPI exception is emitted before process exit.
+
+          This build:
+          - keeps the capture guard service alive for diagnostics;
+          - installs ZERO broad Pelipper capture-method Harmony hooks;
+          - preserves the remaining 6.7.44 Mutation / minion / pursuit / Lower Workings runtime;
+          - does not change Cardcha.
+
+          Expected startup:
+          Team Up 6.7.44.42 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.
+
+          First runtime gate only: the same save must reach the playable world.
+          This prerelease is not Runtime PASS until Ron confirms.
+          EOF
+          )
+          gh release create "$TAG"             "release/$ZIP_NAME"             "release/$SHA_NAME"             "BUILD_LOG_ALPHA6744_42.txt"             --target "$GITHUB_SHA"             --prerelease             --title "Team Up 6.7.44.42 Capture Guard Load-Safe Disable TEST"             --notes "$NOTES"
