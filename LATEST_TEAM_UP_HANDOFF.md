@@ -1,4 +1,4 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.41
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.42
 
 Repository: **`RVTGMzz/T-U`**
 
@@ -6,68 +6,49 @@ GitHub write account: **`lengochung28191@gmail.com`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
-
-Runtime inspector: `docs/ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`
-
-New-chat prompt: `NEXT_CHAT_PROMPT.md`
+Detailed handoff: `docs/ALPHA_6_7_44_42_CAPTURE_GUARD_LOADSAFE_DISABLE_HANDOFF.md`
 
 ## Current checkpoint
 
-- Branch: `v0.2-alpha6-7-44-41-capture-guard-scope-fix`
-- Version: `0.2.0-alpha.6.7.44.41`
-- CI source SHA: `80c93472af35ecfe4f55ebbe4aef10d8bfe3ee1d`
-- Run: `35455277486`
-- Job: `105929333037`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.41_CAPTURE_GUARD_SCOPE_FIX_TEST.zip`
-- ZIP SHA256: `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`
+- Version: `0.2.0-alpha.6.7.44.42`
+- Branch: `v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
+- CI source SHA: `95bb3521360623907eb79a2acf4c05e7a9f7b9fb`
+- CI run: `36443436095`
+- CI job: `108999507464`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
+- ZIP SHA256: `5279f3cf143417ddbdd35b0281324cfd140c638d4ba0f0baaedcf0f4af3d420d`
 - Build: PASS, 0 warnings / 0 errors
-- `main`: NOT merged
-- 6.7.45: NOT started
+- Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
+- Runtime: RETEST REQUIRED
+
+Direct package:
+
+`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.42-loadsafe-95bb3521/TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
 
 ## Latest live authority
 
-Ron supplied another SMAPI log after attempting to retest. That log is **not 6.7.44.41**.
+Ron has now completed a genuine 6.7.44.41 launch attempt. It did **not** reach the playable world.
 
-It explicitly reports:
+The same run also used Cardcha D3-L .76, whose collision Harmony postfix was already disabled. Cardcha completed its main SaveLoaded audit and map creation.
 
-- Team Up `0.2.0-alpha.6.7.44.40`;
-- branch `v0.2-alpha6-7-44-40-final-runtime-closure`;
-- capture guard `hooks=172`;
-- 41 Team Up capture-guard `InvalidProgramException` lines;
-- 41 bad object/record plumbing targets;
-- save `Vôtri_446407416` loaded.
+Team Up 6.7.44.41 still installed **89 Pelipper capture/catch/pokeball Harmony prefixes**. The process then hard-exited after save load without a managed SMAPI exception or stack trace.
 
-Therefore this retest only reconfirms the known 6.7.44.40 crash signature. It is **not evidence that 6.7.44.41 failed**.
+Therefore 6.7.44.41 is now **Runtime FAIL / hard-exit remains**.
 
-6.7.44.41 has still not received a clean live-load test.
+6.7.44.42 is the isolation build: the capture guard service stays alive, but its broad Pelipper Harmony scan installs zero hooks.
 
-## Tooling added without changing the mod package
+## Immediate runtime gate
 
-- `tools/analyze_alpha674441_log.py`
-- `docs/ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`
+Keep Cardcha D3-L .76 unchanged.
 
-The inspector is read-only and classifies SMAPI logs as:
+Clean-replace Team Up with 6.7.44.42 and load the same save.
 
-- `FAIL_WRONG_BUILD`
-- `FAIL_CAPTURE_GUARD`
-- `INCOMPLETE`
-- `CANDIDATE_PASS_AWAITING_USER_CONFIRMATION`
+Expected startup line:
 
-It correctly classifies Ron's stale 6.7.44.40 log as `FAIL_WRONG_BUILD`.
+```text
+Team Up 6.7.44.42 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.
+```
 
-The 6.7.44.41 DLL/ZIP was intentionally left unchanged while awaiting a clean runtime test.
+First question only: does the save reach the playable world?
 
-## Live gate
-
-Install 6.7.44.41 into a clean Team Up folder and confirm startup reports `0.2.0-alpha.6.7.44.41`.
-
-Then load the same save and verify:
-
-- no repeated capture-guard InvalidProgramException spam;
-- capture hook count is sharply lower than 172;
-- game remains loaded.
-
-Only after that run `teamup_build` and `teamup_preflight`.
-
-Do not call Runtime PASS before Ron confirms live stability.
+Do not start 6.7.45 and do not call Runtime PASS before Ron confirms.
