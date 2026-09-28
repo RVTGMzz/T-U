@@ -1,11 +1,13 @@
-Tiếp tục Team Up từ `CONTINUE_HERE.md` trong repo `RVTGMzz/T-U`, branch `v0.2-alpha6-7-44-41-capture-guard-scope-fix`. Đọc `LATEST_TEAM_UP_HANDOFF.md`, `docs/LATEST_HANDOFF.md`, `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`, và `docs/ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`.
+Tiếp tục Team Up từ `CONTINUE_HERE.md` trong repo `RVTGMzz/T-U`, branch `v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`. Đọc `LATEST_TEAM_UP_HANDOFF.md`, `docs/LATEST_HANDOFF.md`, và `docs/ALPHA_6_7_44_42_CAPTURE_GUARD_LOADSAFE_DISABLE_HANDOFF.md`.
 
 Dùng đúng GitHub account `lengochung28191@gmail.com`.
 
-Authority mới nhất: Ron vừa gửi một SMAPI log tưởng là test 6.7.44.41, nhưng log xác nhận máy vẫn chạy `0.2.0-alpha.6.7.44.40` trên branch `v0.2-alpha6-7-44-40-final-runtime-closure`. Log có 41 capture-guard `InvalidProgramException`, 41 object/record plumbing bad targets, `hooks=172`, và save `Vôtri_446407416` đã load. Vì vậy đây chỉ là reproduction của crash 6.7.44.40, không phải failure của 6.7.44.41.
+Authority mới nhất: Ron đã test đúng Team Up 6.7.44.41 cùng Cardcha D3-L .76. Cardcha .76 không còn collision Harmony postfix và đã hoàn tất SaveLoaded chính. Team Up .41 vẫn cài 89 Pelipper capture/catch/pokeball Harmony prefixes. Save `Vôtri_446407416` load được nhưng process hard-exit trước playable world, không có managed SMAPI exception.
 
-6.7.44.41 vẫn là package cần test: ZIP `TeamUp_v0.2.0-alpha.6.7.44.41_CAPTURE_GUARD_SCOPE_FIX_TEST.zip`, SHA256 `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`.
+Vì vậy .41 là Runtime FAIL. Bản isolation mới là 6.7.44.42: broad capture guard scan bị vô hiệu hoàn toàn, service vẫn sống cho diagnostics, expected hooks=0.
 
-Tooling-only runtime inspector đã được thêm ở `tools/analyze_alpha674441_log.py`. Nó không thay đổi TeamUp.dll/package và đã phân loại đúng log stale .40 thành `FAIL_WRONG_BUILD`.
+Package: `TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
+SHA256: `5279f3cf143417ddbdd35b0281324cfd140c638d4ba0f0baaedcf0f4af3d420d`
+CI run `36443436095`, job `108999507464`, source `95bb3521360623907eb79a2acf4c05e7a9f7b9fb`.
 
-Ưu tiên đầu tiên vẫn là clean-install 6.7.44.41 và xác nhận console thực sự hiện `0.2.0-alpha.6.7.44.41` trước khi load save. Không vào 6.7.45 và không gọi Runtime PASS trước khi Ron xác nhận: không còn InvalidProgramException spam, hook count giảm mạnh khỏi 172, và save đứng ổn. Nếu confirmed .41 vẫn crash, chỉ xin SMAPI-latest.txt mới rồi inspect trực tiếp.
+Ưu tiên đầu tiên: Ron clean-install .42, giữ Cardcha .76 nguyên, load cùng save và chỉ xác nhận có vào playable world hay không. Không vào 6.7.45, không gọi Runtime PASS, không khôi phục broad capture hook trước khi có runtime evidence mới.
