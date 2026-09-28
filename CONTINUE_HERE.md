@@ -2,13 +2,13 @@
 
 Repository: **`RVTGMzz/T-U`**
 
-GitHub write account for this project: **`lengochung28191@gmail.com`**
+GitHub write account: **`lengochung28191@gmail.com`**
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.41**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.42**
 
 Development branch:
 
-`v0.2-alpha6-7-44-41-capture-guard-scope-fix`
+`v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -17,111 +17,46 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_41_CAPTURE_GUARD_SCOPE_FIX_HANDOFF.md`
-5. `docs/ALPHA_6_7_44_41_RUNTIME_GATE_INSPECTOR.md`
-6. `NEXT_CHAT_PROMPT.md`
+4. `docs/ALPHA_6_7_44_42_CAPTURE_GUARD_LOADSAFE_DISABLE_HANDOFF.md`
+5. `NEXT_CHAT_PROMPT.md`
 
 ## Verified build checkpoint
 
-- Repository: `RVTGMzz/T-U`
-- Version: `0.2.0-alpha.6.7.44.41`
-- Branch: `v0.2-alpha6-7-44-41-capture-guard-scope-fix`
-- CI source SHA: `80c93472af35ecfe4f55ebbe4aef10d8bfe3ee1d`
-- CI run: `35455277486`
-- CI job: `105929333037`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.41_CAPTURE_GUARD_SCOPE_FIX_TEST.zip`
-- ZIP SHA256: `d923a7eb93caf76d8da9dbca19a67e6f273e01f001c8b703f2325f1bb3a7084e`
-- Build: PASS, 0 warnings, 0 errors
-- Capture guard method-scope audit: PASS
-- Unified preflight carry-forward: PASS
+- Version: `0.2.0-alpha.6.7.44.42`
+- Branch: `v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
+- CI source SHA: `95bb3521360623907eb79a2acf4c05e7a9f7b9fb`
+- CI run: `36443436095`
+- CI job: `108999507464`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
+- ZIP SHA256: `5279f3cf143417ddbdd35b0281324cfd140c638d4ba0f0baaedcf0f4af3d420d`
+- Build: PASS, 0 warnings / 0 errors
+- Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
+- Runtime: RETEST REQUIRED
 
-## Latest live authority
+Direct package:
 
-The newest Ron SMAPI log was expected to test 6.7.44.41, but it actually loaded the stale 6.7.44.40 package.
+`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.42-loadsafe-95bb3521/TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
 
-Confirmed in that log:
+## Why .42 exists
 
-- Team Up `0.2.0-alpha.6.7.44.40`;
-- `[TeamUpBuild] ... branch=v0.2-alpha6-7-44-40-final-runtime-closure`;
-- 41 capture-guard `InvalidProgramException` lines;
-- `hooks=172`;
-- save `Vôtri_446407416` loaded;
-- the old object/record plumbing patch targets are still present.
+A confirmed 6.7.44.41 runtime still hard-exits after SaveLoaded. Unlike .40, it no longer emits InvalidProgramException spam, but it still installs 89 generic Pelipper capture-method Harmony prefixes.
 
-Therefore the newest failed launch is another 6.7.44.40 reproduction. It does **not** prove 6.7.44.41 fails.
-
-6.7.44.41 remains runtime-untested on a confirmed clean install.
-
-Ownership Marker remains outside the current crash suspect set unless new evidence points to it.
-
-## 6.7.44.41 fix
-
-`Alpha674436EliteCaptureGuardService` now:
-
-- matches method name only;
-- declaring type names no longer influence capture detection;
-- explicitly excludes `ToString`, `PrintMembers`, `GetHashCode`, `Equals`, `Deconstruct`, `Dispose`, and `Clone`;
-- still recognizes actual method names containing `capture`, `catch`, or `pokeball`;
-- preserves Mutant leader no-capture;
-- preserves ordinary follower native capture.
-
-Do NOT restore the old broad type-name matcher.
-
-## Runtime inspector
-
-A tooling-only helper now exists:
-
-`tools/analyze_alpha674441_log.py`
-
-Run:
-
-```bash
-python tools/analyze_alpha674441_log.py SMAPI-latest.txt
-```
-
-It detects stale .40 installs, capture-guard failures, hook count, save-load evidence, and prints the final log tail.
-
-It does not change TeamUp.dll, the ZIP, save data, config, or story state.
+6.7.44.42 quarantines that whole capture scan. The service remains present and reports `hooks=0`, so existing telemetry/reset code remains valid.
 
 ## Immediate live gate
 
-Install 6.7.44.41 into a clean Team Up folder.
+Keep Cardcha D3-L .76 installed unchanged.
 
-Before loading a save, confirm the console reports:
-
-`Team Up! 0.2.0-alpha.6.7.44.41`
-
-and:
-
-`[TeamUpBuild] version=0.2.0-alpha.6.7.44.41 branch=v0.2-alpha6-7-44-41-capture-guard-scope-fix`
-
-Then load the exact save that crashed.
+Clean-replace only Team Up with .42, load the same save, and report whether the playable world appears.
 
 Expected:
 
-1. no repeated capture-guard `InvalidProgramException` spam;
-2. capture guard `hooks=...` sharply lower than 172;
-3. save stays loaded;
-4. only after stability, run `teamup_build` and `teamup_preflight`.
+`[TeamUpBuild] version=0.2.0-alpha.6.7.44.42 branch=v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
 
-If a confirmed 6.7.44.41 install still hard-crashes, request only the new `SMAPI-latest.txt` and inspect the tail directly.
+and:
 
-## Carry-forward locks
+`Team Up 6.7.44.42 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.`
 
-6.7.44.41 still carries:
+If the save still hard-exits, inspect the new SMAPI tail before changing any additional gameplay feature.
 
-- 6.7.44.34 combat presence / anti-flicker / 18-tile aggro / stronger damage;
-- 6.7.44.35 continuous leader pursuit / 128px hold / 160px reach;
-- 6.7.44.36 no-capture / 3 HP phases / final-only x3 native loot;
-- 6.7.44.37 factory-level no-GreenSlime fallback / fail closed;
-- 6.7.44.38 read-only Lower Workings Runtime Gate v2;
-- 6.7.44.39 runtime identity + Nidoran exact spawn token mapping;
-- 6.7.44.40 unified `teamup_preflight`.
-
-Old 6.7.44.24-30 crash-stack services remain excluded.
-
-## Next
-
-Do NOT start 6.7.45 yet.
-
-First Ron must confirm a genuine 6.7.44.41 clean install can load the save without the previous hard crash. If stable, resume `teamup_build` / `teamup_preflight` and close the remaining 6.7.44 live gates. Then begin **6.7.45 Containment Chamber Escalation Encounter**.
+Do not start 6.7.45 yet.
