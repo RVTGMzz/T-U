@@ -33,7 +33,10 @@ Development branch:
 - Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
 - Preflight ownership audit: **PASS**
 - Runtime load-stability gate: **PASS on Ron's 6.7.44.43 live test**
-- Full 6.7.44 feature preflight: **PENDING**
+- Mutation wave gate: **PASS**
+- Elite marker gate: **PASS**
+- Nidoran live gate: **PENDING**
+- Lower Workings route gate: **PENDING**
 
 Direct package:
 
@@ -86,3 +89,39 @@ then run:
 `teamup_preflight`
 
 Do not start 6.7.45 until the remaining 6.7.44 runtime gates are closed.
+
+## Latest Mutation live evidence
+
+Ron forced a live Mutation on a Pelipper Ponyta in BusStop.
+
+Observed:
+- baseHP=71 -> mutantHP=213;
+- intended damage x2;
+- visual scale x2;
+- 4 minions requested;
+- Pelipper native spawn command resolved 4 Ponyta followers;
+- `spawnedNow=4`, `pending=0`, `failed=0`, `safeRejected=0`;
+- unified preflight: `mutation=PASS`, `elite=PASS`;
+- `factoryFallback=0`;
+- `pelipperNative=4`;
+- `pelipperIdentityMiss=0`;
+- `pelipperDuplicateEncounter=0`;
+- elite markers: Ponyta phase=1/3, lootX=3, noCapture=True.
+
+This closes the Mutation wave and elite-marker gates for 6.7.44.43.
+
+Remaining:
+- `nidoranLive=PENDING`;
+- `lowerRoute=PENDING`.
+
+The current `teamup_mutation force` command has no species argument; it transforms the nearest eligible normal monster.
+
+To target the Nidoran live gate, use Pelipper's native command to spawn one, then force the nearest eligible target:
+`pokemon_spawn nidoran-m`
+then:
+`teamup_mutation force`
+then:
+`teamup_preflight`
+
+Female equivalent:
+`pokemon_spawn nidoran-f`
