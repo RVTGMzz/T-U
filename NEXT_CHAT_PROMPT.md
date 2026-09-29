@@ -2,10 +2,8 @@ Tiếp tục Team Up từ `CONTINUE_HERE.md` trong repo `RVTGMzz/T-U`, branch `v
 
 Dùng đúng GitHub account `lengochung28191@gmail.com`.
 
-Authority mới nhất: Ron test Team Up 6.7.44.42 và SMAPI bắt được managed UpdateTicked ArgumentException vì legacy Alpha6715 cố đăng ký `teamup_preflight` sau khi modern 6.7.44 đã đăng ký cùng tên. 6.7.44.43 giữ unified command là `teamup_preflight`, đổi legacy diagnostic thành `teamup_preflight_legacy`, và tiếp tục giữ capture guard broad Harmony scan ở hooks=0.
+Authority mới nhất: Ron đã live-test 6.7.44.43 và vào được playable world. `teamup_build` xác nhận đúng version/branch. Duplicate `teamup_preflight` exception đã biến mất. Unified `teamup_preflight` chạy được với build=PASS, tokenMap=PASS(nidoran-m/nidoran-f), lowerMap=PASS; còn mutation, elite, nidoranLive, lowerRoute là PENDING vì chưa observe. Legacy preflight cũng PASS 0 warnings. Nó liệt kê 4 Green Slime Pelipper combat proxies nhưng unified preflight báo minions=0, nên chưa được coi là Mutation minion fallback regression.
 
-Package: `TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip`
-SHA256: `b5d2d07f82992c92a835eb15cfb39d782c996d42ea6a83fbd078dea0ed06d1ce`
-CI run `36565769771`, job `109397174239`, source/package commit `886191b10b3f53577bd1d4f5b86927bcfa29a136`, SUCCESS.
+6.7.44.43 load-stability gate = PASS. Full 6.7.44 runtime gate vẫn PENDING.
 
-Ưu tiên đầu tiên: Ron clean-install .43, giữ Cardcha D3-L .76 nguyên, load cùng save và xác nhận duplicate-command error đã mất + playable world có xuất hiện hay không. Không vào 6.7.45 và không gọi Runtime PASS trước khi có runtime evidence mới.
+Bước runtime kế tiếp: chạy `teamup_mutation force`, sau đó `teamup_preflight`. Nếu ra Nidoran, kiểm exact follower species/token và no-GreenSlime fallback. Không vào 6.7.45 trước khi đóng các gate còn lại.
