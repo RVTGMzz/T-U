@@ -1,4 +1,4 @@
-# Team Up latest handoff: 0.2.0-alpha.6.7.44.42
+# Team Up latest handoff: 0.2.0-alpha.6.7.44.43
 
 Repository: **`RVTGMzz/T-U`**
 
@@ -6,49 +6,40 @@ GitHub write account: **`lengochung28191@gmail.com`**
 
 Start here: `CONTINUE_HERE.md`
 
-Detailed handoff: `docs/ALPHA_6_7_44_42_CAPTURE_GUARD_LOADSAFE_DISABLE_HANDOFF.md`
+Detailed handoff: `docs/ALPHA_6_7_44_43_PREFLIGHT_COMMAND_DEDUP_HANDOFF.md`
 
 ## Current checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.42`
-- Branch: `v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
-- CI source SHA: `95bb3521360623907eb79a2acf4c05e7a9f7b9fb`
-- CI run: `36443436095`
-- CI job: `108999507464`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
-- ZIP SHA256: `5279f3cf143417ddbdd35b0281324cfd140c638d4ba0f0baaedcf0f4af3d420d`
-- Build: PASS, 0 warnings / 0 errors
-- Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
+- Version: `0.2.0-alpha.6.7.44.43`
+- Branch: `v0.2-alpha6-7-44-43-preflight-command-dedup`
+- CI source/package SHA: `886191b10b3f53577bd1d4f5b86927bcfa29a136`
+- CI run: `36565769771`
+- CI job: `109397174239`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip`
+- ZIP SHA256: `b5d2d07f82992c92a835eb15cfb39d782c996d42ea6a83fbd078dea0ed06d1ce`
+- CI: **SUCCESS**
+- Capture guard broad Harmony scan: **DISABLED, hooks=0**
 - Runtime: RETEST REQUIRED
 
 Direct package:
 
-`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.42-loadsafe-95bb3521/TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
+`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.43-preflight-dedup-886191b1/TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip`
 
 ## Latest live authority
 
-Ron has now completed a genuine 6.7.44.41 launch attempt. It did **not** reach the playable world.
+6.7.44.42 exposed a duplicate console-command registration in UpdateTicked.
 
-The same run also used Cardcha D3-L .76, whose collision Harmony postfix was already disabled. Cardcha completed its main SaveLoaded audit and map creation.
+Modern 6.7.44 had already registered `teamup_preflight`; legacy Alpha6715 later attempted to register the same name and SMAPI threw `ArgumentException`.
 
-Team Up 6.7.44.41 still installed **89 Pelipper capture/catch/pokeball Harmony prefixes**. The process then hard-exited after save load without a managed SMAPI exception or stack trace.
-
-Therefore 6.7.44.41 is now **Runtime FAIL / hard-exit remains**.
-
-6.7.44.42 is the isolation build: the capture guard service stays alive, but its broad Pelipper Harmony scan installs zero hooks.
+6.7.44.43 fixes only that registration conflict:
+- unified command stays `teamup_preflight`;
+- old Alpha6715 diagnostic becomes `teamup_preflight_legacy`;
+- capture isolation remains `hooks=0`.
 
 ## Immediate runtime gate
 
-Keep Cardcha D3-L .76 unchanged.
+Keep Cardcha .76 unchanged, clean-install Team Up .43, and load the same save.
 
-Clean-replace Team Up with 6.7.44.42 and load the same save.
-
-Expected startup line:
-
-```text
-Team Up 6.7.44.42 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.
-```
-
-First question only: does the save reach the playable world?
+First question: does the duplicate-command error disappear, and does the playable world appear?
 
 Do not start 6.7.45 and do not call Runtime PASS before Ron confirms.
