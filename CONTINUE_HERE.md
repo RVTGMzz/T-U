@@ -32,7 +32,8 @@ Development branch:
 - CI conclusion: **SUCCESS**
 - Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
 - Preflight ownership audit: **PASS**
-- Runtime: RETEST REQUIRED
+- Runtime load-stability gate: **PASS on Ron's 6.7.44.43 live test**
+- Full 6.7.44 feature preflight: **PENDING**
 
 Direct package:
 
@@ -62,3 +63,26 @@ The old duplicate-command ArgumentException must be absent.
 If the save still does not reach the playable world, inspect the new SMAPI tail before changing another subsystem.
 
 Do not start 6.7.45 yet.
+
+## Latest live authority
+
+Ron successfully loaded the playable world on 6.7.44.43.
+
+Observed:
+- `teamup_build` reports version `0.2.0-alpha.6.7.44.43` and the correct branch;
+- no duplicate `teamup_preflight` registration exception occurred;
+- unified `teamup_preflight` executed successfully;
+- `build=PASS`;
+- Nidoran token map `nidoran-m/nidoran-f`: PASS;
+- Lower Workings map validation: PASS;
+- Mutation / elite / Nidoran live / Lower route remain PENDING because those scenarios were not observed yet;
+- legacy preflight also executed and returned PASS with 0 warnings.
+
+Legacy preflight listed four `Green Slime` Pelipper combat proxies, but unified preflight reported `minions=0`. Do not treat those proxy actors as evidence of the old Mutation minion GreenSlime fallback.
+
+Next runtime action:
+`teamup_mutation force`
+then run:
+`teamup_preflight`
+
+Do not start 6.7.45 until the remaining 6.7.44 runtime gates are closed.
