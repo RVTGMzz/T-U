@@ -7,3 +7,6 @@ Authority mới nhất: Ron đã live-test 6.7.44.43 và vào được playable 
 6.7.44.43 load-stability gate = PASS. Full 6.7.44 runtime gate vẫn PENDING.
 
 Bước runtime kế tiếp: chạy `teamup_mutation force`, sau đó `teamup_preflight`. Nếu ra Nidoran, kiểm exact follower species/token và no-GreenSlime fallback. Không vào 6.7.45 trước khi đóng các gate còn lại.
+
+
+Nidoran live gate is now PASS: Ron spawned Nidoran♂ with `pokemon_spawn nidoran-m`, forced Mutation, and Team Up produced 3/3 exact native Nidoran♂ followers using `spawnToken=nidoran-m`. Unified preflight reported `mutation=PASS`, `elite=PASS`, `nidoranLive=PASS`, `factoryFallback=0`, `pelipperNative=3`, and no identity/duplicate failures. Only Lower Workings route remains PENDING.
