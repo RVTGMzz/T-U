@@ -2,54 +2,94 @@
 
 Repository: **`RVTGMzz/T-U`**
 
-Current detailed handoff: `ALPHA_6_7_44_43_PREFLIGHT_COMMAND_DEDUP_HANDOFF.md`
+GitHub write account: **`lengochung28191@gmail.com`**
 
-## Current checkpoint
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.44**
 
-- Version: `0.2.0-alpha.6.7.44.43`
-- Branch: `v0.2-alpha6-7-44-43-preflight-command-dedup`
-- Source/package commit: `886191b10b3f53577bd1d4f5b86927bcfa29a136`
-- CI run: `36565769771`
-- CI job: `109397174239`
-- Package: `TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip`
-- ZIP SHA256: `b5d2d07f82992c92a835eb15cfb39d782c996d42ea6a83fbd078dea0ed06d1ce`
-- Build/release: **SUCCESS**
-- Capture guard scan: **0 hooks by design**
-- Runtime load-stability: **PASS**
-- Full 6.7.44 runtime preflight: **PENDING**
+Development branch:
 
-## Runtime authority
+`v0.2-alpha6-7-44-44-lower-route-test-harness`
 
-The .42 test exposed a managed exception during UpdateTicked, not a new capture-hook exception:
+`main` is NOT merged. Alpha 6.7.45 has NOT started.
 
-`Can't register the 'teamup_preflight' command because there's already a command with that name.`
+## Read first in a new chat
 
-The duplicate came from legacy Alpha6715 registering the same command already owned by the modern 6.7.44 layer.
+1. `CONTINUE_HERE.md`
+2. `LATEST_TEAM_UP_HANDOFF.md`
+3. `docs/LATEST_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_44_LOWER_ROUTE_TEST_HARNESS.md`
+5. `NEXT_CHAT_PROMPT.md`
 
-## 6.7.44.43
+## Verified build checkpoint
 
-- modern unified preflight retains `teamup_preflight`;
-- legacy diagnostic is `teamup_preflight_legacy`;
-- CI enforces single primary owner;
-- capture quarantine remains zero-hook.
+- Version: `0.2.0-alpha.6.7.44.44`
+- Branch: `v0.2-alpha6-7-44-44-lower-route-test-harness`
+- Source/package commit: `19e2cf60369e37debff8b5be5eb61d7e2202e463`
+- CI run: `36575202368`
+- CI job: `109428916981`
+- CI: **SUCCESS**
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.44_LOWER_ROUTE_TEST_HARNESS_TEST.zip`
+- ZIP SHA256: `f6a9dcfda9269bf887376dda99b47f852e0e7bd86537ccef177e8cca40b2b430`
+- Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
+- Load stability: **PASS**
+- Mutation wave: **PASS**
+- Elite markers: **PASS**
+- Nidoran live: **PASS**
+- Lower Workings map: **PASS**
+- Lower route: **RUNTIME RETEST REQUIRED**
 
-Runtime gate: clean-install .43 with Cardcha .76 unchanged and determine whether the same save reaches the playable world without the duplicate-command exception.
+Direct package:
 
-## Latest live evidence
+`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.44-lower-route-test-19e2cf60/TeamUp_v0.2.0-alpha.6.7.44.44_LOWER_ROUTE_TEST_HARNESS_TEST.zip`
 
-6.7.44.43 successfully reaches the playable world and both preflight commands execute.
+## Why .44 exists
 
-The duplicate command registration blocker is closed.
+Ron does not want to edit Team Up config or drag four NPC allies into the mine solely to validate the Lower Workings route.
 
-Current unified preflight is PENDING only because live scenarios have not yet been observed:
-- mutation-wave;
-- elite-markers;
-- nidoran-live;
-- lower-route.
+6.7.44.44 adds `teamup_lower_route_test status|arm|off`.
 
-The legacy report's Green Slime entries are Pelipper combat proxies. Unified preflight reports zero Mutation minions in the same location, so this does not establish a GreenSlime minion regression.
+The harness:
+- is runtime-only;
+- bypasses only the Interior Survey formation-count check while armed;
+- does not write `config.json`;
+- does not set debug story stages;
+- does not direct-warp the player;
+- auto-clears after the normal Lower Workings safe-return path reaches the persisted breach.
 
-Next: `teamup_mutation force` followed by `teamup_preflight`.
+CI explicitly audits these restrictions.
 
+## Current save authority
 
-Nidoran live gate is now PASS: Ron spawned Nidoran♂ with `pokemon_spawn nidoran-m`, forced Mutation, and Team Up produced 3/3 exact native Nidoran♂ followers using `spawnToken=nidoran-m`. Unified preflight reported `mutation=PASS`, `elite=PASS`, `nidoranLive=PASS`, `factoryFallback=0`, `pelipperNative=3`, and no identity/duplicate failures. Only Lower Workings route remains PENDING.
+Ron already debug-prepared prerequisites in UndergroundMine1:
+- Controlled Breach 5/5, breachLocation=UndergroundMine1;
+- Surge HIGH 4/4, high=True;
+- roster slots=4/4;
+- Entry Protocol 4/4, ready=True;
+- Lower Descent 5/5, firstDescentComplete=True;
+- Interior Survey reset to 0/6;
+- Lower map valid 32x24.
+
+Do NOT redo Mutation/Ponyta/Nidoran tests.
+
+## Next live test
+
+Clean-replace Team Up with .44.
+
+Then:
+1. load the same save;
+2. run `teamup_build`;
+3. run `teamup_lower_route_test arm`;
+4. visit Adventure Guild so Interior Survey advances to stage 1;
+5. return to persisted breach `UndergroundMine1`;
+6. press Action to enter Lower Workings through the normal story handler;
+7. at the Lower Workings arrival tile, press Action again to use the normal safe-return handler;
+8. run `teamup_lower_runtime status`;
+9. run `teamup_preflight`.
+
+Pass target:
+- entries=1, entryPass=1, entryMismatch=0;
+- returns=1, returnPass=1, returnMismatch=0;
+- mapFail=0, errors=0;
+- `lowerRoute=PASS`.
+
+Do not start 6.7.45 until Ron confirms this route.
