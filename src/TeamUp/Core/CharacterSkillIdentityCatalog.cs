@@ -49,10 +49,13 @@ public static class CharacterSkillIdentityCatalog
         .ToList();
 
     public static CharacterSkillIdentity? Get(string characterName)
-        => Identities.TryGetValue(characterName, out CharacterSkillIdentity? identity) ? identity : null;
+        => Identities.TryGetValue(characterName, out CharacterSkillIdentity? identity)
+            ? identity
+            : RuntimeNpcProfileFallbackCatalog.GetIdentity(characterName);
 
     public static bool IsCompleted(string characterName)
-        => Identities.ContainsKey(characterName);
+        => Identities.ContainsKey(characterName)
+            || RuntimeNpcProfileFallbackCatalog.GetIdentity(characterName) is not null;
 
     private static Dictionary<string, CharacterSkillIdentity> Build()
     {
