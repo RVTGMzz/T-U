@@ -15,9 +15,9 @@ STAGE = ROOT / "_stage_alpha6744_45"
 MOD_STAGE = STAGE / "Team Up"
 LOG = ROOT / "BUILD_LOG_ALPHA6744_45.txt"
 VERSION = "0.2.0-alpha.6.7.44.45"
-ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.45_LOWER_ROUTE_TEST_HARNESS_TEST.zip"
+ZIP_NAME = "TeamUp_v0.2.0-alpha.6.7.44.45_RUNTIME_PROFILE_FALLBACK_TEST.zip"
 ZIP_PATH = RELEASE / ZIP_NAME
-SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.45_LOWER_ROUTE_TEST_HARNESS_TEST.sha256.txt"
+SHA_PATH = RELEASE / "TeamUp_v0.2.0-alpha.6.7.44.45_RUNTIME_PROFILE_FALLBACK_TEST.sha256.txt"
 lines: list[str] = []
 
 def log(value: str) -> None:
