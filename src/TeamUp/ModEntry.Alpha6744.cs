@@ -68,7 +68,7 @@ public sealed partial class ModEntry
             "6.7.44.44 unified runtime preflight; legacy diagnostic is teamup_preflight_legacy.",
             OnAlpha674440PreflightCommand);
 
-        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-44-lower-route-test-harness", LogLevel.Info);
+        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-45-runtime-profile-fallback", LogLevel.Info);
 
         EnsureAlpha67442EncounterReactionsRegistered();
         RegisterAlpha67446RuntimeFixes();
