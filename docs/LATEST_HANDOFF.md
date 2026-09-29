@@ -15,7 +15,8 @@ Current detailed handoff: `ALPHA_6_7_44_43_PREFLIGHT_COMMAND_DEDUP_HANDOFF.md`
 - ZIP SHA256: `b5d2d07f82992c92a835eb15cfb39d782c996d42ea6a83fbd078dea0ed06d1ce`
 - Build/release: **SUCCESS**
 - Capture guard scan: **0 hooks by design**
-- Runtime: RETEST REQUIRED
+- Runtime load-stability: **PASS**
+- Full 6.7.44 runtime preflight: **PENDING**
 
 ## Runtime authority
 
@@ -33,3 +34,19 @@ The duplicate came from legacy Alpha6715 registering the same command already ow
 - capture quarantine remains zero-hook.
 
 Runtime gate: clean-install .43 with Cardcha .76 unchanged and determine whether the same save reaches the playable world without the duplicate-command exception.
+
+## Latest live evidence
+
+6.7.44.43 successfully reaches the playable world and both preflight commands execute.
+
+The duplicate command registration blocker is closed.
+
+Current unified preflight is PENDING only because live scenarios have not yet been observed:
+- mutation-wave;
+- elite-markers;
+- nidoran-live;
+- lower-route.
+
+The legacy report's Green Slime entries are Pelipper combat proxies. Unified preflight reports zero Mutation minions in the same location, so this does not establish a GreenSlime minion regression.
+
+Next: `teamup_mutation force` followed by `teamup_preflight`.
