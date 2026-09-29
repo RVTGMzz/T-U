@@ -1,12 +1,11 @@
-Tiếp tục Team Up từ `CONTINUE_HERE.md` trong repo `RVTGMzz/T-U`, branch `v0.2-alpha6-7-44-43-preflight-command-dedup`. Đọc `LATEST_TEAM_UP_HANDOFF.md`, `docs/LATEST_HANDOFF.md`, và `docs/ALPHA_6_7_44_43_PREFLIGHT_COMMAND_DEDUP_HANDOFF.md`.
+Tiếp tục Team Up từ `CONTINUE_HERE.md` trong repo `RVTGMzz/T-U`, branch `v0.2-alpha6-7-44-44-lower-route-test-harness`. Dùng đúng GitHub account `lengochung28191@gmail.com`.
 
-Dùng đúng GitHub account `lengochung28191@gmail.com`.
+Authority: 6.7.44.44 CI SUCCESS, package commit `19e2cf60369e37debff8b5be5eb61d7e2202e463`, CI run `36575202368`, job `109428916981`, SHA256 `f6a9dcfda9269bf887376dda99b47f852e0e7bd86537ccef177e8cca40b2b430`.
 
-Authority mới nhất: Ron đã live-test 6.7.44.43 và vào được playable world. `teamup_build` xác nhận đúng version/branch. Duplicate `teamup_preflight` exception đã biến mất. Unified `teamup_preflight` chạy được với build=PASS, tokenMap=PASS(nidoran-m/nidoran-f), lowerMap=PASS; còn mutation, elite, nidoranLive, lowerRoute là PENDING vì chưa observe. Legacy preflight cũng PASS 0 warnings. Nó liệt kê 4 Green Slime Pelipper combat proxies nhưng unified preflight báo minions=0, nên chưa được coi là Mutation minion fallback regression.
+Load stability PASS, Mutation PASS, Elite PASS, Nidoran live PASS, Lower map PASS. Only Lower route runtime gate remains.
 
-6.7.44.43 load-stability gate = PASS. Full 6.7.44 runtime gate vẫn PENDING.
+The .44 harness command is `teamup_lower_route_test status|arm|off`. It bypasses only Interior Survey formation counting while armed, never edits config/story stages, never direct-warps, and auto-clears after the normal safe return.
 
-Bước runtime kế tiếp: chạy `teamup_mutation force`, sau đó `teamup_preflight`. Nếu ra Nidoran, kiểm exact follower species/token và no-GreenSlime fallback. Không vào 6.7.45 trước khi đóng các gate còn lại.
+Ron's save is already debug-prepared at UndergroundMine1 with breach 5/5, Surge HIGH 4/4, slots 4/4, Entry Protocol 4/4, Lower Descent 5/5, Interior Survey reset 0/6.
 
-
-Nidoran live gate is now PASS: Ron spawned Nidoran♂ with `pokemon_spawn nidoran-m`, forced Mutation, and Team Up produced 3/3 exact native Nidoran♂ followers using `spawnToken=nidoran-m`. Unified preflight reported `mutation=PASS`, `elite=PASS`, `nidoranLive=PASS`, `factoryFallback=0`, `pelipperNative=3`, and no identity/duplicate failures. Only Lower Workings route remains PENDING.
+Next: clean-install .44, `teamup_lower_route_test arm`, visit Adventure Guild, return to UndergroundMine1, Action into Lower Workings, Action at arrival to return, then `teamup_lower_runtime status` and `teamup_preflight`. Pass target: entryPass=1, returnPass=1, lowerRoute=PASS. Do not start 6.7.45 before Ron confirms.
