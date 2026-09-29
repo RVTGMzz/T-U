@@ -35,7 +35,7 @@ Development branch:
 - Runtime load-stability gate: **PASS on Ron's 6.7.44.43 live test**
 - Mutation wave gate: **PASS**
 - Elite marker gate: **PASS**
-- Nidoran live gate: **PENDING**
+- Nidoran live gate: **PASS**
 - Lower Workings route gate: **PENDING**
 
 Direct package:
@@ -125,3 +125,22 @@ then:
 
 Female equivalent:
 `pokemon_spawn nidoran-f`
+
+## Nidoran live gate result
+
+Ron spawned a native Nidoran♂ with `pokemon_spawn nidoran-m`, then forced Mutation.
+
+Observed:
+- leader: Nidoran♂;
+- follower requests: 3;
+- spawn token: `nidoran-m` on every native request;
+- spawnedNow=3, pending=0, failed=0, safeRejected=0;
+- unified preflight: mutation=PASS, elite=PASS, nidoranLive=PASS, lowerMap=PASS;
+- `factoryFallback=0`;
+- `pelipperNative=3`;
+- identity misses=0;
+- duplicate encounter IDs=0;
+- elite phase=1/3, lootX=3, noCapture=True;
+- Nidoran exact follower check: followers=3, exact=True.
+
+Only Lower Workings route remains PENDING.
