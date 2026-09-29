@@ -4,11 +4,11 @@ Repository: **`RVTGMzz/T-U`**
 
 GitHub write account: **`lengochung28191@gmail.com`**
 
-Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.42**
+Current checkpoint: **Team Up v0.2.0-alpha.6.7.44.43**
 
 Development branch:
 
-`v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
+`v0.2-alpha6-7-44-43-preflight-command-dedup`
 
 `main` is NOT merged. Alpha 6.7.45 has NOT started.
 
@@ -17,46 +17,48 @@ Development branch:
 1. `CONTINUE_HERE.md`
 2. `LATEST_TEAM_UP_HANDOFF.md`
 3. `docs/LATEST_HANDOFF.md`
-4. `docs/ALPHA_6_7_44_42_CAPTURE_GUARD_LOADSAFE_DISABLE_HANDOFF.md`
+4. `docs/ALPHA_6_7_44_43_PREFLIGHT_COMMAND_DEDUP_HANDOFF.md`
 5. `NEXT_CHAT_PROMPT.md`
 
 ## Verified build checkpoint
 
-- Version: `0.2.0-alpha.6.7.44.42`
-- Branch: `v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
-- CI source SHA: `95bb3521360623907eb79a2acf4c05e7a9f7b9fb`
-- CI run: `36443436095`
-- CI job: `108999507464`
-- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
-- ZIP SHA256: `5279f3cf143417ddbdd35b0281324cfd140c638d4ba0f0baaedcf0f4af3d420d`
-- Build: PASS, 0 warnings / 0 errors
+- Version: `0.2.0-alpha.6.7.44.43`
+- Branch: `v0.2-alpha6-7-44-43-preflight-command-dedup`
+- CI source/package SHA: `886191b10b3f53577bd1d4f5b86927bcfa29a136`
+- CI run: `36565769771`
+- CI job: `109397174239`
+- ZIP: `TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip`
+- ZIP SHA256: `b5d2d07f82992c92a835eb15cfb39d782c996d42ea6a83fbd078dea0ed06d1ce`
+- CI conclusion: **SUCCESS**
 - Capture guard broad Harmony scan: **DISABLED, hooks=0 by design**
+- Preflight ownership audit: **PASS**
 - Runtime: RETEST REQUIRED
 
 Direct package:
 
-`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.42-loadsafe-95bb3521/TeamUp_v0.2.0-alpha.6.7.44.42_CAPTURE_GUARD_LOADSAFE_DISABLE_TEST.zip`
+`https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.43-preflight-dedup-886191b1/TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip`
 
-## Why .42 exists
+## Why .43 exists
 
-A confirmed 6.7.44.41 runtime still hard-exits after SaveLoaded. Unlike .40, it no longer emits InvalidProgramException spam, but it still installs 89 generic Pelipper capture-method Harmony prefixes.
+6.7.44.42 surfaced a managed UpdateTicked blocker: Alpha6715 attempted to register `teamup_preflight` after the modern 6.7.44 layer had already registered the same command.
 
-6.7.44.42 quarantines that whole capture scan. The service remains present and reports `hooks=0`, so existing telemetry/reset code remains valid.
+6.7.44.43 keeps the modern unified command as `teamup_preflight` and renames the old diagnostic to `teamup_preflight_legacy`.
+
+The .42 capture quarantine remains unchanged in purpose: zero broad Pelipper capture Harmony hooks.
 
 ## Immediate live gate
 
-Keep Cardcha D3-L .76 installed unchanged.
+Keep Cardcha D3-L .76 unchanged.
 
-Clean-replace only Team Up with .42, load the same save, and report whether the playable world appears.
+Clean-replace only Team Up with .43 and load the same save.
 
 Expected:
+`[TeamUpBuild] version=0.2.0-alpha.6.7.44.43 branch=v0.2-alpha6-7-44-43-preflight-command-dedup`
 
-`[TeamUpBuild] version=0.2.0-alpha.6.7.44.42 branch=v0.2-alpha6-7-44-42-capture-guard-loadsafe-disable`
+`Team Up 6.7.44.43 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.`
 
-and:
+The old duplicate-command ArgumentException must be absent.
 
-`Team Up 6.7.44.42 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.`
-
-If the save still hard-exits, inspect the new SMAPI tail before changing any additional gameplay feature.
+If the save still does not reach the playable world, inspect the new SMAPI tail before changing another subsystem.
 
 Do not start 6.7.45 yet.
