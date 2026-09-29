@@ -22,7 +22,7 @@ Detailed handoff: `docs/ALPHA_6_7_44_43_PREFLIGHT_COMMAND_DEDUP_HANDOFF.md`
 - Runtime load-stability: **PASS**
 - Mutation wave: **PASS**
 - Elite markers: **PASS**
-- Nidoran live: **PENDING**
+- Nidoran live: **PASS**
 - Lower route: **PENDING**
 
 Direct package:
@@ -75,7 +75,7 @@ Observed:
 This closes the Mutation wave and elite-marker gates for 6.7.44.43.
 
 Remaining:
-- `nidoranLive=PENDING`;
+- `nidoranLive=PASS`;
 - `lowerRoute=PENDING`.
 
 The current `teamup_mutation force` command has no species argument; it transforms the nearest eligible normal monster.
@@ -89,3 +89,6 @@ then:
 
 Female equivalent:
 `pokemon_spawn nidoran-f`
+
+
+Nidoran live gate is now PASS: Ron spawned Nidoran♂ with `pokemon_spawn nidoran-m`, forced Mutation, and Team Up produced 3/3 exact native Nidoran♂ followers using `spawnToken=nidoran-m`. Unified preflight reported `mutation=PASS`, `elite=PASS`, `nidoranLive=PASS`, `factoryFallback=0`, `pelipperNative=3`, and no identity/duplicate failures. Only Lower Workings route remains PENDING.
