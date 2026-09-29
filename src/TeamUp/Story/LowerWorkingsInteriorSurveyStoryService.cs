@@ -43,6 +43,7 @@ internal sealed class LowerWorkingsInteriorSurveyStoryService
     private readonly Func<int> _getRequiredNpcAllies;
     private int _stage;
     private int _surveyHoldTicks;
+    private bool _routeTestFormationBypass;
 
     public LowerWorkingsInteriorSurveyStoryService(
         IModHelper helper,
@@ -77,6 +78,7 @@ internal sealed class LowerWorkingsInteriorSurveyStoryService
     {
         _stage = ReadStage(Game1.MasterPlayer);
         _surveyHoldTicks = 0;
+        _routeTestFormationBypass = false;
         if (!Context.IsMainPlayer)
             return;
 
@@ -245,7 +247,14 @@ internal sealed class LowerWorkingsInteriorSurveyStoryService
                 Hud("story.interior.withdraw-early");
 
             if (!TryWarpToBreach(owner))
+            {
                 Hud("story.interior.return-failed");
+            }
+            else if (_routeTestFormationBypass)
+            {
+                _routeTestFormationBypass = false;
+                _monitor.Log("[LowerRouteTest] runtime-only formation bypass auto-cleared after return to the persisted breach.", LogLevel.Info);
+            }
             return true;
         }
 
@@ -311,6 +320,7 @@ internal sealed class LowerWorkingsInteriorSurveyStoryService
         owner.modData.Remove(SurveyReportedFlagKey);
         _stage = 0;
         _surveyHoldTicks = 0;
+        _routeTestFormationBypass = false;
         _monitor.Log("[LowerWorkingsInterior] reset; first descent, Entry Protocol, SURGE HIGH, roster, Mutation, and capture state were not changed.", LogLevel.Info);
     }
 
@@ -324,6 +334,14 @@ internal sealed class LowerWorkingsInteriorSurveyStoryService
         SetFlag(owner, SurveyReportedFlagKey, clamped >= CompleteStage);
         SetStage(owner, clamped, "debug");
     }
+
+    public void SetRouteTestFormationBypass(bool enabled)
+    {
+        _routeTestFormationBypass = enabled;
+        _monitor.Log($"[LowerRouteTest] runtime-only formation bypass={(enabled ? "ARMED" : "OFF")}. No config or story prerequisite was changed.", LogLevel.Info);
+    }
+
+    public bool RouteTestFormationBypass => _routeTestFormationBypass;
 
     public string Describe(GameLocation currentLocation)
     {
@@ -348,7 +366,8 @@ internal sealed class LowerWorkingsInteriorSurveyStoryService
             + $"fieldPeopleHere={_getFieldPeopleAt(currentLocation)}/{_getRequiredFieldPeople()} | npcAlliesHere={_getActiveNpcAlliesAt(currentLocation)}/{_getRequiredNpcAllies()} | "
             + $"breachLocation={breachLocation} | breachTile={anchor} | entered={HasFlag(Game1.MasterPlayer, InteriorEnteredFlagKey)} | "
             + $"surveyComplete={HasFlag(Game1.MasterPlayer, SurveyCompleteFlagKey)} | safeReturn={HasFlag(Game1.MasterPlayer, SafeReturnUsedFlagKey)} | "
-            + $"reported={HasFlag(Game1.MasterPlayer, SurveyReportedFlagKey)} | hold={_surveyHoldTicks}/{SurveyHoldTicksRequired} | objective={objective}";
+            + $"reported={HasFlag(Game1.MasterPlayer, SurveyReportedFlagKey)} | hold={_surveyHoldTicks}/{SurveyHoldTicksRequired} | "
+            + $"routeTestBypass={_routeTestFormationBypass} | objective={objective}";
     }
 
     private bool PrerequisitesReady()
@@ -366,8 +385,9 @@ internal sealed class LowerWorkingsInteriorSurveyStoryService
             && Game1.activeClickableMenu is null;
 
     private bool HasFullOperationalFormation(GameLocation location)
-        => _getFieldPeopleAt(location) >= _getRequiredFieldPeople()
-            && _getActiveNpcAlliesAt(location) >= _getRequiredNpcAllies();
+        => _routeTestFormationBypass
+            || (_getFieldPeopleAt(location) >= _getRequiredFieldPeople()
+                && _getActiveNpcAlliesAt(location) >= _getRequiredNpcAllies());
 
     private bool TryWarpIntoLowerWorkings()
     {
