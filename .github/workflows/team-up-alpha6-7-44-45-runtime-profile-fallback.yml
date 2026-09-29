@@ -1,0 +1,78 @@
+name: Team Up v0.2.0-alpha.6.7.44.45 Runtime Profile Fallback
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-45-runtime-profile-fallback
+    paths:
+      - 'src/TeamUp/**'
+      - 'tools/build_alpha6744_45.py'
+      - '.github/workflows/team-up-alpha6-7-44-45-runtime-profile-fallback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.45_RUNTIME_PROFILE_FALLBACK_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.45_RUNTIME_PROFILE_FALLBACK_TEST.sha256.txt
+    steps:
+      - name: Checkout 6.7.44.45 branch
+        uses: actions/checkout@v4
+
+      - name: Setup SMAPI build environment
+        uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+
+      - name: Build and audit 6.7.44.45 runtime profile fallback
+        run: python3 tools/build_alpha6744_45.py
+
+      - name: Upload 6.7.44.45 workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-45-runtime-profile-fallback
+          path: |
+            release/${{ env.ZIP_NAME }}
+            release/${{ env.SHA_NAME }}
+            BUILD_LOG_ALPHA6744_45.txt
+          if-no-files-found: error
+
+      - name: Publish 6.7.44.45 TEST prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          TAG="team-up-6.7.44.45-runtime-profile-${SHORT_SHA}"
+          NOTES=$(cat <<'EOF'
+          Team Up 6.7.44.45 runtime profile fallback TEST.
+
+          Authority:
+          - Team Up 6.7.44.42 surfaced an UpdateTicked ArgumentException before gameplay.
+          - Alpha6715 tried to register teamup_preflight after 6.7.44 had already registered the same command.
+          - Capture-method Harmony quarantine from 6.7.44.42 remains active with hooks=0.
+
+          This build:
+          - preserves the 6.7.44.44 Lower Workings route-test harness unchanged;
+          - adds a runtime fallback combat-profile provider for uncatalogued adult human Main Party NPCs;
+          - gives each fallback NPC a deterministic Rank-D Team Up balance template with role, affinities, passive text, and a real runtime signature identity;
+          - excludes Pelipper actors and non-Main-Party companion classes through existing classification rules;
+          - labels fallback kits as Team Up runtime interpretations, not source-mod canon;
+          - keeps unified teamup_preflight as the sole primary command;
+          - renames the legacy Alpha6715 diagnostic to teamup_preflight_legacy;
+          - preserves ZERO broad Pelipper capture-method Harmony hooks;
+          - preserves the remaining 6.7.44 runtime and does not change Cardcha.
+
+          Expected startup:
+          Team Up 6.7.44.45 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.
+
+          Runtime profile gate: open a previously pending modded NPC dossier (for example Brianna) and verify source, primary/secondary role, affinities, passive, and signature are populated while the NPC remains Rank D by fallback design.
+          Lower Workings route authority remains the 6.7.44.44 live test until Ron closes that gate.
+          EOF
+          )
+          gh release create "$TAG"             "release/$ZIP_NAME"             "release/$SHA_NAME"             "BUILD_LOG_ALPHA6744_45.txt"             --target "$GITHUB_SHA"             --prerelease             --title "Team Up 6.7.44.45 Runtime Profile Fallback TEST"             --notes "$NOTES"
