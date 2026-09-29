@@ -50,3 +50,6 @@ Current unified preflight is PENDING only because live scenarios have not yet be
 The legacy report's Green Slime entries are Pelipper combat proxies. Unified preflight reports zero Mutation minions in the same location, so this does not establish a GreenSlime minion regression.
 
 Next: `teamup_mutation force` followed by `teamup_preflight`.
+
+
+Nidoran live gate is now PASS: Ron spawned Nidoran♂ with `pokemon_spawn nidoran-m`, forced Mutation, and Team Up produced 3/3 exact native Nidoran♂ followers using `spawnToken=nidoran-m`. Unified preflight reported `mutation=PASS`, `elite=PASS`, `nidoranLive=PASS`, `factoryFallback=0`, `pelipperNative=3`, and no identity/duplicate failures. Only Lower Workings route remains PENDING.
