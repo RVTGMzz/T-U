@@ -22,11 +22,11 @@ public sealed partial class ModEntry
 
         Alpha6715Registered = true;
         Helper.ConsoleCommands.Add(
-            "teamup_preflight",
-            "Create a read-only Team Up live-test snapshot and export it to the mod diagnostics folder.",
+            "teamup_preflight_legacy",
+            "Legacy read-only Team Up live-test snapshot; unified teamup_preflight is owned by 6.7.44.",
             OnAlpha6715PreflightCommand);
 
-        Monitor.Log("Team Up Alpha 6.7.15 read-only preflight diagnostics enabled.", LogLevel.Info);
+        Monitor.Log("Team Up Alpha 6.7.15 legacy preflight diagnostics enabled as teamup_preflight_legacy.", LogLevel.Info);
     }
 
     private void OnAlpha6715PreflightCommand(string command, string[] args)
