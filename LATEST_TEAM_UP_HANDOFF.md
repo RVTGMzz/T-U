@@ -19,27 +19,34 @@ Detailed handoff: `docs/ALPHA_6_7_44_43_PREFLIGHT_COMMAND_DEDUP_HANDOFF.md`
 - ZIP SHA256: `b5d2d07f82992c92a835eb15cfb39d782c996d42ea6a83fbd078dea0ed06d1ce`
 - CI: **SUCCESS**
 - Capture guard broad Harmony scan: **DISABLED, hooks=0**
-- Runtime: RETEST REQUIRED
+- Runtime load-stability: **PASS**
+- Full feature preflight: **PENDING**
 
 Direct package:
 
 `https://github.com/RVTGMzz/T-U/releases/download/team-up-6.7.44.43-preflight-dedup-886191b1/TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip`
 
 ## Latest live authority
+Ron has now confirmed 6.7.44.43 reaches the playable world.
 
-6.7.44.42 exposed a duplicate console-command registration in UpdateTicked.
+`teamup_build`:
+- correct 6.7.44.43 version;
+- correct preflight-command-dedup branch.
 
-Modern 6.7.44 had already registered `teamup_preflight`; legacy Alpha6715 later attempted to register the same name and SMAPI threw `ArgumentException`.
+Unified `teamup_preflight`:
+- build PASS;
+- Nidoran tokenMap PASS;
+- Lower Workings map PASS;
+- mutation PENDING;
+- elite PENDING;
+- nidoranLive PENDING;
+- lowerRoute PENDING.
 
-6.7.44.43 fixes only that registration conflict:
-- unified command stays `teamup_preflight`;
-- old Alpha6715 diagnostic becomes `teamup_preflight_legacy`;
-- capture isolation remains `hooks=0`.
+Legacy preflight:
+- PASS, 0 warnings;
+- route guard active;
+- Pelipper native bridge healthy;
+- four Pelipper combat proxies reported as Green Slime;
+- unified preflight separately reports `minions=0`, so these are not current Mutation minions.
 
-## Immediate runtime gate
-
-Keep Cardcha .76 unchanged, clean-install Team Up .43, and load the same save.
-
-First question: does the duplicate-command error disappear, and does the playable world appear?
-
-Do not start 6.7.45 and do not call Runtime PASS before Ron confirms.
+Next runtime gate: run `teamup_mutation force`, then `teamup_preflight`.
