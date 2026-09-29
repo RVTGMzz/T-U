@@ -70,3 +70,23 @@ First check only:
 3. determine whether the save reaches the playable world.
 
 Do not start 6.7.45 and do not call Runtime PASS until Ron confirms.
+
+## Ron live result
+
+6.7.44.43 reached the playable world successfully.
+
+Confirmed:
+- correct build identity;
+- duplicate `teamup_preflight` registration is gone;
+- unified preflight runs;
+- legacy preflight runs;
+- load-stability gate is PASS.
+
+Unified preflight result is PENDING only because Mutation, elite, Nidoran live, and Lower Workings route have not yet been observed.
+
+Legacy preflight showed four `Green Slime` Pelipper combat proxies. In the same live state, unified preflight showed `minions=0`; therefore these proxy records are not evidence that Mutation minion fallback has regressed to GreenSlime.
+
+Next live command sequence:
+`teamup_mutation force`
+then:
+`teamup_preflight`
