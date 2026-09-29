@@ -22,7 +22,7 @@ public static class NpcProfileCatalog
             || modRegistry.IsLoaded(ExpansionNpcProfileCatalog.SveCodeModId);
         bool rsvLoaded = modRegistry.IsLoaded(ExpansionNpcProfileCatalog.RsvModId);
 
-        return All.Where(profile => profile.SourceId switch
+        List<NpcCombatProfile> available = All.Where(profile => profile.SourceId switch
             {
                 StardewValleySourceId => true,
                 ExpansionNpcProfileCatalog.SveSourceId => sveLoaded
@@ -32,13 +32,28 @@ public static class NpcProfileCatalog
                 _ => Game1.getCharacterFromName(profile.CharacterName) is not null
             })
             .ToList();
+
+        HashSet<string> known = available
+            .Select(profile => profile.CharacterName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (NpcCombatProfile fallback in RuntimeNpcProfileFallbackCatalog.GetLiveProfiles())
+        {
+            if (known.Add(fallback.CharacterName))
+                available.Add(fallback);
+        }
+
+        return available
+            .OrderBy(profile => profile.SourceLabel)
+            .ThenBy(profile => profile.CharacterName)
+            .ToList();
     }
 
     public static NpcCombatProfile? Get(string characterName)
     {
         return Profiles.TryGetValue(characterName, out NpcCombatProfile? profile)
             ? profile
-            : null;
+            : RuntimeNpcProfileFallbackCatalog.GetProfile(characterName);
     }
 
     private static Dictionary<string, NpcCombatProfile> BuildProfiles()
