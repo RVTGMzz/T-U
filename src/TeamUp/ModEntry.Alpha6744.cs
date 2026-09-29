@@ -52,6 +52,10 @@ public sealed partial class ModEntry
             "Lower Workings Runtime Gate v2: status | reset (telemetry only).",
             OnAlpha674438LowerRuntimeCommand);
         Helper.ConsoleCommands.Add(
+            "teamup_lower_route_test",
+            "Runtime-only Lower Workings route harness: status | arm | off. Bypasses only the Interior Survey formation check and never edits config.",
+            OnAlpha674444LowerRouteTestCommand);
+        Helper.ConsoleCommands.Add(
             "teamup_mutation_regression",
             "Mutation regression audit for the current location.",
             OnAlpha674437MutationRegressionCommand);
@@ -61,10 +65,10 @@ public sealed partial class ModEntry
             OnAlpha674439BuildCommand);
         Helper.ConsoleCommands.Add(
             "teamup_preflight",
-            "6.7.44.43 unified runtime preflight; legacy diagnostic is teamup_preflight_legacy.",
+            "6.7.44.44 unified runtime preflight; legacy diagnostic is teamup_preflight_legacy.",
             OnAlpha674440PreflightCommand);
 
-        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-43-preflight-command-dedup", LogLevel.Info);
+        Monitor.Log($"[TeamUpBuild] version={ModManifest.Version} branch=v0.2-alpha6-7-44-44-lower-route-test-harness", LogLevel.Info);
 
         EnsureAlpha67442EncounterReactionsRegistered();
         RegisterAlpha67446RuntimeFixes();
