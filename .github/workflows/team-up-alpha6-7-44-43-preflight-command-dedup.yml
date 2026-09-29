@@ -1,0 +1,73 @@
+name: Team Up v0.2.0-alpha.6.7.44.43 Preflight Command Dedup
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-43-preflight-command-dedup
+    paths:
+      - 'src/TeamUp/**'
+      - 'tools/build_alpha6744_43.py'
+      - '.github/workflows/team-up-alpha6-7-44-43-preflight-command-dedup.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.43_PREFLIGHT_COMMAND_DEDUP_TEST.sha256.txt
+    steps:
+      - name: Checkout 6.7.44.43 branch
+        uses: actions/checkout@v4
+
+      - name: Setup SMAPI build environment
+        uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+
+      - name: Build and audit 6.7.44.43 preflight command dedup
+        run: python3 tools/build_alpha6744_43.py
+
+      - name: Upload 6.7.44.43 workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-43-preflight-command-dedup
+          path: |
+            release/${{ env.ZIP_NAME }}
+            release/${{ env.SHA_NAME }}
+            BUILD_LOG_ALPHA6744_43.txt
+          if-no-files-found: error
+
+      - name: Publish 6.7.44.43 TEST prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          TAG="team-up-6.7.44.43-preflight-dedup-${SHORT_SHA}"
+          NOTES=$(cat <<'EOF'
+          Team Up 6.7.44.43 runtime-isolation TEST.
+
+          Authority:
+          - Team Up 6.7.44.42 surfaced an UpdateTicked ArgumentException before gameplay.
+          - Alpha6715 tried to register teamup_preflight after 6.7.44 had already registered the same command.
+          - Capture-method Harmony quarantine from 6.7.44.42 remains active with hooks=0.
+
+          This build:
+          - keeps unified teamup_preflight as the sole primary command;
+          - renames the legacy Alpha6715 diagnostic to teamup_preflight_legacy;
+          - preserves ZERO broad Pelipper capture-method Harmony hooks;
+          - preserves the remaining 6.7.44 runtime and does not change Cardcha.
+
+          Expected startup:
+          Team Up 6.7.44.43 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0.
+
+          Runtime gate: load the same save and verify the duplicate-command exception is gone and the playable world appears.
+          This prerelease is not Runtime PASS until Ron confirms.
+          EOF
+          )
+          gh release create "$TAG"             "release/$ZIP_NAME"             "release/$SHA_NAME"             "BUILD_LOG_ALPHA6744_43.txt"             --target "$GITHUB_SHA"             --prerelease             --title "Team Up 6.7.44.43 Preflight Command Dedup TEST"             --notes "$NOTES"
