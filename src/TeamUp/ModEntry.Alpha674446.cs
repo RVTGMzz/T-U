@@ -21,7 +21,7 @@ public sealed partial class ModEntry
         LowerWorkingsInteriorSurveyStoryService.SurveyReportedFlagKey
     };
 
-    private LowerRouteAutoSessionAlpha674446? LowerRouteAutoSessionAlpha674446;
+    private LowerRouteAutoSessionAlpha674446? ActiveLowerRouteAutoAlpha674446;
     private string LowerRouteAutoLastAlpha674446 { get; set; } = "not-run";
 
     private void RegisterAlpha674446LowerRouteAutoTest()
@@ -44,16 +44,16 @@ public sealed partial class ModEntry
         string action = args.Length == 0 ? "run" : args[0].Trim().ToLowerInvariant();
         if (action == "status")
         {
-            if (LowerRouteAutoSessionAlpha674446 is null)
+            if (ActiveLowerRouteAutoAlpha674446 is null)
                 Monitor.Log($"[LowerRouteAuto] idle | last={LowerRouteAutoLastAlpha674446}", LogLevel.Info);
             else
-                Monitor.Log($"[LowerRouteAuto] running | step={LowerRouteAutoSessionAlpha674446.Step} | ticks={LowerRouteAutoSessionAlpha674446.StepTicks}", LogLevel.Info);
+                Monitor.Log($"[LowerRouteAuto] running | step={ActiveLowerRouteAutoAlpha674446.Step} | ticks={ActiveLowerRouteAutoAlpha674446.StepTicks}", LogLevel.Info);
             return;
         }
 
         if (action == "cancel")
         {
-            if (LowerRouteAutoSessionAlpha674446 is null)
+            if (ActiveLowerRouteAutoAlpha674446 is null)
             {
                 Monitor.Log("[LowerRouteAuto] nothing to cancel.", LogLevel.Info);
                 return;
@@ -69,7 +69,7 @@ public sealed partial class ModEntry
             return;
         }
 
-        if (LowerRouteAutoSessionAlpha674446 is not null)
+        if (ActiveLowerRouteAutoAlpha674446 is not null)
         {
             Monitor.Log("[LowerRouteAuto] A test is already running. Use teamup_lower_route_auto status.", LogLevel.Warn);
             return;
@@ -124,7 +124,7 @@ public sealed partial class ModEntry
         }
 
         Dictionary<string, string?> storyState = CaptureAlpha674446InteriorState(Game1.MasterPlayer);
-        LowerRouteAutoSessionAlpha674446 = new LowerRouteAutoSessionAlpha674446
+        ActiveLowerRouteAutoAlpha674446 = new LowerRouteAutoSessionAlpha674446
         {
             OriginalLocation = Game1.currentLocation.NameOrUniqueName,
             OriginalTile = Game1.player.TilePoint,
@@ -143,21 +143,21 @@ public sealed partial class ModEntry
         Game1.warpFarmer(breachLocation!, breachTile.X, breachTile.Y, false);
 
         Monitor.Log(
-            $"[LowerRouteAuto] AUTO TEST STARTED | original={LowerRouteAutoSessionAlpha674446.OriginalLocation}@{SerializeAlpha674446(LowerRouteAutoSessionAlpha674446.OriginalTile)} "
+            $"[LowerRouteAuto] AUTO TEST STARTED | original={ActiveLowerRouteAutoAlpha674446.OriginalLocation}@{SerializeAlpha674446(ActiveLowerRouteAutoAlpha674446.OriginalTile)} "
             + $"| breach={breachLocation}@{SerializeAlpha674446(breachTile)}. Do not move the player until the final PASS/FAIL line appears.",
             LogLevel.Info);
     }
 
     private void OnAlpha674446LowerRouteAutoUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
-        LowerRouteAutoSessionAlpha674446? session = LowerRouteAutoSessionAlpha674446;
+        LowerRouteAutoSessionAlpha674446? session = ActiveLowerRouteAutoAlpha674446;
         if (session is null)
             return;
 
         if (!Context.IsWorldReady || !Context.IsMainPlayer)
         {
             LowerRouteAutoLastAlpha674446 = "FAIL:world-became-unavailable";
-            LowerRouteAutoSessionAlpha674446 = null;
+            ActiveLowerRouteAutoAlpha674446 = null;
             return;
         }
 
@@ -253,7 +253,7 @@ public sealed partial class ModEntry
         string reason,
         Alpha674438LowerWorkingsRuntimeGateV2Service.PreflightSnapshot? snapshot = null)
     {
-        LowerRouteAutoSessionAlpha674446? session = LowerRouteAutoSessionAlpha674446;
+        LowerRouteAutoSessionAlpha674446? session = ActiveLowerRouteAutoAlpha674446;
         if (session is null)
             return;
 
@@ -320,7 +320,7 @@ public sealed partial class ModEntry
             + $"saveStateRestored=true | playerRestored={session.OriginalLocation}@{SerializeAlpha674446(session.OriginalTile)} | reason={session.ResultReason}",
             session.Pass ? LogLevel.Info : LogLevel.Warn);
 
-        LowerRouteAutoSessionAlpha674446 = null;
+        ActiveLowerRouteAutoAlpha674446 = null;
     }
 
     private static Dictionary<string, string?> CaptureAlpha674446InteriorState(Farmer owner)
