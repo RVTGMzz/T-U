@@ -8,8 +8,8 @@ namespace Ronvotri.TeamUp;
 
 public sealed partial class ModEntry
 {
-    private const string Alpha674440Branch = "v0.2-alpha6-7-44-45-runtime-profile-fallback";
-    private const string Alpha674440Version = "0.2.0-alpha.6.7.44.45";
+    private const string Alpha674440Branch = "v0.2-alpha6-7-44-46-auto-route-test";
+    private const string Alpha674440Version = "0.2.0-alpha.6.7.44.46";
 
     private void OnAlpha674440PreflightCommand(string command, string[] args)
     {
