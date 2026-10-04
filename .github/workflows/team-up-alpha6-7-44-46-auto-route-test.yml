@@ -1,0 +1,75 @@
+name: Team Up v0.2.0-alpha.6.7.44.46 Auto Lower Route Test
+
+on:
+  push:
+    branches:
+      - v0.2-alpha6-7-44-46-auto-route-test
+    paths:
+      - 'src/TeamUp/**'
+      - 'tools/build_alpha6744_46.py'
+      - '.github/workflows/team-up-alpha6-7-44-46-auto-route-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      ZIP_NAME: TeamUp_v0.2.0-alpha.6.7.44.46_AUTO_ROUTE_TEST.zip
+      SHA_NAME: TeamUp_v0.2.0-alpha.6.7.44.46_AUTO_ROUTE_TEST.sha256.txt
+
+    steps:
+      - name: Checkout 6.7.44.46 branch
+        uses: actions/checkout@v4
+
+      - name: Setup SMAPI build environment
+        uses: Pathoschild/SMAPI-ModBuildWorkflow/add-build-environment@v1
+        with:
+          dotnet_version: 6.0.x
+
+      - name: Build and audit 6.7.44.46 auto route test
+        run: python3 tools/build_alpha6744_46.py
+
+      - name: Upload 6.7.44.46 workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-up-alpha6-7-44-46-auto-route-test
+          path: |
+            release/${{ env.ZIP_NAME }}
+            release/${{ env.SHA_NAME }}
+            BUILD_LOG_ALPHA6744_46.txt
+          if-no-files-found: error
+
+      - name: Publish 6.7.44.46 TEST prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA:0:8}"
+          TAG="team-up-6.7.44.46-auto-route-${SHORT_SHA}"
+          NOTES=$(cat <<'EOF'
+          Team Up 6.7.44.46 one-command Lower Workings route TEST.
+
+          This build preserves the 6.7.44.45 runtime NPC profile fallback and all existing 6.7.44 stability locks.
+
+          New command:
+          teamup_lower_route_auto
+
+          The command:
+          - validates existing Lower Workings prerequisites and persisted breach anchor;
+          - snapshots the current Interior Survey story keys and player position;
+          - resets only Lower Route telemetry;
+          - temporarily arms the existing formation bypass;
+          - drives the real production entry and safe-return handlers automatically;
+          - validates exact entry/return/map/error counters;
+          - restores the original Interior Survey story state and player position;
+          - prints one final AUTO TEST PASS or AUTO TEST FAIL line.
+
+          Capture broad Harmony scan remains disabled with hooks=0.
+          This is still part of the 6.7.44 stabilization line. 6.7.45 Containment Chamber Escalation Encounter has not started.
+          EOF
+          )
+          gh release create "$TAG"             "release/$ZIP_NAME"             "release/$SHA_NAME"             "BUILD_LOG_ALPHA6744_46.txt"             --target "$GITHUB_SHA"             --prerelease             --title "Team Up 6.7.44.46 Auto Lower Route TEST"             --notes "$NOTES"
