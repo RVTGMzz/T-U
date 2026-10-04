@@ -242,11 +242,11 @@ try:
         "public Alpha674436EliteCaptureGuardService(IMonitor monitor, string uniqueId)", 1
     )[1].split("public string Describe()", 1)[0]
     req("PatchPelipperCaptureMethods(" not in constructor,
-        "6.7.44.45 constructor still installs broad Pelipper capture Harmony hooks")
-    req("Team Up 6.7.44.45 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0." in capture,
-        "6.7.44.45 load-safe capture guard startup proof token missing")
+        "6.7.44.46 constructor still installs broad Pelipper capture Harmony hooks")
+    req("Team Up 6.7.44.46 load-safe capture guard: Pelipper capture-method Harmony patching disabled; hooks=0." in capture,
+        "6.7.44.46 load-safe capture guard startup proof token missing")
     req("load-safe-disabled" in capture,
-        "6.7.44.45 capture guard diagnostic does not expose disabled state")
+        "6.7.44.46 capture guard diagnostic does not expose disabled state")
     req("PatchPelipperCaptureMethods(IEnumerable<Assembly> assemblies)" in capture,
         "dormant capture implementation unexpectedly removed; isolation should be reversible")
     log("CAPTURE GUARD LOAD-SAFE QUARANTINE / ZERO INSTALL CALL: PASS")
