@@ -129,7 +129,7 @@ try:
         "GetPreflightSnapshot()",
         "RestoreAlpha674446InteriorState",
         "saveStateRestored=true",
-        "AUTO TEST PASS",
+        "AUTO TEST {status}",
     ]:
         req(token in auto_route, f"automatic Lower route token missing: {token}")
     for forbidden_token in ["WriteConfig", "MaxPartyMembers =", "MutationPhaseTotal", "PatchPelipperCaptureMethods("]:
